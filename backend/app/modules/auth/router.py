@@ -15,10 +15,16 @@ def login(credentials: schemas.LoginRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Usuario inactivo")
     
     access_token = create_access_token(data={"sub": user.email})
-    return {"access_token": access_token, "token_type": "bearer", "user_email": user.email}
+    role_names = [role.name for role in user.roles]
+    return {
+        "access_token": access_token, 
+        "token_type": "bearer", 
+        "user_email": user.email,
+        "roles": role_names
+    }
 
-@router.post("/register-admin", response_model=schemas.UserResponse)
-def register_admin(user: schemas.UserCreate, db: Session = Depends(get_db)):
+@router.post("/register", response_model=schemas.UserResponse)
+def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
     db_user = db.query(models.User).filter(models.User.email == user.email).first()
     if db_user:
         raise HTTPException(status_code=400, detail="El email ya existe")

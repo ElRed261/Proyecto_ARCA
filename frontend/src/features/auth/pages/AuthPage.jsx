@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { authService } from '../api/authService';
 import { Shield, UserPlus, LogIn, Server } from 'lucide-react';
+import loginBg from '../../../assets/login-bg.png';
 
 const AuthPage = ({ addLog, onLoginSuccess }) => {
     const [isLogin, setIsLogin] = useState(true); // Switch entre Login y Registro
@@ -10,10 +11,10 @@ const AuthPage = ({ addLog, onLoginSuccess }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
-        const action = isLogin ? 'Iniciando Sesión' : 'Registrando Admin';
+        const action = isLogin ? 'Iniciando Sesión' : 'Registrando Usuario';
 
         // Log inicial
-        addLog(`Enviando petición POST a ${isLogin ? '/api/auth/login' : '/api/auth/register-admin'}...`, 'info');
+        addLog(`Enviando petición POST a ${isLogin ? '/api/auth/login' : '/api/auth/register'}...`, 'info');
 
         try {
             if (isLogin) {
@@ -36,8 +37,18 @@ const AuthPage = ({ addLog, onLoginSuccess }) => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-100 flex items-center justify-center pb-48">
-            <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md border border-gray-200">
+        <div
+            className="min-h-screen bg-gray-900 flex items-center justify-center pb-48 relative"
+            style={{
+                backgroundImage: `url(${loginBg})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center'
+            }}
+        >
+            {/* Overlay para oscurecer el fondo y dar legibilidad */}
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
+
+            <div className="bg-white/95 backdrop-blur-md p-8 rounded-xl shadow-2xl w-full max-w-md border border-white/20 relative z-10">
 
                 {/* Cabecera */}
                 <div className="text-center mb-8">
@@ -60,7 +71,7 @@ const AuthPage = ({ addLog, onLoginSuccess }) => {
                         onClick={() => setIsLogin(false)}
                         className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${!isLogin ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
                     >
-                        Registrar Admin
+                        Registrarse
                     </button>
                 </div>
 

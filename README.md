@@ -165,6 +165,18 @@ npm run dev
 ```
 > El Frontend estará disponible en: `http://localhost:5173`
 
+### 🚀 Opción Rápida (Recomendada)
+
+Hemos creado un script unificado para iniciar todo el sistema con un solo comando:
+
+```bash
+# Dar permisos de ejecución (solo la primera vez)
+chmod +x run_dev.sh
+
+# Iniciar todo
+./run_dev.sh
+```
+
 ---
 
 ## 👨‍💻 Autor

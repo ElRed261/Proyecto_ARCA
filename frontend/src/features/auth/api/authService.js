@@ -10,16 +10,16 @@ export const authService = {
         if (response.data.access_token) {
             localStorage.setItem('token', response.data.access_token);
             localStorage.setItem('user_email', response.data.user_email);
+            localStorage.setItem('user_roles', JSON.stringify(response.data.roles));
         }
         return response.data;
     },
 
-    // Función para registrar admin (solo para pruebas iniciales)
+    // Función para registrar usuario
     register: async (email, password) => {
-        const response = await api.post('/auth/register-admin', {
+        const response = await api.post('/auth/register', {
             email,
-            password,
-            role_name: 'admin' // Valor por defecto
+            password
         });
         return response.data;
     },
@@ -28,5 +28,27 @@ export const authService = {
     logout: () => {
         localStorage.removeItem('token');
         localStorage.removeItem('user_email');
+        localStorage.removeItem('user_roles');
+    },
+
+    // --- ADMIN METHODS ---
+    getUsers: async () => {
+        const response = await api.get('/admin/users');
+        return response.data;
+    },
+
+    updateUser: async (userId, data) => {
+        const response = await api.put(`/admin/users/${userId}`, data);
+        return response.data;
+    },
+
+    changePassword: async (userId, password) => {
+        const response = await api.put(`/admin/users/${userId}/password`, { password });
+        return response.data;
+    },
+
+    deleteUser: async (userId) => {
+        const response = await api.delete(`/admin/users/${userId}`);
+        return response.data;
     }
 };

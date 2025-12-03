@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import AuthPage from './features/auth/pages/AuthPage';
 import DashboardPage from './features/dashboard/pages/DashboardPage';
+import AdminPage from './features/auth/pages/AdminPage';
 
 function App() {
   // --- ESTADOS GLOBALES DEL SISTEMA ---
@@ -18,9 +19,11 @@ function App() {
   useEffect(() => {
     const token = localStorage.getItem('token');
     const email = localStorage.getItem('user_email');
+    const savedRoles = localStorage.getItem('user_roles');
 
     if (token && email) {
-      setUser({ email });
+      const roles = savedRoles ? JSON.parse(savedRoles) : [];
+      setUser({ email, roles });
       addLog('Sistema restaurado. Sesión activa detectada.', 'success');
     }
   }, []);
@@ -28,7 +31,7 @@ function App() {
   // --- MANEJADORES (HANDLERS) ---
 
   const handleLoginSuccess = (userData) => {
-    setUser({ email: userData.user_email });
+    setUser({ email: userData.user_email, roles: userData.roles || [] });
     // Este log aparecerá apenas cargue el Dashboard
     addLog(`Autenticación correcta. Bienvenido: ${userData.user_email}`, 'success');
     addLog('Inicializando módulos del núcleo empresarial...', 'info');
@@ -37,6 +40,7 @@ function App() {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user_email');
+    localStorage.removeItem('user_roles');
     setUser(null);
     setCurrentModule('dashboard');
     setCurrentModule('dashboard');
@@ -99,12 +103,20 @@ function App() {
             />
           )}
 
+          {/* Vista 5: Contabilidad */}
+          {currentModule === 'accounting' && (
+            <ModulePlaceholder
+              name="Contabilidad"
+              description="Libro mayor, reportes financieros e impuestos."
+              onBack={() => setCurrentModule('dashboard')}
+            />
+          )}
+
           {/* Vista 5: Admin */}
           {currentModule === 'admin' && (
-            <ModulePlaceholder
-              name="Seguridad y Auditoría"
-              description="Configuración de Roles, Usuarios y Permisos."
+            <AdminPage
               onBack={() => setCurrentModule('dashboard')}
+              addLog={addLog}
             />
           )}
 

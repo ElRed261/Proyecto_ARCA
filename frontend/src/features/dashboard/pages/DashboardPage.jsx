@@ -35,7 +35,7 @@ const DashboardPage = ({ user, onLogout, onNavigate }) => {
             description: 'Libro mayor, reportes financieros e impuestos (Próximamente).',
             icon: PieChart,
             color: 'bg-red-500 text-red-600',
-            status: 'disabled' // Ejemplo de módulo deshabilitado
+            status: 'active'
         },
         {
             id: 'admin',
@@ -46,6 +46,14 @@ const DashboardPage = ({ user, onLogout, onNavigate }) => {
             status: 'active'
         },
     ];
+
+    // Filtrar módulos según rol
+    const isAdmin = user.roles && user.roles.some(r => ['admin', 'administrador'].includes(r.toLowerCase()));
+
+    const visibleModules = modules.filter(mod => {
+        if (mod.id === 'admin') return isAdmin;
+        return true;
+    });
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -83,7 +91,7 @@ const DashboardPage = ({ user, onLogout, onNavigate }) => {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {modules.map((mod) => (
+                    {visibleModules.map((mod) => (
                         <ModuleCard
                             key={mod.id}
                             {...mod}
