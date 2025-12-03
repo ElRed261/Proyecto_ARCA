@@ -18,11 +18,11 @@ A diferencia de los ERPs tradicionales, ARCA está construido con ingeniería mo
 
 | Módulo | Estado | Descripción |
 | :--- | :---: | :--- |
-| **🔐 Auth & Core** | 🟢 Listo | Gestión de identidad, seguridad JWT, Hashing y Roles. |
+| **🔐 Auth & Core** | 🟢 Listo | Gestión de identidad, seguridad JWT, Hashing y Roles (RBAC). |
+| **💰 Accounting** | 🟢 Beta | Plan de cuentas, Asientos, Mayor, Periodos, Centros de Costos y Reportes. |
 | **👥 HRM (RRHH)** | 🟡 Estructura | Gestión de empleados, contratos y perfiles. |
 | **📦 SCM (Inventario)** | 🟡 Estructura | Logística, Almacenes, Productos y Proveedores. |
 | **🤝 CRM (Ventas)** | 🟡 Estructura | Clientes, Oportunidades y Pedidos de Venta. |
-| **💰 Accounting** | 🔴 Pendiente | Libro mayor, Impuestos y Facturación. |
 
 ---
 
@@ -61,6 +61,13 @@ El sistema utiliza **PostgreSQL** con un diseño relacional normalizado. A conti
 *   **`roles`**: Roles definidos (Admin, Gerente, Vendedor, etc.).
 *   **`user_roles`**: Tabla pivote para relación Muchos-a-Muchos entre Usuarios y Roles.
 
+### 💰 Accounting (Contabilidad)
+*   **`accounts`**: Plan de cuentas jerárquico.
+*   **`journal_entries`**: Cabecera de asientos contables.
+*   **`journal_items`**: Detalle de movimientos (Debe/Haber).
+*   **`fiscal_periods`**: Control de periodos contables (Abierto/Cerrado).
+*   **`cost_centers`**: Centros de costos para imputación.
+
 ### 👥 HRM (Recursos Humanos)
 *   **`employees`**: Información del personal (cédula, nombres, fecha contratación).
     *   *Relación:* Vinculado 1:1 con `users` (opcional).
@@ -91,11 +98,11 @@ Proyecto_ARCA/
 │   ├── app/
 │   │   ├── core/           # Configuración global (DB, Seguridad, Settings)
 │   │   ├── modules/        # Módulos de Negocio (Lógica encapsulada)
-│   │   │   ├── auth/       # Modelos y Rutas de Autenticación
+│   │   │   ├── auth/       # Servicios, Modelos y Rutas de Autenticación
+│   │   │   ├── accounting/ # Servicios, Modelos y Rutas de Contabilidad
 │   │   │   ├── crm/        # Módulo de Ventas
 │   │   │   ├── hrm/        # Módulo de RRHH
-│   │   │   ├── scm/        # Módulo de Inventario
-│   │   │   └── accounting/ # Módulo Contable (Futuro)
+│   │   │   └── scm/        # Módulo de Inventario
 │   │   └── main.py         # Punto de entrada de la API
 │   ├── alembic/            # Scripts de migración de BD
 │   └── requirements.txt    # Dependencias de Python
@@ -104,9 +111,10 @@ Proyecto_ARCA/
     ├── src/
     │   ├── features/       # "Espejo" de los módulos del backend (Vistas y Lógica)
     │   │   ├── auth/       # Páginas de Login y Registro
+    │   │   ├── accounting/ # Dashboard, Plan de Cuentas, Reportes, etc.
     │   │   ├── dashboard/  # Panel Principal y Navegación
     │   │   └── ...         # Otros módulos
-    │   ├── shared/         # Componentes reutilizables (UI Kit, Hooks, Utils)
+    │   ├── shared/         # Componentes reutilizables (Logo, UserMenu, UI Kit)
     │   ├── App.jsx         # Componente Raíz y Configuración de Rutas
     │   └── main.jsx        # Punto de montaje React
     ├── package.json        # Dependencias de Node.js
@@ -164,6 +172,18 @@ npm install
 npm run dev
 ```
 > El Frontend estará disponible en: `http://localhost:5173`
+
+### 🔑 Credenciales por Defecto
+
+Para acceder con privilegios de administrador:
+
+*   **Usuario:** `admin@arca.com`
+*   **Contraseña:** `123456`
+
+Para pruebas de usuario estándar:
+
+*   **Usuario:** `test@arca.com`
+*   **Contraseña:** `123`
 
 ### 🚀 Opción Rápida (Recomendada)
 

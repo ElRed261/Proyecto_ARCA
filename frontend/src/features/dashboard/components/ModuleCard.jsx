@@ -19,7 +19,7 @@ const ModuleCard = ({ title, description, icon: Icon, color, onClick, status = '
             <div className={`absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 rounded-full opacity-10 ${color}`}></div>
 
             <div className="flex items-start justify-between mb-4">
-                <div className={`p-3 rounded-lg ${isDisabled ? 'bg-gray-200' : `${color} bg-opacity-10 text-gray-700`}`}>
+                <div className={`p-3 rounded-lg transition-colors duration-300 ${isDisabled ? 'bg-gray-200' : `${color} bg-opacity-10 text-gray-700 group-hover:text-white group-hover:bg-opacity-100`}`}>
                     <Icon size={32} className={isDisabled ? 'text-gray-400' : ''} />
                 </div>
                 {status === 'beta' && (
@@ -29,7 +29,7 @@ const ModuleCard = ({ title, description, icon: Icon, color, onClick, status = '
                 )}
             </div>
 
-            <h3 className="text-xl font-bold text-gray-800 mb-2 group-hover:text-blue-600 transition-colors">
+            <h3 className="text-xl font-bold text-gray-800 mb-2 group-hover:text-gray-900 transition-colors">
                 {title}
             </h3>
             <p className="text-gray-500 text-sm mb-6 leading-relaxed">
@@ -37,7 +37,7 @@ const ModuleCard = ({ title, description, icon: Icon, color, onClick, status = '
             </p>
 
             {!isDisabled && (
-                <div className="flex items-center text-sm font-semibold text-blue-600 group-hover:gap-2 transition-all">
+                <div className={`flex items-center text-sm font-semibold group-hover:gap-2 transition-all ${color.split(' ')[1] || 'text-blue-600'}`}>
                     Acceder al Módulo <ArrowRight size={16} className="ml-1" />
                 </div>
             )}

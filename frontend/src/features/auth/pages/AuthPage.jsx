@@ -3,14 +3,18 @@ import { authService } from '../api/authService';
 import { Shield, UserPlus, LogIn, Server } from 'lucide-react';
 import loginBg from '../../../assets/login-bg.png';
 
+import Logo from '../../../shared/components/Logo';
+
 const AuthPage = ({ addLog, onLoginSuccess }) => {
     const [isLogin, setIsLogin] = useState(true); // Switch entre Login y Registro
     const [formData, setFormData] = useState({ email: '', password: '' });
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
+        setError(null);
         const action = isLogin ? 'Iniciando Sesión' : 'Registrando Usuario';
 
         // Log inicial
@@ -30,6 +34,7 @@ const AuthPage = ({ addLog, onLoginSuccess }) => {
         } catch (error) {
             console.error(error);
             const errorMsg = error.response?.data?.detail || "Error de conexión con el servidor";
+            setError(errorMsg);
             addLog(`Error Crítico: ${errorMsg}`, 'error');
         } finally {
             setLoading(false);
@@ -38,7 +43,7 @@ const AuthPage = ({ addLog, onLoginSuccess }) => {
 
     return (
         <div
-            className="min-h-screen bg-gray-900 flex items-center justify-center pb-48 relative"
+            className="min-h-screen bg-gray-900 flex items-center justify-center relative"
             style={{
                 backgroundImage: `url(${loginBg})`,
                 backgroundSize: 'cover',
@@ -51,29 +56,19 @@ const AuthPage = ({ addLog, onLoginSuccess }) => {
             <div className="bg-white/95 backdrop-blur-md p-8 rounded-xl shadow-2xl w-full max-w-md border border-white/20 relative z-10">
 
                 {/* Cabecera */}
-                <div className="text-center mb-8">
-                    <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 text-blue-600 rounded-full mb-4">
-                        <Shield size={32} />
+                <div className="text-center mb-8 flex flex-col items-center">
+                    <div className="mb-4 transform scale-150">
+                        <Logo variant="full" />
                     </div>
-                    <h1 className="text-2xl font-bold text-gray-800">Proyecto ARCA</h1>
-                    <p className="text-gray-500 text-sm">Acceso al Sistema ERP</p>
+                    <p className="text-gray-500 text-sm mt-2">Acceso al Sistema ERP</p>
                 </div>
 
-                {/* Tabs */}
-                <div className="flex mb-6 bg-gray-100 p-1 rounded-lg">
-                    <button
-                        onClick={() => setIsLogin(true)}
-                        className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${isLogin ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
-                    >
-                        Iniciar Sesión
-                    </button>
-                    <button
-                        onClick={() => setIsLogin(false)}
-                        className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${!isLogin ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
-                    >
-                        Registrarse
-                    </button>
-                </div>
+                {/* Mensaje de Error */}
+                {error && (
+                    <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg flex items-center justify-center animate-shake">
+                        {error}
+                    </div>
+                )}
 
                 {/* Formulario */}
                 <form onSubmit={handleSubmit} className="space-y-4">
@@ -83,7 +78,7 @@ const AuthPage = ({ addLog, onLoginSuccess }) => {
                             type="email"
                             required
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
-                            placeholder="admin@arca.com"
+                            placeholder="test@arca.com"
                             value={formData.email}
                             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                         />
@@ -105,18 +100,31 @@ const AuthPage = ({ addLog, onLoginSuccess }) => {
                         type="submit"
                         disabled={loading}
                         className={`w-full py-3 rounded-lg text-white font-bold shadow-lg transition transform active:scale-95 flex items-center justify-center gap-2
-              ${loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
+              ${loading ? 'bg-gray-400 cursor-not-allowed' : isLogin ? 'bg-blue-600 hover:bg-blue-700' : 'bg-purple-600 hover:bg-purple-700'}`}
                     >
                         {loading ? (
                             <span className="animate-pulse">Procesando...</span>
                         ) : (
                             <>
                                 {isLogin ? <LogIn size={18} /> : <UserPlus size={18} />}
-                                {isLogin ? 'Entrar al Sistema' : 'Crear Cuenta'}
+                                {isLogin ? 'Iniciar Sesión' : 'Crear Cuenta'}
                             </>
                         )}
                     </button>
                 </form>
+
+                {/* Toggle Login/Register */}
+                <div className="mt-6 text-center">
+                    <button
+                        onClick={() => {
+                            setIsLogin(!isLogin);
+                            setError(null);
+                        }}
+                        className={`text-sm font-medium hover:underline transition-colors ${isLogin ? 'text-blue-600 hover:text-blue-800' : 'text-purple-600 hover:text-purple-800'}`}
+                    >
+                        {isLogin ? '¿No tienes cuenta? Regístrate aquí' : '¿Ya tienes cuenta? Inicia sesión'}
+                    </button>
+                </div>
 
                 {/* Footer info */}
                 <div className="mt-6 text-center text-xs text-gray-400 flex items-center justify-center gap-1">

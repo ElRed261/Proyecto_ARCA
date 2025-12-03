@@ -7,8 +7,8 @@ import time
 
 # Configuration
 BASE_URL = "http://127.0.0.1:8000/api"
-ADMIN_EMAIL = "test@arca.com"
-ADMIN_PASSWORD = "123"
+ADMIN_EMAIL = "admin@arca.com"
+ADMIN_PASSWORD = "123456"
 
 # Disable SSL verification for localhost
 ctx = ssl.create_default_context()

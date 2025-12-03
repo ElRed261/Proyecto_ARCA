@@ -4,6 +4,8 @@ import { LayoutDashboard, BookOpen, FileText, PieChart, Calendar, Layers } from 
 
 import UserMenu from '../../../shared/components/UserMenu';
 
+import Logo from '../../../shared/components/Logo';
+
 const AccountingLayout = ({ user, onLogout }) => {
     const location = useLocation();
 
@@ -24,11 +26,13 @@ const AccountingLayout = ({ user, onLogout }) => {
             {/* Sidebar */}
             <div className="w-64 bg-white border-r border-gray-200 flex flex-col">
                 <div className="p-6 border-b border-gray-200">
-                    <h2 className="text-xl font-bold text-red-600 flex items-center gap-2">
-                        <PieChart size={24} />
-                        Contabilidad
-                    </h2>
-                    <p className="text-xs text-gray-500 mt-1">Módulo Financiero</p>
+                    <div className="mb-4">
+                        <Logo variant="medium" />
+                    </div>
+                    <div className="flex items-center gap-2 text-red-600 font-semibold text-sm">
+                        <PieChart size={16} />
+                        <span>Contabilidad</span>
+                    </div>
                 </div>
 
                 <nav className="flex-1 p-4 space-y-1">

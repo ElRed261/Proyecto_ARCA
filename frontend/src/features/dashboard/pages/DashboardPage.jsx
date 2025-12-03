@@ -4,6 +4,8 @@ import { Users, Package, ShoppingBag, ShieldCheck, PieChart, Settings } from 'lu
 
 import UserMenu from '../../../shared/components/UserMenu';
 
+import Logo from '../../../shared/components/Logo';
+
 const DashboardPage = ({ user, onLogout, onNavigate }) => {
 
     const modules = [
@@ -62,13 +64,9 @@ const DashboardPage = ({ user, onLogout, onNavigate }) => {
             {/* Barra Superior */}
             <nav className="bg-white shadow-sm border-b border-gray-200 px-8 py-4 flex justify-between items-center sticky top-0 z-30">
                 <div className="flex items-center gap-3">
-                    <div className="bg-blue-600 p-2 rounded-lg">
-                        <Settings className="text-white" size={20} />
-                    </div>
-                    <div>
-                        <h1 className="text-xl font-bold text-gray-800 tracking-tight">Proyecto ARCA</h1>
-                        <p className="text-xs text-gray-400 font-mono">v1.0.0 Enterprise Edition</p>
-                    </div>
+                    <Logo variant="medium" />
+                    <div className="h-6 w-px bg-gray-300 mx-2"></div>
+                    <p className="text-xs text-gray-400 font-mono mt-1">v1.0.0 Enterprise</p>
                 </div>
 
                 <UserMenu user={user} onLogout={onLogout} />
