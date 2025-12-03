@@ -2,6 +2,8 @@ import React from 'react';
 import ModuleCard from '../components/ModuleCard';
 import { Users, Package, ShoppingBag, ShieldCheck, PieChart, Settings } from 'lucide-react';
 
+import UserMenu from '../../../shared/components/UserMenu';
+
 const DashboardPage = ({ user, onLogout, onNavigate }) => {
 
     const modules = [
@@ -69,18 +71,7 @@ const DashboardPage = ({ user, onLogout, onNavigate }) => {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-6">
-                    <div className="text-right hidden md:block">
-                        <p className="text-sm font-semibold text-gray-700">{user.email}</p>
-                        <p className="text-xs text-green-600 font-medium">● Conectado</p>
-                    </div>
-                    <button
-                        onClick={onLogout}
-                        className="bg-gray-100 hover:bg-red-50 text-gray-600 hover:text-red-600 px-4 py-2 rounded-lg transition-colors text-sm font-medium border border-transparent hover:border-red-200"
-                    >
-                        Cerrar Sesión
-                    </button>
-                </div>
+                <UserMenu user={user} onLogout={onLogout} />
             </nav>
 
             {/* Contenido Principal (Mosaicos) */}
