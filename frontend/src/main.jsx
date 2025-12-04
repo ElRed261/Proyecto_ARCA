@@ -5,10 +5,18 @@ import App from './App.jsx'
 
 import { BrowserRouter } from 'react-router-dom'
 
-createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <BrowserRouter>
-      <App />
-    </BrowserRouter>
-  </StrictMode>,
-)
+console.log("Frontend mounting...");
+
+try {
+  createRoot(document.getElementById('root')).render(
+    <StrictMode>
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
+    </StrictMode>,
+  )
+  console.log("App rendered successfully");
+} catch (error) {
+  console.error("Error rendering app:", error);
+  document.getElementById('root').innerHTML = '<h1 style="color:red;">Error: ' + error.message + '</h1>';
+}

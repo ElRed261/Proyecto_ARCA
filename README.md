@@ -2,6 +2,7 @@
 > **Arquitectura de Recursos, Cómputo y Administración**
 
 ![Status](https://img.shields.io/badge/Estado-En_Desarrollo-orange?style=for-the-badge)
+![Version](https://img.shields.io/badge/Version-2.0.0-blue?style=for-the-badge)
 ![Backend](https://img.shields.io/badge/Backend-FastAPI_Python-green?style=for-the-badge)
 ![Frontend](https://img.shields.io/badge/Frontend-React_Vite-blue?style=for-the-badge)
 ![Database](https://img.shields.io/badge/Database-PostgreSQL-336791?style=for-the-badge)
@@ -10,192 +11,137 @@
 
 ## 📋 Sobre el Proyecto
 
-**Proyecto ARCA** es un sistema ERP (Enterprise Resource Planning) diseñado bajo una arquitectura de **Monolito Modular**. Su objetivo es centralizar y proteger todos los procesos vitales de una organización en un solo lugar seguro, escalable y eficiente.
+**Proyecto ARCA** es un sistema especializado para la **gestión de datos meteorológicos e hidrológicos**, diseñado bajo una arquitectura de **Monolito Modular**. Su objetivo es centralizar la captura, procesamiento, auditoría y reporte de observaciones climáticas de estaciones meteorológicas.
 
-A diferencia de los ERPs tradicionales, ARCA está construido con ingeniería moderna, separando estrictamente la lógica de negocio en módulos independientes pero interconectados.
+El sistema facilita:
+- 📊 **Registro de observaciones sinópticas** y datos de estaciones CLI
+- 📈 **Generación de resúmenes mensuales** consolidados
+- 🔍 **Auditoría y corrección** de datos históricos
+- 👥 **Gestión de usuarios** con control de acceso basado en roles
 
 ### 🧩 Módulos del Sistema
 
 | Módulo | Estado | Descripción |
 | :--- | :---: | :--- |
 | **🔐 Auth & Core** | 🟢 Listo | Gestión de identidad, seguridad JWT, Hashing y Roles (RBAC). |
-| **💰 Accounting** | 🟢 Beta | Plan de cuentas, Asientos, Mayor, Periodos, Centros de Costos y Reportes. |
-| **👥 HRM (RRHH)** | 🟡 Estructura | Gestión de empleados, contratos y perfiles. |
-| **📦 SCM (Inventario)** | 🟡 Estructura | Logística, Almacenes, Productos y Proveedores. |
-| **🤝 CRM (Ventas)** | 🟡 Estructura | Clientes, Oportunidades y Pedidos de Venta. |
+| **🌤️ Observación Sinóptica** | 🟢 Activo | Registro y visualización de logs del sistema y datos de estaciones. |
+| **📊 Resumen Mensual** | 🟢 Activo | Generación y consulta de resúmenes financieros/operativos mensuales. |
+| **🔍 Correcciones y Auditoría** | 🟢 Activo | Logs de auditoría y gestión de solicitudes de corrección de datos. |
 
 ---
 
-## 🛠️ Stack Tecnológico y Librerías
-
-El proyecto utiliza un stack de alto rendimiento (High-Performance) con las siguientes tecnologías y librerías clave:
+## 🛠️ Stack Tecnológico
 
 ### 🧠 Backend (Python 3.10+)
-*   **Framework Web:** `FastAPI` (Alto rendimiento, asíncrono).
-*   **Servidor ASGI:** `Uvicorn` (Servidor de aplicaciones).
-*   **Base de Datos (ORM):** `SQLAlchemy` (Gestión de modelos relacionales).
-*   **Migraciones:** `Alembic` (Control de versiones de BD - *Configurado*).
-*   **Validación de Datos:** `Pydantic` (Validación estricta de tipos).
-*   **Seguridad:**
-    *   `Python-Jose`: Generación y validación de Tokens JWT.
-    *   `Passlib[bcrypt]`: Hashing seguro de contraseñas.
-*   **Utilidades:** `Python-Dotenv` (Variables de entorno).
+*   **Framework Web:** `FastAPI` (Alto rendimiento, asíncrono)
+*   **Servidor ASGI:** `Uvicorn`
+*   **Base de Datos (ORM):** `SQLAlchemy`
+*   **Validación de Datos:** `Pydantic`
+*   **Seguridad:** `Python-Jose` (JWT) + `Passlib[bcrypt]` (Hashing)
 
-### 💻 Frontend (React 18+)
-*   **Core:** `React` + `React DOM`.
-*   **Build Tool:** `Vite` (Empaquetado ultra rápido).
-*   **Estilos:** `Tailwind CSS v4` + `PostCSS` (Diseño Utility-first).
-*   **Enrutamiento:** `React Router DOM` (Navegación SPA).
-*   **Cliente HTTP:** `Axios` (Conexión con API).
-*   **Iconos:** `Lucide React` (Iconografía moderna y ligera).
-*   **Linter:** `ESLint` (Calidad de código).
+### 💻 Frontend (React 19+)
+*   **Core:** `React` + `React DOM`
+*   **Build Tool:** `Vite 7`
+*   **Estilos:** `Tailwind CSS v4`
+*   **Enrutamiento:** `React Router DOM v7`
+*   **Cliente HTTP:** `Axios`
+*   **Iconos:** `Lucide React`
 
 ---
 
 ## 🗄️ Estructura de Base de Datos
 
-El sistema utiliza **PostgreSQL** con un diseño relacional normalizado. A continuación se detallan las tablas principales por módulo:
-
 ### 🔐 Auth (Autenticación)
-*   **`users`**: Usuarios del sistema (email, password_hash, is_active).
-*   **`roles`**: Roles definidos (Admin, Gerente, Vendedor, etc.).
-*   **`user_roles`**: Tabla pivote para relación Muchos-a-Muchos entre Usuarios y Roles.
+*   **`users`**: Usuarios del sistema (email, password_hash, is_active)
+*   **`roles`**: Roles definidos (Admin, Operador, Auditor)
+*   **`user_roles`**: Relación Muchos-a-Muchos entre Usuarios y Roles
 
-### 💰 Accounting (Contabilidad)
-*   **`accounts`**: Plan de cuentas jerárquico.
-*   **`journal_entries`**: Cabecera de asientos contables.
-*   **`journal_items`**: Detalle de movimientos (Debe/Haber).
-*   **`fiscal_periods`**: Control de periodos contables (Abierto/Cerrado).
-*   **`cost_centers`**: Centros de costos para imputación.
+### 🌤️ Synoptic (Observación Sinóptica)
+*   **`system_logs`**: Logs del sistema con timestamp, nivel, módulo y mensaje
 
-### 👥 HRM (Recursos Humanos)
-*   **`employees`**: Información del personal (cédula, nombres, fecha contratación).
-    *   *Relación:* Vinculado 1:1 con `users` (opcional).
+### 📊 Summary (Resumen Mensual)
+*   **`monthly_summaries`**: Resúmenes con ingresos, gastos y balance neto por periodo
 
-### 📦 SCM (Cadena de Suministro)
-*   **`categories`**: Categorías de productos.
-*   **`products`**: Catálogo maestro (SKU, precios, costos).
-*   **`warehouses`**: Bodegas y ubicaciones físicas.
-*   **`inventory_movements`**: Kardex de movimientos (Entradas/Salidas/Ajustes).
-*   **`suppliers`**: Proveedores.
-*   **`purchase_orders`**: Cabecera de órdenes de compra.
-*   **`purchase_details`**: Detalle de productos en órdenes de compra.
-
-### 🤝 CRM (Gestión Comercial)
-*   **`customers`**: Clientes (RNC/Cédula, contacto).
-*   **`sale_orders`**: Cabecera de pedidos de venta/cotizaciones.
-*   **`sale_order_details`**: Detalle de productos en ventas.
+### 🔍 Audit (Correcciones y Auditoría)
+*   **`audit_logs`**: Registro de acciones con entidad, acción y detalles
+*   **`correction_requests`**: Solicitudes de corrección con estado y descripción
 
 ---
 
-## 📂 Estructura de Archivos y Carpetas
-
-El código sigue una estructura de **Alta Cohesión y Bajo Acoplamiento**, facilitando la escalabilidad.
+## 📂 Estructura de Archivos
 
 ```text
 Proyecto_ARCA/
 ├── backend/
 │   ├── app/
-│   │   ├── core/           # Configuración global (DB, Seguridad, Settings)
-│   │   ├── modules/        # Módulos de Negocio (Lógica encapsulada)
-│   │   │   ├── auth/       # Servicios, Modelos y Rutas de Autenticación
-│   │   │   ├── accounting/ # Servicios, Modelos y Rutas de Contabilidad
-│   │   │   ├── crm/        # Módulo de Ventas
-│   │   │   ├── hrm/        # Módulo de RRHH
-│   │   │   └── scm/        # Módulo de Inventario
+│   │   ├── core/           # Configuración global (DB, Seguridad)
+│   │   ├── modules/        # Módulos de Negocio
+│   │   │   ├── auth/       # Autenticación y Usuarios
+│   │   │   ├── synoptic/   # Observación Sinóptica
+│   │   │   ├── summary/    # Resumen Mensual
+│   │   │   └── audit/      # Correcciones y Auditoría
 │   │   └── main.py         # Punto de entrada de la API
-│   ├── alembic/            # Scripts de migración de BD
-│   └── requirements.txt    # Dependencias de Python
+│   └── requirements.txt
 │
-└── frontend/
-    ├── src/
-    │   ├── features/       # "Espejo" de los módulos del backend (Vistas y Lógica)
-    │   │   ├── auth/       # Páginas de Login y Registro
-    │   │   ├── accounting/ # Dashboard, Plan de Cuentas, Reportes, etc.
-    │   │   ├── dashboard/  # Panel Principal y Navegación
-    │   │   └── ...         # Otros módulos
-    │   ├── shared/         # Componentes reutilizables (Logo, UserMenu, UI Kit)
-    │   ├── App.jsx         # Componente Raíz y Configuración de Rutas
-    │   └── main.jsx        # Punto de montaje React
-    ├── package.json        # Dependencias de Node.js
-    └── vite.config.js      # Configuración de Vite
+├── frontend/
+│   ├── src/
+│   │   ├── features/       # Módulos del Frontend
+│   │   │   ├── auth/       # Login y Admin
+│   │   │   ├── dashboard/  # Panel Principal
+│   │   │   ├── synoptic/   # Vista de Observaciones
+│   │   │   ├── summary/    # Vista de Resúmenes
+│   │   │   └── audit/      # Vista de Auditoría
+│   │   ├── shared/         # Componentes reutilizables
+│   │   └── App.jsx         # Rutas y Configuración
+│   └── package.json
+│
+├── setup_full.sh           # Script de instalación completa
+└── run_full.sh             # Script para iniciar el sistema
 ```
 
 ---
 
-## 🚀 Instalación y Despliegue Local
-
-Sigue estos pasos para levantar el ARCA en tu máquina local.
+## 🚀 Instalación Rápida
 
 ### Prerrequisitos
+*   Ubuntu/Debian (o Distrobox compatible)
 *   Python 3.10+
 *   Node.js 18+
-*   PostgreSQL instalado y corriendo.
+*   PostgreSQL
 
-### 1. Configuración de Base de Datos
+### Instalación Automática
 ```bash
-# Entra a tu consola de Postgres
-sudo -u postgres psql
-
-# Ejecuta:
-CREATE USER admin_arca WITH ENCRYPTED PASSWORD '123456';
-CREATE DATABASE arca_db OWNER admin_arca;
+# Dar permisos y ejecutar
+chmod +x setup_full.sh
+./setup_full.sh
 ```
 
-### 2. Levantar el Backend 🐍
-
+### Iniciar el Sistema
 ```bash
-cd backend
-
-# Crear y activar entorno virtual
-python -m venv .venv
-source .venv/bin/activate  # En Windows: .venv\Scripts\activate
-
-# Instalar dependencias
-pip install -r requirements.txt
-
-# Iniciar el Servidor
-uvicorn app.main:app --reload
+./run_full.sh
 ```
-> El Backend estará disponible en: `http://127.0.0.1:8000`
-> Documentación API (Swagger): `http://127.0.0.1:8000/docs`
 
-### 3. Levantar el Frontend ⚛️
+---
 
-```bash
-cd frontend
+## 🔑 Credenciales por Defecto
 
-# Instalar dependencias de Node
-npm install
+| Rol | Usuario | Contraseña |
+|-----|---------|------------|
+| Admin | `admin@arca.com` | `123456` |
 
-# Iniciar servidor de desarrollo
-npm run dev
-```
-> El Frontend estará disponible en: `http://localhost:5173`
+---
 
-### 🔑 Credenciales por Defecto
+## 📡 Endpoints de la API
 
-Para acceder con privilegios de administrador:
+| Módulo | Ruta Base | Descripción |
+|--------|-----------|-------------|
+| Auth | `/api/auth` | Login, Registro |
+| Admin | `/api/admin` | Gestión de usuarios |
+| Synoptic | `/api/synoptic` | Logs del sistema |
+| Summary | `/api/summary` | Resúmenes mensuales |
+| Audit | `/api/audit` | Logs y correcciones |
 
-*   **Usuario:** `admin@arca.com`
-*   **Contraseña:** `123456`
-
-Para pruebas de usuario estándar:
-
-*   **Usuario:** `test@arca.com`
-*   **Contraseña:** `123`
-
-### 🚀 Opción Rápida (Recomendada)
-
-Hemos creado un script unificado para iniciar todo el sistema con un solo comando:
-
-```bash
-# Dar permisos de ejecución (solo la primera vez)
-chmod +x run_dev.sh
-
-# Iniciar todo
-./run_dev.sh
-```
+> Documentación Swagger: `http://localhost:8000/docs`
 
 ---
 

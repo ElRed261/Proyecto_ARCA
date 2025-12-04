@@ -1,6 +1,6 @@
 import React from 'react';
 import ModuleCard from '../components/ModuleCard';
-import { Users, Package, ShoppingBag, ShieldCheck, PieChart, Settings } from 'lucide-react';
+import { Activity, Calendar, ShieldCheck, Settings } from 'lucide-react';
 
 import UserMenu from '../../../shared/components/UserMenu';
 
@@ -10,42 +10,34 @@ const DashboardPage = ({ user, onLogout, onNavigate }) => {
 
     const modules = [
         {
-            id: 'hrm',
-            title: 'Recursos Humanos',
-            description: 'Gestión de empleados, nómina, contratos y control de asistencia del personal.',
-            icon: Users,
+            id: 'synoptic',
+            title: 'Observación Sinóptica',
+            description: 'Monitoreo en tiempo real y logs del sistema (CLI).',
+            icon: Activity,
             color: 'bg-blue-500 text-blue-600',
             status: 'active'
         },
         {
-            id: 'scm',
-            title: 'Inventario & SCM',
-            description: 'Control de stock, almacenes, proveedores y cadena de suministro.',
-            icon: Package,
+            id: 'summary',
+            title: 'Resumen Mensual',
+            description: 'Reportes financieros y operativos mensuales.',
+            icon: Calendar,
             color: 'bg-purple-500 text-purple-600',
             status: 'active'
         },
         {
-            id: 'crm',
-            title: 'Ventas & CRM',
-            description: 'Gestión de clientes, oportunidades de venta, pedidos y facturación.',
-            icon: ShoppingBag,
-            color: 'bg-green-500 text-green-600',
-            status: 'active'
-        },
-        {
-            id: 'accounting',
-            title: 'Contabilidad',
-            description: 'Libro mayor, reportes financieros e impuestos (Próximamente).',
-            icon: PieChart,
-            color: 'bg-red-500 text-red-600',
+            id: 'audit',
+            title: 'Correcciones y Auditoría',
+            description: 'Registro de cambios y solicitudes de corrección.',
+            icon: ShieldCheck,
+            color: 'bg-orange-500 text-orange-600',
             status: 'active'
         },
         {
             id: 'admin',
             title: 'Seguridad & Admin',
-            description: 'Gestión de usuarios, roles, permisos y auditoría del sistema.',
-            icon: ShieldCheck,
+            description: 'Gestión de usuarios, roles y permisos.',
+            icon: Settings,
             color: 'bg-gray-600 text-gray-700',
             status: 'active'
         },
@@ -66,7 +58,7 @@ const DashboardPage = ({ user, onLogout, onNavigate }) => {
                 <div className="flex items-center gap-3">
                     <Logo variant="medium" />
                     <div className="h-6 w-px bg-gray-300 mx-2"></div>
-                    <p className="text-xs text-gray-400 font-mono mt-1">v1.0.0 Enterprise</p>
+                    <p className="text-xs text-gray-400 font-mono mt-1">v2.0.0 Enterprise</p>
                 </div>
 
                 <UserMenu user={user} onLogout={onLogout} />

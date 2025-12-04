@@ -1,0 +1,14 @@
+[0;32m=== Iniciando Proyecto ARCA ===[0m
+[1;33mVerificando entorno...[0m
+System has not been booted with systemd as init system (PID 1). Can't operate.
+Failed to connect to bus: Host is down
+[1;33mIniciando Backend...[0m
+Cargando variables de entorno...
+[0;32mBackend iniciado (PID: 78493)[0m
+[1;33mIniciando Frontend...[0m
+[0;32mFrontend iniciado (PID: 78494)[0m
+[0;32m=== Proyecto corriendo ===[0m
+Backend: http://localhost:8000
+Frontend: http://localhost:5173 (o puerto asignado por Vite)
+Logs disponibles en backend.log y frontend.log
+[1;33mPresione Ctrl+C para detener.[0m
