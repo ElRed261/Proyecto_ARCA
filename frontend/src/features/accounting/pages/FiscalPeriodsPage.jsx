@@ -7,7 +7,7 @@ const FiscalPeriodsPage = () => {
     const [periods, setPeriods] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
-    const [newPeriod, setNewPeriod] = useState({
+    const [formData, setFormData] = useState({
         name: '',
         start_date: '',
         end_date: ''
@@ -64,9 +64,9 @@ const FiscalPeriodsPage = () => {
     const handleCreate = async (e) => {
         e.preventDefault();
         try {
-            await api.post('/accounting/periods', newPeriod);
+            await api.post('/accounting/periods', formData);
             setShowModal(false);
-            setNewPeriod({ name: '', start_date: '', end_date: '' });
+            setFormData({ name: '', start_date: '', end_date: '' });
             fetchPeriods();
         } catch (error) {
             console.error(error);

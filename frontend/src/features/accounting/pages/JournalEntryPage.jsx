@@ -40,17 +40,17 @@ const JournalEntryPage = ({ addLog }) => {
     const fetchAccounts = async () => {
         try {
             const response = await api.get('/accounting/accounts');
-            const flatten = (accs) => {
-                let res = [];
-                accs.forEach(a => {
-                    if (a.is_imputable) {
-                        res.push(a);
-                    }
-                    if (a.children) res = res.concat(flatten(a.children));
-                });
-                return res;
-            };
-            setAccounts(flatten(response.data));
+            console.log("Accounts response:", response.data);
+
+            // Backend returns a flat list. We just need to filter imputable accounts.
+            // Ensure response.data is an array to avoid crashes.
+            const allAccounts = Array.isArray(response.data) ? response.data : [];
+
+            // Filter out nulls/undefined and check is_imputable
+            const imputableAccounts = allAccounts.filter(a => a && a.is_imputable);
+            console.log("Imputable accounts:", imputableAccounts);
+
+            setAccounts(imputableAccounts);
         } catch (error) {
             console.error("Error fetching accounts:", error);
             if (addLog) addLog("Error cargando cuentas", "error");
@@ -205,7 +205,7 @@ const JournalEntryPage = ({ addLog }) => {
                                                 onChange={e => handleLineChange(index, 'account_id', e.target.value)}
                                             >
                                                 <option value="">Seleccionar Cuenta...</option>
-                                                {accounts.map(acc => (
+                                                {accounts?.map(acc => (
                                                     <option key={acc.id} value={acc.id}>{acc.code} - {acc.name}</option>
                                                 ))}
                                             </select>
@@ -251,14 +251,14 @@ const JournalEntryPage = ({ addLog }) => {
                                 <div className="flex gap-6 text-sm">
                                     <div className="flex flex-col">
                                         <span className="text-gray-500">Total Débito</span>
-                                        <span className="font-mono font-bold text-gray-800">{totals.totalDebit.toFixed(2)}</span>
+                                        <span className="font-mono font-bold text-gray-800">{totalDebit.toFixed(2)}</span>
                                     </div>
                                     <div className="flex flex-col">
                                         <span className="text-gray-500">Total Crédito</span>
-                                        <span className="font-mono font-bold text-gray-800">{totals.totalCredit.toFixed(2)}</span>
+                                        <span className="font-mono font-bold text-gray-800">{totalCredit.toFixed(2)}</span>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        {totals.balanced ? (
+                                        {balanced ? (
                                             <span className="text-green-600 flex items-center gap-1 font-bold bg-green-50 px-3 py-1 rounded-full">
                                                 <CheckCircle size={16} /> Balanceado
                                             </span>
@@ -279,8 +279,8 @@ const JournalEntryPage = ({ addLog }) => {
                                     </button>
                                     <button
                                         type="submit"
-                                        disabled={!totals.balanced}
-                                        className={`px-6 py-2 rounded-lg text-white font-bold flex items-center gap-2 ${totals.balanced ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-300 cursor-not-allowed'}`}
+                                        disabled={!balanced}
+                                        className={`px-6 py-2 rounded-lg text-white font-bold flex items-center gap-2 ${balanced ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-300 cursor-not-allowed'}`}
                                     >
                                         <Save size={18} /> Guardar Borrador
                                     </button>
