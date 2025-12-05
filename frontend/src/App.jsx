@@ -6,6 +6,7 @@ import AdminPage from './features/auth/pages/AdminPage';
 import SynopticPage from './features/synoptic/pages/SynopticPage';
 import SummaryPage from './features/summary/pages/SummaryPage';
 import AuditPage from './features/audit/pages/AuditPage';
+import MaintenancePage from './features/maintenance/pages/MaintenancePage';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -93,14 +94,7 @@ function App() {
         {/* Synoptic Module */}
         <Route path="/synoptic" element={
           <ProtectedRoute>
-            <div className="min-h-screen bg-gray-50 pb-20">
-              <div className="max-w-7xl mx-auto pt-6 px-4 sm:px-6 lg:px-8">
-                <button onClick={() => navigate('/dashboard')} className="mb-4 text-indigo-600 hover:text-indigo-800">
-                  &larr; Volver al Dashboard
-                </button>
-                <SynopticPage />
-              </div>
-            </div>
+            <SynopticPage />
           </ProtectedRoute>
         } />
 
@@ -129,6 +123,13 @@ function App() {
                 <AuditPage />
               </div>
             </div>
+          </ProtectedRoute>
+        } />
+
+        {/* Maintenance Module (3074, 4074, 5074) */}
+        <Route path="/maintenance" element={
+          <ProtectedRoute>
+            <MaintenancePage />
           </ProtectedRoute>
         } />
 

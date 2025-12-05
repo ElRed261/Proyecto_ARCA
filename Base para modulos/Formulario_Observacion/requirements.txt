@@ -1,0 +1,6 @@
+customtkinter==5.2.2
+numpy
+pandas
+Pillow
+matplotlib
+openpyxl
