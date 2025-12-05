@@ -4,7 +4,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Estado-En_Desarrollo-orange?style=for-the-badge" alt="Status"/>
-  <img src="https://img.shields.io/badge/Version-2.1.0-blue?style=for-the-badge" alt="Version"/>
+  <img src="https://img.shields.io/badge/Version-2.2.0-blue?style=for-the-badge" alt="Version"/>
   <img src="https://img.shields.io/badge/Backend-FastAPI_Python-green?style=for-the-badge" alt="Backend"/>
   <img src="https://img.shields.io/badge/Frontend-React_Vite-blue?style=for-the-badge" alt="Frontend"/>
   <img src="https://img.shields.io/badge/Database-PostgreSQL-336791?style=for-the-badge" alt="Database"/>
@@ -21,14 +21,15 @@
 | Característica | Descripción |
 | :--- | :--- |
 | 📊 **Registro Sinóptico** | Formulario WMO completo con cálculos automáticos |
-| � **Códigos SYNOP** | Generación automática de grupos 1snTTT, 4PPPP, 5aPPP, 58/59, 29UUU |
+| 📁 **Catálogo de Días** | Navegación entre días con guardado automático |
+| 🔄 **Códigos SYNOP** | Generación automática de grupos 1snTTT, 4PPPP, 5aPPP, 58/59, 29UUU |
 | 📈 **Resúmenes Mensuales** | Consolidación de datos por período |
 | 🔍 **Auditoría** | Trazabilidad y corrección de datos históricos |
 | 👥 **Multi-usuario** | Control de acceso basado en roles (RBAC) |
 
 ---
 
-## 🌤️ Módulo Sinóptico (Nuevo)
+## 🌤️ Módulo Sinóptico
 
 ### 🧮 Cálculos Automáticos
 
@@ -57,13 +58,29 @@ El sistema realiza automáticamente los siguientes cálculos meteorológicos:
 | `58/59 P24` | Cambio 24h | 58=subió, 59=bajó |
 | `29UUU` | Humedad | Humedad relativa (%) |
 
+### 📁 Almacenamiento JSON
+
+Los datos se guardan en estructura jerárquica:
+```
+data/{station_code}/{year}/{month}/{station}{DDMMYYYY}.json
+```
+
+Ejemplo: `data/78484/2025/12/7848406122025.json`
+
 ### 🎨 Interfaz de Usuario
 
 - **Temas Dinámicos**: El color cambia según la hora de observación (06Z-03Z)
+- **Navegación Catálogo**: Botones ← Ant. / Sig. → con guardado automático
+- **Campos Condicionales**: T_max/T_min bloqueados en horas impares (03Z, 09Z, 15Z, 21Z)
 - **Normalización de Presión**: Ingresa `15.3` → se convierte a `1015.3`
-- **Enter Aplica Cambios**: Presiona Enter para aplicar y calcular
 - **Tooltips WMO**: Descripciones breves al pasar el mouse
-- **Campos Condicionales**: 6RRR y 7ww se habilitan según Ir/iX
+
+### 📅 Navegación entre Días
+
+| Botón | Función | Validaciones |
+| :---: | :--- | :--- |
+| **← Ant.** | Cargar día anterior | No permite ir antes del primer día registrado |
+| **Sig. →** | Guardar y avanzar | Requiere datos de temperatura (Ts o Th) |
 
 ---
 
@@ -127,8 +144,10 @@ Proyecto_ARCA/
 │   │   │   ├── auth/           # 🔐 Autenticación y Usuarios
 │   │   │   ├── synoptic/       # 🌤️ Observación Sinóptica
 │   │   │   │   ├── calculations.py   # Cálculos WMO
+│   │   │   │   ├── json_handler.py   # Guardado/carga JSON
 │   │   │   │   ├── schemas.py        # Validación Pydantic
-│   │   │   │   └── routes.py         # Endpoints API
+│   │   │   │   ├── router.py         # Endpoints API
+│   │   │   │   └── data/             # 📁 JSONs por estación
 │   │   │   ├── summary/        # 📊 Resumen Mensual
 │   │   │   └── audit/          # 🔍 Auditoría
 │   │   └── main.py
@@ -201,6 +220,16 @@ chmod +x setup_full.sh
 | 📊 Summary | `/api/summary` | Resúmenes mensuales |
 | 🔍 Audit | `/api/audit` | Logs y correcciones |
 
+### Endpoints Sinópticos
+
+| Método | Ruta | Función |
+|:---:|:---|:---|
+| POST | `/synoptic/calculate` | Realiza cálculos meteorológicos |
+| POST | `/synoptic/save-json` | Guarda observación como JSON |
+| GET | `/synoptic/observation/{station}/{fecha}` | Carga observación existente |
+| GET | `/synoptic/date-range/{station}` | Rango de fechas disponibles |
+| GET | `/synoptic/stations` | Lista estaciones disponibles |
+
 ---
 
 ## 📸 Vista Previa
@@ -236,5 +265,5 @@ chmod +x setup_full.sh
 ---
 
 <p align="center">
-  <sub>📅 Última actualización: Diciembre 2024</sub>
+  <sub>📅 Última actualización: Diciembre 2025</sub>
 </p>

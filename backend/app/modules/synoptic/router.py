@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List, Dict
+from typing import List, Dict, Any
 from app.core.database import get_db
 from app.modules.synoptic import models, schemas
 from app.modules.synoptic.calculations import realizar_calculos, get_all_stations, get_station_info
+from app.modules.synoptic.json_handler import save_observation_json, load_observation_json, list_observations, get_oldest_date, get_newest_date
 from app.core.dependencies import get_current_active_user
 
 router = APIRouter(
@@ -54,6 +55,78 @@ def get_station(station_id: str, current_user = Depends(get_current_active_user)
     if not station:
         raise HTTPException(status_code=404, detail=f"Estación {station_id} no encontrada")
     return schemas.StationInfo(**station)
+
+
+# =============================================================================
+# ENDPOINTS DE GUARDADO JSON
+# =============================================================================
+
+@router.post("/save-json")
+def save_observation(
+    data: schemas.SaveObservationRequest,
+    current_user = Depends(get_current_active_user)
+):
+    """
+    Guarda la observación diaria como archivo JSON.
+    
+    Formato de archivo: {codigo_estacion}{DDMMYYYY}.json
+    Ejemplo: 7848617122025.json
+    """
+    try:
+        filepath = save_observation_json(
+            station_code=data.station_code,
+            fecha=data.fecha,
+            observations=data.observations,
+            observer_name=data.observer_name
+        )
+        return {
+            "success": True,
+            "message": f"Observación guardada exitosamente",
+            "filepath": filepath,
+            "filename": filepath.split("/")[-1]
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al guardar: {str(e)}")
+
+
+@router.get("/observations")
+def get_observations_list(
+    station_code: str = None,
+    current_user = Depends(get_current_active_user)
+):
+    """Lista archivos de observación disponibles."""
+    files = list_observations(station_code)
+    return {"files": files, "count": len(files)}
+
+
+@router.get("/observation/{station_code}/{fecha}")
+def get_observation(
+    station_code: str,
+    fecha: str,
+    current_user = Depends(get_current_active_user)
+):
+    """Carga una observación existente por estación y fecha."""
+    data = load_observation_json(station_code, fecha)
+    if not data:
+        raise HTTPException(status_code=404, detail=f"Observación no encontrada")
+    return data
+
+
+@router.get("/date-range/{station_code}")
+def get_station_date_range(
+    station_code: str,
+    current_user = Depends(get_current_active_user)
+):
+    """Obtiene el rango de fechas disponibles para una estación."""
+    oldest = get_oldest_date(station_code)
+    newest = get_newest_date(station_code)
+    return {
+        "station_code": station_code,
+        "oldest_date": oldest,
+        "newest_date": newest,
+        "has_data": oldest is not None
+    }
+
 
 
 # =============================================================================

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from '../../../shared/api/axiosConfig';
+import { isAdmin } from '../../../shared/utils/auth';
 
 // =============================================================================
 // CONSTANTES
@@ -39,6 +40,11 @@ const SynopticPage = () => {
   const navigate = useNavigate();
   const hours = ["06Z", "09Z", "12Z", "15Z", "18Z", "21Z", "00Z", "03Z"];
 
+  // Horas pares (tienen T_max/T_min y grupos 1snTx/2snTn)
+  const evenHours = ["00Z", "06Z", "12Z", "18Z"];
+  // Horas impares (NO tienen T_max/T_min)
+  const oddHours = ["03Z", "09Z", "15Z", "21Z"];
+
   // Estado inicial: objeto con claves para cada hora
   const [observations, setObservations] = useState(
     hours.reduce((acc, hour) => ({ ...acc, [hour]: {} }), {})
@@ -50,6 +56,10 @@ const SynopticPage = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [stations, setStations] = useState({});
   const [isCalculating, setIsCalculating] = useState(false);
+  const [isLoading, setIsLoading] = useState(false); // Flag para evitar cálculos durante carga
+
+  // Determinar si la hora activa es par (tiene T_max/T_min)
+  const isEvenHour = evenHours.includes(activeHour);
 
   // Cargar lista de estaciones al montar
   useEffect(() => {
@@ -89,7 +99,8 @@ const SynopticPage = () => {
         setErrorMessage(calcResults.error_message);
       }
 
-      // Actualizar correc_alt si vino de la estación
+      // Actualizar correc_alt si vino de la estación - COMENTADO para evitar loop de renders
+      /*
       if (calcResults.correc_alt && !data.correc_alt) {
         setObservations(prev => ({
           ...prev,
@@ -99,6 +110,7 @@ const SynopticPage = () => {
           }
         }));
       }
+      */
 
       setResults(calcResults);
     } catch (error) {
@@ -112,6 +124,9 @@ const SynopticPage = () => {
 
   // Efecto para recalcular resultados cuando cambia la hora o los datos
   useEffect(() => {
+    // No calcular mientras se está cargando un archivo
+    if (isLoading) return;
+
     const currentData = observations[activeHour] || {};
 
     // Debounce para evitar muchas llamadas
@@ -120,7 +135,7 @@ const SynopticPage = () => {
     }, 300);
 
     return () => clearTimeout(timeoutId);
-  }, [activeHour, observations, performCalculations]);
+  }, [activeHour, observations, performCalculations, isLoading]);
 
   const handleChange = (key, value) => {
     setObservations(prev => ({
@@ -166,19 +181,398 @@ const SynopticPage = () => {
     }
   };
 
+  // Guardar observación como JSON
   const handleSave = async () => {
     try {
-      const currentData = observations[activeHour];
-      await axios.post('/synoptic/observations', { ...currentData, hora: activeHour });
-      alert(`Observación de las ${activeHour} guardada exitosamente`);
+      const stationId = getValue('station_id');
+      const fecha = getValue('fecha');
+
+      // Validar estación y fecha
+      if (!stationId) {
+        alert('⚠️ Debe seleccionar una estación antes de guardar');
+        return;
+      }
+      if (!fecha) {
+        alert('⚠️ Debe seleccionar una fecha antes de guardar');
+        return;
+      }
+
+      // Removida restricción de hora - se puede guardar desde cualquier hora
+
+      // Preparar datos de todas las horas con los resultados calculados
+      const observationsWithResults = {};
+      for (const hora of hours) {
+        const horaData = observations[hora] || {};
+        observationsWithResults[hora] = {
+          ...horaData,
+          // Incluir resultados calculados si corresponde a la hora activa
+          pres_nmm: results.pres_nmm,
+          punto_rocio: results.punto_rocio,
+          tension_vapor: results.tension_vapor,
+          humedad_relativa: results.humedad_relativa
+        };
+      }
+
+      const response = await axios.post('/synoptic/save-json', {
+        station_code: stationId,
+        fecha: fecha,
+        observations: observationsWithResults,
+        observer_name: getValue('observador') || null
+      });
+
+      if (response.data.success) {
+        // Log sin alert para no robar foco en Electron
+        console.log(`✅ Guardado: ${response.data.filename}`);
+      }
     } catch (error) {
       console.error('Error al guardar:', error);
-      alert('Error al guardar la observación');
+      alert('❌ Error al guardar la observación');
     }
   };
 
-  // Helper para obtener valores de forma segura
-  const getValue = (key) => observations[activeHour]?.[key] || '';
+  // Helper: verifica si hay datos de temperatura en alguna hora
+  const hasTemperatureData = () => {
+    for (const hora of hours) {
+      const data = observations[hora] || {};
+      // Verificar si hay Ts o Th (temperaturas principales)
+      if (data.ts && data.ts.trim() !== '') return true;
+      if (data.th && data.th.trim() !== '') return true;
+    }
+    return false;
+  };
+
+  // Función para navegar a un día específico (guarda antes de navegar)
+  const navigateToDay = async (direction) => {
+    const currentDate = getValue('fecha');
+    const currentStation = getValue('station_id');
+    const correcAlt = getValue('correc_alt');
+
+    if (!currentStation || !currentDate) {
+      console.warn('⚠️ Debe tener estación y fecha antes de navegar');
+      return;
+    }
+
+    // VALIDACIÓN 1: Si vamos hacia ATRÁS, verificar que no sea la fecha más antigua
+    if (direction === -1) {
+      try {
+        const rangeResponse = await axios.get(`/synoptic/date-range/${currentStation}`);
+        const oldestDate = rangeResponse.data.oldest_date;
+
+        if (oldestDate && currentDate <= oldestDate) {
+          console.log(`🚫 No hay datos antes del ${oldestDate} para estación ${currentStation}`);
+          return; // No navegar
+        }
+      } catch (error) {
+        console.error('Error al verificar rango de fechas:', error);
+      }
+    }
+
+    // VALIDACIÓN 2: Si vamos hacia ADELANTE y NO hay temperatura, no crear nuevo día
+    if (direction === 1 && !hasTemperatureData()) {
+      console.log('⚠️ Debe ingresar datos de temperatura antes de avanzar al siguiente día');
+      return; // No navegar
+    }
+
+    // 1. GUARDAR el día actual (solo si hay datos de temperatura)
+    if (hasTemperatureData()) {
+      try {
+        const observationsWithResults = {};
+        for (const hora of hours) {
+          observationsWithResults[hora] = observations[hora] || {};
+        }
+
+        await axios.post('/synoptic/save-json', {
+          station_code: currentStation,
+          fecha: currentDate,
+          observations: observationsWithResults,
+          observer_name: getValue('nombre_observador') || null
+        });
+        console.log(`💾 Guardado día: ${currentDate}`);
+      } catch (error) {
+        console.error('Error al guardar día actual:', error);
+      }
+    }
+
+    // 2. Calcular fecha destino
+    const date = new Date(currentDate);
+    date.setDate(date.getDate() + direction);
+    const targetDate = date.toISOString().split('T')[0];
+
+    // 3. Intentar CARGAR el día destino desde backend
+    try {
+      const [yyyy, mm, dd] = targetDate.split('-');
+      const fechaForBackend = `${dd}${mm}${yyyy}`;
+
+      const response = await axios.get(`/synoptic/observation/${currentStation}/${fechaForBackend}`);
+
+      if (response.data && response.data.horarias) {
+        setIsLoading(true);
+
+        const newObservations = {};
+        hours.forEach(hora => {
+          newObservations[hora] = {
+            station_id: currentStation,
+            fecha: targetDate,
+            correc_alt: correcAlt
+          };
+        });
+
+        response.data.horarias.forEach(item => {
+          const hora = item.hora;
+          if (hours.includes(hora)) {
+            const d = item.datos || {};
+            const s = item.synop || {};
+
+            newObservations[hora] = {
+              ...newObservations[hora],
+              nombre_observador: item.nombre_observador || '',
+              meteo_2_1: item.yygg_iw || '',
+              ts: d.ts || '', th: d.th || '',
+              t_max: d.t_max || '', t_min: d.t_min || '',
+              t_max_24h: d.t_max_24h || '', t_min_24h: d.t_min_24h || '',
+              pres_est: d.pres_est || '', p3: d.p3 || '', p24: d.p24 || '',
+              let_barom: d.let_barom || '', ll: d.ll || '',
+              meteo_4_irixhvv: s.irixhvv || '', meteo_4_1: s.n_dd_ff || '',
+              meteo_4_6: s['7ww_w1w2'] || '', meteo_6_0: s['8nh_cl_cm_ch'] || '',
+              meteo_6_2: s['0cs_dl_dm_dh'] || '', meteo_6_3: s['1sn_tx_manual'] || '',
+              meteo_6_4: s['2sn_tn_manual'] || '', meteo_6_5: s['3e_jjj'] || '',
+              meteo_6_6: s['5eee_je'] || '', meteo_8_0: s['5n_fn'] || '',
+              meteo_8_1: s['56dl_dm_dh'] || '', meteo_8_3: s['6rrr_tr'] || '',
+              meteo_8_4: s['7r24'] || '', meteo_8_5: s['8ns_1'] || '',
+              meteo_8_6: s['8ns_2'] || '', meteo_10_0: s['8ns_3'] || '',
+              meteo_10_1: s['8ns_4'] || '', extra_8ns_1: s.extra_8ns_1 || '',
+              extra_8ns_2: s.extra_8ns_2 || ''
+            };
+          }
+        });
+
+        setObservations(newObservations);
+        setTimeout(() => setIsLoading(false), 100);
+        console.log(`📂 Cargado día existente: ${targetDate}`);
+      }
+    } catch (error) {
+      if (error.response?.status === 404) {
+        // Solo crear nuevo día si vamos hacia adelante (ya validamos que hay temperatura)
+        if (direction === 1) {
+          const newObservations = {};
+          hours.forEach(hora => {
+            newObservations[hora] = {
+              station_id: currentStation,
+              fecha: targetDate,
+              correc_alt: correcAlt
+            };
+          });
+          setObservations(newObservations);
+          console.log(`🆕 Nuevo día creado: ${targetDate}`);
+        } else {
+          console.log(`🚫 No hay observación para ${targetDate}`);
+          return; // No navegar hacia atrás si no hay datos
+        }
+      } else {
+        console.error('Error al cargar día:', error);
+        return;
+      }
+    }
+
+    setActiveHour('06Z');
+    setResults({});
+  };
+
+  // Wrappers para navegación
+  const handleNextDay = () => navigateToDay(1);
+  const handlePreviousDay = () => navigateToDay(-1);
+
+  // Mapeo de nombres de estación a códigos
+  const stationNameToCode = {
+    'MDJB': '78484',     // El Higüero
+    'MDCY': 'MDCY',      // Catey (código directo)
+    'Central': '78486',  // Estación Central (si existe)
+    // Agregar más mapeos según sea necesario
+  };
+
+  // Cargar datos desde archivo JSON
+  const handleLoadJson = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const jsonData = JSON.parse(e.target.result);
+
+        // Parsear formato Resumen_Mensual_Synop
+        const newObservations = {};
+        hours.forEach(hora => {
+          newObservations[hora] = {};
+        });
+
+        // Cargar datos de meta
+        if (jsonData.meta) {
+          const estacionNombre = jsonData.meta.estacion || '';
+          const fecha = jsonData.meta.fecha || '';
+
+          // Mapear nombre de estación a código
+          const stationCode = stationNameToCode[estacionNombre] || estacionNombre;
+          const correcAlt = stations[stationCode]?.ch || '';
+
+          // Convertir fecha de DDMMYYYY a YYYY-MM-DD
+          let fechaFormatted = '';
+          if (fecha.length === 8) {
+            const dd = fecha.substring(0, 2);
+            const mm = fecha.substring(2, 4);
+            const yyyy = fecha.substring(4, 8);
+            fechaFormatted = `${yyyy}-${mm}-${dd}`;
+          }
+          // Aplicar a todas las horas
+          hours.forEach(hora => {
+            newObservations[hora].station_id = stationCode;
+            newObservations[hora].fecha = fechaFormatted;
+            newObservations[hora].correc_alt = correcAlt.toString();
+          });
+        }
+
+        // Helper para convertir valores
+        const safeValue = (val) => {
+          if (val === null || val === undefined || val === '' || (typeof val === 'number' && isNaN(val))) return '';
+          return val.toString();
+        };
+
+        // Cargar datos horarios
+        if (jsonData.horarias) {
+          jsonData.horarias.forEach(item => {
+            const hora = item.hora;
+            if (hours.includes(hora)) {
+              const d = item.datos || {};
+              const s = item.synop || {};
+
+              newObservations[hora] = {
+                ...newObservations[hora],
+
+                // Observador (campo correcto)
+                nombre_observador: item.nombre_observador || '',
+
+                // YYGGIw
+                meteo_2_1: item.yygg_iw || '',
+
+                // Temperaturas básicas
+                ts: safeValue(d.ts),
+                th: safeValue(d.th),
+
+                // T_max/T_min (solo en horas pares)
+                t_max: safeValue(d.t_max),
+                t_min: safeValue(d.t_min),
+                t_max_24h: safeValue(d.t_max_24h),
+                t_min_24h: safeValue(d.t_min_24h),
+
+                // Presión (solo manual)
+                pres_est: safeValue(d.pres_est),
+                p3: safeValue(d.p3),
+                p24: safeValue(d.p24),
+                let_barom: d.let_barom || '',
+
+                // Precipitación
+                ll: safeValue(d.ll),
+
+                // ===== Grupos SYNOP - Mapeo CORRECTO =====
+
+                // Fila 4: IriXHVV, N dd ff, 7wwW1W2
+                meteo_4_irixhvv: s.irixhvv || '',
+                meteo_4_1: s.n_dd_ff || '',
+                meteo_4_6: s['7ww_w1w2'] || '',
+
+                // Fila 6: 8Nh, (333 auto), 0CS, 1snTx, 2snTn, 3Ejjj, 5EEE
+                meteo_6_0: s['8nh_cl_cm_ch'] || '',
+                meteo_6_2: s['0cs_dl_dm_dh'] || '',
+                meteo_6_3: s['1sn_tx_manual'] || '',  // 1snTxTxTx manual
+                meteo_6_4: s['2sn_tn_manual'] || '',  // 2snTnTnTn manual
+                meteo_6_5: s['3e_jjj'] || '',
+                meteo_6_6: s['5eee_je'] || '',
+
+                // Fila 8: 5nFn, 56DL, (58/59 auto), 6RRR, 7R24, 8Ns, 8Ns
+                meteo_8_0: s['5n_fn'] || '',
+                meteo_8_1: s['56dl_dm_dh'] || '',
+                meteo_8_3: s['6rrr_tr'] || '',
+                meteo_8_4: s['7r24'] || '',
+                meteo_8_5: s['8ns_1'] || '',
+                meteo_8_6: s['8ns_2'] || '',
+
+                // Fila 10: 8Ns, 8Ns, 9sp...
+                meteo_10_0: s['8ns_3'] || '',
+                meteo_10_1: s['8ns_4'] || '',
+                meteo_10_2: s['9sp_10_2'] || '',
+                meteo_10_3: s['9sp_10_3'] || '',
+                meteo_10_4: s['9sp_10_4'] || '',
+                meteo_10_5: s['9sp_10_5'] || '',
+                meteo_10_6: s['9sp_10_6'] || '',
+
+                // Fila 12: Grupos 9sp
+                meteo_12_0: s['9sp_12_0'] || '',
+                meteo_12_1: s['9sp_12_1'] || '',
+                meteo_12_2: s['9sp_12_2'] || '',
+                meteo_12_3: s['9sp_12_3'] || '',
+                meteo_12_4: s['9sp_12_4'] || '',
+                meteo_12_5: s['9sp_12_5'] || '',
+                meteo_12_6: s['9sp_12_6'] || '',
+
+                // Fila 14: Grupos 9sp
+                meteo_14_0: s['9sp_14_0'] || '',
+                meteo_14_1: s['9sp_14_1'] || '',
+                meteo_14_2: s['9sp_14_2'] || '',
+                meteo_14_3: s['9sp_14_3'] || '',
+                meteo_14_4: s['9sp_14_4'] || '',
+                meteo_14_5: s['9sp_14_5'] || '',
+                meteo_14_6: s['9sp_14_6'] || '',
+
+                // Fila 16: Grupos 9sp (5 cols, 555 y 29UUU son auto)
+                meteo_16_0: s['9sp_16_0'] || '',
+                meteo_16_1: s['9sp_16_1'] || '',
+                meteo_16_2: s['9sp_16_2'] || '',
+                meteo_16_3: s['9sp_16_3'] || '',
+                meteo_16_4: s['9sp_16_4'] || '',
+
+                // 2 Extras 8NsChshs (panel lateral)
+                extra_8ns_1: s.extra_8ns_1 || '',
+                extra_8ns_2: s.extra_8ns_2 || ''
+              };
+            }
+          });
+        }
+
+        // pp_24h solo de 12Z en resumen
+        if (jsonData.resumen_dia?.pp_24h) {
+          newObservations['12Z'].ll_24h = jsonData.resumen_dia.pp_24h.toString();
+        }
+
+        // Marcar carga en progreso para evitar cálculos automáticos
+        setIsLoading(true);
+        setObservations(newObservations);
+
+        // Después de un tick, permitir cálculos y recalcular
+        setTimeout(() => {
+          setIsLoading(false);
+        }, 100);
+
+        // Log de carga exitosa (sin alert para no robar foco en Electron)
+        const stationCode = stationNameToCode[jsonData.meta?.estacion] || jsonData.meta?.estacion;
+        console.log(`✅ JSON cargado: Estación ${stationCode}, Fecha ${jsonData.meta?.fecha || 'N/A'}`);
+
+        // Resetear el input
+        event.target.value = '';
+      } catch (error) {
+        console.error('Error al parsear JSON:', error);
+        alert('❌ Error al cargar el archivo JSON.\nVerifique el formato.');
+        event.target.value = '';
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  // Helper para obtener valores de forma segura (siempre retorna string)
+  const getValue = (key) => {
+    const value = observations[activeHour]?.[key];
+    if (value === undefined || value === null) return '';
+    return String(value);
+  };
 
   // =============================================================================
   // TEMAS DINÁMICOS POR HORA (ESCALA DE AZULES - ALTURA DEL SOL)
@@ -372,16 +766,34 @@ const SynopticPage = () => {
                     </div>
                   );
                 }
-                // Row 6: 333 constante en posición 1
+                // Row 6: 333 constante en posición 1, meteo_6_3/6_4 bloqueados en horas impares
                 if (row === 6) {
                   return (
                     <div key={row} className="grid grid-cols-7 gap-2 mb-3">
                       <input className={inputClass} placeholder="8" value={getValue('meteo_6_0')} onChange={(e) => handleChange('meteo_6_0', e.target.value)} onKeyDown={handleKeyDown} title="8NhCLCMCH: nubes" />
                       <input className={constantClass} value={CONST_333} readOnly title="Sección 333" />
                       <input className={inputClass} placeholder="0" value={getValue('meteo_6_2')} onChange={(e) => handleChange('meteo_6_2', e.target.value)} onKeyDown={handleKeyDown} title="0CSDLDMDH: nubes dirección" />
-                      <input className={inputClass} placeholder="10" value={getValue('meteo_6_3')} onChange={(e) => handleChange('meteo_6_3', e.target.value)} onKeyDown={handleKeyDown} title="1snTxTxTx: temperatura máxima" />
-                      <input className={inputClass} placeholder="20" value={getValue('meteo_6_4')} onChange={(e) => handleChange('meteo_6_4', e.target.value)} onKeyDown={handleKeyDown} title="2snTnTnTn: temperatura mínima" />
-                      <input className={inputClass} placeholder="3///'" value={getValue('meteo_6_5')} onChange={(e) => handleChange('meteo_6_5', e.target.value)} onKeyDown={handleKeyDown} title="3Ejjj: estado del suelo" />
+                      {/* 1snTxTxTx - Solo habilitado en horas pares */}
+                      <input
+                        className={isEvenHour ? inputClass : `${inputClass} opacity-50 bg-gray-200`}
+                        placeholder="10"
+                        value={getValue('meteo_6_3')}
+                        onChange={(e) => handleChange('meteo_6_3', e.target.value)}
+                        onKeyDown={handleKeyDown}
+                        disabled={!isEvenHour}
+                        title={isEvenHour ? "1snTxTxTx: temperatura máxima" : "Solo en horas pares (00Z, 06Z, 12Z, 18Z)"}
+                      />
+                      {/* 2snTnTnTn - Solo habilitado en horas pares */}
+                      <input
+                        className={isEvenHour ? inputClass : `${inputClass} opacity-50 bg-gray-200`}
+                        placeholder="20"
+                        value={getValue('meteo_6_4')}
+                        onChange={(e) => handleChange('meteo_6_4', e.target.value)}
+                        onKeyDown={handleKeyDown}
+                        disabled={!isEvenHour}
+                        title={isEvenHour ? "2snTnTnTn: temperatura mínima" : "Solo en horas pares (00Z, 06Z, 12Z, 18Z)"}
+                      />
+                      <input className={inputClass} placeholder="3///" value={getValue('meteo_6_5')} onChange={(e) => handleChange('meteo_6_5', e.target.value)} onKeyDown={handleKeyDown} title="3Ejjj: estado del suelo" />
                       <input className={inputClass} placeholder="" value={getValue('meteo_6_6')} onChange={(e) => handleChange('meteo_6_6', e.target.value)} onKeyDown={handleKeyDown} title="5EEEjE: evaporación" />
                     </div>
                   );
@@ -479,8 +891,8 @@ const SynopticPage = () => {
                   onKeyDown={(e) => handlePressureKeyDown(e, 'p24')}
                   title="Presión hace 24 horas"
                 />
-                <input className={inputClass} placeholder="°C" value={getValue('t_max')} onChange={(e) => handleChange('t_max', e.target.value)} onKeyDown={handleKeyDown} title="Temperatura máxima" />
-                <input className={inputClass} placeholder="°C" value={getValue('t_max_24h')} onChange={(e) => handleChange('t_max_24h', e.target.value)} onKeyDown={handleKeyDown} title="Temperatura máxima 24h" />
+                <input className={isEvenHour ? inputClass : `${inputClass} opacity-50 bg-gray-200`} placeholder="°C" value={getValue('t_max')} onChange={(e) => handleChange('t_max', e.target.value)} onKeyDown={handleKeyDown} disabled={!isEvenHour} title={isEvenHour ? "Temperatura máxima" : "Solo en horas pares"} />
+                <input className={isEvenHour ? inputClass : `${inputClass} opacity-50 bg-gray-200`} placeholder="°C" value={getValue('t_max_24h')} onChange={(e) => handleChange('t_max_24h', e.target.value)} onKeyDown={handleKeyDown} disabled={!isEvenHour} title={isEvenHour ? "Temperatura máxima 24h" : "Solo en horas pares"} />
               </div>
 
               <div className="grid grid-cols-7 gap-2 mb-1">
@@ -499,8 +911,8 @@ const SynopticPage = () => {
                 <input className={inputClass} placeholder="0.0" value={getValue('correc_temp')} onChange={(e) => handleChange('correc_temp', e.target.value)} onKeyDown={handleKeyDown} title="Corrección por temperatura" />
                 <input className={readonlyClass} value={results.p3_let || ''} readOnly title="Lectura P3 = Pres.Est." placeholder="hPa" />
                 <input className={readonlyClass} value={results.p24_let || ''} readOnly title="Lectura P24 = Pres.Est." placeholder="hPa" />
-                <input className={inputClass} placeholder="°C" value={getValue('t_min')} onChange={(e) => handleChange('t_min', e.target.value)} onKeyDown={handleKeyDown} title="Temperatura mínima" />
-                <input className={inputClass} placeholder="°C" value={getValue('t_min_24h')} onChange={(e) => handleChange('t_min_24h', e.target.value)} onKeyDown={handleKeyDown} title="Temperatura mínima 24h" />
+                <input className={isEvenHour ? inputClass : `${inputClass} opacity-50 bg-gray-200`} placeholder="°C" value={getValue('t_min')} onChange={(e) => handleChange('t_min', e.target.value)} onKeyDown={handleKeyDown} disabled={!isEvenHour} title={isEvenHour ? "Temperatura mínima" : "Solo en horas pares"} />
+                <input className={isEvenHour ? inputClass : `${inputClass} opacity-50 bg-gray-200`} placeholder="°C" value={getValue('t_min_24h')} onChange={(e) => handleChange('t_min_24h', e.target.value)} onKeyDown={handleKeyDown} disabled={!isEvenHour} title={isEvenHour ? "Temperatura mínima 24h" : "Solo en horas pares"} />
               </div>
 
               <div className="grid grid-cols-7 gap-2 mb-1">
@@ -576,16 +988,27 @@ const SynopticPage = () => {
                   {hora}
                 </button>
               ))}
-            </div>
 
-            {/* Botón Guardar */}
-            <button
-              onClick={handleSave}
-              className="w-full py-2.5 px-3 rounded-lg text-white font-bold mt-3 transition-colors shadow-md text-sm hover:opacity-90"
-              style={{ backgroundColor: currentTheme.accentColor }}
-            >
-              Guardar
-            </button>
+              {/* Botones de navegación entre días */}
+              <div className="flex gap-1 mt-3">
+                <button
+                  onClick={handlePreviousDay}
+                  className="flex-1 py-2 px-2 rounded-lg font-medium text-xs bg-blue-100 text-blue-700 hover:bg-blue-200 transition-all duration-300 flex items-center justify-center gap-1"
+                  title="Guardar y cargar día anterior"
+                >
+                  <span>←</span>
+                  <span>Ant.</span>
+                </button>
+                <button
+                  onClick={handleNextDay}
+                  className="flex-1 py-2 px-2 rounded-lg font-medium text-xs bg-green-100 text-green-700 hover:bg-green-200 transition-all duration-300 flex items-center justify-center gap-1"
+                  title="Guardar y avanzar al siguiente día"
+                >
+                  <span>Sig.</span>
+                  <span>→</span>
+                </button>
+              </div>
+            </div>
 
             {/* Botones CLI */}
             <div className="mt-4 pt-3 border-t border-gray-200">
@@ -633,6 +1056,30 @@ const SynopticPage = () => {
                   title="Ns=nubosidad, C=tipo, hshs=altura"
                 />
               </div>
+            </div>
+
+            {/* Botones Cargar/Guardar (debajo de 8NsChshs, independientes) */}
+            <div className="mt-4 pt-3 border-t border-gray-200 space-y-2">
+              {/* Cargar JSON - Solo Admin */}
+              {isAdmin() && (
+                <label className="w-full py-2 px-3 rounded-lg font-bold text-xs bg-blue-100 text-blue-700 hover:bg-blue-200 cursor-pointer transition-colors flex items-center justify-center gap-2">
+                  📂 Cargar JSON
+                  <input
+                    type="file"
+                    accept=".json"
+                    className="hidden"
+                    onChange={handleLoadJson}
+                  />
+                </label>
+              )}
+              {/* Guardar */}
+              <button
+                onClick={handleSave}
+                className="w-full py-2 px-3 rounded-lg text-white font-bold text-sm transition-all shadow-md hover:opacity-90"
+                style={{ backgroundColor: currentTheme.accentColor }}
+              >
+                💾 Guardar
+              </button>
             </div>
           </div>
         </div>
