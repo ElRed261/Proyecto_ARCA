@@ -90,3 +90,15 @@ class CalculationResponse(BaseModel):
 class StationListResponse(BaseModel):
     """Lista de todas las estaciones disponibles."""
     stations: Dict[str, StationInfo]
+
+
+# =============================================================================
+# SCHEMAS PARA GUARDADO DE OBSERVACIONES
+# =============================================================================
+
+class SaveObservationRequest(BaseModel):
+    """Datos para guardar una observación completa del día."""
+    station_code: str  # Código de estación (ej: "78486")
+    fecha: str  # Fecha en formato 'YYYY-MM-DD'
+    observations: Dict[str, Any]  # Datos por hora {"06Z": {...}, "12Z": {...}}
+    observer_name: Optional[str] = None  # Nombre del observador

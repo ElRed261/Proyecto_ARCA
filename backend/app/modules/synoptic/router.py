@@ -68,12 +68,13 @@ def save_observation(
 ):
     """
     Guarda la observación diaria como archivo JSON.
+    Crea backup automático si el archivo ya existe.
     
     Formato de archivo: {codigo_estacion}{DDMMYYYY}.json
     Ejemplo: 7848617122025.json
     """
     try:
-        filepath = save_observation_json(
+        result = save_observation_json(
             station_code=data.station_code,
             fecha=data.fecha,
             observations=data.observations,
@@ -81,9 +82,11 @@ def save_observation(
         )
         return {
             "success": True,
-            "message": f"Observación guardada exitosamente",
-            "filepath": filepath,
-            "filename": filepath.split("/")[-1]
+            "message": "Observación guardada exitosamente",
+            "filepath": result["filepath"],
+            "filename": result["filename"],
+            "backup_path": result.get("backup_path"),
+            "last_modified": result["last_modified"]
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al guardar: {str(e)}")

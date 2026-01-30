@@ -57,6 +57,7 @@ const SynopticPage = () => {
   const [stations, setStations] = useState({});
   const [isCalculating, setIsCalculating] = useState(false);
   const [isLoading, setIsLoading] = useState(false); // Flag para evitar cálculos durante carga
+  const [isStationLocked, setIsStationLocked] = useState(false); // Bloquear estación después de guardar
 
   // Determinar si la hora activa es par (tiene T_max/T_min)
   const isEvenHour = evenHours.includes(activeHour);
@@ -221,8 +222,17 @@ const SynopticPage = () => {
       });
 
       if (response.data.success) {
-        // Log sin alert para no robar foco en Electron
-        console.log(`✅ Guardado: ${response.data.filename}`);
+        // Mostrar confirmación con fecha formateada
+        const fecha = getValue('fecha');
+        const fechaFormatted = fecha ? (() => {
+          const [yyyy, mm, dd] = fecha.split('-');
+          return `${dd}/${mm}/${yyyy}`;
+        })() : '';
+
+        // Bloquear cambio de estación después de guardar
+        setIsStationLocked(true);
+
+        alert(`✅ Observación guardada\n\nFecha: ${fechaFormatted}\nArchivo: ${response.data.filename}${response.data.backup_path ? '\nBackup creado ✓' : ''}\n\n⚠️ La estación está ahora bloqueada.`);
       }
     } catch (error) {
       console.error('Error al guardar:', error);
@@ -249,6 +259,15 @@ const SynopticPage = () => {
 
     if (!currentStation || !currentDate) {
       console.warn('⚠️ Debe tener estación y fecha antes de navegar');
+      return;
+    }
+
+    // CONFIRMACIÓN: Preguntar antes de navegar
+    const directionText = direction === 1 ? 'siguiente' : 'anterior';
+    const confirmed = window.confirm(
+      `¿Desea ir al día ${directionText}?\n\nEl día actual será guardado automáticamente.`
+    );
+    if (!confirmed) {
       return;
     }
 
@@ -321,26 +340,69 @@ const SynopticPage = () => {
           const hora = item.hora;
           if (hours.includes(hora)) {
             const d = item.datos || {};
-            const s = item.synop || {};
+            const s = item.synop_manual || item.synop || {}; // Compatibilidad con formato anterior
 
             newObservations[hora] = {
               ...newObservations[hora],
+              // Campos básicos por hora
               nombre_observador: item.nombre_observador || '',
               meteo_2_1: item.yygg_iw || '',
+              // Datos manuales
               ts: d.ts || '', th: d.th || '',
+              pres_est: d.pres_est || '', p3: d.p3 || '', p24: d.p24 || '',
+              let_barom: d.let_barom || '', ll: d.ll || '', ll_24h: d.ll_24h || '',
+              // T_max/T_min (solo horas pares)
               t_max: d.t_max || '', t_min: d.t_min || '',
               t_max_24h: d.t_max_24h || '', t_min_24h: d.t_min_24h || '',
-              pres_est: d.pres_est || '', p3: d.p3 || '', p24: d.p24 || '',
-              let_barom: d.let_barom || '', ll: d.ll || '',
+              // Grupos SYNOP manuales - Fila 4
               meteo_4_irixhvv: s.irixhvv || '', meteo_4_1: s.n_dd_ff || '',
-              meteo_4_6: s['7ww_w1w2'] || '', meteo_6_0: s['8nh_cl_cm_ch'] || '',
-              meteo_6_2: s['0cs_dl_dm_dh'] || '', meteo_6_3: s['1sn_tx_manual'] || '',
-              meteo_6_4: s['2sn_tn_manual'] || '', meteo_6_5: s['3e_jjj'] || '',
-              meteo_6_6: s['5eee_je'] || '', meteo_8_0: s['5n_fn'] || '',
-              meteo_8_1: s['56dl_dm_dh'] || '', meteo_8_3: s['6rrr_tr'] || '',
-              meteo_8_4: s['7r24'] || '', meteo_8_5: s['8ns_1'] || '',
-              meteo_8_6: s['8ns_2'] || '', meteo_10_0: s['8ns_3'] || '',
-              meteo_10_1: s['8ns_4'] || '', extra_8ns_1: s.extra_8ns_1 || '',
+              meteo_4_6: s['7ww_w1w2'] || '',
+              // Fila 6
+              meteo_6_0: s['8nh_cl_cm_ch'] || '',
+              meteo_6_2: s['0cs_dl_dm_dh'] || '',
+              meteo_6_3: s['1sn_tx_manual'] || '',
+              meteo_6_4: s['2sn_tn_manual'] || '',
+              meteo_6_5: s['3e_jjj'] || '',
+              meteo_6_6: s['5eee_je'] || '',
+              // Fila 8
+              meteo_8_0: s['5n_fn'] || '',
+              meteo_8_1: s['56dl_dm_dh'] || '',
+              meteo_8_3: s['6rrr_tr'] || '',
+              meteo_8_4: s['7r24'] || '',
+              meteo_8_5: s['8ns_1'] || '',
+              meteo_8_6: s['8ns_2'] || '',
+              // Fila 10
+              meteo_10_0: s['8ns_3'] || '',
+              meteo_10_1: s['8ns_4'] || '',
+              meteo_10_2: s['9sp_10_2'] || '',
+              meteo_10_3: s['9sp_10_3'] || '',
+              meteo_10_4: s['9sp_10_4'] || '',
+              meteo_10_5: s['9sp_10_5'] || '',
+              meteo_10_6: s['9sp_10_6'] || '',
+              // Fila 12
+              meteo_12_0: s['9sp_12_0'] || '',
+              meteo_12_1: s['9sp_12_1'] || '',
+              meteo_12_2: s['9sp_12_2'] || '',
+              meteo_12_3: s['9sp_12_3'] || '',
+              meteo_12_4: s['9sp_12_4'] || '',
+              meteo_12_5: s['9sp_12_5'] || '',
+              meteo_12_6: s['9sp_12_6'] || '',
+              // Fila 14
+              meteo_14_0: s['9sp_14_0'] || '',
+              meteo_14_1: s['9sp_14_1'] || '',
+              meteo_14_2: s['9sp_14_2'] || '',
+              meteo_14_3: s['9sp_14_3'] || '',
+              meteo_14_4: s['9sp_14_4'] || '',
+              meteo_14_5: s['9sp_14_5'] || '',
+              meteo_14_6: s['9sp_14_6'] || '',
+              // Fila 16
+              meteo_16_0: s['9sp_16_0'] || '',
+              meteo_16_1: s['9sp_16_1'] || '',
+              meteo_16_2: s['9sp_16_2'] || '',
+              meteo_16_3: s['9sp_16_3'] || '',
+              meteo_16_4: s['9sp_16_4'] || '',
+              // Extras
+              extra_8ns_1: s.extra_8ns_1 || '',
               extra_8ns_2: s.extra_8ns_2 || ''
             };
           }
@@ -381,6 +443,63 @@ const SynopticPage = () => {
   // Wrappers para navegación
   const handleNextDay = () => navigateToDay(1);
   const handlePreviousDay = () => navigateToDay(-1);
+
+  // Helper: Formatear fecha a dd/mm/aaaa para mostrar
+  const formatDateDisplay = (dateStr) => {
+    if (!dateStr) return '';
+    // Si ya está en formato YYYY-MM-DD
+    if (dateStr.includes('-')) {
+      const [yyyy, mm, dd] = dateStr.split('-');
+      return `${dd}/${mm}/${yyyy}`;
+    }
+    // Si está en formato DDMMYYYY
+    if (dateStr.length === 8) {
+      const dd = dateStr.substring(0, 2);
+      const mm = dateStr.substring(2, 4);
+      const yyyy = dateStr.substring(4, 8);
+      return `${dd}/${mm}/${yyyy}`;
+    }
+    return dateStr;
+  };
+
+  // Helper: Guardado silencioso (para auto-save sin confirmación)
+  const doQuietSave = async () => {
+    const stationId = getValue('station_id');
+    const fecha = getValue('fecha');
+
+    if (!stationId || !fecha) return false;
+
+    try {
+      const observationsWithResults = {};
+      for (const hora of hours) {
+        observationsWithResults[hora] = observations[hora] || {};
+      }
+
+      await axios.post('/synoptic/save-json', {
+        station_code: stationId,
+        fecha: fecha,
+        observations: observationsWithResults,
+        observer_name: getValue('nombre_observador') || null
+      });
+      console.log(`💾 Auto-guardado: ${formatDateDisplay(fecha)}`);
+      return true;
+    } catch (error) {
+      console.error('Error en auto-guardado:', error);
+      return false;
+    }
+  };
+
+  // Cambiar hora con auto-guardado
+  const handleHourChange = async (newHour) => {
+    if (newHour === activeHour) return;
+
+    // Auto-guardar antes de cambiar de hora (solo si hay datos de temperatura)
+    if (hasTemperatureData()) {
+      await doQuietSave();
+    }
+
+    setActiveHour(newHour);
+  };
 
   // Mapeo de nombres de estación a códigos
   const stationNameToCode = {
@@ -443,7 +562,7 @@ const SynopticPage = () => {
             const hora = item.hora;
             if (hours.includes(hora)) {
               const d = item.datos || {};
-              const s = item.synop || {};
+              const s = item.synop_manual || item.synop || {}; // Compatibilidad con formato anterior
 
               newObservations[hora] = {
                 ...newObservations[hora],
@@ -552,9 +671,17 @@ const SynopticPage = () => {
           setIsLoading(false);
         }, 100);
 
-        // Log de carga exitosa (sin alert para no robar foco en Electron)
+        // Confirmación de carga con fecha formateada
         const stationCode = stationNameToCode[jsonData.meta?.estacion] || jsonData.meta?.estacion;
-        console.log(`✅ JSON cargado: Estación ${stationCode}, Fecha ${jsonData.meta?.fecha || 'N/A'}`);
+        const fecha = jsonData.meta?.fecha || '';
+        const fechaFormatted = fecha.length === 8
+          ? `${fecha.substring(0, 2)}/${fecha.substring(2, 4)}/${fecha.substring(4, 8)}`
+          : fecha;
+
+        // Bloquear estación después de cargar (la observación pertenece a esa estación)
+        setIsStationLocked(true);
+
+        alert(`✅ Observación cargada\n\nEstación: ${stationCode}\nFecha: ${fechaFormatted}\n\n🔒 Estación bloqueada.`);
 
         // Resetear el input
         event.target.value = '';
@@ -699,12 +826,15 @@ const SynopticPage = () => {
                       <input className={constantClass} value={AAXX} readOnly title="Constante AAXX" />
                       {/* YYGG Iw */}
                       <input className={inputClass} placeholder="" value={getValue('meteo_2_1')} onChange={(e) => handleChange('meteo_2_1', e.target.value)} />
-                      {/* IIiii - Selector de estación (muestra solo el código) */}
+                      {/* IIiii - Selector de estación (bloqueado después de guardar) */}
                       <select
-                        className={inputClass}
+                        className={`${inputClass} ${isStationLocked ? 'bg-gray-300 cursor-not-allowed opacity-75' : ''}`}
                         value={getValue('station_id')}
                         onChange={(e) => handleStationChange(e.target.value)}
-                        title={stations[getValue('station_id')]?.name || 'Seleccionar estación'}
+                        disabled={isStationLocked}
+                        title={isStationLocked
+                          ? '🔒 Estación bloqueada (ya se guardó una observación)'
+                          : (stations[getValue('station_id')]?.name || 'Seleccionar estación')}
                       >
                         <option value="">Seleccionar...</option>
                         {Object.entries(stations).map(([id, info]) => (
@@ -978,7 +1108,7 @@ const SynopticPage = () => {
               {hours.map(hora => (
                 <button
                   key={hora}
-                  onClick={() => setActiveHour(hora)}
+                  onClick={() => handleHourChange(hora)}
                   className={`w-full py-2.5 px-3 rounded-lg font-medium text-sm transition-all duration-300 ${activeHour === hora
                     ? 'text-white shadow-md scale-105'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'

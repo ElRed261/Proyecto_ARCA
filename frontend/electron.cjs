@@ -1,8 +1,8 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, Menu } = require('electron');
 const path = require('path');
 
 // Determinar si estamos en desarrollo o producción
-const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
+const isDev = process.env.NODE_ENV === 'development';
 
 function createWindow() {
     const mainWindow = new BrowserWindow({
@@ -17,9 +17,14 @@ function createWindow() {
             contextIsolation: true,
             preload: path.join(__dirname, 'preload.js')
         },
-        autoHideMenuBar: false,
+        autoHideMenuBar: true,  // Ocultar barra de menú
         show: false
     });
+
+    // Ocultar menú completamente en producción
+    if (!isDev) {
+        Menu.setApplicationMenu(null);
+    }
 
     // Mostrar ventana cuando esté lista para evitar flash blanco
     mainWindow.once('ready-to-show', () => {
@@ -30,11 +35,12 @@ function createWindow() {
     if (isDev) {
         // En desarrollo, cargar desde el servidor de Vite
         mainWindow.loadURL('http://localhost:5173');
-        // Abrir DevTools en desarrollo
+        // Abrir DevTools solo en desarrollo
         mainWindow.webContents.openDevTools();
     } else {
         // En producción, cargar el archivo HTML compilado
         mainWindow.loadFile(path.join(__dirname, 'dist', 'index.html'));
+        // NO abrir DevTools en producción
     }
 
     // Manejar el título de la ventana

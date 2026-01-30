@@ -1,241 +1,30 @@
 INFO:     Will watch for changes in these directories: ['/home/stward/Documentos/Proyectos/Proyecto_ARCA/backend']
 INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
-INFO:     Started reloader process [24254] using StatReload
-INFO:     Started server process [24267]
+INFO:     Started reloader process [14026] using StatReload
+INFO:     Started server process [14039]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
-INFO:     127.0.0.1:58346 - "OPTIONS /api/auth/login HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58352 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58352 - "OPTIONS /api/synoptic/stations HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58346 - "OPTIONS /api/synoptic/stations HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58362 - "GET /api/synoptic/stations HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58362 - "GET /api/synoptic/stations HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58362 - "OPTIONS /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58346 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43772 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52882 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52882 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52882 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52882 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52882 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:35502 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:35502 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:35502 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:35502 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:35502 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:50998 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:50998 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:50998 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:50998 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:46756 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:46756 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:46756 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:46756 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:46756 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:46756 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:46756 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:46756 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:46756 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:39296 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59370 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59370 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59370 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:44362 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43206 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43206 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43206 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43206 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43206 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43206 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43256 - "OPTIONS /api/admin/users HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43266 - "OPTIONS /api/admin/users HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43276 - "GET /api/admin/users HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43276 - "GET /api/admin/users HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43276 - "OPTIONS /api/synoptic/stations HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43266 - "OPTIONS /api/synoptic/stations HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43256 - "GET /api/synoptic/stations HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43256 - "GET /api/synoptic/stations HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43256 - "OPTIONS /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43266 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43266 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43266 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43266 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43266 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43266 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:35396 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-WARNING:  StatReload detected changes in 'app/modules/synoptic/calculations.py'. Reloading...
-INFO:     Shutting down
-INFO:     Waiting for application shutdown.
-INFO:     Application shutdown complete.
-INFO:     Finished server process [24267]
-INFO:     Started server process [26940]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:     127.0.0.1:35404 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:35404 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:35404 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:35404 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:35404 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:35404 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:35404 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-WARNING:  StatReload detected changes in 'app/modules/synoptic/calculations.py'. Reloading...
-INFO:     Shutting down
-INFO:     Waiting for application shutdown.
-INFO:     Application shutdown complete.
-INFO:     Finished server process [26940]
-INFO:     Started server process [27019]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-WARNING:  StatReload detected changes in 'app/modules/synoptic/calculations.py'. Reloading...
-INFO:     Shutting down
-INFO:     Waiting for application shutdown.
-INFO:     Application shutdown complete.
-INFO:     Finished server process [27019]
-INFO:     Started server process [27086]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-WARNING:  StatReload detected changes in 'app/modules/synoptic/schemas.py'. Reloading...
-INFO:     Shutting down
-INFO:     Waiting for application shutdown.
-INFO:     Application shutdown complete.
-INFO:     Finished server process [27086]
-INFO:     Started server process [27133]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:     127.0.0.1:54332 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58362 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:33374 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:33388 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:33388 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:41710 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:39378 - "GET /api/synoptic/stations HTTP/1.1" 200 OK
-INFO:     127.0.0.1:39378 - "GET /api/synoptic/stations HTTP/1.1" 200 OK
-INFO:     127.0.0.1:39378 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:48838 - "OPTIONS /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:48850 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:48850 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:48850 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:48850 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:60046 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:60046 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:60046 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:60046 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:60046 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:60046 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:60046 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:60046 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:60046 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:41764 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:41764 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:41764 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:41428 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:41428 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:45204 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:45204 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:45204 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:45204 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:45204 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:45204 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:45204 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:45204 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58204 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:34952 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56180 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:36082 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:41914 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:50066 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:46674 - "OPTIONS /api/synoptic/stations HTTP/1.1" 200 OK
-INFO:     127.0.0.1:46676 - "OPTIONS /api/synoptic/stations HTTP/1.1" 200 OK
-INFO:     127.0.0.1:46680 - "GET /api/synoptic/stations HTTP/1.1" 200 OK
-INFO:     127.0.0.1:46680 - "GET /api/synoptic/stations HTTP/1.1" 200 OK
-INFO:     127.0.0.1:46680 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:54190 - "GET /api/synoptic/stations HTTP/1.1" 200 OK
-INFO:     127.0.0.1:54190 - "GET /api/synoptic/stations HTTP/1.1" 200 OK
-INFO:     127.0.0.1:54190 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:54190 - "GET /api/synoptic/stations HTTP/1.1" 200 OK
-INFO:     127.0.0.1:54190 - "GET /api/synoptic/stations HTTP/1.1" 200 OK
-INFO:     127.0.0.1:54190 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:54190 - "GET /api/synoptic/stations HTTP/1.1" 200 OK
-INFO:     127.0.0.1:54190 - "GET /api/synoptic/stations HTTP/1.1" 200 OK
-INFO:     127.0.0.1:54190 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55150 - "OPTIONS /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55166 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55166 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55166 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55166 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:57368 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:57368 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:57368 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:57368 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:57368 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:57368 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:57368 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:37456 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:37456 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:37456 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:37456 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51662 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:60416 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:60416 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:60422 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:60422 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52078 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52078 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52078 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52078 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52078 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:33014 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:44092 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58002 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58002 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58002 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58002 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:33388 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:33388 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:33394 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:57296 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:57296 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:57296 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:37558 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:37558 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:37558 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:37558 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:37558 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:37558 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:37558 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56668 - "OPTIONS /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56674 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:49278 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52694 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:41438 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:50000 - "OPTIONS /api/synoptic/stations HTTP/1.1" 200 OK
-INFO:     127.0.0.1:50014 - "OPTIONS /api/synoptic/stations HTTP/1.1" 200 OK
-INFO:     127.0.0.1:50016 - "GET /api/synoptic/stations HTTP/1.1" 200 OK
-INFO:     127.0.0.1:50016 - "GET /api/synoptic/stations HTTP/1.1" 200 OK
-INFO:     127.0.0.1:50016 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:38992 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:38992 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:40106 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:40106 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:40106 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:40106 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52414 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52414 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52414 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:33258 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:33258 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:33258 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:46596 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:46596 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:46596 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:46596 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:46596 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:41158 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:41158 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:41158 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43582 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:34954 - "OPTIONS /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:34956 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:34956 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51116 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51116 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47206 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47206 - "GET /api/synoptic/stations HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47206 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47206 - "GET /api/summary/ HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58588 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59240 - "GET /api/synoptic/stations HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59240 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59240 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59240 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59240 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59240 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59240 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59240 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58950 - "GET /api/summary/ HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58950 - "GET /api/audit/logs HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58950 - "GET /api/admin/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45498 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45498 - "GET /api/synoptic/stations HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45498 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33764 - "GET /api/synoptic/stations HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33764 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43530 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43530 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43530 - "POST /api/synoptic/calculate HTTP/1.1" 200 OK

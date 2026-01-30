@@ -71,16 +71,18 @@ def build_observation_json(
     observations: Dict[str, Dict],
 ) -> Dict[str, Any]:
     """
-    Construye JSON solo con campos MANUALES.
+    Construye JSON con TODOS los campos (manuales y calculados).
+    
+    Al CARGAR, el frontend solo debe usar los campos manuales.
+    Al GUARDAR, se almacenan todos para referencia histórica.
     
     Campos por hora:
-    - nombre_observador
+    - nombre_observador (por hora)
     - meteo_2_1 (YYGGIw)
-    - Datos: ts, th, pres_est, p3, p24, ll
-    - T_max/T_min solo en horas pares (00Z, 06Z, 12Z, 18Z)
-    - Grupos SYNOP manuales (sin auto-calculados)
-    - Todos los grupos 9sp
-    - 4 grupos 8Ns + 2 extras
+    - Datos manuales: ts, th, pres_est, p3, p24, ll, correc_alt
+    - Datos calculados: tv, hr, pr, dif, pres_nmm
+    - T_max/T_min solo en horas pares
+    - Grupos SYNOP manuales y calculados
     """
     fecha_formatted = format_date_for_filename(fecha)
     
@@ -91,15 +93,22 @@ def build_observation_json(
         h = observations.get(hora, {})
         es_hora_par = hora in HORAS_PARES
         
-        # Datos manuales básicos
+        # =============================================
+        # DATOS MANUALES
+        # =============================================
         datos = {
+            # Temperaturas manuales
             "ts": safe_str(h.get("ts")),
             "th": safe_str(h.get("th")),
+            # Presiones manuales
             "pres_est": safe_str(h.get("pres_est")),
             "p3": safe_str(h.get("p3")),
             "p24": safe_str(h.get("p24")),
             "let_barom": safe_str(h.get("let_barom")),
-            "ll": safe_str(h.get("ll")),  # Precipitación en cada hora
+            "correc_alt": safe_str(h.get("correc_alt")),
+            # Precipitación
+            "ll": safe_str(h.get("ll")),
+            "ll_24h": safe_str(h.get("ll_24h")),
         }
         
         # T_max y T_min solo en horas pares
@@ -109,9 +118,24 @@ def build_observation_json(
             datos["t_max_24h"] = safe_str(h.get("t_max_24h"))
             datos["t_min_24h"] = safe_str(h.get("t_min_24h"))
         
-        # Grupos SYNOP manuales (NO auto-calculados)
-        synop = {
-            # Fila 4: Solo campos manuales
+        # =============================================
+        # DATOS CALCULADOS (para referencia histórica)
+        # =============================================
+        calculados = {
+            "tv": safe_str(h.get("tv")),           # Tensión de vapor
+            "hr": safe_str(h.get("hr")),           # Humedad relativa
+            "pr": safe_str(h.get("pr")),           # Punto de rocío
+            "dif": safe_str(h.get("dif")),         # Diferencia Ts-Th
+            "pres_nmm": safe_str(h.get("pres_nmm")),  # Presión NMM
+            "dif_p3": safe_str(h.get("dif_p3")),   # Diferencia P3
+            "dif_p24": safe_str(h.get("dif_p24")), # Diferencia P24
+        }
+        
+        # =============================================
+        # GRUPOS SYNOP MANUALES
+        # =============================================
+        synop_manual = {
+            # Fila 4: Campos manuales
             "irixhvv": safe_str(h.get("meteo_4_irixhvv")),  # IriXHVV
             "n_dd_ff": safe_str(h.get("meteo_4_1")),        # N dd ff
             "7ww_w1w2": safe_str(h.get("meteo_4_6")),       # 7wwW1W2
@@ -128,20 +152,20 @@ def build_observation_json(
             "6rrr_tr": safe_str(h.get("meteo_8_3")),        # 6RRRtr
             "7r24": safe_str(h.get("meteo_8_4")),           # 7R24R24R24R24
             
-            # 4 grupos 8NsChshs (2 en fila 8, 2 en fila 10)
+            # 4 grupos 8NsChshs
             "8ns_1": safe_str(h.get("meteo_8_5")),
             "8ns_2": safe_str(h.get("meteo_8_6")),
             "8ns_3": safe_str(h.get("meteo_10_0")),
             "8ns_4": safe_str(h.get("meteo_10_1")),
             
-            # Fila 10: Grupos 9sp (columnas 2-6)
+            # Grupos 9sp - Fila 10
             "9sp_10_2": safe_str(h.get("meteo_10_2")),
             "9sp_10_3": safe_str(h.get("meteo_10_3")),
             "9sp_10_4": safe_str(h.get("meteo_10_4")),
             "9sp_10_5": safe_str(h.get("meteo_10_5")),
             "9sp_10_6": safe_str(h.get("meteo_10_6")),
             
-            # Fila 12: Grupos 9sp (7 columnas)
+            # Grupos 9sp - Fila 12
             "9sp_12_0": safe_str(h.get("meteo_12_0")),
             "9sp_12_1": safe_str(h.get("meteo_12_1")),
             "9sp_12_2": safe_str(h.get("meteo_12_2")),
@@ -150,7 +174,7 @@ def build_observation_json(
             "9sp_12_5": safe_str(h.get("meteo_12_5")),
             "9sp_12_6": safe_str(h.get("meteo_12_6")),
             
-            # Fila 14: Grupos 9sp (7 columnas)
+            # Grupos 9sp - Fila 14
             "9sp_14_0": safe_str(h.get("meteo_14_0")),
             "9sp_14_1": safe_str(h.get("meteo_14_1")),
             "9sp_14_2": safe_str(h.get("meteo_14_2")),
@@ -159,34 +183,48 @@ def build_observation_json(
             "9sp_14_5": safe_str(h.get("meteo_14_5")),
             "9sp_14_6": safe_str(h.get("meteo_14_6")),
             
-            # Fila 16: Grupos 9sp (5 columnas, columnas 5-6 son 555 y 29UUU auto)
+            # Grupos 9sp - Fila 16
             "9sp_16_0": safe_str(h.get("meteo_16_0")),
             "9sp_16_1": safe_str(h.get("meteo_16_1")),
             "9sp_16_2": safe_str(h.get("meteo_16_2")),
             "9sp_16_3": safe_str(h.get("meteo_16_3")),
             "9sp_16_4": safe_str(h.get("meteo_16_4")),
             
-            # 2 grupos 8NsChshs extra (panel lateral)
+            # 2 grupos 8NsChshs extra
             "extra_8ns_1": safe_str(h.get("extra_8ns_1")),
             "extra_8ns_2": safe_str(h.get("extra_8ns_2")),
         }
         
-        # Solo incluir 1snTx y 2snTn manuales en horas pares
+        # 1snTx y 2snTn manuales solo en horas pares
         if es_hora_par:
-            synop["1sn_tx_manual"] = safe_str(h.get("meteo_6_3"))  # 1snTxTxTx manual
-            synop["2sn_tn_manual"] = safe_str(h.get("meteo_6_4"))  # 2snTnTnTn manual
+            synop_manual["1sn_tx_manual"] = safe_str(h.get("meteo_6_3"))
+            synop_manual["2sn_tn_manual"] = safe_str(h.get("meteo_6_4"))
+        
+        # =============================================
+        # GRUPOS SYNOP CALCULADOS (para referencia)
+        # =============================================
+        synop_calculado = {
+            "1sn_ttt": safe_str(h.get("synop_1snTTT")),      # Temperatura seca
+            "2sn_tdtdtd": safe_str(h.get("synop_2snTdTdTd")), # Punto de rocío
+            "4pppp": safe_str(h.get("synop_4PPPP")),         # Presión NMM
+            "5appp": safe_str(h.get("synop_5aPPP")),         # Tendencia 3h
+            "58_59_p24": safe_str(h.get("synop_58_59_P24")), # Cambio 24h
+            "29uuu": safe_str(h.get("synop_29UUU")),         # Humedad
+        }
         
         hora_entry = {
             "hora": hora,
             "nombre_observador": safe_str(h.get("nombre_observador")),
             "yygg_iw": safe_str(h.get("meteo_2_1")),
             "datos": datos,
-            "synop": synop
+            "calculados": calculados,
+            "synop_manual": synop_manual,
+            "synop_calculado": synop_calculado
         }
         
         horarias.append(hora_entry)
     
-    # Resumen del día: solo pp_24h de 12Z
+    # Resumen del día
     pp_24h = safe_str(observations.get("12Z", {}).get("ll_24h"))
     
     return {
@@ -201,26 +239,83 @@ def build_observation_json(
     }
 
 
+# Directorio de backups
+BACKUP_DIR = Path(__file__).parent / "data" / ".backups"
+
+
+def ensure_backup_dir(station_code: str) -> Path:
+    """Crea directorio de backups: data/.backups/{station_code}/"""
+    backup_path = BACKUP_DIR / station_code
+    backup_path.mkdir(parents=True, exist_ok=True)
+    return backup_path
+
+
+def create_backup(filepath: Path, station_code: str) -> Optional[str]:
+    """
+    Crea backup del archivo si existe.
+    Mantiene los últimos 10 backups por archivo.
+    Nombre: {filename}.{timestamp}.bak
+    """
+    if not filepath.exists():
+        return None
+    
+    backup_dir = ensure_backup_dir(station_code)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    backup_name = f"{filepath.stem}.{timestamp}.bak"
+    backup_path = backup_dir / backup_name
+    
+    # Copiar archivo actual al backup
+    import shutil
+    shutil.copy2(filepath, backup_path)
+    
+    # Limpiar backups antiguos (mantener solo los últimos 10)
+    pattern = f"{filepath.stem}.*.bak"
+    backups = sorted(backup_dir.glob(pattern), key=lambda x: x.stat().st_mtime, reverse=True)
+    for old_backup in backups[10:]:
+        old_backup.unlink()
+    
+    return str(backup_path)
+
+
 def save_observation_json(
     station_code: str,
     fecha: str,
     observations: Dict[str, Dict],
     observer_name: Optional[str] = None
-) -> str:
-    """Guarda en: data/{station}/{year}/{month}/{station}{DDMMYYYY}.json"""
+) -> Dict[str, Any]:
+    """
+    Guarda en: data/{station}/{year}/{month}/{station}{DDMMYYYY}.json
+    
+    Retorna dict con:
+    - filepath: ruta del archivo guardado
+    - backup_path: ruta del backup (si se creó)
+    - last_modified: timestamp de la última modificación
+    """
     year, month = parse_date_parts(fecha)
     dir_path = ensure_data_dir(station_code, year, month)
-    
-    json_data = build_observation_json(station_code, fecha, observations)
     
     fecha_formatted = format_date_for_filename(fecha)
     filename = f"{station_code}{fecha_formatted}.json"
     filepath = dir_path / filename
     
+    # Crear backup si el archivo ya existe
+    backup_path = create_backup(filepath, station_code)
+    
+    # Construir y guardar JSON
+    json_data = build_observation_json(station_code, fecha, observations)
+    
+    # Añadir timestamp de última modificación
+    json_data["meta"]["last_modified"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
     with open(filepath, "w", encoding="utf-8") as f:
         json.dump(json_data, f, indent=2, ensure_ascii=False)
     
-    return str(filepath)
+    return {
+        "filepath": str(filepath),
+        "filename": filename,
+        "backup_path": backup_path,
+        "last_modified": json_data["meta"]["last_modified"]
+    }
 
 
 def load_observation_json(station_code: str, fecha: str) -> Optional[Dict]:
