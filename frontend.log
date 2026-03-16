@@ -3,7 +3,8 @@
 > vite
 
 
-  VITE v7.2.6  ready in 162 ms
+  VITE v7.2.6  ready in 269 ms
 
   ➜  Local:   http://localhost:5173/
   ➜  Network: http://192.168.0.215:5173/
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
