@@ -1,29 +1,24 @@
 INFO:     Will watch for changes in these directories: ['/home/stward/Documentos/Proyectos/Proyecto_ARCA/backend']
 INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
-INFO:     Started reloader process [13979] using StatReload
-INFO:     Started server process [13988]
+INFO:     Started reloader process [33805] using StatReload
+INFO:     Started server process [33818]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
-WARNING:  StatReload detected changes in '.venv/lib/python3.10/site-packages/PySide6/_config.py'. Reloading...
+INFO:     127.0.0.1:47512 - "OPTIONS /api/synoptic/stations HTTP/1.1" 400 Bad Request
+INFO:     127.0.0.1:47512 - "OPTIONS /api/synoptic/calculate HTTP/1.1" 400 Bad Request
+INFO:     127.0.0.1:42778 - "OPTIONS /api/synoptic/calculate HTTP/1.1" 400 Bad Request
+INFO:     127.0.0.1:42778 - "OPTIONS /api/synoptic/calculate HTTP/1.1" 400 Bad Request
+INFO:     127.0.0.1:42778 - "OPTIONS /api/synoptic/calculate HTTP/1.1" 400 Bad Request
+INFO:     127.0.0.1:42778 - "OPTIONS /api/synoptic/calculate HTTP/1.1" 400 Bad Request
+INFO:     127.0.0.1:42778 - "OPTIONS /api/synoptic/calculate HTTP/1.1" 400 Bad Request
+INFO:     127.0.0.1:42778 - "OPTIONS /api/synoptic/calculate HTTP/1.1" 400 Bad Request
+INFO:     127.0.0.1:42778 - "OPTIONS /api/synoptic/calculate HTTP/1.1" 400 Bad Request
+INFO:     127.0.0.1:59454 - "OPTIONS /api/synoptic/stations HTTP/1.1" 400 Bad Request
+INFO:     127.0.0.1:59454 - "OPTIONS /api/synoptic/calculate HTTP/1.1" 400 Bad Request
+INFO:     127.0.0.1:36856 - "OPTIONS /api/synoptic/calculate HTTP/1.1" 400 Bad Request
+INFO:     127.0.0.1:36856 - "OPTIONS /api/synoptic/calculate HTTP/1.1" 400 Bad Request
 INFO:     Shutting down
 INFO:     Waiting for application shutdown.
 INFO:     Application shutdown complete.
-INFO:     Finished server process [13988]
-INFO:     Started server process [23797]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-WARNING:  StatReload detected changes in '.venv/lib/python3.10/site-packages/PySide6/_config.py'. Reloading...
-INFO:     Shutting down
-INFO:     Waiting for application shutdown.
-INFO:     Application shutdown complete.
-INFO:     Finished server process [23797]
-INFO:     Started server process [23804]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:     127.0.0.1:42632 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     127.0.0.1:42648 - "GET /api/synoptic/stations HTTP/1.1" 200 OK
-INFO:     Shutting down
-INFO:     Waiting for application shutdown.
-INFO:     Application shutdown complete.
-INFO:     Finished server process [23804]
-INFO:     Stopping reloader process [13979]
+INFO:     Finished server process [33818]
+INFO:     Stopping reloader process [33805]

@@ -4,10 +4,13 @@ import react from '@vitejs/plugin-react'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: './', // Importante para Electron: rutas relativas
+  // Tauri espera un puerto fijo; clearScreen false para no borrar logs de Tauri
+  clearScreen: false,
+  base: './', // Rutas relativas para build
   server: {
     host: true,
-    port: 5173,
+    port: 1420,
+    strictPort: true,
     watch: {
       usePolling: true,
     },
@@ -18,3 +21,4 @@ export default defineConfig({
     emptyOutDir: true,
   }
 })
+

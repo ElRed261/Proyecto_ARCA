@@ -19,6 +19,7 @@ const DashboardPage = ({ user, onLogout, onNavigate }) => {
         },
         {
             id: 'summary',
+            id: 'summary',
             title: 'Resumen Mensual',
             description: 'Reportes financieros y operativos mensuales.',
             icon: Calendar,

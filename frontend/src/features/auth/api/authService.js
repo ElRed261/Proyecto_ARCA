@@ -1,37 +1,55 @@
 import api from '../../../shared/api/axiosConfig';
 
+// =====================================================
+// Cuentas locales hardcodeadas (auth sin servidor)
+// TODO: Reemplazar con autenticación basada en servidor
+// cuando se implemente la infraestructura de auth
+// =====================================================
+const LOCAL_USERS = [
+    { email: 'admin@arca.rd', password: 'admin123', roles: ['admin'] },
+    { email: 'encargado@arca.rd', password: 'encargado123', roles: ['encargado'] },
+    { email: 'observador@arca.rd', password: 'observador123', roles: ['observador'] },
+];
+
 export const authService = {
-    // Función para iniciar sesión
+    // Login local: valida contra cuentas hardcodeadas
     login: async (email, password) => {
-        // Enviamos los datos al endpoint que creamos en Python
-        const response = await api.post('/auth/login', { email, password });
+        const user = LOCAL_USERS.find(
+            (u) => u.email === email && u.password === password
+        );
 
-        // Si hay éxito, guardamos el token en el navegador
-        if (response.data.access_token) {
-            localStorage.setItem('token', response.data.access_token);
-            localStorage.setItem('user_email', response.data.user_email);
-            localStorage.setItem('user_roles', JSON.stringify(response.data.roles));
+        if (!user) {
+            throw { response: { data: { detail: 'Credenciales incorrectas' } } };
         }
-        return response.data;
+
+        // Generar un token local simple (no criptográfico — es placeholder)
+        const token = btoa(JSON.stringify({ sub: user.email, roles: user.roles, iat: Date.now() }));
+
+        localStorage.setItem('token', token);
+        localStorage.setItem('user_email', user.email);
+        localStorage.setItem('user_roles', JSON.stringify(user.roles));
+
+        return {
+            access_token: token,
+            token_type: 'bearer',
+            user_email: user.email,
+            roles: user.roles,
+        };
     },
 
-    // Función para registrar usuario
-    register: async (email, password) => {
-        const response = await api.post('/auth/register', {
-            email,
-            password
-        });
-        return response.data;
+    // Registro deshabilitado en modo local
+    register: async () => {
+        throw { response: { data: { detail: 'Registro deshabilitado en modo local' } } };
     },
 
-    // Función para salir
+    // Logout: limpia localStorage
     logout: () => {
         localStorage.removeItem('token');
         localStorage.removeItem('user_email');
         localStorage.removeItem('user_roles');
     },
 
-    // --- ADMIN METHODS ---
+    // --- ADMIN METHODS (siguen usando el backend API) ---
     getUsers: async () => {
         const response = await api.get('/admin/users');
         return response.data;
@@ -50,5 +68,5 @@ export const authService = {
     deleteUser: async (userId) => {
         const response = await api.delete(`/admin/users/${userId}`);
         return response.data;
-    }
+    },
 };

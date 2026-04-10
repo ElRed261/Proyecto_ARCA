@@ -7,6 +7,7 @@ import SynopticPage from './features/synoptic/pages/SynopticPage';
 import SummaryPage from './features/summary/pages/SummaryPage';
 import AuditPage from './features/audit/pages/AuditPage';
 import MaintenancePage from './features/maintenance/pages/MaintenancePage';
+import Cli3074Page from './features/cli3074/pages/Cli3074Page';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -126,10 +127,17 @@ function App() {
           </ProtectedRoute>
         } />
 
-        {/* Maintenance Module (3074, 4074, 5074) */}
+        {/* Maintenance Module (4074, 5074) */}
         <Route path="/maintenance" element={
           <ProtectedRoute>
             <MaintenancePage />
+          </ProtectedRoute>
+        } />
+
+        {/* CLI 3074 Module */}
+        <Route path="/cli3074" element={
+          <ProtectedRoute>
+            <Cli3074Page />
           </ProtectedRoute>
         } />
 

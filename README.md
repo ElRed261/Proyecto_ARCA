@@ -4,10 +4,10 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Estado-En_Desarrollo-orange?style=for-the-badge" alt="Status"/>
-  <img src="https://img.shields.io/badge/Version-2.2.0-blue?style=for-the-badge" alt="Version"/>
-  <img src="https://img.shields.io/badge/Backend-FastAPI_Python-green?style=for-the-badge" alt="Backend"/>
+  <img src="https://img.shields.io/badge/Version-3.0.0-blue?style=for-the-badge" alt="Version"/>
+  <img src="https://img.shields.io/badge/Desktop-Tauri_v2-purple?style=for-the-badge" alt="Desktop"/>
+  <img src="https://img.shields.io/badge/Backend-Rust-red?style=for-the-badge" alt="Backend"/>
   <img src="https://img.shields.io/badge/Frontend-React_Vite-blue?style=for-the-badge" alt="Frontend"/>
-  <img src="https://img.shields.io/badge/Database-PostgreSQL-336791?style=for-the-badge" alt="Database"/>
 </p>
 
 ---
@@ -20,12 +20,11 @@
 
 | Característica | Descripción |
 | :--- | :--- |
-| 📊 **Registro Sinóptico** | Formulario WMO completo con cálculos automáticos |
-| 📁 **Catálogo de Días** | Navegación entre días con guardado automático |
+| 📊 **Registro Sinóptico** | Formulario WMO completo con cálculos automáticos nativos |
+| 📁 **Catálogo de Días** | Navegación entre días con guardado automático rápido en JSON |
 | 🔄 **Códigos SYNOP** | Generación automática de grupos 1snTTT, 4PPPP, 5aPPP, 58/59, 29UUU |
-| 📈 **Resúmenes Mensuales** | Consolidación de datos por período |
+| 📈 **Formulario CLI 3074** | Extracción Sinóptica Profunda (Viento m/s, Visibilidad, Tendencia) |
 | 🔍 **Auditoría** | Trazabilidad y corrección de datos históricos |
-| 👥 **Multi-usuario** | Control de acceso basado en roles (RBAC) |
 
 ---
 
@@ -88,11 +87,10 @@ Ejemplo: `data/78484/2025/12/7848406122025.json`
 
 | Módulo | Estado | Descripción |
 | :--- | :---: | :--- |
-| **🔐 Auth & Core** | 🟢 Listo | Gestión de identidad, seguridad JWT, Hashing y Roles (RBAC) |
-| **🌤️ Observación Sinóptica** | 🟢 Activo | Formulario WMO con cálculos automáticos y códigos SYNOP |
-| **📊 Resumen Mensual** | 🟢 Activo | Generación y consulta de resúmenes mensuales |
-| **🔍 Correcciones y Auditoría** | 🟢 Activo | Logs de auditoría y corrección de datos |
-| **🔧 CLI (3074/4074/5074)** | 🟡 Próximo | Módulos de mantenimiento de estaciones |
+| **🌤️ Observación Sinóptica** | 🟢 Activo | Formulario WMO con cálculos automáticos (Rust Engine) |
+| **🔧 CLI 3074** | 🟢 Activo | Formulario sinóptico de superficie con extracción profunda de Nddff y 5appp |
+| **📊 Resumen Mensual** | 🟡 Próximo | Generación y consulta de resúmenes mensuales |
+| **🔍 Correcciones y Auditoría** | 🟡 Próximo | Logs de auditoría y corrección de datos |
 
 ---
 
@@ -102,16 +100,14 @@ Ejemplo: `data/78484/2025/12/7848406122025.json`
 <tr>
 <td width="50%">
 
-### 🧠 Backend (Python 3.10+)
+### 🧠 Backend Nativo (Rust & Tauri v2)
 
 | Tecnología | Uso |
 |:---|:---|
-| `FastAPI` | Framework Web asíncrono |
-| `Uvicorn` | Servidor ASGI |
-| `SQLAlchemy` | ORM para PostgreSQL |
-| `Pydantic` | Validación de datos |
-| `Python-Jose` | Tokens JWT |
-| `Passlib` | Hashing bcrypt |
+| `Rust` | Lenguaje de programación de alto rendimiento (Motor de Cálculos) |
+| `Tauri v2` | Framework para aplicación de escritorio nativa multiplataforma |
+| `Serde` | Serialización/Deserialización ultrarrápida de JSON |
+| `Lazy Static` | Caché en memoria para constantes (Estaciones) |
 
 </td>
 <td width="50%">
@@ -137,98 +133,60 @@ Ejemplo: `data/78484/2025/12/7848406122025.json`
 
 ```
 Proyecto_ARCA/
-├── backend/
-│   ├── app/
-│   │   ├── core/               # Configuración global (DB, Seguridad)
-│   │   ├── modules/
-│   │   │   ├── auth/           # 🔐 Autenticación y Usuarios
-│   │   │   ├── synoptic/       # 🌤️ Observación Sinóptica
-│   │   │   │   ├── calculations.py   # Cálculos WMO
-│   │   │   │   ├── json_handler.py   # Guardado/carga JSON
-│   │   │   │   ├── schemas.py        # Validación Pydantic
-│   │   │   │   ├── router.py         # Endpoints API
-│   │   │   │   └── data/             # 📁 JSONs por estación
-│   │   │   ├── summary/        # 📊 Resumen Mensual
-│   │   │   └── audit/          # 🔍 Auditoría
-│   │   └── main.py
-│   └── requirements.txt
+├── src-tauri/
+│   ├── src/
+│   │   ├── calculations.rs   # 🚀 Motor matemático en Rust puro (WMO)
+│   │   ├── json_handler.rs   # 🚀 Sistema de persistencia ultrarrápido
+│   │   ├── commands.rs       # Interface Tauri con el Frontend
+│   │   └── main.rs
+│   └── tauri.conf.json
 │
 ├── frontend/
 │   ├── src/
 │   │   ├── features/
-│   │   │   ├── auth/           # Login y Admin
-│   │   │   ├── dashboard/      # Panel Principal
-│   │   │   ├── synoptic/       # 🌤️ Formulario Sinóptico
-│   │   │   ├── summary/        # Vista de Resúmenes
-│   │   │   ├── audit/          # Vista de Auditoría
-│   │   │   └── maintenance/    # 🔧 Página CLI (próximo)
+│   │   │   ├── synoptic/     # 🌤️ Formulario Sinóptico Principal
+│   │   │   ├── cli3074/      # 🔧 Formulario Sinóptico CLI 3074
+│   │   │   ├── summary/      # 📊 Vista de Resúmenes
+│   │   │   └── dashboard/    # Panel Principal
 │   │   └── App.jsx
 │   └── package.json
 │
-├── Base para modulos/          # 📚 Manuales WMO de referencia
-├── setup_full.sh               # Instalación automática
-└── run_full.sh                 # Iniciar el sistema
+├── docs/                     # 📚 Documentación y Excel original
+└── data/                     # 📁 Almacenamiento local JSON
 ```
 
 ---
 
-## 🚀 Instalación Rápida
+## 🚀 Desarrollo
 
 ### Prerrequisitos
 
 ```bash
-✅ Ubuntu/Debian (o Distrobox compatible)
-✅ Python 3.10+
+✅ Rust (rustup)
 ✅ Node.js 18+
-✅ PostgreSQL
 ```
 
-### Instalación Automática
+### Iniciar en Desarrollo
+
+El proyecto ahora utiliza **Tauri v2** para brindar una experiencia nativa de escritorio pura.
 
 ```bash
-# Dar permisos y ejecutar
-chmod +x setup_full.sh
-./setup_full.sh
+# Iniciar frontend y backend simultáneamente en modo dev
+npm run tauri dev
 ```
-
-### Iniciar el Sistema
-
-```bash
-./run_full.sh
-```
-
-> 🌐 **Frontend**: `http://localhost:5173`  
-> 🔌 **API Docs**: `http://localhost:8000/docs`
 
 ---
 
-## 🔑 Credenciales por Defecto
+## 📡 Comunicación Frontend-Backend
 
-| Rol | Usuario | Contraseña |
-|:---:|:---|:---|
-| 👑 Admin | `admin@arca.com` | `123456` |
+En lugar de usar HTTP/REST (`Axios`), toda la comunicación ahora ocurre mediante **Tauri IPC** (Inter-Process Communication), ofreciendo una latencia de `~0.5ms`.
 
----
-
-## 📡 Endpoints de la API
-
-| Módulo | Ruta Base | Descripción |
-|:---|:---|:---|
-| 🔐 Auth | `/api/auth` | Login, Registro, Tokens |
-| 👥 Admin | `/api/admin` | Gestión de usuarios y roles |
-| 🌤️ Synoptic | `/api/synoptic` | Cálculos y observaciones |
-| 📊 Summary | `/api/summary` | Resúmenes mensuales |
-| 🔍 Audit | `/api/audit` | Logs y correcciones |
-
-### Endpoints Sinópticos
-
-| Método | Ruta | Función |
-|:---:|:---|:---|
-| POST | `/synoptic/calculate` | Realiza cálculos meteorológicos |
-| POST | `/synoptic/save-json` | Guarda observación como JSON |
-| GET | `/synoptic/observation/{station}/{fecha}` | Carga observación existente |
-| GET | `/synoptic/date-range/{station}` | Rango de fechas disponibles |
-| GET | `/synoptic/stations` | Lista estaciones disponibles |
+| Comando Tauri | Uso |
+|:---|:---|
+| `invoke('save_json', ...)` | Guarda la observación en disco |
+| `invoke('load_json_date_range', ...)` | Carga todas las horas del día |
+| `invoke('get_or_create_observation', ...)` | Verifica si existe observación |
+| `invoke('calculate_observations', ...)` | Lógica sinóptica desde `calculations.rs` |
 
 ---
 
@@ -265,5 +223,5 @@ chmod +x setup_full.sh
 ---
 
 <p align="center">
-  <sub>📅 Última actualización: Diciembre 2025</sub>
+  <sub>📅 Última actualización: Abril 2026</sub>
 </p>

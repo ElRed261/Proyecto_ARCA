@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from '../../../shared/api/axiosConfig';
+import { invoke } from '@tauri-apps/api/core';
 import { isAdmin } from '../../../shared/utils/auth';
 
 // =============================================================================
@@ -45,19 +45,60 @@ const SynopticPage = () => {
   // Horas impares (NO tienen T_max/T_min)
   const oddHours = ["03Z", "09Z", "15Z", "21Z"];
 
-  // Estado inicial: objeto con claves para cada hora
+  // =========================================================================
+  // SESSION STORAGE DRAFT — Persistir estado al navegar a sub-módulos
+  // =========================================================================
+  const DRAFT_KEY = 'synoptic_draft';
+
+  const saveDraft = () => {
+    try {
+      const draft = { observations: observationsRef.current, activeHour: activeHourRef.current, resultsPerHour: resultsPerHourRef.current };
+      sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    } catch (e) { console.warn('Error guardando draft:', e); }
+  };
+
+  const loadDraft = () => {
+    try {
+      const raw = sessionStorage.getItem(DRAFT_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch (e) { console.warn('Error cargando draft:', e); }
+    return null;
+  };
+
+  const clearDraft = () => sessionStorage.removeItem(DRAFT_KEY);
+
+  // Estado inicial: tomar del draft o crear vacío
+  const savedDraft = loadDraft();
+
   const [observations, setObservations] = useState(
-    hours.reduce((acc, hour) => ({ ...acc, [hour]: {} }), {})
+    savedDraft?.observations || hours.reduce((acc, hour) => ({ ...acc, [hour]: {} }), {})
   );
 
-  // Hora activa por defecto: 06Z
-  const [activeHour, setActiveHour] = useState('06Z');
+  // Hora activa por defecto: 06Z o la última del draft
+  const [activeHour, setActiveHour] = useState(savedDraft?.activeHour || '06Z');
   const [results, setResults] = useState({});
+  const [resultsPerHour, setResultsPerHour] = useState(savedDraft?.resultsPerHour || {});
   const [errorMessage, setErrorMessage] = useState('');
   const [stations, setStations] = useState({});
   const [isCalculating, setIsCalculating] = useState(false);
-  const [isLoading, setIsLoading] = useState(false); // Flag para evitar cálculos durante carga
-  const [isStationLocked, setIsStationLocked] = useState(false); // Bloquear estación después de guardar
+  const [isLoading, setIsLoading] = useState(!!savedDraft); // Evitar recálculo inicial si restauramos draft
+  const [isStationLocked, setIsStationLocked] = useState(false);
+
+  // Refs para acceso sincrónico en saveDraft
+  const observationsRef = React.useRef(observations);
+  const activeHourRef = React.useRef(activeHour);
+  const resultsPerHourRef = React.useRef(resultsPerHour);
+  React.useEffect(() => { observationsRef.current = observations; }, [observations]);
+  React.useEffect(() => { activeHourRef.current = activeHour; }, [activeHour]);
+  React.useEffect(() => { resultsPerHourRef.current = resultsPerHour; }, [resultsPerHour]);
+
+  // Si restauramos draft, quitar flag isLoading después de montar
+  React.useEffect(() => {
+    if (savedDraft) {
+      const timer = setTimeout(() => setIsLoading(false), 500);
+      return () => clearTimeout(timer);
+    }
+  }, []);
 
   // Determinar si la hora activa es par (tiene T_max/T_min)
   const isEvenHour = evenHours.includes(activeHour);
@@ -66,8 +107,8 @@ const SynopticPage = () => {
   useEffect(() => {
     const fetchStations = async () => {
       try {
-        const response = await axios.get('/synoptic/stations');
-        setStations(response.data);
+        const data = await invoke('get_stations');
+        setStations(data);
       } catch (error) {
         console.error('Error al cargar estaciones:', error);
       }
@@ -81,19 +122,19 @@ const SynopticPage = () => {
     setErrorMessage('');
 
     try {
-      const response = await axios.post('/synoptic/calculate', {
-        ts: data.ts || '',
-        th: data.th || '',
-        pres_est: data.pres_est || '',
-        p3: data.p3 || '',
-        p24: data.p24 || '',
-        correc_alt: data.correc_alt || '',
-        station_id: data.station_id || '',
-        ir: data.ir || '',
-        ix: data.ix || ''
+      const calcResults = await invoke('calculate_observations', {
+        data: {
+          ts: data.ts || '',
+          th: data.th || '',
+          pres_est: data.pres_est || '',
+          p3: data.p3 || '',
+          p24: data.p24 || '',
+          correc_alt: data.correc_alt || '',
+          station_id: data.station_id || '',
+          ir: data.ir || '',
+          ix: data.ix || ''
+        }
       });
-
-      const calcResults = response.data;
 
       // Si hay error del backend, mostrarlo
       if (calcResults.error_message) {
@@ -114,6 +155,11 @@ const SynopticPage = () => {
       */
 
       setResults(calcResults);
+      // Guardar resultados por hora específica
+      setResultsPerHour(prev => ({
+        ...prev,
+        [activeHour]: calcResults
+      }));
     } catch (error) {
       console.error('Error en cálculos:', error);
       // Fallback: resultados vacíos
@@ -200,28 +246,31 @@ const SynopticPage = () => {
 
       // Removida restricción de hora - se puede guardar desde cualquier hora
 
-      // Preparar datos de todas las horas con los resultados calculados
+      // Preparar datos de todas las horas - cada hora con sus propios cálculos
       const observationsWithResults = {};
       for (const hora of hours) {
         const horaData = observations[hora] || {};
+        // Obtener resultados de esta hora específica (no de la hora activa)
+        const horaResults = resultsPerHour[hora] || {};
         observationsWithResults[hora] = {
           ...horaData,
-          // Incluir resultados calculados si corresponde a la hora activa
-          pres_nmm: results.pres_nmm,
-          punto_rocio: results.punto_rocio,
-          tension_vapor: results.tension_vapor,
-          humedad_relativa: results.humedad_relativa
+          // Incluir SOLO resultados calculados de esta hora específica
+          pres_nmm: horaResults.pres_nmm || '',
+          punto_rocio: horaResults.punto_rocio || '',
+          tension_vapor: horaResults.tension_vapor || '',
+          humedad_relativa: horaResults.humedad_relativa || '',
+          diferencia: horaResults.diferencia || ''
         };
       }
 
-      const response = await axios.post('/synoptic/save-json', {
-        station_code: stationId,
+      const response = await invoke('save_observation_json', {
+        stationCode: stationId,
         fecha: fecha,
         observations: observationsWithResults,
-        observer_name: getValue('observador') || null
+        observerName: getValue('observador') || null
       });
 
-      if (response.data.success) {
+      if (response.success) {
         // Mostrar confirmación con fecha formateada
         const fecha = getValue('fecha');
         const fechaFormatted = fecha ? (() => {
@@ -229,10 +278,11 @@ const SynopticPage = () => {
           return `${dd}/${mm}/${yyyy}`;
         })() : '';
 
-        // Bloquear cambio de estación después de guardar
+        // Bloquear cambio de estación después de guardar y limpiar draft
         setIsStationLocked(true);
+        clearDraft();
 
-        alert(`✅ Observación guardada\n\nFecha: ${fechaFormatted}\nArchivo: ${response.data.filename}${response.data.backup_path ? '\nBackup creado ✓' : ''}\n\n⚠️ La estación está ahora bloqueada.`);
+        alert(`✅ Observación guardada\n\nFecha: ${fechaFormatted}\nArchivo: ${response.filename}${response.backup_path ? '\nBackup creado ✓' : ''}\n\n⚠️ La estación está ahora bloqueada.`);
       }
     } catch (error) {
       console.error('Error al guardar:', error);
@@ -274,8 +324,8 @@ const SynopticPage = () => {
     // VALIDACIÓN 1: Si vamos hacia ATRÁS, verificar que no sea la fecha más antigua
     if (direction === -1) {
       try {
-        const rangeResponse = await axios.get(`/synoptic/date-range/${currentStation}`);
-        const oldestDate = rangeResponse.data.oldest_date;
+        const rangeData = await invoke('get_station_date_range', { stationCode: currentStation });
+        const oldestDate = rangeData.oldest_date;
 
         if (oldestDate && currentDate <= oldestDate) {
           console.log(`🚫 No hay datos antes del ${oldestDate} para estación ${currentStation}`);
@@ -300,11 +350,11 @@ const SynopticPage = () => {
           observationsWithResults[hora] = observations[hora] || {};
         }
 
-        await axios.post('/synoptic/save-json', {
-          station_code: currentStation,
+        await invoke('save_observation_json', {
+          stationCode: currentStation,
           fecha: currentDate,
           observations: observationsWithResults,
-          observer_name: getValue('nombre_observador') || null
+          observerName: getValue('nombre_observador') || null
         });
         console.log(`💾 Guardado día: ${currentDate}`);
       } catch (error) {
@@ -322,9 +372,12 @@ const SynopticPage = () => {
       const [yyyy, mm, dd] = targetDate.split('-');
       const fechaForBackend = `${dd}${mm}${yyyy}`;
 
-      const response = await axios.get(`/synoptic/observation/${currentStation}/${fechaForBackend}`);
+      const responseData = await invoke('get_observation', { 
+        stationCode: currentStation, 
+        fecha: fechaForBackend 
+      });
 
-      if (response.data && response.data.horarias) {
+      if (responseData && Object.keys(responseData).some(key => hours.includes(key))) {
         setIsLoading(true);
 
         const newObservations = {};
@@ -336,84 +389,25 @@ const SynopticPage = () => {
           };
         });
 
-        response.data.horarias.forEach(item => {
-          const hora = item.hora;
-          if (hours.includes(hora)) {
-            const d = item.datos || {};
-            const s = item.synop_manual || item.synop || {}; // Compatibilidad con formato anterior
-
+        hours.forEach(hora => {
+          const item = responseData[hora];
+          if (item && Object.keys(item).length > 0) {
             newObservations[hora] = {
               ...newObservations[hora],
-              // Campos básicos por hora
-              nombre_observador: item.nombre_observador || '',
-              meteo_2_1: item.yygg_iw || '',
-              // Datos manuales
-              ts: d.ts || '', th: d.th || '',
-              pres_est: d.pres_est || '', p3: d.p3 || '', p24: d.p24 || '',
-              let_barom: d.let_barom || '', ll: d.ll || '', ll_24h: d.ll_24h || '',
-              // T_max/T_min (solo horas pares)
-              t_max: d.t_max || '', t_min: d.t_min || '',
-              t_max_24h: d.t_max_24h || '', t_min_24h: d.t_min_24h || '',
-              // Grupos SYNOP manuales - Fila 4
-              meteo_4_irixhvv: s.irixhvv || '', meteo_4_1: s.n_dd_ff || '',
-              meteo_4_6: s['7ww_w1w2'] || '',
-              // Fila 6
-              meteo_6_0: s['8nh_cl_cm_ch'] || '',
-              meteo_6_2: s['0cs_dl_dm_dh'] || '',
-              meteo_6_3: s['1sn_tx_manual'] || '',
-              meteo_6_4: s['2sn_tn_manual'] || '',
-              meteo_6_5: s['3e_jjj'] || '',
-              meteo_6_6: s['5eee_je'] || '',
-              // Fila 8
-              meteo_8_0: s['5n_fn'] || '',
-              meteo_8_1: s['56dl_dm_dh'] || '',
-              meteo_8_3: s['6rrr_tr'] || '',
-              meteo_8_4: s['7r24'] || '',
-              meteo_8_5: s['8ns_1'] || '',
-              meteo_8_6: s['8ns_2'] || '',
-              // Fila 10
-              meteo_10_0: s['8ns_3'] || '',
-              meteo_10_1: s['8ns_4'] || '',
-              meteo_10_2: s['9sp_10_2'] || '',
-              meteo_10_3: s['9sp_10_3'] || '',
-              meteo_10_4: s['9sp_10_4'] || '',
-              meteo_10_5: s['9sp_10_5'] || '',
-              meteo_10_6: s['9sp_10_6'] || '',
-              // Fila 12
-              meteo_12_0: s['9sp_12_0'] || '',
-              meteo_12_1: s['9sp_12_1'] || '',
-              meteo_12_2: s['9sp_12_2'] || '',
-              meteo_12_3: s['9sp_12_3'] || '',
-              meteo_12_4: s['9sp_12_4'] || '',
-              meteo_12_5: s['9sp_12_5'] || '',
-              meteo_12_6: s['9sp_12_6'] || '',
-              // Fila 14
-              meteo_14_0: s['9sp_14_0'] || '',
-              meteo_14_1: s['9sp_14_1'] || '',
-              meteo_14_2: s['9sp_14_2'] || '',
-              meteo_14_3: s['9sp_14_3'] || '',
-              meteo_14_4: s['9sp_14_4'] || '',
-              meteo_14_5: s['9sp_14_5'] || '',
-              meteo_14_6: s['9sp_14_6'] || '',
-              // Fila 16
-              meteo_16_0: s['9sp_16_0'] || '',
-              meteo_16_1: s['9sp_16_1'] || '',
-              meteo_16_2: s['9sp_16_2'] || '',
-              meteo_16_3: s['9sp_16_3'] || '',
-              meteo_16_4: s['9sp_16_4'] || '',
-              // Extras
-              extra_8ns_1: s.extra_8ns_1 || '',
-              extra_8ns_2: s.extra_8ns_2 || ''
+              // La data proveniente de Rust es plana y ya tiene los keys en minúscula y transformados
+              // Conservamos pre-existentes y pisamos con los devueltos
+              ...item
             };
           }
         });
 
         setObservations(newObservations);
+        setActiveHour('06Z'); // Reset a 06Z como default al cambiar de día
         setTimeout(() => setIsLoading(false), 100);
         console.log(`📂 Cargado día existente: ${targetDate}`);
       }
     } catch (error) {
-      if (error.response?.status === 404) {
+      if (typeof error === 'string' && error.includes('no encontrada')) {
         // Solo crear nuevo día si vamos hacia adelante (ya validamos que hay temperatura)
         if (direction === 1) {
           const newObservations = {};
@@ -475,11 +469,11 @@ const SynopticPage = () => {
         observationsWithResults[hora] = observations[hora] || {};
       }
 
-      await axios.post('/synoptic/save-json', {
-        station_code: stationId,
+      await invoke('save_observation_json', {
+        stationCode: stationId,
         fecha: fecha,
         observations: observationsWithResults,
-        observer_name: getValue('nombre_observador') || null
+        observerName: getValue('nombre_observador') || null
       });
       console.log(`💾 Auto-guardado: ${formatDateDisplay(fecha)}`);
       return true;
@@ -557,17 +551,16 @@ const SynopticPage = () => {
         };
 
         // Cargar datos horarios
-        if (jsonData.horarias) {
-          jsonData.horarias.forEach(item => {
-            const hora = item.hora;
-            if (hours.includes(hora)) {
+        if (jsonData.horas) {
+          Object.entries(jsonData.horas).forEach(([hora, item]) => {
+            if (hours.includes(hora) && Object.keys(item).length > 0) {
               const d = item.datos || {};
               const s = item.synop_manual || item.synop || {}; // Compatibilidad con formato anterior
 
               newObservations[hora] = {
                 ...newObservations[hora],
 
-                // Observador (campo correcto)
+                // Observador
                 nombre_observador: item.nombre_observador || '',
 
                 // YYGGIw
@@ -577,81 +570,80 @@ const SynopticPage = () => {
                 ts: safeValue(d.ts),
                 th: safeValue(d.th),
 
-                // T_max/T_min (solo en horas pares)
-                t_max: safeValue(d.t_max),
-                t_min: safeValue(d.t_min),
-                t_max_24h: safeValue(d.t_max_24h),
-                t_min_24h: safeValue(d.t_min_24h),
+                // T_max/T_min
+                t_max: safeValue(d.Tmax),
+                t_min: safeValue(d.Tmin),
+                t_max_24h: safeValue(d.Tmax_24h),
+                t_min_24h: safeValue(d.Tmin_24h),
 
-                // Presión (solo manual)
+                // Presión
                 pres_est: safeValue(d.pres_est),
                 p3: safeValue(d.p3),
                 p24: safeValue(d.p24),
                 let_barom: d.let_barom || '',
 
                 // Precipitación
-                ll: safeValue(d.ll),
+                ll: safeValue(d.LL),
+                ll_24h: safeValue(d.LL_24h),
 
-                // ===== Grupos SYNOP - Mapeo CORRECTO =====
+                // ===== Grupos SYNOP =====
+                // Fila 2
+                meteo_2_1: s['YYGGiw'] || item.yygg_iw || '',
 
-                // Fila 4: IriXHVV, N dd ff, 7wwW1W2
-                meteo_4_irixhvv: s.irixhvv || '',
-                meteo_4_1: s.n_dd_ff || '',
-                meteo_4_6: s['7ww_w1w2'] || '',
+                // Fila 4
+                meteo_4_irixhvv: s['IrIXHVV'] || '',
+                meteo_4_1: s['Nddff'] || '',
+                meteo_4_6: s['7wwW1W2'] || '',
 
-                // Fila 6: 8Nh, (333 auto), 0CS, 1snTx, 2snTn, 3Ejjj, 5EEE
-                meteo_6_0: s['8nh_cl_cm_ch'] || '',
-                meteo_6_2: s['0cs_dl_dm_dh'] || '',
-                meteo_6_3: s['1sn_tx_manual'] || '',  // 1snTxTxTx manual
-                meteo_6_4: s['2sn_tn_manual'] || '',  // 2snTnTnTn manual
-                meteo_6_5: s['3e_jjj'] || '',
-                meteo_6_6: s['5eee_je'] || '',
+                // Fila 6
+                meteo_6_0: s['8NhCLCMCH'] || '',
+                meteo_6_2: s['0CSDL DM DH'] || '',
+                meteo_6_3: s['1snTxTxTx'] || '',
+                meteo_6_4: s['2snTnTnTn'] || '',
+                meteo_6_5: s['3Ejjj'] || '',
+                meteo_6_6: s['5EEEjE'] || '',
 
-                // Fila 8: 5nFn, 56DL, (58/59 auto), 6RRR, 7R24, 8Ns, 8Ns
-                meteo_8_0: s['5n_fn'] || '',
-                meteo_8_1: s['56dl_dm_dh'] || '',
-                meteo_8_3: s['6rrr_tr'] || '',
-                meteo_8_4: s['7r24'] || '',
-                meteo_8_5: s['8ns_1'] || '',
-                meteo_8_6: s['8ns_2'] || '',
+                // Fila 8
+                meteo_8_0: s['5nFnFnFn'] || '',
+                meteo_8_1: s['56DLDMDH'] || '',
+                meteo_8_3: s['6RRRtr'] || '',
+                meteo_8_4: s['7R24R24R24R24'] || '',
+                meteo_8_5: s['8NsChshs_1'] || '',
+                meteo_8_6: s['8NsChshs_2'] || '',
 
-                // Fila 10: 8Ns, 8Ns, 9sp...
-                meteo_10_0: s['8ns_3'] || '',
-                meteo_10_1: s['8ns_4'] || '',
-                meteo_10_2: s['9sp_10_2'] || '',
-                meteo_10_3: s['9sp_10_3'] || '',
-                meteo_10_4: s['9sp_10_4'] || '',
-                meteo_10_5: s['9sp_10_5'] || '',
-                meteo_10_6: s['9sp_10_6'] || '',
+                // Fila 10
+                meteo_10_0: s['8NsChshs_5'] || '',
+                meteo_10_1: s['8NsChshs_6'] || '',
+                meteo_10_2: s['9spspsp_1'] || '',
+                meteo_10_3: s['9spspsp_2'] || '',
+                meteo_10_4: s['9spspsp_3'] || '',
+                meteo_10_5: s['9spspsp_4'] || '',
+                meteo_10_6: s['9spspsp_5'] || '',
 
-                // Fila 12: Grupos 9sp
-                meteo_12_0: s['9sp_12_0'] || '',
-                meteo_12_1: s['9sp_12_1'] || '',
-                meteo_12_2: s['9sp_12_2'] || '',
-                meteo_12_3: s['9sp_12_3'] || '',
-                meteo_12_4: s['9sp_12_4'] || '',
-                meteo_12_5: s['9sp_12_5'] || '',
-                meteo_12_6: s['9sp_12_6'] || '',
+                // Fila 12
+                meteo_12_0: s['9spspsp_6'] || '',
+                meteo_12_1: s['9spspsp_7'] || '',
+                meteo_12_2: s['9spspsp_8'] || '',
+                meteo_12_3: s['9spspsp_9'] || '',
+                meteo_12_4: s['9spspsp_10'] || '',
+                meteo_12_5: s['9spspsp_11'] || '',
+                meteo_12_6: s['9spspsp_12'] || '',
 
-                // Fila 14: Grupos 9sp
-                meteo_14_0: s['9sp_14_0'] || '',
-                meteo_14_1: s['9sp_14_1'] || '',
-                meteo_14_2: s['9sp_14_2'] || '',
-                meteo_14_3: s['9sp_14_3'] || '',
-                meteo_14_4: s['9sp_14_4'] || '',
-                meteo_14_5: s['9sp_14_5'] || '',
-                meteo_14_6: s['9sp_14_6'] || '',
+                // Fila 14
+                meteo_14_0: s['9spspsp_13'] || '',
+                meteo_14_1: s['9spspsp_14'] || '',
+                meteo_14_2: s['9spspsp_15'] || '',
+                meteo_14_3: s['9spspsp_16'] || '',
+                meteo_14_4: s['9spspsp_17'] || '',
+                meteo_14_5: s['9spspsp_18'] || '',
+                meteo_14_6: s['9spspsp_19'] || '',
 
-                // Fila 16: Grupos 9sp (5 cols, 555 y 29UUU son auto)
-                meteo_16_0: s['9sp_16_0'] || '',
-                meteo_16_1: s['9sp_16_1'] || '',
-                meteo_16_2: s['9sp_16_2'] || '',
-                meteo_16_3: s['9sp_16_3'] || '',
-                meteo_16_4: s['9sp_16_4'] || '',
-
-                // 2 Extras 8NsChshs (panel lateral)
-                extra_8ns_1: s.extra_8ns_1 || '',
-                extra_8ns_2: s.extra_8ns_2 || ''
+                // Fila 16
+                meteo_16_0: s['9spspsp_20'] || '',
+                meteo_16_1: s['9spspsp_21'] || '',
+                meteo_16_2: s['9spspsp_22'] || '',
+                meteo_16_3: s['9spspsp_23'] || '',
+                meteo_16_4: s['9spspsp_24'] || '',
               };
             }
           });
@@ -783,12 +775,14 @@ const SynopticPage = () => {
   return (
     <div className={`min-h-screen p-6 transition-colors duration-1000 bg-gradient-to-br ${currentTheme.bgGradient}`}>
       <div className="max-w-7xl mx-auto">
-        <button
-          onClick={() => navigate('/dashboard')}
-          className={`mb-6 px-4 py-2 rounded-lg font-medium text-sm backdrop-blur-md bg-white/10 border border-white/20 shadow-lg transition-all hover:bg-white/20 hover:scale-105 flex items-center gap-2 ${currentTheme.textColor}`}
-        >
-          <span>&larr;</span> Volver al Dashboard
-        </button>
+        <div className="flex justify-between items-center mb-6">
+          <button
+            onClick={() => navigate('/dashboard')}
+            className={`px-4 py-2 rounded-lg font-medium text-sm backdrop-blur-md bg-white/10 border border-white/20 shadow-lg transition-all hover:bg-white/20 hover:scale-105 flex items-center gap-2 ${currentTheme.textColor}`}
+          >
+            <span>&larr;</span> Volver al Dashboard
+          </button>
+        </div>
 
         <h1 className={`text-2xl font-bold mb-6 transition-colors duration-500 ${currentTheme.textColor}`}>
           Observación Sinóptica {activeHour}
@@ -1145,19 +1139,19 @@ const SynopticPage = () => {
               <h2 className="text-sm font-bold mb-4 text-center text-gray-700">CLI</h2>
               <div className="space-y-2">
                 <button
-                  onClick={() => navigate('/maintenance')}
+                  onClick={() => { saveDraft(); navigate('/cli3074', { state: { stationId: getValue('station_id'), date: getValue('fecha') } }); }}
                   className="w-full py-2 px-3 rounded-lg font-medium text-xs bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors"
                 >
                   3074
                 </button>
                 <button
-                  onClick={() => navigate('/maintenance')}
+                  onClick={() => { saveDraft(); navigate('/maintenance'); }}
                   className="w-full py-2 px-3 rounded-lg font-medium text-xs bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors"
                 >
                   4074
                 </button>
                 <button
-                  onClick={() => navigate('/maintenance')}
+                  onClick={() => { saveDraft(); navigate('/maintenance'); }}
                   className="w-full py-2 px-3 rounded-lg font-medium text-xs bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors"
                 >
                   5074

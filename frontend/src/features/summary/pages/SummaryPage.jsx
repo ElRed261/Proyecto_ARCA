@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from '../../../shared/api/axiosConfig';
+import { invoke } from '@tauri-apps/api/core';
 
 const SummaryPage = () => {
     const [summaries, setSummaries] = useState([]);
@@ -11,8 +11,8 @@ const SummaryPage = () => {
 
     const fetchSummaries = async () => {
         try {
-            const response = await axios.get('/summary/');
-            setSummaries(response.data);
+            const data = await invoke('get_monthly_summaries', { skip: 0, limit: 12 });
+            setSummaries(data);
         } catch (error) {
             console.error("Error fetching summaries:", error);
         } finally {

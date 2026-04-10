@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { authService } from '../api/authService';
-import { Shield, UserPlus, LogIn, Server } from 'lucide-react';
+import { Shield, LogIn, Lock } from 'lucide-react';
 import loginBg from '../../../assets/login-bg.png';
 
 import Logo from '../../../shared/components/Logo';
@@ -113,23 +113,12 @@ const AuthPage = ({ addLog, onLoginSuccess }) => {
                     </button>
                 </form>
 
-                {/* Toggle Login/Register */}
-                <div className="mt-6 text-center">
-                    <button
-                        onClick={() => {
-                            setIsLogin(!isLogin);
-                            setError(null);
-                        }}
-                        className={`text-sm font-medium hover:underline transition-colors ${isLogin ? 'text-blue-600 hover:text-blue-800' : 'text-purple-600 hover:text-purple-800'}`}
-                    >
-                        {isLogin ? '¿No tienes cuenta? Regístrate aquí' : '¿Ya tienes cuenta? Inicia sesión'}
-                    </button>
-                </div>
+                {/* Registro deshabilitado en modo local */}
 
                 {/* Footer info */}
                 <div className="mt-6 text-center text-xs text-gray-400 flex items-center justify-center gap-1">
-                    <Server size={12} />
-                    <span>Conectado a Backend v1.0.0</span>
+                    <Lock size={12} />
+                    <span>Modo Local — Autenticación Offline</span>
                 </div>
             </div>
         </div>

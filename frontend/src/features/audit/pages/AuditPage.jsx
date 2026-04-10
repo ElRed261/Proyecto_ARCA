@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from '../../../shared/api/axiosConfig';
+import { invoke } from '@tauri-apps/api/core';
 
 const AuditPage = () => {
     const [logs, setLogs] = useState([]);
@@ -16,11 +16,11 @@ const AuditPage = () => {
         setLoading(true);
         try {
             if (activeTab === 'logs') {
-                const response = await axios.get('/audit/logs');
-                setLogs(response.data);
+                const logsData = await invoke('get_audit_logs', { skip: 0, limit: 100 });
+                setLogs(logsData || []);
             } else {
-                const response = await axios.get('/audit/corrections');
-                setCorrections(response.data);
+                const corrData = await invoke('get_correction_requests', { skip: 0, limit: 100 });
+                setCorrections(corrData || []);
             }
         } catch (error) {
             console.error("Error fetching data:", error);
@@ -32,7 +32,17 @@ const AuditPage = () => {
     const handleCorrectionSubmit = async (e) => {
         e.preventDefault();
         try {
-            await axios.post('/audit/corrections', { description: newCorrection });
+            await invoke('create_correction_request', { 
+                request: {
+                    station_id: "General",
+                    fecha: new Date().toISOString().split('T')[0],
+                    hora: "00Z",
+                    campo: "General",
+                    valor_actual: "",
+                    valor_propuesto: "",
+                    justificacion: newCorrection,
+                }
+            });
             setNewCorrection('');
             fetchData();
         } catch (error) {

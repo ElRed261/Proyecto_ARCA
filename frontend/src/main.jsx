@@ -3,16 +3,16 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
 
-import { BrowserRouter } from 'react-router-dom'
+import { HashRouter } from 'react-router-dom'
 
 console.log("Frontend mounting...");
 
 try {
   createRoot(document.getElementById('root')).render(
     <StrictMode>
-      <BrowserRouter>
+      <HashRouter>
         <App />
-      </BrowserRouter>
+      </HashRouter>
     </StrictMode>,
   )
   console.log("App rendered successfully");
@@ -20,3 +20,4 @@ try {
   console.error("Error rendering app:", error);
   document.getElementById('root').innerHTML = '<h1 style="color:red;">Error: ' + error.message + '</h1>';
 }
+

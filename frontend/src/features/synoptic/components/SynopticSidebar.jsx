@@ -75,7 +75,7 @@ const SynopticSidebar = ({
                     {['3074', '4074', '5074'].map(code => (
                         <button
                             key={code}
-                            onClick={() => navigate('/maintenance')}
+                            onClick={() => navigate(code === '3074' ? '/cli3074' : '/maintenance')}
                             className="w-full py-2 px-3 rounded-lg font-medium text-xs bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors"
                         >
                             {code}
