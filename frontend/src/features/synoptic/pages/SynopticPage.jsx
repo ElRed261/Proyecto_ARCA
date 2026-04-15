@@ -15,12 +15,102 @@ const CONST_555 = "555";    // Sección 5 - Constante
 // FUNCIONES DE NORMALIZACIÓN
 // =============================================================================
 
+// Tabla de visibilidad - valores literales de la tabla OMM
+const VISIBILITY_TABLE = {
+  '00': '000', '01': '001', '02': '002', '03': '003', '04': '004',
+  '05': '005', '06': '006', '07': '007', '08': '008', '09': '009',
+  '10': '010', '11': '011', '12': '012', '13': '013', '14': '014',
+  '15': '015', '16': '016', '17': '017', '18': '018', '19': '019',
+  '20': '020', '21': '021', '22': '022', '23': '023', '24': '024',
+  '25': '025', '26': '026', '27': '027', '28': '028', '29': '029',
+  '30': '030', '31': '031', '32': '032', '33': '033', '34': '034',
+  '35': '035', '36': '036', '37': '037', '38': '038', '39': '039',
+  '40': '040', '41': '041', '42': '042', '43': '043', '44': '044',
+  '45': '045', '46': '046', '47': '047', '48': '048', '49': '049',
+  '56': '060', '57': '070', '58': '080', '59': '090',
+  '60': '100', '61': '110', '62': '120', '63': '130', '64': '140',
+  '65': '150', '66': '160', '67': '170', '68': '180', '69': '190',
+  '70': '200', '71': '210', '72': '220', '73': '230', '74': '240',
+  '75': '250', '76': '260', '77': '270', '78': '280', '79': '290', '80': '300'
+};
+
 /**
- * Normaliza la entrada de presión.
- * Si el valor es menor a 100, asume que es formato corto (15.3 → 1015.3)
- * @param {string} input - Valor ingresado
- * @returns {string} - Valor normalizado con 1000 añadido si es necesario
+ * Calcula visibilidad desde los últimos 2 dígitos de IrIxHVV
  */
+const calculateVisibilidad = (irixhv) => {
+  if (!irixhv || irixhv.length < 2) return '';
+  const code = irixhv.slice(-2);
+  return VISIBILITY_TABLE[code] || '';
+};
+
+/**
+ * Calcula diferencia de presión (formato 00.0)
+ */
+const calculatePressureDiff = (pres_est, p3) => {
+  if (!pres_est || !p3) return '';
+  const pe = parseFloat(pres_est);
+  const p = parseFloat(p3);
+  if (isNaN(pe) || isNaN(p)) return '';
+  const dif = Math.abs(pe - p);
+  return dif.toFixed(1).padStart(4, '0');
+};
+
+/**
+ * Calcula tiempo presente (ww): 
+ * - Si 7wwW1W2 tiene valor, usar 2do y 3er dígito
+ * - Si vacío, comparar primer dígito de Nddff actual vs anterior
+ * - Si es 06Z y no hay dato anterior, retorna vacío
+ */
+const calculateTiempoPresente = (seven_ww, nddff, nddff_anterior) => {
+  // Si tiene 7wwW1W2, usar 2do y 3er dígito
+  if (seven_ww && seven_ww.length >= 2) {
+    return seven_ww.slice(1, 3);
+  }
+  // Si no tiene yhay datos de Nddff, comparar primer dígito
+  if (nddff && nddff_anterior) {
+    const curr = nddff.charAt(0);
+    const prev = nddff_anterior.charAt(0);
+    if (curr > prev) return '01';
+    if (curr === prev) return '02';
+    if (curr < prev) return '03';
+  }
+  return '';
+};
+
+// Mapa de horas a su hora anterior (3 horas antes)
+const HOUR_PREV = {
+  '09Z': '06Z', '12Z': '09Z', '15Z': '12Z', '18Z': '15Z',
+  '21Z': '18Z', '00Z': '21Z', '03Z': '00Z', '06Z': '03Z'
+};
+
+/**
+ * Función para calcular campos automáticos del CLI
+ * Se debe llamar cuando cambian campos relevantes en Synoptic
+ */
+const calculateCliAutoFill = (currentHour, allObservations) => {
+  const prevHour = HOUR_PREV[currentHour];
+  if (!prevHour) return { dif: '', visibilidad: '', tiempo_presente: '' };
+  
+  const currentData = allObservations[currentHour] || {};
+  const prevData = allObservations[prevHour] || {};
+  
+  const pres_est = currentData.pres_est || '';
+  const p3 = currentData.p3 || '';
+  const dif = calculatePressureDiff(pres_est, p3);
+  
+  const irixhv = currentData.meteo_4_irixhvv || '';
+  const visibilidad = calculateVisibilidad(irixhv);
+  
+  const seven_ww = currentData.meteo_4_6 || '';
+  const nddff = currentData.meteo_4_1 || '';
+  const nddff_anterior = prevData.meteo_4_1 || '';
+  const tiempo_presente = calculateTiempoPresente(seven_ww, nddff, nddff_anterior);
+  
+  return { dif, visibilidad, tiempo_presente };
+};
+
+// =============================================================================
+
 const normalizePressure = (input) => {
   if (!input || input.trim() === '') return '';
   const num = parseFloat(input);
@@ -185,13 +275,29 @@ const SynopticPage = () => {
   }, [activeHour, observations, performCalculations, isLoading]);
 
   const handleChange = (key, value) => {
-    setObservations(prev => ({
-      ...prev,
-      [activeHour]: {
-        ...prev[activeHour],
-        [key]: value
+    // Regla de exclusión mutua: 0CS DL DM DH vs 56 DL DM DH
+    // Si se usa meteo_6_2 (0CS), limpiar meteo_8_1 (56)
+    // Si se usa meteo_8_1 (56), limpiar meteo_6_2 (0CS)
+    setObservations(prev => {
+      const newObservations = {
+        ...prev,
+        [activeHour]: {
+          ...prev[activeHour],
+          [key]: value
+        }
+      };
+
+      // Aplicar regla de exclusión mutua
+      if (key === 'meteo_6_2' && value && value.trim() !== '') {
+        // Si se está llenando 0CS DL DM DH, limpiar 56 DL DM DH
+        newObservations[activeHour].meteo_8_1 = '';
+      } else if (key === 'meteo_8_1' && value && value.trim() !== '') {
+        // Si se está llenando 56 DL DM DH, limpiar 0CS DL DM DH
+        newObservations[activeHour].meteo_6_2 = '';
       }
-    }));
+
+      return newObservations;
+    });
   };
 
   // Handler especial para cambio de estación
@@ -557,40 +663,37 @@ const SynopticPage = () => {
               const d = item.datos || {};
               const s = item.synop_manual || item.synop || {}; // Compatibilidad con formato anterior
 
-              newObservations[hora] = {
-                ...newObservations[hora],
+newObservations[hora] = {
+  ...newObservations[hora],
 
-                // Observador
-                nombre_observador: item.nombre_observador || '',
+  // Observador
+  nombre_observador: item.nombre_observador || '',
 
-                // YYGGIw
-                meteo_2_1: item.yygg_iw || '',
+  // Temperaturas básicas
+  ts: safeValue(d.ts),
+  th: safeValue(d.th),
 
-                // Temperaturas básicas
-                ts: safeValue(d.ts),
-                th: safeValue(d.th),
+  // T_max/T_min
+  t_max: safeValue(d.Tmax),
+  t_min: safeValue(d.Tmin),
+  t_max_24h: safeValue(d.Tmax_24h),
+  t_min_24h: safeValue(d.Tmin_24h),
 
-                // T_max/T_min
-                t_max: safeValue(d.Tmax),
-                t_min: safeValue(d.Tmin),
-                t_max_24h: safeValue(d.Tmax_24h),
-                t_min_24h: safeValue(d.Tmin_24h),
+  // Presión
+  pres_est: safeValue(d.pres_est),
+  p3: safeValue(d.p3),
+  p24: safeValue(d.p24),
+  let_barom: d.let_barom || '',
 
-                // Presión
-                pres_est: safeValue(d.pres_est),
-                p3: safeValue(d.p3),
-                p24: safeValue(d.p24),
-                let_barom: d.let_barom || '',
+  // Precipitación
+  ll: safeValue(d.LL),
+  ll_24h: safeValue(d.LL_24h),
 
-                // Precipitación
-                ll: safeValue(d.LL),
-                ll_24h: safeValue(d.LL_24h),
+  // ===== Grupos SYNOP =====
+  // Fila 2 - YYGGIw
+  meteo_2_1: s['YYGGiw'] || item.yygg_iw || '',
 
-                // ===== Grupos SYNOP =====
-                // Fila 2
-                meteo_2_1: s['YYGGiw'] || item.yygg_iw || '',
-
-                // Fila 4
+  // Fila 4
                 meteo_4_irixhvv: s['IrIXHVV'] || '',
                 meteo_4_1: s['Nddff'] || '',
                 meteo_4_6: s['7wwW1W2'] || '',
@@ -890,46 +993,70 @@ const SynopticPage = () => {
                     </div>
                   );
                 }
-                // Row 6: 333 constante en posición 1, meteo_6_3/6_4 bloqueados en horas impares
-                if (row === 6) {
-                  return (
-                    <div key={row} className="grid grid-cols-7 gap-2 mb-3">
-                      <input className={inputClass} placeholder="8" value={getValue('meteo_6_0')} onChange={(e) => handleChange('meteo_6_0', e.target.value)} onKeyDown={handleKeyDown} title="8NhCLCMCH: nubes" />
-                      <input className={constantClass} value={CONST_333} readOnly title="Sección 333" />
-                      <input className={inputClass} placeholder="0" value={getValue('meteo_6_2')} onChange={(e) => handleChange('meteo_6_2', e.target.value)} onKeyDown={handleKeyDown} title="0CSDLDMDH: nubes dirección" />
-                      {/* 1snTxTxTx - Solo habilitado en horas pares */}
-                      <input
-                        className={isEvenHour ? inputClass : `${inputClass} opacity-50 bg-gray-200`}
-                        placeholder="10"
-                        value={getValue('meteo_6_3')}
-                        onChange={(e) => handleChange('meteo_6_3', e.target.value)}
-                        onKeyDown={handleKeyDown}
-                        disabled={!isEvenHour}
-                        title={isEvenHour ? "1snTxTxTx: temperatura máxima" : "Solo en horas pares (00Z, 06Z, 12Z, 18Z)"}
-                      />
-                      {/* 2snTnTnTn - Solo habilitado en horas pares */}
-                      <input
-                        className={isEvenHour ? inputClass : `${inputClass} opacity-50 bg-gray-200`}
-                        placeholder="20"
-                        value={getValue('meteo_6_4')}
-                        onChange={(e) => handleChange('meteo_6_4', e.target.value)}
-                        onKeyDown={handleKeyDown}
-                        disabled={!isEvenHour}
-                        title={isEvenHour ? "2snTnTnTn: temperatura mínima" : "Solo en horas pares (00Z, 06Z, 12Z, 18Z)"}
-                      />
-                      <input className={inputClass} placeholder="3///" value={getValue('meteo_6_5')} onChange={(e) => handleChange('meteo_6_5', e.target.value)} onKeyDown={handleKeyDown} title="3Ejjj: estado del suelo" />
-                      <input className={inputClass} placeholder="" value={getValue('meteo_6_6')} onChange={(e) => handleChange('meteo_6_6', e.target.value)} onKeyDown={handleKeyDown} title="5EEEjE: evaporación" />
-                    </div>
-                  );
-                }
-                // Row 8: 58/59 P24 auto-generado en posición 2, 6RRR condicionado por Ir
-                if (row === 8) {
-                  return (
-                    <div key={row} className="grid grid-cols-7 gap-2 mb-3">
-                      <input className={inputClass} placeholder="" value={getValue('meteo_8_0')} onChange={(e) => handleChange('meteo_8_0', e.target.value)} onKeyDown={handleKeyDown} title="5nFnFnFn: insolación" />
-                      <input className={inputClass} placeholder="56" value={getValue('meteo_8_1')} onChange={(e) => handleChange('meteo_8_1', e.target.value)} onKeyDown={handleKeyDown} title="56DLDMDH: nubes dirección" />
-                      {/* 58/59 P24P24P24 - Auto-generado */}
-                      <input className={readonlyClass} value={results.grupo_58_59_p24 || ''} readOnly title="58/59: cambio presión 24h" />
+// Row 6: 333 constante en posición 1, meteo_6_3/6_4 bloqueados en horas impares
+      if (row === 6) {
+        // Verificar si el campo opuesto (56 DL DM DH) tiene valor
+        const has56DLDM = (getValue('meteo_8_1') || '').trim() !== '';
+        
+        return (
+          <div key={row} className="grid grid-cols-7 gap-2 mb-3">
+            <input className={inputClass} placeholder="8" value={getValue('meteo_6_0')} onChange={(e) => handleChange('meteo_6_0', e.target.value)} onKeyDown={handleKeyDown} title="8NhCLCMCH: nubes" />
+            <input className={constantClass} value={CONST_333} readOnly title="Sección 333" />
+            {/* 0CS DL DM DH - Deshabilitado si 56 DL DM DH tiene valor */}
+            <input 
+              className={has56DLDM ? `${inputClass} opacity-50 bg-gray-200` : inputClass} 
+              placeholder="0" 
+              value={getValue('meteo_6_2')} 
+              onChange={(e) => handleChange('meteo_6_2', e.target.value)} 
+              onKeyDown={handleKeyDown} 
+              disabled={has56DLDM}
+              title={has56DLDM ? "Deshabilitado: use 56 DL DM DH en su lugar" : "0CSDLDMDH: nubes dirección"} 
+            />
+            {/* 1snTxTxTx - Solo habilitado en horas pares */}
+            <input
+              className={isEvenHour ? inputClass : `${inputClass} opacity-50 bg-gray-200`}
+              placeholder="10"
+              value={getValue('meteo_6_3')}
+              onChange={(e) => handleChange('meteo_6_3', e.target.value)}
+              onKeyDown={handleKeyDown}
+              disabled={!isEvenHour}
+              title={isEvenHour ? "1snTxTxTx: temperatura máxima" : "Solo en horas pares (00Z, 06Z, 12Z, 18Z)"}
+            />
+            {/* 2snTnTnTn - Solo habilitado en horas pares */}
+            <input
+              className={isEvenHour ? inputClass : `${inputClass} opacity-50 bg-gray-200`}
+              placeholder="20"
+              value={getValue('meteo_6_4')}
+              onChange={(e) => handleChange('meteo_6_4', e.target.value)}
+              onKeyDown={handleKeyDown}
+              disabled={!isEvenHour}
+              title={isEvenHour ? "2snTnTnTn: temperatura mínima" : "Solo en horas pares (00Z, 06Z, 12Z, 18Z)"}
+            />
+            <input className={inputClass} placeholder="3///" value={getValue('meteo_6_5')} onChange={(e) => handleChange('meteo_6_5', e.target.value)} onKeyDown={handleKeyDown} title="3Ejjj: estado del suelo" />
+            <input className={inputClass} placeholder="" value={getValue('meteo_6_6')} onChange={(e) => handleChange('meteo_6_6', e.target.value)} onKeyDown={handleKeyDown} title="5EEEjE: evaporación" />
+          </div>
+        );
+      }
+      // Row 8: 58/59 P24 auto-generado en posición 2, 6RRR condicionado por Ir
+      if (row === 8) {
+        // Verificar si el campo opuesto (0CS DL DM DH) tiene valor
+        const has0CSDLDM = (getValue('meteo_6_2') || '').trim() !== '';
+        
+        return (
+          <div key={row} className="grid grid-cols-7 gap-2 mb-3">
+            <input className={inputClass} placeholder="" value={getValue('meteo_8_0')} onChange={(e) => handleChange('meteo_8_0', e.target.value)} onKeyDown={handleKeyDown} title="5nFnFnFn: insolación" />
+            {/* 56 DL DM DH - Deshabilitado si 0CS DL DM DH tiene valor */}
+            <input 
+              className={has0CSDLDM ? `${inputClass} opacity-50 bg-gray-200` : inputClass} 
+              placeholder="56" 
+              value={getValue('meteo_8_1')} 
+              onChange={(e) => handleChange('meteo_8_1', e.target.value)} 
+              onKeyDown={handleKeyDown} 
+              disabled={has0CSDLDM}
+              title={has0CSDLDM ? "Deshabilitado: use 0CS DL DM DH en su lugar" : "56DLDMDH: nubes dirección"} 
+            />
+            {/* 58/59 P24P24P24 - Auto-generado */}
+            <input className={readonlyClass} value={results.grupo_58_59_p24 || ''} readOnly title="58/59: cambio presión 24h" />
                       {/* 6 RRR tr - Condicionado por Ir */}
                       <input
                         className={results.include_precipitation ? inputClass : `${inputClass} opacity-50`}
@@ -1135,29 +1262,29 @@ const SynopticPage = () => {
             </div>
 
             {/* Botones CLI */}
-            <div className="mt-4 pt-3 border-t border-gray-200">
-              <h2 className="text-sm font-bold mb-4 text-center text-gray-700">CLI</h2>
-              <div className="space-y-2">
-                <button
-                  onClick={() => { saveDraft(); navigate('/cli3074', { state: { stationId: getValue('station_id'), date: getValue('fecha') } }); }}
-                  className="w-full py-2 px-3 rounded-lg font-medium text-xs bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors"
-                >
-                  3074
-                </button>
-                <button
-                  onClick={() => { saveDraft(); navigate('/maintenance'); }}
-                  className="w-full py-2 px-3 rounded-lg font-medium text-xs bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors"
-                >
-                  4074
-                </button>
-                <button
-                  onClick={() => { saveDraft(); navigate('/maintenance'); }}
-                  className="w-full py-2 px-3 rounded-lg font-medium text-xs bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors"
-                >
-                  5074
-                </button>
-              </div>
-            </div>
+      <div className="mt-4 pt-3 border-t border-gray-200">
+        <h2 className="text-sm font-bold mb-4 text-center text-gray-700">CLI</h2>
+        <div className="space-y-2">
+          <button
+            onClick={() => { saveDraft(); navigate('/cli3074', { state: { stationId: getValue('station_id'), date: getValue('fecha') } }); }}
+            className="w-full py-2 px-3 rounded-lg font-medium text-xs bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors"
+          >
+            3074
+          </button>
+          <button
+            onClick={() => { saveDraft(); navigate('/cli4074', { state: { stationId: getValue('station_id'), date: getValue('fecha') } }); }}
+            className="w-full py-2 px-3 rounded-lg font-medium text-xs bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors"
+          >
+            4074
+          </button>
+          <button
+            onClick={() => { saveDraft(); navigate('/maintenance'); }}
+            className="w-full py-2 px-3 rounded-lg font-medium text-xs bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors"
+          >
+            5074
+          </button>
+        </div>
+      </div>
 
             {/* Campos extra 8NsChshs */}
             <div className="mt-4 pt-3 border-t border-gray-200">

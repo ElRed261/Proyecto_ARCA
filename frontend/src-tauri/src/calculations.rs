@@ -140,17 +140,33 @@ fn calcular_tendencia_a(dif: f64) -> String {
     }
 
     if dif > 0.0 {
-        if abs_dif >= 0.1 && abs_dif <= 0.5 { return "0".to_string(); }
-        if abs_dif >= 0.6 && abs_dif <= 1.4 { return "1".to_string(); }
-        if abs_dif >= 1.5 && abs_dif <= 1.9 { return "2".to_string(); }
-        if abs_dif >= 2.0 { return "3".to_string(); }
+        if abs_dif >= 0.1 && abs_dif <= 0.5 {
+            return "0".to_string();
+        }
+        if abs_dif >= 0.6 && abs_dif <= 1.4 {
+            return "1".to_string();
+        }
+        if abs_dif >= 1.5 && abs_dif <= 1.9 {
+            return "2".to_string();
+        }
+        if abs_dif >= 2.0 {
+            return "3".to_string();
+        }
     }
 
     if dif < 0.0 {
-        if abs_dif >= 0.1 && abs_dif <= 0.5 { return "5".to_string(); }
-        if abs_dif >= 0.6 && abs_dif <= 1.4 { return "6".to_string(); }
-        if abs_dif >= 1.5 && abs_dif <= 1.9 { return "7".to_string(); }
-        if abs_dif >= 2.0 { return "8".to_string(); }
+        if abs_dif >= 0.1 && abs_dif <= 0.5 {
+            return "5".to_string();
+        }
+        if abs_dif >= 0.6 && abs_dif <= 1.4 {
+            return "6".to_string();
+        }
+        if abs_dif >= 1.5 && abs_dif <= 1.9 {
+            return "7".to_string();
+        }
+        if abs_dif >= 2.0 {
+            return "8".to_string();
+        }
     }
 
     "4".to_string()
@@ -218,24 +234,24 @@ pub struct CalculationResponse {
     pub humedad_relativa: String,
     pub punto_rocio: String,
     pub diferencia: String,
-    
+
     pub grupo_1sn_ttt: String,
     pub grupo_2sn_td: String,
     pub grupo_4pppp: String,
     pub grupo_5appp: String,
     pub grupo_58_59_p24: String,
     pub grupo_29uuu: String,
-    
+
     pub p3_let: String,
     pub p24_let: String,
     pub p3_dif: String,
     pub p24_dif: String,
     pub pres_nmm: String,
     pub correc_alt: String,
-    
+
     pub include_precipitation: bool,
     pub include_weather: bool,
-    
+
     pub station_info: Option<StationInfo>,
     pub error_message: String,
 }
@@ -246,13 +262,26 @@ pub struct CalculationResponse {
 
 pub fn realizar_calculos(data: CalculationRequest) -> CalculationResponse {
     let mut res = CalculationResponse {
-        tension_vapor: "".to_string(), humedad_relativa: "".to_string(), punto_rocio: "".to_string(), diferencia: "".to_string(),
-        grupo_1sn_ttt: "".to_string(), grupo_2sn_td: "".to_string(), grupo_4pppp: "".to_string(), grupo_5appp: "".to_string(),
-        grupo_58_59_p24: "".to_string(), grupo_29uuu: "".to_string(),
-        p3_let: "".to_string(), p24_let: "".to_string(), p3_dif: "".to_string(), p24_dif: "".to_string(),
-        pres_nmm: "".to_string(), correc_alt: "".to_string(),
-        include_precipitation: true, include_weather: true,
-        station_info: None, error_message: "".to_string(),
+        tension_vapor: "".to_string(),
+        humedad_relativa: "".to_string(),
+        punto_rocio: "".to_string(),
+        diferencia: "".to_string(),
+        grupo_1sn_ttt: "".to_string(),
+        grupo_2sn_td: "".to_string(),
+        grupo_4pppp: "".to_string(),
+        grupo_5appp: "".to_string(),
+        grupo_58_59_p24: "".to_string(),
+        grupo_29uuu: "".to_string(),
+        p3_let: "".to_string(),
+        p24_let: "".to_string(),
+        p3_dif: "".to_string(),
+        p24_dif: "".to_string(),
+        pres_nmm: "".to_string(),
+        correc_alt: "".to_string(),
+        include_precipitation: true,
+        include_weather: true,
+        station_info: None,
+        error_message: "".to_string(),
     };
 
     if let Some(st_id) = &data.station_id {
@@ -322,8 +351,16 @@ pub fn realizar_calculos(data: CalculationRequest) -> CalculationResponse {
         }
     }
 
-    res.include_precipitation = data.ir.as_ref().map(|s| should_include_precipitation(s)).unwrap_or(true);
-    res.include_weather = data.ix.as_ref().map(|s| should_include_weather(s)).unwrap_or(true);
+    res.include_precipitation = data
+        .ir
+        .as_ref()
+        .map(|s| should_include_precipitation(s))
+        .unwrap_or(true);
+    res.include_weather = data
+        .ix
+        .as_ref()
+        .map(|s| should_include_weather(s))
+        .unwrap_or(true);
 
     res
 }
@@ -337,4 +374,3 @@ pub fn get_stations() -> HashMap<&'static str, StationInfo> {
 pub fn calculate_observations(data: CalculationRequest) -> CalculationResponse {
     realizar_calculos(data)
 }
-

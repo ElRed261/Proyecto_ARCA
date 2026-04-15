@@ -68,21 +68,25 @@ const SynopticSidebar = ({
                 </div>
             </div>
 
-            {/* Botones CLI */}
-            <div className="mt-4 pt-3 border-t border-gray-200">
-                <h2 className="text-sm font-bold mb-4 text-center text-gray-700">CLI</h2>
-                <div className="space-y-2">
-                    {['3074', '4074', '5074'].map(code => (
-                        <button
-                            key={code}
-                            onClick={() => navigate(code === '3074' ? '/cli3074' : '/maintenance')}
-                            className="w-full py-2 px-3 rounded-lg font-medium text-xs bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors"
-                        >
-                            {code}
-                        </button>
-                    ))}
-                </div>
-            </div>
+      {/* Botones CLI */}
+      <div className="mt-4 pt-3 border-t border-gray-200">
+        <h2 className="text-sm font-bold mb-4 text-center text-gray-700">CLI</h2>
+        <div className="space-y-2">
+          {['3074', '4074', '5074'].map(code => (
+            <button
+              key={code}
+              onClick={() => {
+                if (code === '3074') navigate('/cli3074');
+                else if (code === '4074') navigate('/cli4074');
+                else navigate('/maintenance');
+              }}
+              className="w-full py-2 px-3 rounded-lg font-medium text-xs bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors"
+            >
+              {code}
+            </button>
+          ))}
+        </div>
+      </div>
 
             {/* Campos extra 8NsChshs */}
             <div className="mt-4 pt-3 border-t border-gray-200">

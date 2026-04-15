@@ -7,7 +7,8 @@ import SynopticPage from './features/synoptic/pages/SynopticPage';
 import SummaryPage from './features/summary/pages/SummaryPage';
 import AuditPage from './features/audit/pages/AuditPage';
 import MaintenancePage from './features/maintenance/pages/MaintenancePage';
-import Cli3074Page from './features/cli3074/pages/Cli3074Page';
+import Cli3074Page from './features/synoptic/cli3074/pages/Cli3074Page';
+import Cli4074Page from './features/synoptic/cli4074/pages/Cli4074Page';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -131,20 +132,27 @@ function App() {
         <Route path="/maintenance" element={
           <ProtectedRoute>
             <MaintenancePage />
-          </ProtectedRoute>
-        } />
+        </ProtectedRoute>
+      } />
 
-        {/* CLI 3074 Module */}
-        <Route path="/cli3074" element={
-          <ProtectedRoute>
-            <Cli3074Page />
-          </ProtectedRoute>
-        } />
+      {/* CLI 3074 Module */}
+      <Route path="/cli3074" element={
+        <ProtectedRoute>
+          <Cli3074Page />
+        </ProtectedRoute>
+      } />
 
-        {/* Fallback */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </div>
+      {/* CLI 4074 Module - Nubosidad y Temperatura */}
+      <Route path="/cli4074" element={
+        <ProtectedRoute>
+          <Cli4074Page />
+        </ProtectedRoute>
+      } />
+
+      {/* Fallback */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  </div>
   );
 }
 

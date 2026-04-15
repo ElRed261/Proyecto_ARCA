@@ -12,20 +12,19 @@ const DashboardPage = ({ user, onLogout, onNavigate }) => {
         {
             id: 'synoptic',
             title: 'Observación Sinóptica',
-            description: 'Monitoreo en tiempo real y logs del sistema (CLI).',
-            icon: Activity,
-            color: 'bg-blue-500 text-blue-600',
-            status: 'active'
-        },
-        {
-            id: 'summary',
-            id: 'summary',
-            title: 'Resumen Mensual',
-            description: 'Reportes financieros y operativos mensuales.',
-            icon: Calendar,
-            color: 'bg-purple-500 text-purple-600',
-            status: 'active'
-        },
+  description: 'Monitoreo en tiempo real y logs del sistema (CLI).',
+  icon: Activity,
+  color: 'bg-blue-500 text-blue-600',
+  status: 'active'
+},
+{
+  id: 'summary',
+  title: 'Resumen Mensual',
+  description: 'Reportes financieros y operativos mensuales.',
+  icon: Calendar,
+  color: 'bg-purple-500 text-purple-600',
+  status: 'active'
+},
         {
             id: 'audit',
             title: 'Correcciones y Auditoría',

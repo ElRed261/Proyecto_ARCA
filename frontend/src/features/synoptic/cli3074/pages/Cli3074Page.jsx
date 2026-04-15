@@ -1,10 +1,39 @@
+/**
+ * CLI 3074 - Formulario de observación meteorológica horaria
+ *
+ * FLUJO DE DATOS:
+ * 1. load_cli3074_json: Carga JSON guardado del CLI 3074
+ *    - Si existe, usa esos datos (ya tienen cálculos aplicados)
+ *
+ * 2. get_observation: Carga JSON sinóptico (si no hay CLI guardado)
+ *    - Retorna datos con campos calculados: tend_dif, visibilidad, tiempo_presente
+ *    - Ver json_handler.rs funciones: calc_dif(), get_visibilidad_from_irixhv(), calc_tiempo_presente()
+ *
+ * 3. calculate_observations: Cálculos meteorológicos adicionales
+ *    - NMM (presión nivel medio mar)
+ *    - Humedad relativa, punto rocío, tensión de vapor
+ *    - Ver calculations.rs función realizar_calculos()
+ *
+ * CAMPOS AUTO-CALCULADOS:
+ * - tend_dif (DIF): Diferencia de presión en formato "00.0"
+ * - visibilidad: Desde código VV de IrIxHVV
+ * - tiempo_presente (ww): Desde 7wwW1W2 o comparación Nddff
+ * - pres_nmm: Presión reducida al nivel del mar
+ * - hum_hr, hum_ptor, hum_tvap: Parámetros de humedad
+ */
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { invoke } from '@tauri-apps/api/core';
 
-// Maps the Synoptic Standard hours to their corresponding Row ID (1-24 local hours)
+/**
+ * Mapeo de horas sinópticas UTC a filas del formulario (horas locales)
+ * El CLI 3074 tiene 24 filas (1 por cada hora local)
+ * Las observaciones sinópticas se hacen cada 3 horas UTC
+ */
 const synopRows = {
-    "06Z": 2, "09Z": 5, "12Z": 8, "15Z": 11, "18Z": 14, "21Z": 17, "00Z": 20, "03Z": 23
+  "06Z": 2, "09Z": 5, "12Z": 8, "15Z": 11,
+  "18Z": 14, "21Z": 17, "00Z": 20, "03Z": 23
 };
 
 const Cli3074Page = () => {
@@ -102,59 +131,53 @@ const Cli3074Page = () => {
                               if (!isNaN(ff)) initial[rowNum].viento_vel = (ff * 0.514444).toFixed(1);
                           }
 
-                          // Extraer Tiempo Presente = ww (de 7wwW1W2)
-                          const wwW1W2 = horaData.meteo_4_6 || horaData['7wwW1W2'] || '';
-                          if (wwW1W2.length >= 3 && wwW1W2[1] !== '/' && wwW1W2[2] !== '/') {
-                              initial[rowNum].fenomenos.tiempo_presente = wwW1W2.substring(1, 3);
-                          }
+            // Tiempo Presente: el backend ya lo calcula desde 7wwW1W2 o comparando Nddff
+            // Ver función calc_tiempo_presente() en json_handler.rs
+            initial[rowNum].fenomenos.tiempo_presente = horaData.tiempo_presente || '';
 
-                          // Auto-calcular NMM, HR, Tendencia via backend Rust
-                          if ((horaData.ts && horaData.th) || horaData.pres_est) {
-                              try {
-                                  // NOTA: ch = corrección barométrica, h = altura. Usar ch.
-                                  const stationCh = stations[currentStation]?.ch;
-                                  const calcData = await invoke('calculate_observations', {
-                                      data: {
-                                          ts: horaData.ts || '',
-                                          th: horaData.th || '',
-                                          pres_est: horaData.pres_est || '',
-                                          p3: horaData.p3 || '',
-                                          p24: horaData.p24 || '',
-                                          correc_alt: stationCh != null ? stationCh.toString() : '',
-                                          station_id: currentStation,
-                                          ir: '', ix: ''
-                                      }
-                                  });
+            // DIF y CAR: el backend ya los calcula en get_observation
+            // Ver calc_dif() y format_dif() en json_handler.rs
+            initial[rowNum].tend_dif = horaData.tend_dif || '';
+            initial[rowNum].tend_car = horaData.tend_car || '';
 
-                                  if (!calcData.error_message) {
-                                      initial[rowNum].pres_nmm = calcData.pres_nmm || '';
-                                      initial[rowNum].hum_ptor = calcData.punto_rocio || '';
-                                      initial[rowNum].hum_tvap = calcData.tension_vapor || '';
-                                      initial[rowNum].hum_hr = calcData.humedad_relativa || '';
-                                      
-                                      // CAR = 2do dígito de grupo "5appp"
-                                      // DIF = últimos 3 dígitos de grupo "5appp"
-                                      const grupo5 = calcData.grupo_5appp || '';
-                                      if (grupo5.length === 5) {
-                                          initial[rowNum].tend_car = grupo5.charAt(1);
-                                          initial[rowNum].tend_dif = grupo5.substring(2);
-                                      }
-                                  }
-                              } catch (calcErr) {
-                                  console.warn(`Error calculando hora ${horaKey}:`, calcErr);
-                              }
-                          }
-                      }
+            // Auto-calcular NMM, HR via backend Rust (cálculos meteorológicos)
+            if (horaData.ts && horaData.th) {
+              try {
+                const stationCh = stations[currentStation]?.ch;
+                const calcData = await invoke('calculate_observations', {
+                  data: {
+                    ts: horaData.ts || '',
+                    th: horaData.th || '',
+                    pres_est: horaData.pres_est || '',
+                    p3: horaData.p3 || '',
+                    p24: horaData.p24 || '',
+                    correc_alt: stationCh != null ? stationCh.toString() : '',
+                    station_id: currentStation,
+                    ir: '', ix: ''
                   }
-              } catch(e) {
-                 console.log("No existe data sinóptica base para autocompletar.", e);
+                });
+
+                if (!calcData.error_message) {
+                  initial[rowNum].pres_nmm = calcData.pres_nmm || '';
+                  initial[rowNum].hum_ptor = calcData.punto_rocio || '';
+                  initial[rowNum].hum_tvap = calcData.tension_vapor || '';
+                  initial[rowNum].hum_hr = calcData.humedad_relativa || '';
+                }
+              } catch (calcErr) {
+                console.warn(`Error calculando hora ${horaKey}:`, calcErr);
               }
-              setRows(initial);
+            }
           }
-      } catch (e) {
-          console.error("Error cargando formulario", e);
+        }
+      } catch(e) {
+        console.log("No existe data sinóptica base para autocompletar.", e);
       }
-  };
+      setRows(initial);
+    }
+  } catch (e) {
+    console.error("Error cargando formulario", e);
+  }
+};
 
   // Se inicializan estaciones y luego se carga el formulario
   useEffect(() => {
@@ -180,21 +203,73 @@ const Cli3074Page = () => {
 
   const stInfo = selectedStation && stations[selectedStation] ? stations[selectedStation] : null;
 
-  // Real-time Calculation Trigger
-  const updateRowField = async (rowNum, fieldPath, value) => {
-    setRows(prev => {
-        const newRows = { ...prev };
-        
-        // Handle nested phenomenos object
-        if (fieldPath.startsWith('fenomenos.')) {
-            const subField = fieldPath.split('.')[1];
-            newRows[rowNum] = { ...newRows[rowNum], fenomenos: { ...newRows[rowNum].fenomenos, [subField]: value } };
-        } else {
-            newRows[rowNum] = { ...newRows[rowNum], [fieldPath]: value };
-        }
-        return newRows;
-    });
-  };
+// Real-time Calculation Trigger
+const updateRowField = async (rowNum, fieldPath, value) => {
+  setRows(prev => {
+    const newRows = { ...prev };
+
+    // Handle nested phenomenos object
+    if (fieldPath.startsWith('fenomenos.')) {
+      const subField = fieldPath.split('.')[1];
+      newRows[rowNum] = { ...newRows[rowNum], fenomenos: { ...newRows[rowNum].fenomenos, [subField]: value } };
+    } else {
+      newRows[rowNum] = { ...newRows[rowNum], [fieldPath]: value };
+    }
+
+    // Calcular DIF y CAR automáticamente cuando cambian pres_est o p3
+    if (fieldPath === 'pres_est' || fieldPath === 'p3') {
+      const row = newRows[rowNum];
+      const presEst = parseFloat(fieldPath === 'pres_est' ? value : row.pres_est);
+      const p3Val = parseFloat(fieldPath === 'p3' ? value : row.p3);
+
+      if (!isNaN(presEst) && !isNaN(p3Val)) {
+        // Calcular DIF = |pres_est - p3| con formato "00.0"
+        const dif = Math.abs(presEst - p3Val);
+        newRows[rowNum].tend_dif = dif.toFixed(1);
+
+        // Calcular CAR según código WMO 0266
+        newRows[rowNum].tend_car = calcCAR(presEst, p3Val);
+      } else {
+        // Si no hay valores válidos, limpiar
+        newRows[rowNum].tend_dif = '';
+        newRows[rowNum].tend_car = '';
+      }
+    }
+
+    return newRows;
+  });
+};
+
+/**
+ * Calcular CAR (Característica de la tendencia de presión)
+ * Código WMO 0266 para el grupo 5appp
+ *
+ * @param {number} presEst - Presión de estación
+ * @param {number} p3 - Presión hace 3 horas
+ * @returns {string} - Código CAR (0-8)
+ */
+const calcCAR = (presEst, p3) => {
+  const dif = presEst - p3; // NOTA: no usar abs, necesitamos el signo
+  const absDif = Math.abs(dif);
+
+  if (dif === 0) return '4';
+
+  if (dif > 0) {
+    // Presión aumentó
+    if (absDif >= 0.1 && absDif <= 0.5) return '0';
+    if (absDif >= 0.6 && absDif <= 1.4) return '1';
+    if (absDif >= 1.5 && absDif <= 1.9) return '2';
+    if (absDif >= 2.0) return '3';
+  } else {
+    // Presión disminuyó
+    if (absDif >= 0.1 && absDif <= 0.5) return '5';
+    if (absDif >= 0.6 && absDif <= 1.4) return '6';
+    if (absDif >= 1.5 && absDif <= 1.9) return '7';
+    if (absDif >= 2.0) return '8';
+  }
+
+  return '';
+};
 
   const calculateRow = useCallback(async (rowNum) => {
     const row = rows[rowNum];

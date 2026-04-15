@@ -1,10 +1,13 @@
 use rusqlite::{Connection, Result};
+use std::path::PathBuf;
 use tauri::AppHandle;
 use tauri::Manager;
-use std::path::PathBuf;
 
 pub fn get_db_path(app_handle: &AppHandle) -> PathBuf {
-    let mut path = app_handle.path().app_data_dir().unwrap_or_else(|_| PathBuf::from("."));
+    let mut path = app_handle
+        .path()
+        .app_data_dir()
+        .unwrap_or_else(|_| PathBuf::from("."));
     path.push("arca_local.db");
     path
 }
