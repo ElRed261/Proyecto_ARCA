@@ -48,6 +48,9 @@ pub fn get_audit_logs(
 ) -> Result<Vec<AuditLog>, String> {
     let s = skip.unwrap_or(0);
     let l = limit.unwrap_or(100);
+    if s < 0 || l < 0 {
+        return Err("Parámetros de paginación inválidos".to_string());
+    }
     let db_path = get_db_path(&app_handle);
     let conn = Connection::open(&db_path).map_err(|e| e.to_string())?;
 
@@ -83,6 +86,9 @@ pub fn get_correction_requests(
 ) -> Result<Vec<CorrectionRequest>, String> {
     let s = skip.unwrap_or(0);
     let l = limit.unwrap_or(100);
+    if s < 0 || l < 0 {
+        return Err("Parámetros de paginación inválidos".to_string());
+    }
     let db_path = get_db_path(&app_handle);
     let conn = Connection::open(&db_path).map_err(|e| e.to_string())?;
 
@@ -123,7 +129,20 @@ pub fn create_correction_request(
 ) -> Result<HashMap<String, String>, String> {
     let db_path = get_db_path(&app_handle);
     let conn = Connection::open(&db_path).map_err(|e| e.to_string())?;
-    let uid = current_user_id.unwrap_or(1); // default 1 if not provided
+    
+    let uid = current_user_id.ok_or_else(|| "Sesión de usuario no válida (ID ausente)".to_string())?;
+
+    // Validar que el usuario exista y esté activo en la base de datos de Rust
+    let mut stmt_user = conn
+        .prepare("SELECT is_active FROM users WHERE id = ?")
+        .map_err(|e| e.to_string())?;
+    let is_active: i32 = stmt_user
+        .query_row([uid], |row| row.get(0))
+        .map_err(|_| "Usuario no registrado en el sistema".to_string())?;
+
+    if is_active == 0 {
+        return Err("La cuenta del usuario está inactiva".to_string());
+    }
 
     conn.execute(
         "INSERT INTO correction_requests (station_id, fecha, hora, campo, valor_actual, valor_propuesto, justificacion, requester_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",

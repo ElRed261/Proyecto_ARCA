@@ -374,3 +374,66 @@ pub fn get_stations() -> HashMap<&'static str, StationInfo> {
 pub fn calculate_observations(data: CalculationRequest) -> CalculationResponse {
     realizar_calculos(data)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_tension_vapor() {
+        let ts = 25.0;
+        let th = 20.0;
+        let tv = calcular_tension_vapor(ts, th).unwrap();
+        assert!((tv - 19.3).abs() < 1.0, "Tensión de vapor inválida: {}", tv);
+    }
+
+    #[test]
+    fn test_humedad_relativa() {
+        let ts = 25.0;
+        let tv = 19.3;
+        let hr = calcular_humedad_relativa(tv, ts).unwrap();
+        assert!(hr > 50.0 && hr < 70.0, "Humedad relativa inválida: {}", hr);
+    }
+
+    #[test]
+    fn test_punto_rocio() {
+        let ts = 25.0;
+        let hr = 60.0;
+        let pr = calcular_punto_rocio(ts, hr).unwrap();
+        assert!((pr - 16.7).abs() < 2.0, "Punto de rocío inválido: {}", pr);
+    }
+
+    #[test]
+    fn test_tendencia_a() {
+        assert_eq!(calcular_tendencia_a(0.0), "4");
+        assert_eq!(calcular_tendencia_a(0.3), "0");
+        assert_eq!(calcular_tendencia_a(1.0), "1");
+        assert_eq!(calcular_tendencia_a(1.8), "2");
+        assert_eq!(calcular_tendencia_a(2.5), "3");
+        assert_eq!(calcular_tendencia_a(-0.3), "5");
+        assert_eq!(calcular_tendencia_a(-1.0), "6");
+        assert_eq!(calcular_tendencia_a(-1.8), "7");
+        assert_eq!(calcular_tendencia_a(-2.5), "8");
+    }
+
+    #[test]
+    fn test_format_temperature_group() {
+        assert_eq!(format_temperature_group(Some(25.4)), "10254");
+        assert_eq!(format_temperature_group(Some(-5.2)), "11052");
+        assert_eq!(format_temperature_group(None), "");
+    }
+
+    #[test]
+    fn test_format_dew_point_group() {
+        assert_eq!(format_dew_point_group(Some(16.7)), "20167");
+        assert_eq!(format_dew_point_group(Some(-3.4)), "21034");
+        assert_eq!(format_dew_point_group(None), "");
+    }
+
+    #[test]
+    fn test_format_pressure_group() {
+        assert_eq!(format_pressure_group(Some(1015.3)), "40153");
+        assert_eq!(format_pressure_group(Some(998.4)), "49984");
+        assert_eq!(format_pressure_group(None), "");
+    }
+}

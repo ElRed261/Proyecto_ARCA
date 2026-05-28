@@ -9,6 +9,14 @@ import AuditPage from './features/audit/pages/AuditPage';
 import MaintenancePage from './features/maintenance/pages/MaintenancePage';
 import Cli3074Page from './features/synoptic/cli3074/pages/Cli3074Page';
 import Cli4074Page from './features/synoptic/cli4074/pages/Cli4074Page';
+import Cli5074Page from './features/synoptic/cli5074/pages/Cli5074Page';
+
+const ProtectedRoute = ({ user, children }) => {
+  if (!user) {
+    return <Navigate to="/" replace />;
+  }
+  return children;
+};
 
 function App() {
   const [user, setUser] = useState(null);
@@ -26,6 +34,7 @@ function App() {
 
     if (token && email) {
       const roles = savedRoles ? JSON.parse(savedRoles) : [];
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setUser({ email, roles });
       addLog('Sistema restaurado. Sesión activa detectada.', 'success');
       // Si estamos en root, ir a dashboard
@@ -49,14 +58,6 @@ function App() {
     navigate('/');
   };
 
-  // Wrapper para proteger rutas
-  const ProtectedRoute = ({ children }) => {
-    if (!user) {
-      return <Navigate to="/" replace />;
-    }
-    return children;
-  };
-
   return (
     <div className="relative min-h-screen bg-gray-100 font-sans text-gray-800">
       <Routes>
@@ -74,7 +75,7 @@ function App() {
 
         {/* Dashboard */}
         <Route path="/dashboard" element={
-          <ProtectedRoute>
+          <ProtectedRoute user={user}>
             <DashboardPage
               user={user}
               onLogout={handleLogout}
@@ -85,7 +86,7 @@ function App() {
 
         {/* Admin */}
         <Route path="/admin" element={
-          <ProtectedRoute>
+          <ProtectedRoute user={user}>
             <AdminPage
               onBack={() => navigate('/dashboard')}
               addLog={addLog}
@@ -95,14 +96,14 @@ function App() {
 
         {/* Synoptic Module */}
         <Route path="/synoptic" element={
-          <ProtectedRoute>
+          <ProtectedRoute user={user}>
             <SynopticPage />
           </ProtectedRoute>
         } />
 
         {/* Summary Module */}
         <Route path="/summary" element={
-          <ProtectedRoute>
+          <ProtectedRoute user={user}>
             <div className="min-h-screen bg-gray-50 pb-20">
               <div className="max-w-7xl mx-auto pt-6 px-4 sm:px-6 lg:px-8">
                 <button onClick={() => navigate('/dashboard')} className="mb-4 text-indigo-600 hover:text-indigo-800">
@@ -116,7 +117,7 @@ function App() {
 
         {/* Audit Module */}
         <Route path="/audit" element={
-          <ProtectedRoute>
+          <ProtectedRoute user={user}>
             <div className="min-h-screen bg-gray-50 pb-20">
               <div className="max-w-7xl mx-auto pt-6 px-4 sm:px-6 lg:px-8">
                 <button onClick={() => navigate('/dashboard')} className="mb-4 text-indigo-600 hover:text-indigo-800">
@@ -130,29 +131,36 @@ function App() {
 
         {/* Maintenance Module (4074, 5074) */}
         <Route path="/maintenance" element={
-          <ProtectedRoute>
+          <ProtectedRoute user={user}>
             <MaintenancePage />
-        </ProtectedRoute>
-      } />
+          </ProtectedRoute>
+        } />
 
-      {/* CLI 3074 Module */}
-      <Route path="/cli3074" element={
-        <ProtectedRoute>
-          <Cli3074Page />
-        </ProtectedRoute>
-      } />
+        {/* CLI 3074 Module */}
+        <Route path="/cli3074" element={
+          <ProtectedRoute user={user}>
+            <Cli3074Page />
+          </ProtectedRoute>
+        } />
 
-      {/* CLI 4074 Module - Nubosidad y Temperatura */}
-      <Route path="/cli4074" element={
-        <ProtectedRoute>
-          <Cli4074Page />
-        </ProtectedRoute>
-      } />
+        {/* CLI 4074 Module - Nubosidad y Temperatura */}
+        <Route path="/cli4074" element={
+          <ProtectedRoute user={user}>
+            <Cli4074Page />
+          </ProtectedRoute>
+        } />
 
-      {/* Fallback */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
-  </div>
+        {/* CLI 5074 Module - Fenomenos Significativos */}
+        <Route path="/cli5074" element={
+          <ProtectedRoute user={user}>
+            <Cli5074Page />
+          </ProtectedRoute>
+        } />
+
+        {/* Fallback */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </div>
   );
 }
 

@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowRight } from 'lucide-react';
 
+// eslint-disable-next-line no-unused-vars
 const ModuleCard = ({ title, description, icon: Icon, color, onClick, status = 'active' }) => {
     const isDisabled = status === 'disabled';
 

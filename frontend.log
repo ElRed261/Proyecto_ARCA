@@ -18,33 +18,21 @@
      Running DevCommand (`cargo  run --no-default-features --color always --`)
         Info Watching /home/stward/Documentos/Proyectos/Proyecto_ARCA/frontend/src-tauri for changes...
 [0m[1m[33mwarning[0m[0m[1m: unused variable: `has_data`[0m
-[0m   [0m[0m[1m[38;5;12m--> [0m[0msrc/json_handler.rs:605:9[0m
+[0m   [0m[0m[1m[38;5;12m--> [0m[0msrc/json_handler.rs:961:9[0m
 [0m    [0m[0m[1m[38;5;12m|[0m
-[0m[1m[38;5;12m605[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m    let has_data = !dates.is_empty();[0m
+[0m[1m[38;5;12m961[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m    let has_data = !dates.is_empty();[0m
 [0m    [0m[0m[1m[38;5;12m|[0m[0m         [0m[0m[1m[33m^^^^^^^^[0m[0m [0m[0m[1m[33mhelp: if this is intentional, prefix it with an underscore: `_has_data`[0m
 [0m    [0m[0m[1m[38;5;12m|[0m
 [0m    [0m[0m[1m[38;5;12m= [0m[0m[1mnote[0m[0m: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default[0m
 
-[1m[33mwarning[0m: `app` (lib) generated 1 warning
+[0m[1m[33mwarning[0m[0m[1m: constant `SYNOP_TO_FRONTEND` is never used[0m
+[0m   [0m[0m[1m[38;5;12m--> [0m[0msrc/json_handler.rs:187:7[0m
+[0m    [0m[0m[1m[38;5;12m|[0m
+[0m[1m[38;5;12m187[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0mconst SYNOP_TO_FRONTEND: &[(&str, &str)] = &[[0m
+[0m    [0m[0m[1m[38;5;12m|[0m[0m       [0m[0m[1m[33m^^^^^^^^^^^^^^^^^[0m
+[0m    [0m[0m[1m[38;5;12m|[0m
+[0m    [0m[0m[1m[38;5;12m= [0m[0m[1mnote[0m[0m: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default[0m
+
+[1m[33mwarning[0m: `app` (lib) generated 2 warnings
 [1m[92m    Finished[0m ]8;;https://doc.rust-lang.org/cargo/reference/profiles.html#default-profiles\`dev` profile [unoptimized + debuginfo]]8;;\ target(s) in 0.21s
 [1m[92m     Running[0m `target/debug/app`
-12:21:37 p.m. [vite] (client) warning: Duplicate key "id" in object literal
-20 |    {
-21 |      id: 'summary',
-22 |      id: 'summary',
-   |      ^
-23 |      title: 'Resumen Mensual',
-24 |      description: 'Reportes financieros y operativos mensuales.',
-
-  Plugin: vite:esbuild
-  File: /home/stward/Documentos/Proyectos/Proyecto_ARCA/frontend/src/features/dashboard/pages/DashboardPage.jsx
-12:21:37 p.m. [vite] (client) warning: Duplicate key "meteo_2_1" in object literal
-589 |                  // ===== Grupos SYNOP =====
-590 |                  // Fila 2
-591 |                  meteo_2_1: s['YYGGiw'] || item.yygg_iw || '',
-    |                  ^
-592 |  
-593 |                  // Fila 4
-
-  Plugin: vite:esbuild
-  File: /home/stward/Documentos/Proyectos/Proyecto_ARCA/frontend/src/features/synoptic/pages/SynopticPage.jsx

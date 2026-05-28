@@ -1,40 +1,19 @@
-import api from '../../../shared/api/axiosConfig';
-
-// =====================================================
-// Cuentas locales hardcodeadas (auth sin servidor)
-// TODO: Reemplazar con autenticación basada en servidor
-// cuando se implemente la infraestructura de auth
-// =====================================================
-const LOCAL_USERS = [
-    { email: 'admin@arca.rd', password: 'admin123', roles: ['admin'] },
-    { email: 'encargado@arca.rd', password: 'encargado123', roles: ['encargado'] },
-    { email: 'observador@arca.rd', password: 'observador123', roles: ['observador'] },
-];
+import { invoke } from '@tauri-apps/api/core';
 
 export const authService = {
-    // Login local: valida contra cuentas hardcodeadas
+    // Login usando comando Tauri seguro en Rust
     login: async (email, password) => {
-        const user = LOCAL_USERS.find(
-            (u) => u.email === email && u.password === password
-        );
+        try {
+            const data = await invoke('login_user', { email, password });
 
-        if (!user) {
-            throw { response: { data: { detail: 'Credenciales incorrectas' } } };
+            localStorage.setItem('token', data.access_token);
+            localStorage.setItem('user_email', data.user_email);
+            localStorage.setItem('user_roles', JSON.stringify(data.roles));
+
+            return data;
+        } catch (error) {
+            throw { response: { data: { detail: error } } };
         }
-
-        // Generar un token local simple (no criptográfico — es placeholder)
-        const token = btoa(JSON.stringify({ sub: user.email, roles: user.roles, iat: Date.now() }));
-
-        localStorage.setItem('token', token);
-        localStorage.setItem('user_email', user.email);
-        localStorage.setItem('user_roles', JSON.stringify(user.roles));
-
-        return {
-            access_token: token,
-            token_type: 'bearer',
-            user_email: user.email,
-            roles: user.roles,
-        };
     },
 
     // Registro deshabilitado en modo local
@@ -49,24 +28,27 @@ export const authService = {
         localStorage.removeItem('user_roles');
     },
 
-    // --- ADMIN METHODS (siguen usando el backend API) ---
+    // --- ADMIN METHODS usando Tauri IPC y Rust ---
     getUsers: async () => {
-        const response = await api.get('/admin/users');
-        return response.data;
+        return await invoke('get_users');
     },
 
     updateUser: async (userId, data) => {
-        const response = await api.put(`/admin/users/${userId}`, data);
-        return response.data;
+        return await invoke('update_user', {
+            userId,
+            roleName: data.role_name,
+            isActive: data.is_active,
+        });
     },
 
     changePassword: async (userId, password) => {
-        const response = await api.put(`/admin/users/${userId}/password`, { password });
-        return response.data;
+        return await invoke('change_password', {
+            userId,
+            passwordVal: password,
+        });
     },
 
     deleteUser: async (userId) => {
-        const response = await api.delete(`/admin/users/${userId}`);
-        return response.data;
+        return await invoke('delete_user', { userId });
     },
 };

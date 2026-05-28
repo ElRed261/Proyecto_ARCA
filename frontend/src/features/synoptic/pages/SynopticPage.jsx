@@ -2,125 +2,18 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { invoke } from '@tauri-apps/api/core';
 import { isAdmin } from '../../../shared/utils/auth';
+import { hourThemes, meteoHeaders, meteoPlaceholders, styles } from '../config/synopticConfig';
+import { AAXX, CONST_333, CONST_555, HOURS, EVEN_HOURS, ODD_HOURS, normalizePressure } from '../utils/synopticUtils';
 
 // =============================================================================
-// CONSTANTES
+// COMPONENTE PRINCIPAL
 // =============================================================================
 
-const AAXX = "AAXX";        // Constante que no varía
-const CONST_333 = "333";    // Sección 3 - Constante
-const CONST_555 = "555";    // Sección 5 - Constante
 
-// =============================================================================
-// FUNCIONES DE NORMALIZACIÓN
-// =============================================================================
-
-// Tabla de visibilidad - valores literales de la tabla OMM
-const VISIBILITY_TABLE = {
-  '00': '000', '01': '001', '02': '002', '03': '003', '04': '004',
-  '05': '005', '06': '006', '07': '007', '08': '008', '09': '009',
-  '10': '010', '11': '011', '12': '012', '13': '013', '14': '014',
-  '15': '015', '16': '016', '17': '017', '18': '018', '19': '019',
-  '20': '020', '21': '021', '22': '022', '23': '023', '24': '024',
-  '25': '025', '26': '026', '27': '027', '28': '028', '29': '029',
-  '30': '030', '31': '031', '32': '032', '33': '033', '34': '034',
-  '35': '035', '36': '036', '37': '037', '38': '038', '39': '039',
-  '40': '040', '41': '041', '42': '042', '43': '043', '44': '044',
-  '45': '045', '46': '046', '47': '047', '48': '048', '49': '049',
-  '56': '060', '57': '070', '58': '080', '59': '090',
-  '60': '100', '61': '110', '62': '120', '63': '130', '64': '140',
-  '65': '150', '66': '160', '67': '170', '68': '180', '69': '190',
-  '70': '200', '71': '210', '72': '220', '73': '230', '74': '240',
-  '75': '250', '76': '260', '77': '270', '78': '280', '79': '290', '80': '300'
-};
-
-/**
- * Calcula visibilidad desde los últimos 2 dígitos de IrIxHVV
- */
-const calculateVisibilidad = (irixhv) => {
-  if (!irixhv || irixhv.length < 2) return '';
-  const code = irixhv.slice(-2);
-  return VISIBILITY_TABLE[code] || '';
-};
-
-/**
- * Calcula diferencia de presión (formato 00.0)
- */
-const calculatePressureDiff = (pres_est, p3) => {
-  if (!pres_est || !p3) return '';
-  const pe = parseFloat(pres_est);
-  const p = parseFloat(p3);
-  if (isNaN(pe) || isNaN(p)) return '';
-  const dif = Math.abs(pe - p);
-  return dif.toFixed(1).padStart(4, '0');
-};
-
-/**
- * Calcula tiempo presente (ww): 
- * - Si 7wwW1W2 tiene valor, usar 2do y 3er dígito
- * - Si vacío, comparar primer dígito de Nddff actual vs anterior
- * - Si es 06Z y no hay dato anterior, retorna vacío
- */
-const calculateTiempoPresente = (seven_ww, nddff, nddff_anterior) => {
-  // Si tiene 7wwW1W2, usar 2do y 3er dígito
-  if (seven_ww && seven_ww.length >= 2) {
-    return seven_ww.slice(1, 3);
-  }
-  // Si no tiene yhay datos de Nddff, comparar primer dígito
-  if (nddff && nddff_anterior) {
-    const curr = nddff.charAt(0);
-    const prev = nddff_anterior.charAt(0);
-    if (curr > prev) return '01';
-    if (curr === prev) return '02';
-    if (curr < prev) return '03';
-  }
-  return '';
-};
-
-// Mapa de horas a su hora anterior (3 horas antes)
-const HOUR_PREV = {
-  '09Z': '06Z', '12Z': '09Z', '15Z': '12Z', '18Z': '15Z',
-  '21Z': '18Z', '00Z': '21Z', '03Z': '00Z', '06Z': '03Z'
-};
-
-/**
- * Función para calcular campos automáticos del CLI
- * Se debe llamar cuando cambian campos relevantes en Synoptic
- */
-const calculateCliAutoFill = (currentHour, allObservations) => {
-  const prevHour = HOUR_PREV[currentHour];
-  if (!prevHour) return { dif: '', visibilidad: '', tiempo_presente: '' };
-  
-  const currentData = allObservations[currentHour] || {};
-  const prevData = allObservations[prevHour] || {};
-  
-  const pres_est = currentData.pres_est || '';
-  const p3 = currentData.p3 || '';
-  const dif = calculatePressureDiff(pres_est, p3);
-  
-  const irixhv = currentData.meteo_4_irixhvv || '';
-  const visibilidad = calculateVisibilidad(irixhv);
-  
-  const seven_ww = currentData.meteo_4_6 || '';
-  const nddff = currentData.meteo_4_1 || '';
-  const nddff_anterior = prevData.meteo_4_1 || '';
-  const tiempo_presente = calculateTiempoPresente(seven_ww, nddff, nddff_anterior);
-  
-  return { dif, visibilidad, tiempo_presente };
-};
 
 // =============================================================================
 
-const normalizePressure = (input) => {
-  if (!input || input.trim() === '') return '';
-  const num = parseFloat(input);
-  if (isNaN(num)) return input;
-  // Si es menor a 100, añadir 1000 (ej: 15.3 → 1015.3)
-  if (num < 100) {
-    return (1000 + num).toFixed(1);
-  }
-  return input;
-};
+// normalizePressure importado de utils/synopticUtils
 
 // =============================================================================
 // COMPONENTE PRINCIPAL
@@ -128,12 +21,8 @@ const normalizePressure = (input) => {
 
 const SynopticPage = () => {
   const navigate = useNavigate();
-  const hours = ["06Z", "09Z", "12Z", "15Z", "18Z", "21Z", "00Z", "03Z"];
-
-  // Horas pares (tienen T_max/T_min y grupos 1snTx/2snTn)
-  const evenHours = ["00Z", "06Z", "12Z", "18Z"];
-  // Horas impares (NO tienen T_max/T_min)
-  const oddHours = ["03Z", "09Z", "15Z", "21Z"];
+  const hours = HOURS;
+  const evenHours = EVEN_HOURS;
 
   // =========================================================================
   // SESSION STORAGE DRAFT — Persistir estado al navegar a sub-módulos
@@ -170,6 +59,7 @@ const SynopticPage = () => {
   const [resultsPerHour, setResultsPerHour] = useState(savedDraft?.resultsPerHour || {});
   const [errorMessage, setErrorMessage] = useState('');
   const [stations, setStations] = useState({});
+  // eslint-disable-next-line no-unused-vars
   const [isCalculating, setIsCalculating] = useState(false);
   const [isLoading, setIsLoading] = useState(!!savedDraft); // Evitar recálculo inicial si restauramos draft
   const [isStationLocked, setIsStationLocked] = useState(false);
@@ -259,20 +149,31 @@ const SynopticPage = () => {
     }
   }, [activeHour]);
 
-  // Efecto para recalcular resultados cuando cambia la hora o los datos
+  // Extraer sólo los datos relevantes para los cálculos matemáticos en caliente
+  const currentCalcInput = observations[activeHour] ? {
+    ts: observations[activeHour].ts || '',
+    th: observations[activeHour].th || '',
+    pres_est: observations[activeHour].pres_est || '',
+    p3: observations[activeHour].p3 || '',
+    p24: observations[activeHour].p24 || '',
+    correc_alt: observations[activeHour].correc_alt || '',
+    station_id: observations[activeHour].station_id || '',
+    ir: observations[activeHour].ir || '',
+    ix: observations[activeHour].ix || ''
+  } : null;
+
+  // Efecto para recalcular resultados cuando cambia la hora o los datos de cálculo
   useEffect(() => {
     // No calcular mientras se está cargando un archivo
-    if (isLoading) return;
-
-    const currentData = observations[activeHour] || {};
+    if (isLoading || !currentCalcInput) return;
 
     // Debounce para evitar muchas llamadas
     const timeoutId = setTimeout(() => {
-      performCalculations(currentData);
+      performCalculations(currentCalcInput);
     }, 300);
 
     return () => clearTimeout(timeoutId);
-  }, [activeHour, observations, performCalculations, isLoading]);
+  }, [activeHour, JSON.stringify(currentCalcInput), performCalculations, isLoading]);
 
   const handleChange = (key, value) => {
     // Regla de exclusión mutua: 0CS DL DM DH vs 56 DL DM DH
@@ -800,80 +701,11 @@ newObservations[hora] = {
   // TEMAS DINÁMICOS POR HORA (ESCALA DE AZULES - ALTURA DEL SOL)
   // =============================================================================
 
-  const hourThemes = {
-    "06Z": { // 02:00 AM - Noche profunda (Azul muy oscuro/Gris)
-      bgGradient: "from-slate-950 to-blue-950",
-      accentColor: "#1e293b", // slate-800
-      textColor: "text-slate-200"
-    },
-    "09Z": { // 05:00 AM - Amanecer (Azul oscuro)
-      bgGradient: "from-blue-950 to-blue-900",
-      accentColor: "#172554", // blue-950
-      textColor: "text-blue-100"
-    },
-    "12Z": { // 08:00 AM - Mañana (Azul medio)
-      bgGradient: "from-blue-800 to-blue-600",
-      accentColor: "#1d4ed8", // blue-700
-      textColor: "text-white"
-    },
-    "15Z": { // 11:00 AM - Mediodía (Azul brillante)
-      bgGradient: "from-blue-600 to-blue-500",
-      accentColor: "#2563eb", // blue-600
-      textColor: "text-white"
-    },
-    "18Z": { // 02:00 PM - Pico del Sol (Azul más fuerte/intenso)
-      bgGradient: "from-blue-600 to-blue-400",
-      accentColor: "#3b82f6", // blue-500
-      textColor: "text-white"
-    },
-    "21Z": { // 05:00 PM - Tarde (Volviendo a azul medio)
-      bgGradient: "from-blue-700 to-blue-600",
-      accentColor: "#1d4ed8", // blue-700
-      textColor: "text-white"
-    },
-    "00Z": { // 08:00 PM - Anochecer (Azul oscuro)
-      bgGradient: "from-blue-900 to-blue-800",
-      accentColor: "#1e3a8a", // blue-900
-      textColor: "text-blue-100"
-    },
-    "03Z": { // 11:00 PM - Noche (Azul muy oscuro)
-      bgGradient: "from-slate-900 to-blue-950",
-      accentColor: "#0f172a", // slate-900
-      textColor: "text-slate-200"
-    }
-  };
-
   const currentTheme = hourThemes[activeHour];
 
-  // Estilos dinámicos
+  // Estilos dinámicos desestructurados de config
+  const { tableHeader, inputClass, readonlyClass, constantClass, errorClass } = styles;
   const primaryHeader = `text-white font-bold text-sm px-3 py-2 rounded-lg text-center transition-colors duration-500`;
-  const tableHeader = "bg-slate-600 text-white font-semibold text-xs px-2 py-2 text-center";
-  const inputClass = "bg-white border border-slate-300 text-slate-800 text-sm px-2 py-2 rounded w-full focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-center";
-  const readonlyClass = "bg-white border border-slate-300 text-blue-600 font-bold text-sm px-2 py-2 rounded w-full text-center";
-  const constantClass = "bg-slate-200 border border-slate-400 text-slate-700 font-bold text-sm px-2 py-2 rounded w-full text-center";
-  const errorClass = "text-red-500 text-sm mt-2 text-center";
-
-  const meteoHeaders = {
-    1: ["MiMi MjMj", "YYGG Iw", "IIiii", "Fecha"],
-    3: ["Ir iX H VV", "N dd ff", "1sn T T T", "2sn Td Td Td", "4 P P P P", "5 a P P P", "7 ww W1 W2"],
-    5: ["8Nh CL CM CH", "333", "0CS DL DM DH", "1sn Tx Tx Tx", "2sn Tn Tn Tn", "3E j j j", "5 EEEjE"],
-    7: ["5n Fn Fn Fn", "56DL DM DH", "58/59 P24P24P24", "6 RRR tr", "7R24R24R24R24", "8NsChs hs", "8NsChs hs"],
-    9: ["8NsChs hs", "8NsChs hs", "9sp sp sp sp", "9sp sp sp sp", "9sp sp sp sp", "9sp sp sp sp", "9sp sp sp sp"],
-    11: ["9sp sp sp sp", "9sp sp sp sp", "9sp sp sp sp", "9sp sp sp sp", "9sp sp sp sp", "9sp sp sp sp", "9sp sp sp sp"],
-    13: ["9sp sp sp sp", "9sp sp sp sp", "9sp sp sp sp", "9sp sp sp sp", "9sp sp sp sp", "9sp sp sp sp", "9sp sp sp sp"],
-    15: ["9sp sp sp sp", "9sp sp sp sp", "9sp sp sp sp", "9sp sp sp sp", "9sp sp sp sp", "555", "29 UUU"]
-  };
-
-  const meteoPlaceholders = {
-    2: ["AAXX", "", "78", ""],
-    4: ["", "", "10", "20", "4", "5", "7"],
-    6: ["8", "333", "0", "10", "20", "3///", ""],
-    8: ["", "56", "5", "6", "7", "8", "8"],
-    10: ["8", "8", "9", "9", "9", "9", "9"],
-    12: ["9", "9", "9", "9", "9", "9", "9"],
-    14: ["9", "9", "9", "9", "9", "9", "9"],
-    16: ["9", "9", "9", "9", "9", "555", "29"]
-  };
 
   return (
     <div className={`min-h-screen p-6 transition-colors duration-1000 bg-gradient-to-br ${currentTheme.bgGradient}`}>
@@ -934,7 +766,7 @@ newObservations[hora] = {
                           : (stations[getValue('station_id')]?.name || 'Seleccionar estación')}
                       >
                         <option value="">Seleccionar...</option>
-                        {Object.entries(stations).map(([id, info]) => (
+                        {Object.keys(stations).map((id) => (
                           <option key={id} value={id}>{id}</option>
                         ))}
                       </select>
@@ -1278,7 +1110,7 @@ newObservations[hora] = {
             4074
           </button>
           <button
-            onClick={() => { saveDraft(); navigate('/maintenance'); }}
+            onClick={() => { saveDraft(); navigate('/cli5074', { state: { stationId: getValue('station_id'), date: getValue('fecha') } }); }}
             className="w-full py-2 px-3 rounded-lg font-medium text-xs bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors"
           >
             5074

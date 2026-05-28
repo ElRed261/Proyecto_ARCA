@@ -51,7 +51,7 @@ const AdminPage = ({ onBack, addLog }) => {
                 await authService.deleteUser(user.id);
                 addLog(`Usuario ${user.email} desactivado.`, 'warning');
                 fetchUsers();
-            } catch (error) {
+            } catch {
                 addLog('Error al desactivar usuario.', 'error');
             }
         }
@@ -64,7 +64,7 @@ const AdminPage = ({ onBack, addLog }) => {
             addLog(`Usuario ${selectedUser.email} actualizado.`, 'success');
             setShowEditModal(false);
             fetchUsers();
-        } catch (error) {
+        } catch {
             addLog('Error al actualizar usuario.', 'error');
         }
     };
@@ -75,7 +75,7 @@ const AdminPage = ({ onBack, addLog }) => {
             await authService.changePassword(selectedUser.id, passwordForm.password);
             addLog(`Contraseña de ${selectedUser.email} cambiada.`, 'success');
             setShowPasswordModal(false);
-        } catch (error) {
+        } catch {
             addLog('Error al cambiar contraseña.', 'error');
         }
     };

@@ -27,3 +27,4 @@ lazy_static = "1.4.0"
 chrono = "0.4.38"
 walkdir = "2.5.0"
 rusqlite = { version = "0.31.0", features = ["bundled"] }
+bcrypt = "0.15"

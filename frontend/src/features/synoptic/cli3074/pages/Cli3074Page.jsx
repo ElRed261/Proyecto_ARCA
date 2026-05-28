@@ -25,6 +25,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { invoke } from '@tauri-apps/api/core';
+import StationHeader from '../../../../shared/components/StationHeader';
+import { spreadsheetStyles } from '../../config/synopticConfig';
 
 /**
  * Mapeo de horas sinópticas UTC a filas del formulario (horas locales)
@@ -197,6 +199,7 @@ const Cli3074Page = () => {
   // Escuchar por si cambian los dropdowns de CLI
   useEffect(() => {
      if (Object.keys(stations).length > 0) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         loadFormData(selectedStation, date);
      }
   }, [selectedStation, date]);
@@ -271,6 +274,10 @@ const calcCAR = (presEst, p3) => {
   return '';
 };
 
+  const preservedRowState = (prev, rowNum, key) => {
+      return prev[rowNum][key];
+  };
+
   const calculateRow = useCallback(async (rowNum) => {
     const row = rows[rowNum];
     if (row.temp_seco && row.temp_humedo) {
@@ -309,10 +316,6 @@ const calcCAR = (presEst, p3) => {
       }
   };
 
-  const preservedRowState = (prev, rowNum, key) => {
-      return prev[rowNum][key];
-  };
-
   const handleSave = async () => {
       if (!selectedStation) {
           alert("Seleccione una estación primero.");
@@ -326,8 +329,8 @@ const calcCAR = (presEst, p3) => {
       }
   };
 
-  const thClass = "border border-slate-700 bg-slate-800/90 text-white font-bold text-sm py-2 px-1 align-middle whitespace-nowrap overflow-hidden";
-  const subThClass = "border border-slate-600 bg-slate-700/80 text-white text-xs font-semibold py-1 px-1";
+  const thClass = spreadsheetStyles.th;
+  const subThClass = spreadsheetStyles.subTh;
   
   // Fenómenos con códigos OMM (WMO Table 020003)
   // Formato: [abreviatura, descripción completa para tooltip]
@@ -364,50 +367,14 @@ const calcCAR = (presEst, p3) => {
         </div>
 
         {/* HEADER BLOCK */}
-        <div className="mx-6 mb-4 p-4 bg-white border border-slate-200 border-t-4 border-t-sky-500 shadow-sm rounded-lg z-10 mx-w-full overflow-x-auto">
-            <div className="flex flex-wrap items-center gap-x-8 gap-y-4">
-                <div className="flex items-center gap-2">
-                    <label className="text-sm font-bold text-slate-700 uppercase">Estación:</label>
-                    <select 
-                        value={selectedStation} 
-                        onChange={(e) => setSelectedStation(e.target.value)}
-                        className="bg-slate-50 border border-slate-300 text-slate-800 text-sm rounded-md px-3 py-1.5 focus:ring-2 focus:ring-sky-500"
-                    >
-                        <option value="">Seleccione Estación</option>
-                        {Object.entries(stations).map(([id, info]) => (
-                            <option key={id} value={id}>{info.name} ({id})</option>
-                        ))}
-                    </select>
-                </div>
-
-                {stInfo && (
-                    <>
-                        <div className="flex items-center gap-2 text-sm text-slate-700">
-                            <span className="font-bold uppercase">Latitud:</span>
-                            <span className="bg-slate-100 px-3 py-1 rounded font-mono border border-slate-200">{stInfo.lat}°</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-slate-700">
-                            <span className="font-bold uppercase">Longitud:</span>
-                            <span className="bg-slate-100 px-3 py-1 rounded font-mono border border-slate-200">{stInfo.lon}°</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-slate-700">
-                            <span className="font-bold uppercase">Altura:</span>
-                            <span className="bg-slate-100 px-3 py-1 rounded font-mono border border-slate-200">{stInfo.h} M</span>
-                        </div>
-                    </>
-                )}
-
-                <div className="flex items-center gap-2 ml-auto">
-                    <label className="text-sm font-bold text-slate-700 uppercase">Fecha:</label>
-                    <input 
-                        type="date"
-                        value={date}
-                        onChange={(e) => setDate(e.target.value)}
-                        className="bg-slate-50 border border-slate-300 text-slate-800 text-sm rounded-md px-3 py-1.5 focus:ring-2 focus:ring-sky-500"
-                    />
-                </div>
-            </div>
-        </div>
+        <StationHeader 
+            selectedStation={selectedStation}
+            setSelectedStation={setSelectedStation}
+            date={date}
+            setDate={setDate}
+            stations={stations}
+            colorTheme="sky"
+        />
 
 {/* SPREADSHEET TIER CONTAINER */}
         <div className="mx-6 flex-1 z-10 bg-white rounded-lg shadow-[0px_4px_20px_rgba(0,0,0,0.1)] border border-slate-300 overflow-x-auto overflow-y-auto mb-6 max-h-[70vh] custom-scrollbar">
@@ -462,11 +429,10 @@ const calcCAR = (presEst, p3) => {
                         // Resaltar la fila cada 3 horas, empezando desde la 2 (2, 5, 8, 11...)
                         const isMainHour = (i - 2) % 3 === 0;
                         const trClass = isMainHour ? 'bg-sky-50 shadow-[inset_0_1px_2px_rgba(0,0,0,0.05)] font-medium' : 'bg-white hover:bg-slate-50';
-                        
-                        const inputStyle = `w-full text-center bg-transparent border-none focus:outline-none focus:ring-1 focus:ring-sky-500 focus:bg-sky-100/50 text-slate-800 text-[13px] font-mono h-[30px] ${isMainHour ? "font-semibold text-slate-900" : ""}`;
+                        const inputStyle = `${spreadsheetStyles.input.sky} ${isMainHour ? "font-semibold text-slate-900" : ""}`;
                         const readonlyStyle = `w-full text-center bg-transparent border-none text-sky-700 font-bold font-mono text-[13px] ${isMainHour ? "text-sky-800" : ""}`;
                         const chkStyle = "w-[14px] h-[14px] text-sky-600 bg-white border-slate-400 rounded focus:ring-sky-500 cursor-pointer shadow-sm";
-                        const tdBorder = "border-[1px] border-slate-200 p-0 m-0 h-[30px] overflow-hidden";
+                        const tdBorder = spreadsheetStyles.tdBorder;
 
                         return (
                             <tr key={i} className={`transition-colors ${trClass}`}>

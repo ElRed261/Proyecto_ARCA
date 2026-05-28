@@ -16,3 +16,7 @@ dist/
 .vscode/
 .idea/
 *.swpBase para modulos/
+
+# --- AGENT TEAMS LITE ---
+.atl/
+.agent/

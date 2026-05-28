@@ -1,4 +1,5 @@
 pub mod audit;
+pub mod auth;
 pub mod calculations;
 pub mod cli_autofill;
 pub mod db;
@@ -12,19 +13,26 @@ pub fn run() {
             calculations::get_stations,
             calculations::calculate_observations,
             cli_autofill::calculate_cli_autofill,
-            json_handler::save_observation_json,
-            json_handler::get_observations_list,
-            json_handler::get_observation,
-            json_handler::get_station_date_range,
-            json_handler::save_cli3074_json,
-            json_handler::load_cli3074_json,
-            json_handler::save_cli4074_json,
-            json_handler::load_cli4074_json,
+            json_handler::synoptic::save_observation_json,
+            json_handler::synoptic::get_observations_list,
+            json_handler::synoptic::get_observation,
+            json_handler::synoptic::get_station_date_range,
+            json_handler::cli::save_cli3074_json,
+            json_handler::cli::load_cli3074_json,
+            json_handler::cli::save_cli4074_json,
+            json_handler::cli::load_cli4074_json,
+            json_handler::cli::save_cli5074_json,
+            json_handler::cli::load_cli5074_json,
             audit::get_audit_logs,
             audit::get_correction_requests,
             audit::create_correction_request,
             summary::get_monthly_summaries,
-            summary::create_monthly_summary
+            summary::create_monthly_summary,
+            auth::login_user,
+            auth::get_users,
+            auth::update_user,
+            auth::change_password,
+            auth::delete_user
         ])
         .setup(|app| {
             // Database init

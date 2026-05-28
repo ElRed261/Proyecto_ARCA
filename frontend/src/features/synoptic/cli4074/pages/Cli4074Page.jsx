@@ -16,6 +16,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { invoke } from '@tauri-apps/api/core';
+import StationHeader from '../../../../shared/components/StationHeader';
+import { spreadsheetStyles } from '../../config/synopticConfig';
 
 /**
  * Mapeo de horas sinópticas UTC a filas del formulario (horas locales)
@@ -87,6 +89,43 @@ const Cli4074Page = () => {
     }
     return initial;
   });
+
+  /**
+   * Convertir código de altura de nubes (h) a metros
+   * Basado en WMO Code Table 1677
+   * 
+   * Nubes Bajas (CL): códigos 3-50 → 300-5000 pies
+   * Nubes Medias (CM): códigos 56-68 → 6000-18000 pies
+   * Nubes Altas (CH): códigos 69-80 → 19000-30000 pies
+   * 
+   * @param {string} code - Código de altura (h)
+   * @returns {string} - Altura en metros
+   */
+  const convertCloudHeight = (code) => {
+    if (!code || code === '/') return '';
+    
+    const h = parseInt(code, 10);
+    if (isNaN(h)) return '';
+    
+    let feet;
+    if (h >= 3 && h <= 50) {
+      // Nubes Bajas: 300-5000 pies (incrementos de ~100 pies)
+      feet = 300 + (h - 3) * 100;
+    } else if (h >= 56 && h <= 68) {
+      // Nubes Medias: 6000-18000 pies (incrementos de ~1000 pies)
+      feet = 6000 + (h - 56) * 1000;
+    } else if (h >= 69 && h <= 80) {
+      // Nubes Altas: 19000-30000 pies
+      feet = 19000 + (h - 69) * 1000;
+    } else {
+      return code; // Código fuera de rango, retornar tal cual
+    }
+    
+    // Convertir pies a metros (1 pie = 0.3048 m)
+    // Usar truncado (Math.floor) sin decimales
+    const meters = Math.floor(feet * 0.3048);
+    return meters.toString();
+  };
 
   /**
    * Parsear grupo 8NsChshs y llenar datos de nubes
@@ -249,24 +288,12 @@ const Cli4074Page = () => {
               const rowNum = synopRows[horaKey];
 
               // Recopilar todos los grupos 8 disponibles
-              // Puede haber hasta 6 grupos 8: meteo_8_1, meteo_8_2, etc.
               const grupos8 = [];
-              
-              // Buscar grupos 8 en diferentes formatos posibles
-              for (let g = 1; g <= 6; g++) {
-                const grupoKey = `meteo_8_${g}`;
-                const grupoValue = horaData[grupoKey] || horaData[`8NsChshs_${g}`] || '';
-                if (grupoValue && grupoValue.startsWith('8') && grupoValue.length >= 5) {
-                  grupos8.push(grupoValue);
-                }
-              }
-
-              // También buscar un grupo 8 único
-              const grupo8Unico = horaData.meteo_8 || horaData['8NsChshs'] || '';
-              if (grupo8Unico && grupo8Unico.startsWith('8') && grupo8Unico.length >= 5) {
-                // Verificar si no está ya en la lista
-                if (!grupos8.includes(grupo8Unico)) {
-                  grupos8.push(grupo8Unico);
+              const keysGrupo8 = ['meteo_8_5', 'meteo_8_6', 'extra_8ns_1', 'extra_8ns_2', 'meteo_10_0', 'meteo_10_1'];
+              for (const k of keysGrupo8) {
+                const val = horaData[k] || '';
+                if (val && val.startsWith('8') && val.length >= 5) {
+                  grupos8.push(val);
                 }
               }
 
@@ -281,10 +308,45 @@ const Cli4074Page = () => {
                 }
               }
 
+              // DIRECCIÓN DE NUBES (Dir):
+              let grupoDir = '';
+              if (horaData.meteo_8_1 && horaData.meteo_8_1.startsWith('56') && horaData.meteo_8_1.length === 5) {
+                grupoDir = horaData.meteo_8_1;
+              } else if (horaData.meteo_6_2 && horaData.meteo_6_2.startsWith('0') && horaData.meteo_6_2.length === 5) {
+                grupoDir = horaData.meteo_6_2;
+              }
+              if (grupoDir) {
+                if (grupoDir[2] !== '/') initial[rowNum].nb_direc = grupoDir[2];
+                if (grupoDir[3] !== '/') initial[rowNum].nm_direc = grupoDir[3];
+                if (grupoDir[4] !== '/') initial[rowNum].na_direc = grupoDir[4];
+              }
+
+              // TIPO DE NUBES GENERAL (Si no se completó desde grupos 8):
+              const meteo60 = horaData.meteo_6_0 || '';
+              if (meteo60 && meteo60.startsWith('8') && meteo60.length === 5) {
+                if (!initial[rowNum].nb_tipo && meteo60[2] !== '/') initial[rowNum].nb_tipo = meteo60[2];
+                if (!initial[rowNum].nm_tipo && meteo60[3] !== '/') initial[rowNum].nm_tipo = meteo60[3];
+                if (!initial[rowNum].na_tipo && meteo60[4] !== '/') initial[rowNum].na_tipo = meteo60[4];
+              }
+
+              // Lluvia
+              if (horaData.LL) {
+                initial[rowNum].lluvia_6h = horaData.LL;
+              }
+
+              // Estado del suelo (desde 3Ejjj)
+              const meteo65 = horaData.meteo_6_5 || '';
+              if (meteo65 && meteo65.startsWith('3') && meteo65.length >= 2) {
+                const eVal = meteo65[1];
+                if (eVal !== '/') {
+                  initial[rowNum].estado_suelo = eVal;
+                }
+              }
+
               // Temperaturas (solo horas principales)
               if (tempHours.includes(horaKey)) {
-                initial[rowNum].temp_max = horaData.t_max || '';
-                initial[rowNum].temp_min = horaData.t_min || '';
+                initial[rowNum].temp_max = horaData.Tmax || '';
+                initial[rowNum].temp_min = horaData.Tmin || '';
               }
             }
           }
@@ -313,6 +375,7 @@ const Cli4074Page = () => {
 
   useEffect(() => {
     if (Object.keys(stations).length > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       loadFormData(selectedStation, date);
     }
   }, [selectedStation, date]);
@@ -352,16 +415,37 @@ const Cli4074Page = () => {
 
               // Recopilar grupos 8
               const grupos8 = [];
-              for (let g = 0; g <= 6; g++) {
-                const grupoKey = g === 0 ? 'meteo_8' : `meteo_8_${g}`;
-                const grupoValue = horaData[grupoKey] || '';
-                if (grupoValue && grupoValue.startsWith('8') && grupoValue.length >= 5) {
-                  grupos8.push(grupoValue);
+              const keysGrupo8 = ['meteo_8_5', 'meteo_8_6', 'extra_8ns_1', 'extra_8ns_2', 'meteo_10_0', 'meteo_10_1'];
+              for (const k of keysGrupo8) {
+                const val = horaData[k] || '';
+                if (val && val.startsWith('8') && val.length >= 5) {
+                  grupos8.push(val);
                 }
               }
 
               if (grupos8.length > 0) {
                 initial[rowNum] = procesarGrupos8(initial[rowNum], grupos8);
+              }
+
+              // DIRECCIÓN DE NUBES:
+              let grupoDir = '';
+              if (horaData.meteo_8_1 && horaData.meteo_8_1.startsWith('56') && horaData.meteo_8_1.length === 5) {
+                grupoDir = horaData.meteo_8_1;
+              } else if (horaData.meteo_6_2 && horaData.meteo_6_2.startsWith('0') && horaData.meteo_6_2.length === 5) {
+                grupoDir = horaData.meteo_6_2;
+              }
+              if (grupoDir) {
+                if (grupoDir[2] !== '/') initial[rowNum].nb_direc = grupoDir[2];
+                if (grupoDir[3] !== '/') initial[rowNum].nm_direc = grupoDir[3];
+                if (grupoDir[4] !== '/') initial[rowNum].na_direc = grupoDir[4];
+              }
+
+              // TIPO DE NUBES GENERAL:
+              const meteo60 = horaData.meteo_6_0 || '';
+              if (meteo60 && meteo60.startsWith('8') && meteo60.length === 5) {
+                if (!initial[rowNum].nb_tipo && meteo60[2] !== '/') initial[rowNum].nb_tipo = meteo60[2];
+                if (!initial[rowNum].nm_tipo && meteo60[3] !== '/') initial[rowNum].nm_tipo = meteo60[3];
+                if (!initial[rowNum].na_tipo && meteo60[4] !== '/') initial[rowNum].na_tipo = meteo60[4];
               }
 
               // Temperaturas
@@ -383,7 +467,7 @@ const Cli4074Page = () => {
     return () => window.removeEventListener('storage', checkDraftUpdate);
   }, [selectedStation, date]);
 
-  const stInfo = selectedStation && stations[selectedStation] ? stations[selectedStation] : null;
+
 
   const updateRowField = (rowNum, field, value) => {
     // Convertir automáticamente código de altura a metros
@@ -404,42 +488,7 @@ const Cli4074Page = () => {
     }));
   };
 
-  /**
-   * Convertir código de altura de nubes (h) a metros
-   * Basado en WMO Code Table 1677
-   * 
-   * Nubes Bajas (CL): códigos 3-50 → 300-5000 pies
-   * Nubes Medias (CM): códigos 56-68 → 6000-18000 pies
-   * Nubes Altas (CH): códigos 69-80 → 19000-30000 pies
-   * 
-   * @param {string} code - Código de altura (h)
-   * @returns {string} - Altura en metros
-   */
-  const convertCloudHeight = (code) => {
-    if (!code || code === '/') return '';
-    
-    const h = parseInt(code, 10);
-    if (isNaN(h)) return '';
-    
-    let feet;
-    if (h >= 3 && h <= 50) {
-      // Nubes Bajas: 300-5000 pies (incrementos de ~100 pies)
-      feet = 300 + (h - 3) * 100;
-    } else if (h >= 56 && h <= 68) {
-      // Nubes Medias: 6000-18000 pies (incrementos de ~1000 pies)
-      feet = 6000 + (h - 56) * 1000;
-    } else if (h >= 69 && h <= 80) {
-      // Nubes Altas: 19000-30000 pies
-      feet = 19000 + (h - 69) * 1000;
-    } else {
-      return code; // Código fuera de rango, retornar tal cual
-    }
-    
-    // Convertir pies a metros (1 pie = 0.3048 m)
-    // Usar truncado (Math.floor) sin decimales
-    const meters = Math.floor(feet * 0.3048);
-    return meters.toString();
-  };
+
 
   const handleSave = async () => {
     if (!selectedStation) {
@@ -455,8 +504,8 @@ const Cli4074Page = () => {
   };
 
   // Estilos heredados del CLI 3074
-  const thClass = "border border-slate-700 bg-slate-800/90 text-white font-bold text-sm py-2 px-1 align-middle whitespace-nowrap overflow-hidden";
-  const subThClass = "border border-slate-600 bg-slate-700/80 text-white text-xs font-semibold py-1 px-1";
+  const thClass = spreadsheetStyles.th;
+  const subThClass = spreadsheetStyles.subTh;
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col font-sans relative overflow-hidden">
@@ -479,50 +528,14 @@ const Cli4074Page = () => {
       </div>
 
       {/* HEADER BLOCK - Info de estación */}
-      <div className="mx-6 mb-4 p-4 bg-white border border-slate-200 border-t-4 border-t-emerald-500 shadow-sm rounded-lg z-10 max-w-full overflow-x-auto">
-        <div className="flex flex-wrap items-center gap-x-8 gap-y-4">
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-bold text-slate-700 uppercase">Estación:</label>
-            <select
-              value={selectedStation}
-              onChange={(e) => setSelectedStation(e.target.value)}
-              className="bg-slate-50 border border-slate-300 text-slate-800 text-sm rounded-md px-3 py-1.5 focus:ring-2 focus:ring-emerald-500"
-            >
-              <option value="">Seleccione Estación</option>
-              {Object.entries(stations).map(([id, info]) => (
-                <option key={id} value={id}>{info.name} ({id})</option>
-              ))}
-            </select>
-          </div>
-
-          {stInfo && (
-            <>
-              <div className="flex items-center gap-2 text-sm text-slate-700">
-                <span className="font-bold uppercase">Latitud:</span>
-                <span className="bg-slate-100 px-3 py-1 rounded font-mono border border-slate-200">{stInfo.lat}°</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-slate-700">
-                <span className="font-bold uppercase">Longitud:</span>
-                <span className="bg-slate-100 px-3 py-1 rounded font-mono border border-slate-200">{stInfo.lon}°</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-slate-700">
-                <span className="font-bold uppercase">Altura:</span>
-                <span className="bg-slate-100 px-3 py-1 rounded font-mono border border-slate-200">{stInfo.h} M</span>
-              </div>
-            </>
-          )}
-
-          <div className="flex items-center gap-2 ml-auto">
-            <label className="text-sm font-bold text-slate-700 uppercase">Fecha:</label>
-            <input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="bg-slate-50 border border-slate-300 text-slate-800 text-sm rounded-md px-3 py-1.5 focus:ring-2 focus:ring-emerald-500"
-            />
-          </div>
-        </div>
-      </div>
+      <StationHeader 
+        selectedStation={selectedStation}
+        setSelectedStation={setSelectedStation}
+        date={date}
+        setDate={setDate}
+        stations={stations}
+        colorTheme="emerald"
+      />
 
       {/* SPREADSHEET CONTAINER */}
       <div className="mx-6 flex-1 z-10 bg-white rounded-lg shadow-[0px_4px_20px_rgba(0,0,0,0.1)] border border-slate-300 overflow-x-auto overflow-y-auto mb-6 max-h-[70vh] custom-scrollbar">
@@ -595,8 +608,8 @@ const Cli4074Page = () => {
                 ? 'bg-emerald-50 shadow-[inset_0_1px_2px_rgba(0,0,0,0.05)] font-medium' 
                 : 'bg-white hover:bg-slate-50';
 
-              const inputStyle = `w-full text-center bg-transparent border-none focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:bg-emerald-100/50 text-slate-800 text-[13px] font-mono h-[30px] ${isMainHour ? "font-semibold text-slate-900" : ""}`;
-              const tdBorder = "border-[1px] border-slate-200 p-0 m-0 h-[30px] overflow-hidden";
+              const inputStyle = `${spreadsheetStyles.input.emerald} ${isMainHour ? "font-semibold text-slate-900" : ""}`;
+              const tdBorder = spreadsheetStyles.tdBorder;
 
               return (
                 <tr key={i} className={`transition-colors ${trClass}`}>
@@ -705,23 +718,23 @@ const Cli4074Page = () => {
                   </td>
                   
                   {/* Temperaturas (solo horas sinópticas principales) */}
-                  <td className={`${tdBorder} ${tempHours.includes(Object.entries(synopRows).find(([h, r]) => r === i)?.[0] || '') ? 'bg-orange-50' : 'bg-slate-100'}`}>
+                  <td className={`${tdBorder} ${tempHours.includes(Object.entries(synopRows).find(([, r]) => r === i)?.[0] || '') ? 'bg-orange-50' : 'bg-slate-100'}`}>
                     <input 
                       className={inputStyle} 
                       maxLength="5" 
                       value={row.temp_max} 
                       onChange={e => updateRowField(i, 'temp_max', e.target.value)}
-                      disabled={!tempHours.includes(Object.entries(synopRows).find(([h, r]) => r === i)?.[0] || '')}
+                      disabled={!tempHours.includes(Object.entries(synopRows).find(([, r]) => r === i)?.[0] || '')}
                       title="Temperatura máxima (solo horas sinópticas)"
                     />
                   </td>
-                  <td className={`${tdBorder} ${tempHours.includes(Object.entries(synopRows).find(([h, r]) => r === i)?.[0] || '') ? 'bg-blue-50' : 'bg-slate-100'}`}>
+                  <td className={`${tdBorder} ${tempHours.includes(Object.entries(synopRows).find(([, r]) => r === i)?.[0] || '') ? 'bg-blue-50' : 'bg-slate-100'}`}>
                     <input 
                       className={inputStyle} 
                       maxLength="5" 
                       value={row.temp_min} 
                       onChange={e => updateRowField(i, 'temp_min', e.target.value)}
-                      disabled={!tempHours.includes(Object.entries(synopRows).find(([h, r]) => r === i)?.[0] || '')}
+                      disabled={!tempHours.includes(Object.entries(synopRows).find(([, r]) => r === i)?.[0] || '')}
                       title="Temperatura mínima (solo horas sinópticas)"
                     />
                   </td>

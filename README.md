@@ -4,7 +4,7 @@
 
 <p align="center">
 <img src="https://img.shields.io/badge/Estado-En_Desarrollo-orange?style=for-the-badge" alt="Status"/>
-<img src="https://img.shields.io/badge/Version-3.1.0-blue?style=for-the-badge" alt="Version"/>
+<img src="https://img.shields.io/badge/Version-3.2.0-blue?style=for-the-badge" alt="Version"/>
 <img src="https://img.shields.io/badge/Desktop-Tauri_v2-purple?style=for-the-badge" alt="Desktop"/>
 <img src="https://img.shields.io/badge/Backend-Rust-red?style=for-the-badge" alt="Backend"/>
 <img src="https://img.shields.io/badge/Frontend-React_Vite-blue?style=for-the-badge" alt="Frontend"/>
@@ -14,18 +14,20 @@
 
 ## 📋 Sobre el Proyecto
 
-**Proyecto ARCA** es un sistema especializado para la **gestión de datos meteorológicos e hidrológicos**, diseñado bajo una arquitectura de **Monolito Modular**. Su objetivo es centralizar la captura, procesamiento, auditoría y reporte de observaciones climáticas de estaciones meteorológicas.
+**Proyecto ARCA** es un sistema especializado para la **gestión de datos meteorológicos e hidrológicos**, diseñado bajo una arquitectura de **Monolito Modular**. Su objetivo es centralizar la captura, procesamiento, auditoría y reporte de observaciones climáticas de estaciones meteorológicas de manera local y offline.
 
 ### ✨ Características Principales
 
 | Característica | Descripción |
 | :--- | :--- |
-| 📊 **Registro Sinóptico** | Formulario WMO completo con cálculos automáticos nativos |
-| 📁 **Catálogo de Días** | Navegación entre días con guardado automático rápido en JSON |
-| 🔄 **Códigos SYNOP** | Generación automática de grupos 1snTTT, 4PPPP, 5aPPP, 58/59, 29UUU |
+| 📊 **Registro Sinóptico** | Formulario WMO completo con cálculos automáticos nativos (Magnus-Tetens, August-Roche) |
+| 📁 **Catálogo de Días** | Navegación entre días con guardado automático rápido en JSON estructurado |
+| 🔄 **Códigos SYNOP** | Generación automática de grupos 1snTTT, 2snTdTdTd, 4PPPP, 5aPPP, 58/59, 29UUU |
 | 📈 **Formulario CLI 3074** | Presión, humedad y viento con cálculos en tiempo real (DIF, CAR automático) |
-| ☁️ **Formulario CLI 4074** | Nubosidad y temperatura con parseo automático de grupos 8NsChshs |
-| 🔍 **Auditoría** | Trazabilidad y corrección de datos históricos |
+| ☁️ **Formulario CLI 4074** | Nubosidad y temperatura con parseo y extracción de grupos 8NsChshs y dirección de nubes (0CS/56) |
+| 🌧️ **Formulario CLI 5074** | Registro de fenómenos significativos y autocompletado diario/horario de presiones y temperaturas extremas |
+| 🔒 **Seguridad y Auth Offline** | Base de datos SQLite local con WAL habilitado y hashing bcrypt para autenticación offline |
+| 🔍 **Auditoría** | Trazabilidad y logs de auditoría para la corrección de datos históricos |
 
 ---
 
@@ -65,19 +67,20 @@ El sistema realiza automáticamente los siguientes cálculos meteorológicos:
 
 | Grupo | Excluye | Motivo |
 | :---: | :---: | :--- |
-| `0CS DL DM DH` | `56 DL DM DH` | Ambos codifican nubes con dirección |
+| `0CS DL DM DH` | `56 DL DM DH` | Ambos codifican nubes con dirección. El sistema desactiva el otro al completar uno. |
 
 ### 📁 Almacenamiento JSON
 
 Los datos se guardan en estructura jerárquica:
 ```
-Documents/ARCA/{modulo}/{year}/{month}/{station}{DDMMYYYY}.json
+Documents/ARCA/{modulo}/{year}/{month}/{station_code}{DDMMYYYY}.json
 ```
 
 Ejemplos:
 - Sinóptico: `Documents/ARCA/synoptic/2026/04/7846015042026.json`
 - CLI 3074: `Documents/ARCA/cli3074/2026/04/78460_2026-04-15_cli3074.json`
 - CLI 4074: `Documents/ARCA/cli4074/2026/04/78460_2026-04-15_cli4074.json`
+- CLI 5074: `Documents/ARCA/cli5074/2026/04/78460_2026-04-15_cli5074.json`
 
 ---
 
@@ -92,50 +95,25 @@ Ejemplos:
 | **Visibilidad** | IrIxHVV → VV | Tabla WMO Code 4377 |
 | **Tiempo Presente** | 7wwW1W2 | Comparación Nddff si vacío |
 
-### 📊 Estructura del Formulario
-
-```
-┌───────────────────────────────────────────────────────────────────────┐
-│ HORA │ PRESIÓN (hPa) │ 3H TEND │ TEMP │ HUMEDAD │ VIENTO │ VIS │ FEN │
-├──────┼───────────────┼─────────┼──────┼─────────┼────────┼─────┼─────┤
-│  1   │ Est NMM Alti  │ CAR DIF │ SEC  │ PTO TV  │ DIR VEL│ km  │ ww  │
-└───────────────────────────────────────────────────────────────────────┘
-```
-
 ---
 
 ## ☁️ CLI 4074 - Nubosidad y Temperatura
 
-### 🎯 Parseo de Grupos 8
+### 🎯 Parseo de Grupos 8 y Dirección
 
-El sistema parsea automáticamente los grupos `8NsChshs`:
+El sistema parsea automáticamente los grupos `8NsChshs` y calcula alturas:
+- CB (Cumulonimbus): Código `9`
+- CL (Bajas): Códigos `8, 7, 6`
+- CM (Medias): Códigos `5, 4, 3`
+- CH (Altas): Códigos `2, 1, 0`
 
-| Código | Tipo de Nube | Categoría |
-| :---: | :--- | :--- |
-| `9` | Cumulonimbus | CB |
-| `8, 7, 6` | Nubes Bajas | CL |
-| `5, 4, 3` | Nubes Medias | CM |
-| `2, 1, 0` | Nubes Altas | CH |
+Adicionalmente, se autocompleta la dirección de las nubes (bajas, medias, altas) desde los grupos `56DLDMDH` o `0CSDLDMDH`, la precipitación (`LL`) y las temperaturas extremas (`Tmax`/`Tmin`).
 
-### 📏 Conversión de Altura (hshs)
+---
 
-| Tipo | Códigos | Rango Pies | Rango Metros |
-| :--- | :---: | :--- | :--- |
-| Bajas | 3-50 | 300-5000 | 91-1524 |
-| Medias | 56-68 | 6000-18000 | 1828-5486 |
-| Altas | 69-80 | 19000-30000 | 5791-9144 |
+## 🌧️ CLI 5074 - Fenómenos Significativos
 
-**Nota:** Conversión truncada (sin redondeo): 6000 pies = 1828 m
-
-### 📊 Estructura del Formulario
-
-```
-┌─────────────────────────────────────────────────────────────────────────────────────┐
-│HORA│N│ CÚMULONIMBOS │ NUBES BAJAS │TOTAL│ NUBES MEDIAS │TOTAL│ NUBES ALTAS │TOTAL│LLUV│TEMPS│EST│OBS│
-├────┼─┼──────────────┼─────────────┼─────┼──────────────┼─────┼─────────────┼─────┼────┼─────┼───┼───┤
-│ 1  │ │Cant Tipo Alt │Cant Tipo Alt│  Σ  │Cant Tipo Alt │  Σ  │Cant Tipo Alt│  Σ  │6h  │Máx Mín│   │   │
-└─────────────────────────────────────────────────────────────────────────────────────┘
-```
+Este módulo recopila los fenómenos meteorológicos significativos del día y gestiona las observaciones horarias de presiones, tendencias, y correcciones de altitud. Se alimenta del backend Rust para autocompletar la presión a nivel medio del mar y las temperaturas extremas de la jornada.
 
 ---
 
@@ -144,10 +122,11 @@ El sistema parsea automáticamente los grupos `8NsChshs`:
 | Módulo | Estado | Descripción |
 | :--- | :---: | :--- |
 | **🌤️ Observación Sinóptica** | 🟢 Activo | Formulario WMO con cálculos automáticos (Rust Engine) |
-| **🔧 CLI 3074** | 🟢 Activo | Presión, humedad y viento con extracción profunda |
-| **☁️ CLI 4074** | 🟢 Activo | Nubosidad y temperatura con parseo de grupos 8 |
-| **📊 Resumen Mensual** | 🟡 Próximo | Generación y consulta de resúmenes mensuales |
-| **🔍 Correcciones y Auditoría** | 🟡 Próximo | Logs de auditoría y corrección de datos |
+| **🔧 CLI 3074** | 🟢 Activo | Presión, humedad y viento con extracción y DIF/CAR |
+| **☁️ CLI 4074** | 🟢 Activo | Nubosidad y temperatura con parseo de grupos 8, lluvia y suelo |
+| **🌧️ CLI 5074** | 🟢 Activo | Registro de fenómenos significativos y presiones horarias |
+| **🔍 Correcciones y Auditoría** | 🟢 Activo | Registro local y auditoría de eventos de modificaciones |
+| **📊 Resumen Mensual** | 🟢 Activo | Cálculo y consolidación mensual de observaciones |
 
 ---
 
@@ -161,10 +140,11 @@ El sistema parsea automáticamente los grupos `8NsChshs`:
 
 | Tecnología | Uso |
 |:---|:---|
-| `Rust` | Lenguaje de programación de alto rendimiento |
-| `Tauri v2` | Framework para aplicación de escritorio multiplataforma |
+| `Rust` | Lenguaje de programación de alto rendimiento y seguridad |
+| `Tauri v2` | Framework para aplicación de escritorio nativa liviana |
+| `SQLite` | Base de datos local transaccional con modo WAL |
+| `Bcrypt` | Hashing seguro de credenciales de usuario offline |
 | `Serde` | Serialización/Deserialización ultrarrápida de JSON |
-| `Lazy Static` | Caché en memoria para constantes (Estaciones) |
 
 </td>
 <td width="50%">
@@ -173,11 +153,11 @@ El sistema parsea automáticamente los grupos `8NsChshs`:
 
 | Tecnología | Uso |
 |:---|:---|
-| `React` | Interfaz de usuario |
-| `Vite 7` | Build tool rápido |
-| `Tailwind CSS v4` | Estilos utility-first |
-| `React Router v7` | Enrutamiento SPA |
-| `Lucide React` | Iconografía |
+| `React` | Interfaz de usuario declarativa y componentizada |
+| `Vite 7` | Servidor de desarrollo y build tool rápido |
+| `Tailwind CSS v4` | Estilos atómicos y modernos |
+| `React Router v7` | Enrutamiento SPA protegido |
+| `Lucide React` | Iconografía vectorizada |
 
 </td>
 </tr>
@@ -190,39 +170,34 @@ El sistema parsea automáticamente los grupos `8NsChshs`:
 ```
 Proyecto_ARCA/
 ├── src-tauri/
+│   ├── capabilities/        # 🔒 Políticas de seguridad granulares
 │   └── src/
-│       ├── calculations.rs      # 🚀 Motor matemático WMO
-│       ├── json_handler.rs      # 🚀 Persistencia JSON + CLI handlers
-│       ├── cli_autofill.rs      # 🚀 Autofill CLI 3074
-│       ├── visibility.rs        # 🚀 Tabla de visibilidad
-│       ├── audit.rs             # 🚀 Auditoría
-│       ├── summary.rs           # 🚀 Resúmenes mensuales
-│       └── lib.rs               # 🚀 Registro de comandos Tauri
+│       ├── calculations.rs  # 🚀 Motor matemático WMO
+│       ├── json_handler/    # 🚀 Persistencia JSON modularizada (CLI + Synoptic)
+│       │   ├── mod.rs
+│       │   ├── utils.rs
+│       │   ├── synoptic.rs
+│       │   └── cli.rs
+│       ├── db.rs            # 🚀 SQLite manager (WAL enable)
+│       ├── auth.rs          # 🚀 Autenticación offline en Rust (bcrypt)
+│       ├── audit.rs         # 🚀 Auditoría de cambios
+│       ├── summary.rs       # 🚀 Consolidación mensual
+│       └── lib.rs           # 🚀 Registro de comandos Tauri
 │
 ├── frontend/
 │   └── src/
+│       ├── shared/          # 🧩 Componentes comunes (StationHeader, ErrorBoundary)
 │       └── features/
 │           ├── synoptic/
-│           │   ├── pages/           # 🌤️ SynopticPage
-│           │   ├── components/      # Sidebar
-│           │   ├── cli3074/         # 🔧 CLI 3074
-│           │   │   └── pages/       # Cli3074Page
-│           │   └── cli4074/         # ☁️ CLI 4074
-│           │       └── pages/       # Cli4074Page
-│           ├── summary/             # 📊 Resúmenes
-│           ├── audit/               # 🔍 Auditoría
-│           └── dashboard/           # Panel Principal
+│           │   ├── pages/       # 🌤️ SynopticPage
+│           │   ├── cli3074/     # 🔧 CLI 3074
+│           │   ├── cli4074/     # ☁️ CLI 4074
+│           │   └── cli5074/     # 🌧️ CLI 5074
+│           ├── summary/         # 📊 Resúmenes
+│           ├── audit/           # 🔍 Auditoría
+│           └── dashboard/       # Panel Principal
 │
-├── docs/                           # 📚 Documentación y referencias
-│   ├── CLI 3074.png
-│   ├── CLI 4074.png
-│   ├── CLI 4074.csv
-│   └── Tabla de nubes y Visibilidad codificada.csv
-│
-└── Documents/ARCA/                 # 📁 Almacenamiento JSON
-    ├── synoptic/{year}/{month}/
-    ├── cli3074/{year}/{month}/
-    └── cli4074/{year}/{month}/
+└── docs/                    # 📚 Documentos de referencia
 ```
 
 ---
@@ -243,60 +218,29 @@ Proyecto_ARCA/
 # Instalar dependencias
 cd frontend && npm install
 
-# Iniciar frontend y backend simultáneamente
-npm run tauri dev
+# Iniciar frontend y backend simultáneamente en Tauri
+npm run tauri:dev
 ```
 
 ---
 
-## 📡 Comandos Tauri
+## 📡 Comandos Tauri Principales
 
 | Comando | Uso |
 |:---|:---|
-| `invoke('save_observation_json', ...)` | Guarda observación sinóptica |
-| `invoke('get_observation', ...)` | Carga observación por fecha |
-| `invoke('save_cli3074_json', ...)` | Guarda formulario CLI 3074 |
-| `invoke('load_cli3074_json', ...)` | Carga CLI 3074 |
-| `invoke('save_cli4074_json', ...)` | Guarda formulario CLI 4074 |
-| `invoke('load_cli4074_json', ...)` | Carga CLI 4074 |
-| `invoke('calculate_observations', ...)` | Cálculos meteorológicos |
+| `invoke('save_observation_json', ...)` | Guarda y estructura la observación sinóptica |
+| `invoke('get_observation', ...)` | Recupera observación y campos calculados por fecha |
+| `invoke('save_cli4074_json', ...)` | Guarda planilla CLI 4074 |
+| `invoke('login_user', ...)` | Valida credenciales en base de datos local |
+| `invoke('calculate_observations', ...)` | Motor meteorológico local |
 
 ---
 
 ## 👨‍💻 Autor
 
 <p align="center">
-Desarrollado por <strong>Stward</strong><br/>
-Ingeniería de Sistemas y Computación
-</p>
-
-<p align="center">
-<em>"Todo lo que entra en el ARCA, sobrevive y prospera."</em> 🚢
-</p>
-
----
-
-<p align="center">
-<sub>📅 Última actualización: Abril 2026</sub>
-</p>
-
----
-
-## 👨‍💻 Autor
-
-<p align="center">
-Desarrollado por <strong>Stward</strong><br/>
-Ingeniería de Sistemas y Computación
-</p>
-
-<p align="center">
-<em>"Todo lo que entra en el ARCA, sobrevive y prospera."</em> 🚢
-</p>
-
----
-
-<p align="center">
-<sub>📅 Última actualización: Abril 2026</sub>
+  Desarrollado por <strong>Stward</strong><br/>
+  Ingeniería de Sistemas y Computación
 </p>
 
 <p align="center">
@@ -306,5 +250,5 @@ Ingeniería de Sistemas y Computación
 ---
 
 <p align="center">
-  <sub>📅 Última actualización: Abril 2026</sub>
+  <sub>📅 Última actualización: Mayo 2026</sub>
 </p>

@@ -2,6 +2,7 @@ use rusqlite::{Connection, Result};
 use std::path::PathBuf;
 use tauri::AppHandle;
 use tauri::Manager;
+use bcrypt::{hash, DEFAULT_COST};
 
 pub fn get_db_path(app_handle: &AppHandle) -> PathBuf {
     let mut path = app_handle
@@ -15,6 +16,21 @@ pub fn get_db_path(app_handle: &AppHandle) -> PathBuf {
 pub fn init_db(app_handle: &AppHandle) -> Result<()> {
     let db_path = get_db_path(app_handle);
     let conn = Connection::open(&db_path)?;
+
+    // Habilitar modo WAL para mejor concurrencia
+    conn.pragma_update(None, "journal_mode", &"wal")?;
+
+    // Crear tabla de usuarios si no existe
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            role TEXT NOT NULL,
+            is_active INTEGER DEFAULT 1
+        )",
+        [],
+    )?;
 
     // Crear tablas si no existen
     conn.execute(
@@ -57,6 +73,30 @@ pub fn init_db(app_handle: &AppHandle) -> Result<()> {
         )",
         [],
     )?;
+
+    // Seed default users if users table is empty
+    let count: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM users",
+        [],
+        |row| row.get(0),
+    )?;
+
+    if count == 0 {
+        let default_users = vec![
+            ("admin@arca.rd", "admin123", "admin"),
+            ("encargado@arca.rd", "encargado123", "encargado"),
+            ("observador@arca.rd", "observador123", "observador"),
+        ];
+
+        for (email, password, role) in default_users {
+            let password_hash = hash(password, DEFAULT_COST)
+                .map_err(|e| rusqlite::Error::ToSqlConversionFailure(Box::new(e)))?;
+            conn.execute(
+                "INSERT INTO users (email, password_hash, role, is_active) VALUES (?, ?, ?, 1)",
+                [email, &password_hash, role],
+            )?;
+        }
+    }
 
     Ok(())
 }

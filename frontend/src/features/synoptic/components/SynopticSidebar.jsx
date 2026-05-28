@@ -78,6 +78,7 @@ const SynopticSidebar = ({
               onClick={() => {
                 if (code === '3074') navigate('/cli3074');
                 else if (code === '4074') navigate('/cli4074');
+                else if (code === '5074') navigate('/cli5074');
                 else navigate('/maintenance');
               }}
               className="w-full py-2 px-3 rounded-lg font-medium text-xs bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors"

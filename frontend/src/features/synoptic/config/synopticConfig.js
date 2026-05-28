@@ -86,3 +86,16 @@ export const styles = {
     constantClass: "bg-slate-200 border border-slate-400 text-slate-700 font-bold text-sm px-2 py-2 rounded w-full text-center",
     errorClass: "text-red-500 text-sm mt-2 text-center"
 };
+
+// Estilos de hoja de cálculo compartidos para CLI 3074, 4074 y 5074
+export const spreadsheetStyles = {
+    th: "border border-slate-700 bg-slate-800/90 text-white font-bold text-sm py-2 px-1 align-middle whitespace-nowrap overflow-hidden text-center",
+    subTh: "border border-slate-600 bg-slate-700/80 text-white text-xs font-semibold py-1 px-1 text-center",
+    tdBorder: "border-[1px] border-slate-200 p-0 m-0 h-[30px] overflow-hidden bg-white hover:bg-slate-50 transition-colors",
+    tdHeader: "bg-slate-200 text-slate-800 font-bold text-xs p-2 border border-slate-300 text-left whitespace-nowrap",
+    input: {
+        sky: "w-full text-center bg-transparent border-none focus:outline-none focus:ring-1 focus:ring-sky-500 focus:bg-sky-100/50 text-slate-800 text-[13px] font-mono h-full py-1",
+        emerald: "w-full text-center bg-transparent border-none focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:bg-emerald-100/50 text-slate-800 text-[13px] font-mono h-full py-1",
+        rose: "w-full text-center bg-transparent border-none focus:outline-none focus:ring-1 focus:ring-rose-500 focus:bg-rose-100/50 text-slate-800 text-[13px] font-mono h-full py-1"
+    }
+};

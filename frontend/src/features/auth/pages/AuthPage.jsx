@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { authService } from '../api/authService';
-import { Shield, LogIn, Lock } from 'lucide-react';
+import { Shield, LogIn, Lock, UserPlus } from 'lucide-react';
 import loginBg from '../../../assets/login-bg.png';
 
 import Logo from '../../../shared/components/Logo';
@@ -15,8 +15,6 @@ const AuthPage = ({ addLog, onLoginSuccess }) => {
         e.preventDefault();
         setLoading(true);
         setError(null);
-        const action = isLogin ? 'Iniciando Sesión' : 'Registrando Usuario';
-
         // Log inicial
         addLog(`Enviando petición POST a ${isLogin ? '/api/auth/login' : '/api/auth/register'}...`, 'info');
 
