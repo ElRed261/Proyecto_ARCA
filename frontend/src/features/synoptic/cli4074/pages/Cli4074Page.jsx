@@ -266,12 +266,9 @@ const Cli4074Page = () => {
       }
 
       const data = await invoke('load_cli4074_json', { stationId: currentStation, date: currentDate });
-      if (data && Object.keys(data).length > 0) {
-        setRows(data);
-      } else {
-        // Initialize empty
-        const initial = {};
-        for (let i = 1; i <= 24; i++) {
+      
+      const initial = {};
+      for (let i = 1; i <= 24; i++) {
         initial[i] = {
           nubosidad: '',
           cb_cant: '', cb_tipo: '', cb_altura: '',
@@ -281,23 +278,36 @@ const Cli4074Page = () => {
           lluvia_6h: '', temp_max: '', temp_min: '',
           estado_suelo: '', observador: ''
         };
+      }
+
+      if (data && Object.keys(data).length > 0) {
+        for (let i = 1; i <= 24; i++) {
+          if (data[i]) {
+            initial[i] = { ...initial[i], ...data[i] };
+          }
         }
+      }
 
-        // Autocompletar desde observación sinóptica
-        try {
-          const synopData = await invoke('get_observation', {
-            stationCode: currentStation,
-            fecha: currentDate
-          });
+      // Autocompletar desde observación sinóptica
+      try {
+        const synopData = await invoke('get_observation', {
+          stationCode: currentStation,
+          fecha: currentDate
+        });
 
-          if (synopData) {
-            const validHours = Object.keys(synopRows);
-            for (const horaKey of validHours) {
-              const horaData = synopData[horaKey];
-              if (!horaData) continue;
+        if (synopData) {
+          const validHours = Object.keys(synopRows);
+          for (const horaKey of validHours) {
+            const horaData = synopData[horaKey];
+            if (!horaData) continue;
 
-              const rowNum = synopRows[horaKey];
+            const rowNum = synopRows[horaKey];
+            const row = initial[rowNum];
 
+            // Autocompletar solo si la nubosidad y tipos de nubes están vacíos
+            const isEmpty = !row.nubosidad && !row.nb_tipo && !row.nm_tipo && !row.na_tipo && !row.temp_max && !row.temp_min;
+
+            if (isEmpty) {
               // Recopilar todos los grupos 8 disponibles
               const grupos8 = [];
               const keysGrupo8 = ['meteo_8_5', 'meteo_8_6', 'extra_8ns_1', 'extra_8ns_2', 'meteo_10_0', 'meteo_10_1'];
@@ -311,11 +321,62 @@ const Cli4074Page = () => {
               // Procesar todos los grupos 8 y llenar la fila
               if (grupos8.length > 0) {
                 initial[rowNum] = procesarGrupos8(initial[rowNum], grupos8);
-              } else {
-                // Si no hay grupos 8, usar nubosidad desde Nddff
-                const nddff = horaData.meteo_4_1 || horaData.Nddff || '';
-                if (nddff.length >= 1 && nddff[0] !== '/') {
-                  initial[rowNum].nubosidad = nddff[0];
+              }
+
+              // 1. NUBOSIDAD TOTAL: siempre usar N de Nddff (meteo_4_1) si está disponible,
+              // de lo contrario usar lo calculado por procesarGrupos8 o dejar vacío
+              const nddff = horaData.meteo_4_1 || horaData.Nddff || '';
+              if (nddff.length >= 1 && nddff[0] !== '/') {
+                initial[rowNum].nubosidad = nddff[0];
+              }
+
+              // 2. FALLBACK DE CANTIDADES Y TIPOS DESDE 8NhCLCMCH (meteo_6_0):
+              // Si no se completó nubes bajas desde grupos 8 pero CL es mayor a 0 en meteo_6_0
+              const meteo60 = horaData.meteo_6_0 || '';
+              if (meteo60 && meteo60.startsWith('8') && meteo60.length === 5) {
+                const Nh = meteo60[1]; // cantidad de nubes bajas/medias
+                const CL = meteo60[2]; // tipo nubes bajas
+                const CM = meteo60[3]; // tipo nubes medias
+                const CH = meteo60[4]; // tipo nubes altas
+
+                // Si hay nubes bajas y no se cargaron por grupos 8
+                if (CL !== '0' && CL !== '/' && !initial[rowNum].nb_cant) {
+                  initial[rowNum].nb_cant = Nh !== '/' ? Nh : '';
+                  initial[rowNum].nb_tipo = CL;
+                  initial[rowNum].nb_total = Nh !== '/' ? Nh : '';
+                } 
+                // Si no hay nubes bajas pero hay medias
+                else if ((CL === '0' || CL === '/') && CM !== '0' && CM !== '/' && !initial[rowNum].nm_cant) {
+                  initial[rowNum].nm_cant = Nh !== '/' ? Nh : '';
+                  initial[rowNum].nm_tipo = CM;
+                  initial[rowNum].nm_total = Nh !== '/' ? Nh : '';
+                }
+
+                // Tipos generales (si no se completaron)
+                if (!initial[rowNum].nb_tipo && CL !== '/') initial[rowNum].nb_tipo = CL;
+                if (!initial[rowNum].nm_tipo && CM !== '/') initial[rowNum].nm_tipo = CM;
+                if (!initial[rowNum].na_tipo && CH !== '/') initial[rowNum].na_tipo = CH;
+              }
+
+              // 3. FALLBACK DE ALTURA DESDE IrIXHVV (meteo_4_irixhvv):
+              // El tercer carácter (h) es la altura base de las nubes bajas/medias
+              const irixhv = horaData.meteo_4_irixhvv || '';
+              if (irixhv.length >= 3 && !initial[rowNum].nb_altura) {
+                const hVal = irixhv[2];
+                if (hVal !== '/' && hVal !== '9') {
+                  // Mapeo oficial WMO h a metros
+                  const hToMeters = {
+                    '0': '25', '1': '75', '2': '150', '3': '250', '4': '450',
+                    '5': '800', '6': '1250', '7': '1750', '8': '2250'
+                  };
+                  const height = hToMeters[hVal] || '';
+                  if (height) {
+                    if (initial[rowNum].nb_cant) {
+                      initial[rowNum].nb_altura = height;
+                    } else if (initial[rowNum].nm_cant) {
+                      initial[rowNum].nm_altura = height;
+                    }
+                  }
                 }
               }
 
@@ -330,14 +391,6 @@ const Cli4074Page = () => {
                 if (grupoDir[2] !== '/') initial[rowNum].nb_direc = grupoDir[2];
                 if (grupoDir[3] !== '/') initial[rowNum].nm_direc = grupoDir[3];
                 if (grupoDir[4] !== '/') initial[rowNum].na_direc = grupoDir[4];
-              }
-
-              // TIPO DE NUBES GENERAL (Si no se completó desde grupos 8):
-              const meteo60 = horaData.meteo_6_0 || '';
-              if (meteo60 && meteo60.startsWith('8') && meteo60.length === 5) {
-                if (!initial[rowNum].nb_tipo && meteo60[2] !== '/') initial[rowNum].nb_tipo = meteo60[2];
-                if (!initial[rowNum].nm_tipo && meteo60[3] !== '/') initial[rowNum].nm_tipo = meteo60[3];
-                if (!initial[rowNum].na_tipo && meteo60[4] !== '/') initial[rowNum].na_tipo = meteo60[4];
               }
 
               // Lluvia
@@ -361,11 +414,11 @@ const Cli4074Page = () => {
               }
             }
           }
-        } catch (e) {
-          console.log("No existe data sinóptica base para autocompletar.", e);
         }
-        setRows(initial);
+      } catch (e) {
+        console.log("No existe data sinóptica base para autocompletar.", e);
       }
+      setRows(initial);
     } catch (e) {
       console.error("Error cargando formulario", e);
     } finally {

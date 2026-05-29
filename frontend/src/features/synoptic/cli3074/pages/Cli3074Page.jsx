@@ -92,107 +92,123 @@ const Cli3074Page = () => {
           }
 
           const data = await invoke('load_cli3074_json', { stationId: currentStation, date: currentDate });
-          if (data && Object.keys(data).length > 0) {
-              setRows(data);
-          } else {
-              // Initialize empty
-              const initial = {};
-              for (let i = 1; i <= 24; i++) {
-                  initial[i] = {
-                      pres_est: '', pres_nmm: '', pres_alti: '', tend_car: '', tend_dif: '', temp_seco: '', temp_humedo: '', hum_ptor: '', hum_tvap: '', hum_hr: '', viento_dir: '', viento_vel: '', visibilidad: '',
-                      fenomenos: { tiempo_presente: '', granizo: false, ventarron: false, neblina: false, trueno: false, relampago: false, rocio: false, polvo: false, calima: false, niebla: false, tornado: false }
-                  };
-              }
+          
+          // Inicializar estructura vacía por defecto
+          const initial = {};
+          for (let i = 1; i <= 24; i++) {
+              initial[i] = {
+                  pres_est: '', pres_nmm: '', pres_alti: '', tend_car: '', tend_dif: '', temp_seco: '', temp_humedo: '', hum_ptor: '', hum_tvap: '', hum_hr: '', viento_dir: '', viento_vel: '', visibilidad: '',
+                  fenomenos: { tiempo_presente: '', granizo: false, ventarron: false, neblina: false, trueno: false, relampago: false, rocio: false, polvo: false, calima: false, niebla: false, tornado: false }
+              };
+          }
 
-              // Intentar autocompletar desde la observación sinóptica guardada
-              try {
-                  const synopData = await invoke('get_observation', { 
-                      stationCode: currentStation, 
-                      fecha: currentDate  // get_observation acepta YYYY-MM-DD directamente
-                  });
+          // Si data existe, mezclarla con la estructura inicial
+          if (data && Object.keys(data).length > 0) {
+              for (let i = 1; i <= 24; i++) {
+                  if (data[i]) {
+                      initial[i] = {
+                          ...initial[i],
+                          ...data[i],
+                          fenomenos: {
+                              ...initial[i].fenomenos,
+                              ...(data[i].fenomenos || {})
+                          }
+                      };
+                  }
+              }
+          }
+
+          // Intentar autocompletar desde la observación sinóptica guardada
+          try {
+              const synopData = await invoke('get_observation', { 
+                  stationCode: currentStation, 
+                  fecha: currentDate  // get_observation acepta YYYY-MM-DD directamente
+              });
+              
+              if (synopData) {
+                  const validHours = Object.keys(synopRows); // ["06Z", "09Z", ...]
                   
-                  // get_observation retorna un objeto plano: { "06Z": {...}, "09Z": {...}, station_id, fecha }
-                  if (synopData) {
-                      const validHours = Object.keys(synopRows); // ["06Z", "09Z", ...]
+                  for (const horaKey of validHours) {
+                      const horaData = synopData[horaKey];
+                      if (!horaData) continue;
                       
-                      for (const horaKey of validHours) {
-                          const horaData = synopData[horaKey];
-                          if (!horaData) continue;
-                          
-                          const rowNum = synopRows[horaKey];
-                          
+                      const rowNum = synopRows[horaKey];
+                      
+                      // Autocompletar solo si los campos clave están vacíos en esa fila
+                      const row = initial[rowNum];
+                      const isEmpty = !row.temp_seco && !row.pres_est && !row.temp_humedo;
+                      
+                      if (isEmpty) {
                           // Asignaciones directas desde los datos flattened
-                          initial[rowNum].pres_est = horaData.pres_est || '';
-                          initial[rowNum].temp_seco = horaData.ts || '';
-                          initial[rowNum].temp_humedo = horaData.th || '';
-                          initial[rowNum].visibilidad = horaData.visibilidad || '';
+                          row.pres_est = horaData.pres_est || '';
+                          row.temp_seco = horaData.ts || '';
+                          row.temp_humedo = horaData.th || '';
+                          row.visibilidad = horaData.visibilidad || '';
 
                           // Extraer Viento = Nddff (igual que la formula Excel M11)
                           const nddff = horaData.meteo_4_1 || horaData.Nddff || '';
                           if (horaData.viento_dir) {
-                              initial[rowNum].viento_dir = horaData.viento_dir;
+                              row.viento_dir = horaData.viento_dir;
                           } else if (nddff.length >= 3 && nddff[1] !== '/' && nddff[2] !== '/') {
                               const dd = parseInt(nddff.substring(1, 3), 10);
-                              if (!isNaN(dd)) initial[rowNum].viento_dir = (dd * 10).toString();
+                              if (!isNaN(dd)) row.viento_dir = (dd * 10).toString();
                           }
                           
                           if (horaData.viento_vel) {
-                              initial[rowNum].viento_vel = horaData.viento_vel;
+                              row.viento_vel = horaData.viento_vel;
                           } else if (nddff.length >= 5 && nddff[3] !== '/' && nddff[4] !== '/') {
                               const ff = parseInt(nddff.substring(3, 5), 10);
                               // Velocidad en m/s (1 nudo = 0.514444 m/s)
-                              if (!isNaN(ff)) initial[rowNum].viento_vel = (ff * 0.514444).toFixed(1);
+                              if (!isNaN(ff)) row.viento_vel = (ff * 0.514444).toFixed(1);
                           }
 
-            // Tiempo Presente: el backend ya lo calcula desde 7wwW1W2 o comparando Nddff
-            // Ver función calc_tiempo_presente() en json_handler.rs
-            initial[rowNum].fenomenos.tiempo_presente = horaData.tiempo_presente || '';
+                          // Tiempo Presente
+                          row.fenomenos.tiempo_presente = horaData.tiempo_presente || '';
 
-            // DIF y CAR: el backend ya los calcula en get_observation
-            // Ver calc_dif() y format_dif() en json_handler.rs
-            initial[rowNum].tend_dif = horaData.tend_dif || '';
-            initial[rowNum].tend_car = horaData.tend_car || '';
+                          // DIF y CAR
+                          row.tend_dif = horaData.tend_dif || '';
+                          row.tend_car = horaData.tend_car || '';
 
-            // Auto-calcular NMM, HR via backend Rust (cálculos meteorológicos)
-            if (horaData.ts && horaData.th) {
-              try {
-                const stationCh = stations[currentStation]?.ch;
-                const calcData = await invoke('calculate_observations', {
-                  data: {
-                    ts: horaData.ts || '',
-                    th: horaData.th || '',
-                    pres_est: horaData.pres_est || '',
-                    p3: horaData.p3 || '',
-                    p24: horaData.p24 || '',
-                    correc_alt: stationCh != null ? stationCh.toString() : '',
-                    station_id: currentStation,
-                    ir: '', ix: ''
+                          // Auto-calcular NMM, HR via backend Rust
+                          if (horaData.ts && horaData.th) {
+                              try {
+                                  const stationCh = stations[currentStation]?.ch;
+                                  const calcData = await invoke('calculate_observations', {
+                                      data: {
+                                          ts: horaData.ts || '',
+                                          th: horaData.th || '',
+                                          pres_est: horaData.pres_est || '',
+                                          p3: horaData.p3 || '',
+                                          p24: horaData.p24 || '',
+                                          correc_alt: stationCh != null ? stationCh.toString() : '',
+                                          station_id: currentStation,
+                                          ir: '', ix: ''
+                                      }
+                                  });
+
+                                  if (!calcData.error_message) {
+                                      row.pres_nmm = calcData.pres_nmm || '';
+                                      row.hum_ptor = calcData.punto_rocio || '';
+                                      row.hum_tvap = calcData.tension_vapor || '';
+                                      row.hum_hr = calcData.humedad_relativa || '';
+                                  }
+                              } catch (calcErr) {
+                                  console.warn(`Error calculando hora ${horaKey}:`, calcErr);
+                              }
+                          }
+                      }
                   }
-                });
-
-                if (!calcData.error_message) {
-                  initial[rowNum].pres_nmm = calcData.pres_nmm || '';
-                  initial[rowNum].hum_ptor = calcData.punto_rocio || '';
-                  initial[rowNum].hum_tvap = calcData.tension_vapor || '';
-                  initial[rowNum].hum_hr = calcData.humedad_relativa || '';
-                }
-              } catch (calcErr) {
-                console.warn(`Error calculando hora ${horaKey}:`, calcErr);
               }
-            }
+          } catch(e) {
+              console.log("No existe data sinóptica base para autocompletar.", e);
           }
-        }
-      } catch(e) {
-        console.log("No existe data sinóptica base para autocompletar.", e);
+          setRows(initial);
+      } catch (e) {
+          console.error("Error cargando formulario", e);
+      } finally {
+          setIsDataLoaded(true);
       }
-      setRows(initial);
-    }
-  } catch (e) {
-    console.error("Error cargando formulario", e);
-  } finally {
-    setIsDataLoaded(true);
-  }
-};
+  };
 
   // Auto-guardar borrador en sessionStorage al modificar datos
   useEffect(() => {
