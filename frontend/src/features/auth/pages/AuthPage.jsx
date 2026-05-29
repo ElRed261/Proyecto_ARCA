@@ -51,14 +51,14 @@ const AuthPage = ({ addLog, onLoginSuccess }) => {
             {/* Overlay para oscurecer el fondo y dar legibilidad */}
             <div className="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
 
-            <div className="bg-white/95 backdrop-blur-md p-8 rounded-xl shadow-2xl w-full max-w-md border border-white/20 relative z-10">
+            <div className="bg-white/85 backdrop-blur-xl p-8 rounded-2xl shadow-[0_24px_60px_-15px_rgba(0,0,0,0.25)] w-full max-w-md border border-white/40 relative z-10">
 
                 {/* Cabecera */}
                 <div className="text-center mb-8 flex flex-col items-center">
                     <div className="mb-4 transform scale-150">
                         <Logo variant="full" />
                     </div>
-                    <p className="text-gray-500 text-sm mt-2">Acceso al Sistema ERP</p>
+                    <p className="text-slate-500 text-sm mt-2">Acceso al Sistema ERP</p>
                 </div>
 
                 {/* Mensaje de Error */}
@@ -71,11 +71,11 @@ const AuthPage = ({ addLog, onLoginSuccess }) => {
                 {/* Formulario */}
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Correo Electrónico</label>
+                        <label className="block text-sm font-semibold text-slate-700 mb-1">Correo Electrónico</label>
                         <input
                             type="email"
                             required
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                            className="w-full px-4 py-2 border border-slate-200 bg-white/70 rounded-lg focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all duration-300 placeholder:text-slate-400"
                             placeholder="test@arca.com"
                             value={formData.email}
                             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -83,11 +83,11 @@ const AuthPage = ({ addLog, onLoginSuccess }) => {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
+                        <label className="block text-sm font-semibold text-slate-700 mb-1">Contraseña</label>
                         <input
                             type="password"
                             required
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                            className="w-full px-4 py-2 border border-slate-200 bg-white/70 rounded-lg focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all duration-300 placeholder:text-slate-400"
                             placeholder="••••••"
                             value={formData.password}
                             onChange={(e) => setFormData({ ...formData, password: e.target.value })}
@@ -97,8 +97,8 @@ const AuthPage = ({ addLog, onLoginSuccess }) => {
                     <button
                         type="submit"
                         disabled={loading}
-                        className={`w-full py-3 rounded-lg text-white font-bold shadow-lg transition transform active:scale-95 flex items-center justify-center gap-2
-              ${loading ? 'bg-gray-400 cursor-not-allowed' : isLogin ? 'bg-blue-600 hover:bg-blue-700' : 'bg-purple-600 hover:bg-purple-700'}`}
+                        className={`w-full py-3 rounded-lg text-white font-bold shadow-md hover:shadow-lg transition-all duration-300 active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer
+              ${loading ? 'bg-slate-400 cursor-not-allowed shadow-none' : isLogin ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700' : 'bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700'}`}
                     >
                         {loading ? (
                             <span className="animate-pulse">Procesando...</span>
@@ -114,7 +114,7 @@ const AuthPage = ({ addLog, onLoginSuccess }) => {
                 {/* Registro deshabilitado en modo local */}
 
                 {/* Footer info */}
-                <div className="mt-6 text-center text-xs text-gray-400 flex items-center justify-center gap-1">
+                <div className="mt-6 text-center text-xs text-slate-400 flex items-center justify-center gap-1">
                     <Lock size={12} />
                     <span>Modo Local — Autenticación Offline</span>
                 </div>

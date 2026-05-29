@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
+import { ArrowLeft } from 'lucide-react';
 import AuthPage from './features/auth/pages/AuthPage';
 import DashboardPage from './features/dashboard/pages/DashboardPage';
 import AdminPage from './features/auth/pages/AdminPage';
@@ -60,6 +62,7 @@ function App() {
 
   return (
     <div className="relative min-h-screen bg-gray-100 font-sans text-gray-800">
+      <Toaster position="top-right" />
       <Routes>
         {/* Login */}
         <Route path="/" element={
@@ -106,8 +109,11 @@ function App() {
           <ProtectedRoute user={user}>
             <div className="min-h-screen bg-gray-50 pb-20">
               <div className="max-w-7xl mx-auto pt-6 px-4 sm:px-6 lg:px-8">
-                <button onClick={() => navigate('/dashboard')} className="mb-4 text-indigo-600 hover:text-indigo-800">
-                  &larr; Volver al Dashboard
+                <button 
+                  onClick={() => navigate('/dashboard')} 
+                  className="mb-4 px-4 py-2 bg-white border border-slate-200 rounded-lg shadow-sm text-sm font-medium hover:bg-slate-50 transition-colors text-slate-700 flex items-center gap-2 hover:scale-105"
+                >
+                  <ArrowLeft className="w-4 h-4" /> Volver al Dashboard
                 </button>
                 <SummaryPage />
               </div>
@@ -120,8 +126,11 @@ function App() {
           <ProtectedRoute user={user}>
             <div className="min-h-screen bg-gray-50 pb-20">
               <div className="max-w-7xl mx-auto pt-6 px-4 sm:px-6 lg:px-8">
-                <button onClick={() => navigate('/dashboard')} className="mb-4 text-indigo-600 hover:text-indigo-800">
-                  &larr; Volver al Dashboard
+                <button 
+                  onClick={() => navigate('/dashboard')} 
+                  className="mb-4 px-4 py-2 bg-white border border-slate-200 rounded-lg shadow-sm text-sm font-medium hover:bg-slate-50 transition-colors text-slate-700 flex items-center gap-2 hover:scale-105"
+                >
+                  <ArrowLeft className="w-4 h-4" /> Volver al Dashboard
                 </button>
                 <AuditPage />
               </div>

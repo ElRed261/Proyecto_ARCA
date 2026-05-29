@@ -93,6 +93,8 @@ export const spreadsheetStyles = {
     subTh: "border border-slate-600 bg-slate-700/80 text-white text-xs font-semibold py-1 px-1 text-center",
     tdBorder: "border-[1px] border-slate-200 p-0 m-0 h-[30px] overflow-hidden bg-white hover:bg-slate-50 transition-colors",
     tdHeader: "bg-slate-200 text-slate-800 font-bold text-xs p-2 border border-slate-300 text-left whitespace-nowrap",
+    stickyColBase: "border-r border-slate-300 font-bold text-sm sticky left-0 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]",
+    invalidInput: "bg-red-50 focus:ring-red-500 text-red-900 border-red-300 border-[1px] shadow-inner",
     input: {
         sky: "w-full text-center bg-transparent border-none focus:outline-none focus:ring-1 focus:ring-sky-500 focus:bg-sky-100/50 text-slate-800 text-[13px] font-mono h-full py-1",
         emerald: "w-full text-center bg-transparent border-none focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:bg-emerald-100/50 text-slate-800 text-[13px] font-mono h-full py-1",

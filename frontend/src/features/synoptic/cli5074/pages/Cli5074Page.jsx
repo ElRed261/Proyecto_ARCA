@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { invoke } from '@tauri-apps/api/core';
+import { toast } from 'react-hot-toast';
+import { ArrowLeft, Save } from 'lucide-react';
 import StationHeader from '../../../../shared/components/StationHeader';
 import { spreadsheetStyles } from '../../config/synopticConfig';
 
@@ -191,14 +193,14 @@ const Cli5074Page = () => {
 
   const handleSave = async () => {
     if (!selectedStation) {
-      alert("Seleccione una estacion primero.");
+      toast.error("Seleccione una estacion primero.");
       return;
     }
     try {
       await invoke('save_cli5074_json', { stationId: selectedStation, date, data: formData });
-      alert("✓ Formulario CLI 5074 guardado exitosamente");
+      toast.success("Formulario CLI 5074 guardado exitosamente");
     } catch (err) {
-      alert("✗ Error al guardar el formulario: " + err);
+      toast.error("Error al guardar el formulario: " + err);
     }
   };
 
@@ -216,13 +218,74 @@ const Cli5074Page = () => {
       {/* Header Info */}
       <div className="px-6 py-4 flex items-center gap-4 z-10 w-full max-w-full">
         <button
-          onClick={() => navigate('/synoptic')}
-          className="px-4 py-2 bg-white border border-slate-300 rounded-lg shadow-sm text-sm font-medium hover:bg-slate-50 transition-colors text-slate-700 flex items-center gap-2"
+          onClick={() => navigate('/synoptic', { state: { stationId: selectedStation, date } })}
+          className="w-10 h-10 rounded-full border border-slate-200 bg-white flex items-center justify-center text-slate-500 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200 hover:scale-105 shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-rose-500"
+          title="Volver a Observaciones"
         >
-          <span>←</span> Volver a Observaciones
+          <ArrowLeft className="w-5 h-5" />
         </button>
+        
         <h1 className="text-2xl font-bold text-slate-800 tracking-tight">CLI 5074 - OBSERVACIONES EXTREMAS Y FENÓMENOS</h1>
-        <button onClick={handleSave} className="ml-auto px-6 py-2 bg-rose-600 hover:bg-rose-700 text-white text-sm font-bold rounded-lg shadow-md transition-all">
+
+        {/* Navegación Intra-CLI */}
+        <div className="bg-slate-200/60 p-1 rounded-lg inline-flex gap-1 shadow-inner ml-4">
+          <button
+            onClick={() => {
+              if (!selectedStation) {
+                toast.error("Seleccione una estación primero.");
+                return;
+              }
+              navigate('/cli3074', { state: { stationId: selectedStation, date } });
+            }}
+            className="px-3 py-1.5 rounded-md text-xs font-semibold transition-all text-slate-600 hover:bg-white/50"
+          >
+            3074
+          </button>
+          <button
+            onClick={() => {
+              if (!selectedStation) {
+                toast.error("Seleccione una estación primero.");
+                return;
+              }
+              navigate('/cli4074', { state: { stationId: selectedStation, date } });
+            }}
+            className="px-3 py-1.5 rounded-md text-xs font-semibold transition-all text-slate-600 hover:bg-white/50"
+          >
+            4074
+          </button>
+          <button
+            onClick={() => navigate('/cli5074', { state: { stationId: selectedStation, date } })}
+            className="px-3 py-1.5 rounded-md text-xs font-bold transition-all bg-white text-rose-700 shadow-sm"
+          >
+            5074
+          </button>
+        </div>
+
+        {/* Acceso Rápido Horas Synop */}
+        <div className="bg-slate-200/60 p-1 rounded-lg inline-flex gap-1 shadow-inner ml-4 items-center flex-wrap">
+          <span className="text-[10px] font-bold text-slate-500 uppercase px-2">Ver Hora Synop:</span>
+          {['00Z', '03Z', '06Z', '09Z', '12Z', '15Z', '18Z', '21Z'].map(h => (
+            <button
+              key={h}
+              onClick={() => {
+                if (!selectedStation) {
+                  toast.error("Seleccione una estación primero.");
+                  return;
+                }
+                navigate('/synoptic', { state: { stationId: selectedStation, date, activeHour: h } });
+              }}
+              className="px-2 py-1 rounded bg-white hover:bg-rose-50 hover:text-rose-700 hover:scale-105 active:scale-95 transition-all text-[11px] font-bold text-slate-600 shadow-sm cursor-pointer"
+            >
+              {h}
+            </button>
+          ))}
+        </div>
+
+        <button 
+          onClick={handleSave} 
+          className="ml-auto px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white text-sm font-bold rounded-lg shadow-md transition-all flex items-center gap-2 hover:scale-105"
+        >
+          <Save className="w-4 h-4" />
           Guardar Formulario
         </button>
       </div>
@@ -235,6 +298,7 @@ const Cli5074Page = () => {
         setDate={setDate}
         stations={stations}
         colorTheme="rose"
+        isLocked={true}
       />
 
       <div className="mx-6 flex flex-col gap-6 z-10">

@@ -37,6 +37,16 @@ pub fn ensure_arca_dirs(base_dir: &Path, year: &str, month: &str) -> Result<Path
     Ok(path)
 }
 
+/// Crea la estructura de directorios para un módulo dado incluyendo la estación
+pub fn ensure_arca_dirs_with_station(base_dir: &Path, station_code: &str, year: &str, month: &str) -> Result<PathBuf, String> {
+    let mut path = base_dir.to_path_buf();
+    path.push(station_code);
+    path.push(year);
+    path.push(month);
+    fs::create_dir_all(&path).map_err(|e| format!("Error creando directorios: {}", e))?;
+    Ok(path)
+}
+
 /// Helper para ubicar el directorio principal de datos usando el AppHandle
 pub fn get_base_data_dir(app_handle: &AppHandle) -> PathBuf {
     let mut path = app_handle

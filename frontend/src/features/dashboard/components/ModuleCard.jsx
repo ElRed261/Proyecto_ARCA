@@ -6,43 +6,46 @@ const ModuleCard = ({ title, description, icon: Icon, color, onClick, status = '
     const isDisabled = status === 'disabled';
 
     return (
-        <div
-            onClick={!isDisabled ? onClick : undefined}
+        <button
+            onClick={onClick}
+            disabled={isDisabled}
             className={`
-        relative overflow-hidden rounded-2xl p-6 transition-all duration-300 border
-        ${isDisabled
-                    ? 'bg-gray-50 border-gray-200 cursor-not-allowed opacity-60 grayscale'
-                    : 'bg-white border-gray-100 hover:shadow-xl cursor-pointer hover:-translate-y-1 group'
+                text-left w-full relative overflow-hidden rounded-2xl p-6 border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-500 transition-all duration-500
+                ${isDisabled
+                    ? 'bg-slate-50/50 border-slate-200 cursor-not-allowed opacity-60 grayscale'
+                    : 'bg-white border-slate-100 hover:border-slate-200/80 hover:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.06)] cursor-pointer hover:-translate-y-1.5 group'
                 }
-      `}
+            `}
         >
-            {/* Fondo decorativo con gradiente suave */}
-            <div className={`absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 rounded-full opacity-10 ${color}`}></div>
+            {/* Fondo decorativo con gradiente difuminado blur */}
+            {!isDisabled && (
+                <div className={`absolute -top-6 -right-6 w-32 h-32 rounded-full filter blur-xl opacity-20 bg-current transition-all duration-500 group-hover:scale-125 group-hover:opacity-30 ${color.split(' ')[0]}`}></div>
+            )}
 
             <div className="flex items-start justify-between mb-4">
-                <div className={`p-3 rounded-lg transition-colors duration-300 ${isDisabled ? 'bg-gray-200' : `${color} bg-opacity-10 text-gray-700 group-hover:text-white group-hover:bg-opacity-100`}`}>
-                    <Icon size={32} className={isDisabled ? 'text-gray-400' : ''} />
+                <div className={`p-3 rounded-xl transition-all duration-500 ${isDisabled ? 'bg-slate-200' : `${color} bg-opacity-10 text-slate-700 group-hover:text-white group-hover:bg-opacity-100 group-hover:scale-110 shadow-sm`}`}>
+                    <Icon size={28} className={isDisabled ? 'text-slate-400' : 'transition-transform duration-500'} />
                 </div>
                 {status === 'beta' && (
-                    <span className="bg-yellow-100 text-yellow-800 text-xs font-bold px-2 py-1 rounded-full">
+                    <span className="bg-yellow-100 text-yellow-800 text-xs font-bold px-2.5 py-1 rounded-full shadow-inner">
                         EN DESARROLLO
                     </span>
                 )}
             </div>
 
-            <h3 className="text-xl font-bold text-gray-800 mb-2 group-hover:text-gray-900 transition-colors">
+            <h3 className="text-xl font-bold text-slate-800 mb-2 group-hover:text-slate-900 transition-colors">
                 {title}
             </h3>
-            <p className="text-gray-500 text-sm mb-6 leading-relaxed">
+            <p className="text-slate-500 text-sm mb-6 leading-relaxed">
                 {description}
             </p>
 
             {!isDisabled && (
-                <div className={`flex items-center text-sm font-semibold group-hover:gap-2 transition-all ${color.split(' ')[1] || 'text-blue-600'}`}>
-                    Acceder al Módulo <ArrowRight size={16} className="ml-1" />
+                <div className={`flex items-center text-sm font-bold transition-all duration-300 ${color.split(' ')[1] || 'text-blue-600'} group-hover:translate-x-1`}>
+                    Acceder al Módulo <ArrowRight size={16} className="ml-1 transition-transform duration-300 group-hover:translate-x-1" />
                 </div>
             )}
-        </div>
+        </button>
     );
 };
 

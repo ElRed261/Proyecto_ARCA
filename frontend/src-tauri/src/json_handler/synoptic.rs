@@ -235,8 +235,8 @@ pub fn save_observation_json(
     validate_inputs(&station_code, &fecha)?;
     let (year, month) = parse_date_parts(&fecha);
 
-    let base_dir = get_arca_base_dir(&app_handle, "synoptic");
-    let dir_path = ensure_arca_dirs(&base_dir, &year, &month)?;
+    let base_dir = get_arca_base_dir(&app_handle, "synop");
+    let dir_path = ensure_arca_dirs_with_station(&base_dir, &station_code, &year, &month)?;
 
     let fecha_formatted = format_date_for_filename(&fecha);
     let filename = format!("{}{}.json", station_code, fecha_formatted);
@@ -244,7 +244,14 @@ pub fn save_observation_json(
 
     let backup_path = create_backup(&filepath, &station_code, &app_handle).unwrap_or_default();
 
-    let mut new_structure = serde_json::Map::new();
+    // Leer archivo existente si existe para no borrar datos de CLI
+    let mut root_map = if filepath.exists() {
+        let existing_data = fs::read_to_string(&filepath).map_err(|e| e.to_string())?;
+        let val: Value = serde_json::from_str(&existing_data).map_err(|e| e.to_string())?;
+        val.as_object().cloned().unwrap_or_else(serde_json::Map::new)
+    } else {
+        serde_json::Map::new()
+    };
 
     // Meta
     let mut meta = serde_json::Map::new();
@@ -257,7 +264,7 @@ pub fn save_observation_json(
         "ultima_actualizacion".to_string(),
         Value::String(chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string()),
     );
-    new_structure.insert("meta".to_string(), Value::Object(meta));
+    root_map.insert("meta".to_string(), Value::Object(meta));
 
     // Horas
     let mut horas_map = serde_json::Map::new();
@@ -321,9 +328,9 @@ pub fn save_observation_json(
         }
     }
 
-    new_structure.insert("horas".to_string(), Value::Object(horas_map));
+    root_map.insert("horas".to_string(), Value::Object(horas_map));
 
-    let data_str = serde_json::to_string_pretty(&new_structure).map_err(|e| e.to_string())?;
+    let data_str = serde_json::to_string_pretty(&root_map).map_err(|e| e.to_string())?;
     fs::write(&filepath, data_str).map_err(|e| e.to_string())?;
 
     let mut res = HashMap::new();
@@ -389,8 +396,9 @@ pub fn get_observation(
     let fecha_formatted = format_date_for_filename(&fecha);
     let filename = format!("{}{}.json", station_code, fecha_formatted);
 
-    let base_dir = get_arca_base_dir(&app_handle, "synoptic");
+    let base_dir = get_arca_base_dir(&app_handle, "synop");
     let mut filepath = base_dir.clone();
+    filepath.push(&station_code);
     filepath.push(&year);
     filepath.push(&month);
     filepath.push(&filename);
@@ -524,7 +532,8 @@ pub fn get_station_date_range(
     station_code: String,
 ) -> Result<HashMap<String, Value>, String> {
     validate_inputs(&station_code, "2026-05-28")?;
-    let station_dir = get_base_data_dir(&app_handle).join(&station_code);
+    let base_dir = get_arca_base_dir(&app_handle, "synop");
+    let station_dir = base_dir.join(&station_code);
 
     let mut dates = Vec::new();
     if station_dir.exists() {

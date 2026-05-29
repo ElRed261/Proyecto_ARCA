@@ -25,6 +25,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { invoke } from '@tauri-apps/api/core';
+import { toast } from 'react-hot-toast';
+import { ArrowLeft, Save } from 'lucide-react';
 import StationHeader from '../../../../shared/components/StationHeader';
 import { spreadsheetStyles } from '../../config/synopticConfig';
 
@@ -318,14 +320,14 @@ const calcCAR = (presEst, p3) => {
 
   const handleSave = async () => {
       if (!selectedStation) {
-          alert("Seleccione una estación primero.");
+          toast.error("Seleccione una estación primero.");
           return;
       }
       try {
           await invoke('save_cli3074_json', { stationId: selectedStation, date, data: rows });
-          alert("✓ Formulario CLI 3074 guardado exitosamente");
+          toast.success("Formulario CLI 3074 guardado exitosamente");
       } catch (err) {
-          alert("X Error al guardar el formulario: " + err);
+          toast.error("Error al guardar el formulario: " + err);
       }
   };
 
@@ -353,15 +355,75 @@ const calcCAR = (presEst, p3) => {
         <div className="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-sky-600/10 to-transparent pointer-events-none"></div>
         
         <div className="px-6 py-4 flex items-center gap-4 z-10 w-full max-w-full">
-             <button
-                onClick={() => navigate('/synoptic')}
-                className="px-4 py-2 bg-white border border-slate-300 rounded-lg shadow-sm text-sm font-medium hover:bg-slate-50 transition-colors text-slate-700 flex items-center gap-2"
+            <button
+                onClick={() => navigate('/synoptic', { state: { stationId: selectedStation, date } })}
+                className="w-10 h-10 rounded-full border border-slate-200 bg-white flex items-center justify-center text-slate-500 hover:text-sky-600 hover:bg-sky-50 hover:border-sky-200 hover:scale-105 shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-sky-500"
+                title="Volver a Observaciones"
             >
-                <span>&larr;</span> Volver a Observaciones
+                <ArrowLeft className="w-5 h-5" />
             </button>
-            <h1 className="text-2xl font-bold text-slate-800 tracking-tight">CLI 3074 - OBSERVACIONES DE SUPERFICIE</h1>
             
-            <button onClick={handleSave} className="ml-auto px-6 py-2 bg-sky-600 hover:bg-sky-700 text-white text-sm font-bold rounded-lg shadow-md transition-all">
+            <h1 className="text-2xl font-bold text-slate-800 tracking-tight">CLI 3074 - OBSERVACIONES DE SUPERFICIE</h1>
+
+            {/* Navegación Intra-CLI */}
+            <div className="bg-slate-200/60 p-1 rounded-lg inline-flex gap-1 shadow-inner ml-4">
+                <button
+                    onClick={() => navigate('/cli3074', { state: { stationId: selectedStation, date } })}
+                    className="px-3 py-1.5 rounded-md text-xs font-bold transition-all bg-white text-sky-700 shadow-sm"
+                >
+                    3074
+                </button>
+                <button
+                    onClick={() => {
+                        if (!selectedStation) {
+                            toast.error("Seleccione una estación primero.");
+                            return;
+                        }
+                        navigate('/cli4074', { state: { stationId: selectedStation, date } });
+                    }}
+                    className="px-3 py-1.5 rounded-md text-xs font-semibold transition-all text-slate-600 hover:bg-white/50"
+                >
+                    4074
+                </button>
+                <button
+                    onClick={() => {
+                        if (!selectedStation) {
+                            toast.error("Seleccione una estación primero.");
+                            return;
+                        }
+                        navigate('/cli5074', { state: { stationId: selectedStation, date } });
+                    }}
+                    className="px-3 py-1.5 rounded-md text-xs font-semibold transition-all text-slate-600 hover:bg-white/50"
+                >
+                    5074
+                </button>
+            </div>
+
+            {/* Acceso Rápido Horas Synop */}
+            <div className="bg-slate-200/60 p-1 rounded-lg inline-flex gap-1 shadow-inner ml-4 items-center flex-wrap">
+                <span className="text-[10px] font-bold text-slate-500 uppercase px-2">Ver Hora Synop:</span>
+                {['00Z', '03Z', '06Z', '09Z', '12Z', '15Z', '18Z', '21Z'].map(h => (
+                    <button
+                        key={h}
+                        onClick={() => {
+                            if (!selectedStation) {
+                                toast.error("Seleccione una estación primero.");
+                                return;
+                            }
+                            navigate('/synoptic', { state: { stationId: selectedStation, date, activeHour: h } });
+                        }}
+                        className="px-2 py-1 rounded bg-white hover:bg-sky-50 hover:text-sky-700 hover:scale-105 active:scale-95 transition-all text-[11px] font-bold text-slate-600 shadow-sm cursor-pointer"
+                    >
+                        {h}
+                    </button>
+                ))}
+            </div>
+            
+            <button 
+                onClick={handleSave} 
+                className="ml-auto px-5 py-2 bg-sky-600 hover:bg-sky-700 text-white text-sm font-bold rounded-lg shadow-md transition-all flex items-center gap-2 hover:scale-105"
+            >
+                <Save className="w-4 h-4" />
                 Guardar Formulario
             </button>
         </div>
@@ -374,6 +436,7 @@ const calcCAR = (presEst, p3) => {
             setDate={setDate}
             stations={stations}
             colorTheme="sky"
+            isLocked={true}
         />
 
 {/* SPREADSHEET TIER CONTAINER */}
@@ -436,7 +499,7 @@ const calcCAR = (presEst, p3) => {
 
                         return (
                             <tr key={i} className={`transition-colors ${trClass}`}>
-                                <td className={`border border-slate-300 font-bold text-sm sticky left-0 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] ${isMainHour ? 'bg-sky-200 text-sky-900' : 'bg-slate-100 text-slate-600'}`}>{i}</td>
+                                <td className={`${spreadsheetStyles.stickyColBase} ${isMainHour ? 'bg-sky-200 text-sky-900' : 'bg-slate-100 text-slate-600'}`}>{i}</td>
                                 
                                 <td className={`${tdBorder} ${isMainHour ? 'bg-sky-100/50' : ''}`}><input className={inputStyle} value={row.pres_est} onChange={e => updateRowField(i, 'pres_est', e.target.value)} /></td>
                                 <td className={tdBorder}><input className={inputStyle} value={row.pres_nmm} onChange={e => updateRowField(i, 'pres_nmm', e.target.value)} /></td>

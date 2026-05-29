@@ -21,10 +21,15 @@ tauri-build = { version = "2.5.6", features = [] }
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 log = "0.4"
-tauri = { version = "2.10.3", features = [] }
+tauri = { version = "2.10.3", features = ["test"] }
 tauri-plugin-log = "2"
 lazy_static = "1.4.0"
 chrono = "0.4.38"
 walkdir = "2.5.0"
 rusqlite = { version = "0.31.0", features = ["bundled"] }
 bcrypt = "0.15"
+calamine = "0.26"
+rust_xlsxwriter = "0.80"
+tauri-plugin-dialog = "2"
+regex = "1.12.3"
+

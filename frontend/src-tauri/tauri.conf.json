@@ -39,6 +39,11 @@
       "deb": {},
       "appimage": {}
     }
+  },
+  "plugins": {
+    "shell": {
+      "open": true
+    },
+    "dialog": {}
   }
 }
-

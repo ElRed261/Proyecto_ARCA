@@ -1,4 +1,5 @@
 import React from 'react';
+import { Lock } from 'lucide-react';
 
 const themeClasses = {
   sky: {
@@ -21,20 +22,25 @@ const StationHeader = ({
   date,
   setDate,
   stations = {},
-  colorTheme = 'sky'
+  colorTheme = 'sky',
+  isLocked = false
 }) => {
   const stInfo = selectedStation && stations[selectedStation] ? stations[selectedStation] : null;
   const theme = themeClasses[colorTheme] || themeClasses.sky;
 
   return (
-    <div className={`mx-6 mb-4 p-4 bg-white border border-slate-200 border-t-4 ${theme.border} shadow-sm rounded-lg z-10 max-w-full overflow-x-auto`}>
+    <div className={`mx-6 mb-4 p-4 bg-white/90 backdrop-blur-sm border border-slate-200 border-t-4 ${theme.border} shadow-sm hover:shadow-md transition-all duration-300 rounded-lg z-10 max-w-full overflow-x-auto`}>
       <div className="flex flex-wrap items-center gap-x-8 gap-y-4">
         <div className="flex items-center gap-2">
-          <label className="text-sm font-bold text-slate-700 uppercase">Estación:</label>
+          <label className="text-sm font-bold text-slate-700 uppercase flex items-center gap-1.5">
+            Estación:
+            {isLocked && <Lock className="w-3.5 h-3.5 text-slate-400" title="Información protegida en este módulo" />}
+          </label>
           <select 
             value={selectedStation} 
             onChange={(e) => setSelectedStation(e.target.value)}
-            className={`bg-slate-50 border border-slate-300 text-slate-800 text-sm rounded-md px-3 py-1.5 focus:ring-2 ${theme.ring} focus:outline-none`}
+            disabled={isLocked}
+            className={`bg-slate-50 border border-slate-300 text-slate-800 text-sm rounded-md px-3 py-1.5 focus:ring-2 ${theme.ring} focus:outline-none transition-all duration-200 ${isLocked ? 'cursor-not-allowed bg-slate-100/90 text-slate-500 border-slate-200' : ''}`}
           >
             <option value="">Seleccione Estación</option>
             {Object.entries(stations).map(([id, info]) => (
@@ -61,12 +67,16 @@ const StationHeader = ({
         )}
 
         <div className="flex items-center gap-2 ml-auto">
-          <label className="text-sm font-bold text-slate-700 uppercase">Fecha:</label>
+          <label className="text-sm font-bold text-slate-700 uppercase flex items-center gap-1.5">
+            Fecha:
+            {isLocked && <Lock className="w-3.5 h-3.5 text-slate-400" title="Información protegida en este módulo" />}
+          </label>
           <input 
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className={`bg-slate-50 border border-slate-300 text-slate-800 text-sm rounded-md px-3 py-1.5 focus:ring-2 ${theme.ring} focus:outline-none`}
+            disabled={isLocked}
+            className={`bg-slate-50 border border-slate-300 text-slate-800 text-sm rounded-md px-3 py-1.5 focus:ring-2 ${theme.ring} focus:outline-none transition-all duration-200 ${isLocked ? 'cursor-not-allowed bg-slate-100/90 text-slate-500 border-slate-200' : ''}`}
           />
         </div>
       </div>

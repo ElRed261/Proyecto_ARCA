@@ -5,6 +5,7 @@ pub mod cli_autofill;
 pub mod db;
 pub mod json_handler;
 pub mod summary;
+pub mod monthly_summary;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -32,7 +33,11 @@ pub fn run() {
             auth::get_users,
             auth::update_user,
             auth::change_password,
-            auth::delete_user
+            auth::delete_user,
+            monthly_summary::commands::ms_generate_summary,
+            monthly_summary::commands::ms_list_history,
+            monthly_summary::commands::ms_load_summary,
+            monthly_summary::commands::ms_export_excel
         ])
         .setup(|app| {
             // Database init

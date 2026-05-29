@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { invoke } from '@tauri-apps/api/core';
+import { ArrowLeft, Save, Upload, ArrowRight, Sun, Moon, FileText, Cloud, Clock, Sunrise, Sunset } from 'lucide-react';
 import { isAdmin } from '../../../shared/utils/auth';
 import { hourThemes, meteoHeaders, meteoPlaceholders, styles } from '../config/synopticConfig';
 import { AAXX, CONST_333, CONST_555, HOURS, EVEN_HOURS, ODD_HOURS, normalizePressure } from '../utils/synopticUtils';
+import { toast } from 'react-hot-toast';
 
 // =============================================================================
 // COMPONENTE PRINCIPAL
@@ -21,6 +23,7 @@ import { AAXX, CONST_333, CONST_555, HOURS, EVEN_HOURS, ODD_HOURS, normalizePres
 
 const SynopticPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const hours = HOURS;
   const evenHours = EVEN_HOURS;
 
@@ -53,8 +56,8 @@ const SynopticPage = () => {
     savedDraft?.observations || hours.reduce((acc, hour) => ({ ...acc, [hour]: {} }), {})
   );
 
-  // Hora activa por defecto: 06Z o la última del draft
-  const [activeHour, setActiveHour] = useState(savedDraft?.activeHour || '06Z');
+  // Hora activa por defecto: tomar de la navegación, del draft o valor por defecto
+  const [activeHour, setActiveHour] = useState(location.state?.activeHour || savedDraft?.activeHour || '06Z');
   const [results, setResults] = useState({});
   const [resultsPerHour, setResultsPerHour] = useState(savedDraft?.resultsPerHour || {});
   const [errorMessage, setErrorMessage] = useState('');
@@ -243,11 +246,11 @@ const SynopticPage = () => {
 
       // Validar estación y fecha
       if (!stationId) {
-        alert('⚠️ Debe seleccionar una estación antes de guardar');
+        toast.error('Debe seleccionar una estación antes de guardar');
         return;
       }
       if (!fecha) {
-        alert('⚠️ Debe seleccionar una fecha antes de guardar');
+        toast.error('Debe seleccionar una fecha antes de guardar');
         return;
       }
 
@@ -289,11 +292,11 @@ const SynopticPage = () => {
         setIsStationLocked(true);
         clearDraft();
 
-        alert(`✅ Observación guardada\n\nFecha: ${fechaFormatted}\nArchivo: ${response.filename}${response.backup_path ? '\nBackup creado ✓' : ''}\n\n⚠️ La estación está ahora bloqueada.`);
+        toast.success(`Observación guardada. Fecha: ${fechaFormatted}`);
       }
     } catch (error) {
       console.error('Error al guardar:', error);
-      alert('❌ Error al guardar la observación');
+      toast.error('Error al guardar la observación');
     }
   };
 
@@ -677,13 +680,13 @@ newObservations[hora] = {
         // Bloquear estación después de cargar (la observación pertenece a esa estación)
         setIsStationLocked(true);
 
-        alert(`✅ Observación cargada\n\nEstación: ${stationCode}\nFecha: ${fechaFormatted}\n\n🔒 Estación bloqueada.`);
+        toast.success(`Observación cargada. Estación: ${stationCode}`);
 
         // Resetear el input
         event.target.value = '';
       } catch (error) {
         console.error('Error al parsear JSON:', error);
-        alert('❌ Error al cargar el archivo JSON.\nVerifique el formato.');
+        toast.error('Error al cargar el archivo JSON. Verifique el formato.');
         event.target.value = '';
       }
     };
@@ -713,9 +716,10 @@ newObservations[hora] = {
         <div className="flex justify-between items-center mb-6">
           <button
             onClick={() => navigate('/dashboard')}
-            className={`px-4 py-2 rounded-lg font-medium text-sm backdrop-blur-md bg-white/10 border border-white/20 shadow-lg transition-all hover:bg-white/20 hover:scale-105 flex items-center gap-2 ${currentTheme.textColor}`}
+            className={`w-10 h-10 rounded-full backdrop-blur-md bg-white/10 border border-white/20 shadow-lg transition-all hover:bg-white/20 hover:scale-110 flex items-center justify-center ${currentTheme.textColor}`}
+            title="Volver al Dashboard"
           >
-            <span>&larr;</span> Volver al Dashboard
+            <ArrowLeft className="w-5 h-5" />
           </button>
         </div>
 
@@ -1053,100 +1057,127 @@ newObservations[hora] = {
             </div>
           </div>
 
-          {/* Panel de Navegación */}
-          <div className="w-36 bg-white rounded-xl shadow-lg p-4 transition-all duration-500">
-            <h2 className="text-sm font-bold mb-4 text-center text-gray-700">Observación</h2>
+          {/* Panel de Navegación en Tarjetas Independientes */}
+          <div className="w-64 flex flex-col gap-4 sticky top-6 transition-all duration-500">
+            
+            {/* Tarjeta 1: Horas de Observación */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-4 transition-all duration-300 hover:shadow-md">
+              <h2 className="text-xs font-bold mb-3 text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5" /> Horas de Observación
+              </h2>
+              <div className="grid grid-cols-2 gap-2">
+                {hours.map(hora => {
+                  let icon;
+                  if (hora === '06Z') {
+                    icon = <Sunrise className={`w-3.5 h-3.5 ${activeHour === hora ? 'text-white' : 'text-orange-400'}`} />;
+                  } else if (['09Z', '12Z', '15Z'].includes(hora)) {
+                    icon = <Sun className={`w-3.5 h-3.5 ${activeHour === hora ? 'text-white' : 'text-amber-500 animate-pulse'}`} />;
+                  } else if (hora === '18Z') {
+                    icon = <Sunset className={`w-3.5 h-3.5 ${activeHour === hora ? 'text-white' : 'text-rose-400'}`} />;
+                  } else {
+                    icon = <Moon className={`w-3.5 h-3.5 ${activeHour === hora ? 'text-white' : 'text-indigo-400'}`} />;
+                  }
 
-            <div className="space-y-2">
-              {hours.map(hora => (
-                <button
-                  key={hora}
-                  onClick={() => handleHourChange(hora)}
-                  className={`w-full py-2.5 px-3 rounded-lg font-medium text-sm transition-all duration-300 ${activeHour === hora
-                    ? 'text-white shadow-md scale-105'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  style={activeHour === hora ? { backgroundColor: currentTheme.accentColor } : {}}
-                >
-                  {hora}
-                </button>
-              ))}
+                  return (
+                    <button
+                      key={hora}
+                      onClick={() => handleHourChange(hora)}
+                      className={`py-2 px-2.5 rounded-lg font-bold text-xs transition-all duration-300 cursor-pointer flex items-center justify-center gap-1.5 border border-transparent shadow-sm ${activeHour === hora
+                        ? 'text-white shadow-md scale-105'
+                        : 'bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900 hover:scale-105 hover:border-slate-300 hover:shadow'
+                        }`}
+                      style={activeHour === hora ? { backgroundColor: currentTheme.accentColor } : {}}
+                    >
+                      {icon}
+                      <span>{hora}</span>
+                    </button>
+                  );
+                })}
+              </div>
 
               {/* Botones de navegación entre días */}
-              <div className="flex gap-1 mt-3">
+              <div className="flex gap-2 mt-3 pt-3 border-t border-slate-100">
                 <button
                   onClick={handlePreviousDay}
-                  className="flex-1 py-2 px-2 rounded-lg font-medium text-xs bg-blue-100 text-blue-700 hover:bg-blue-200 transition-all duration-300 flex items-center justify-center gap-1"
+                  className="flex-1 py-2 px-3 rounded-lg bg-sky-50 text-sky-700 hover:bg-sky-100 hover:scale-105 hover:border-sky-200 hover:shadow-sm active:scale-95 transition-all duration-300 flex items-center justify-center cursor-pointer border border-sky-100/50 shadow-sm"
                   title="Guardar y cargar día anterior"
                 >
-                  <span>←</span>
-                  <span>Ant.</span>
+                  <ArrowLeft className="w-4 h-4" />
                 </button>
                 <button
                   onClick={handleNextDay}
-                  className="flex-1 py-2 px-2 rounded-lg font-medium text-xs bg-green-100 text-green-700 hover:bg-green-200 transition-all duration-300 flex items-center justify-center gap-1"
+                  className="flex-1 py-2 px-3 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 hover:scale-105 hover:border-green-200 hover:shadow-sm active:scale-95 transition-all duration-300 flex items-center justify-center cursor-pointer border border-green-100/50 shadow-sm"
                   title="Guardar y avanzar al siguiente día"
                 >
-                  <span>Sig.</span>
-                  <span>→</span>
+                  <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
             </div>
 
-            {/* Botones CLI */}
-      <div className="mt-4 pt-3 border-t border-gray-200">
-        <h2 className="text-sm font-bold mb-4 text-center text-gray-700">CLI</h2>
-        <div className="space-y-2">
-          <button
-            onClick={() => { saveDraft(); navigate('/cli3074', { state: { stationId: getValue('station_id'), date: getValue('fecha') } }); }}
-            className="w-full py-2 px-3 rounded-lg font-medium text-xs bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors"
-          >
-            3074
-          </button>
-          <button
-            onClick={() => { saveDraft(); navigate('/cli4074', { state: { stationId: getValue('station_id'), date: getValue('fecha') } }); }}
-            className="w-full py-2 px-3 rounded-lg font-medium text-xs bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors"
-          >
-            4074
-          </button>
-          <button
-            onClick={() => { saveDraft(); navigate('/cli5074', { state: { stationId: getValue('station_id'), date: getValue('fecha') } }); }}
-            className="w-full py-2 px-3 rounded-lg font-medium text-xs bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors"
-          >
-            5074
-          </button>
-        </div>
-      </div>
-
-            {/* Campos extra 8NsChshs */}
-            <div className="mt-4 pt-3 border-t border-gray-200">
-              <div className={`${tableHeader} rounded-lg mb-2`}>8NsChshs Extra</div>
-              <div className="space-y-2">
-                <input
-                  className={inputClass}
-                  placeholder="8"
-                  value={getValue('extra_8ns_1')}
-                  onChange={(e) => handleChange('extra_8ns_1', e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  title="Ns=nubosidad, C=tipo, hshs=altura"
-                />
-                <input
-                  className={inputClass}
-                  placeholder="8"
-                  value={getValue('extra_8ns_2')}
-                  onChange={(e) => handleChange('extra_8ns_2', e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  title="Ns=nubosidad, C=tipo, hshs=altura"
-                />
+            {/* Tarjeta 2: Módulos CLI (Solo Números con Iconos) */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-4 transition-all duration-300 hover:shadow-md">
+              <h2 className="text-xs font-bold mb-3 text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                <FileText className="w-3.5 h-3.5" /> Módulos CLI
+              </h2>
+              <div className="grid grid-cols-3 gap-2">
+                {['3074', '4074', '5074'].map(code => (
+                  <button
+                    key={code}
+                    onClick={() => { saveDraft(); navigate(`/cli${code}`, { state: { stationId: getValue('station_id'), date: getValue('fecha') } }); }}
+                    className="flex flex-col items-center justify-center py-2 px-1 rounded-xl text-xs font-bold border border-slate-100 bg-slate-50/50 text-slate-700 hover:bg-amber-50 hover:border-amber-200 hover:text-amber-800 transition-all duration-200 cursor-pointer shadow-sm"
+                    title={`Ver reporte CLI ${code}`}
+                  >
+                    <FileText className="w-4 h-4 mb-1 text-slate-400 group-hover:text-amber-600" />
+                    <span>{code}</span>
+                  </button>
+                ))}
               </div>
             </div>
 
-            {/* Botones Cargar/Guardar (debajo de 8NsChshs, independientes) */}
-            <div className="mt-4 pt-3 border-t border-gray-200 space-y-2">
-              {/* Cargar JSON - Solo Admin */}
+            {/* Tarjeta 3: Campos Extra 8NsChshs */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-4 transition-all duration-300 hover:shadow-md">
+              <h2 className="text-xs font-bold mb-3 text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                <Cloud className="w-3.5 h-3.5" /> Nubosidad Extra
+              </h2>
+              <div className="space-y-3">
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Grupo Extra 1 (8Ns)</label>
+                  <input
+                    className={`${inputClass} !w-full`}
+                    placeholder="8..."
+                    value={getValue('extra_8ns_1')}
+                    onChange={(e) => handleChange('extra_8ns_1', e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    title="Ns=nubosidad, C=tipo, hshs=altura"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Grupo Extra 2 (8Ns)</label>
+                  <input
+                    className={`${inputClass} !w-full`}
+                    placeholder="8..."
+                    value={getValue('extra_8ns_2')}
+                    onChange={(e) => handleChange('extra_8ns_2', e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    title="Ns=nubosidad, C=tipo, hshs=altura"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Tarjeta 4: Acciones Cargar/Guardar */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-4 transition-all duration-300 hover:shadow-md flex flex-col gap-2">
+              <button
+                onClick={handleSave}
+                className="w-full py-2.5 px-4 rounded-xl text-white font-bold text-sm transition-all shadow-md hover:shadow-lg hover:opacity-95 flex items-center justify-center gap-2 cursor-pointer hover:scale-102"
+                style={{ backgroundColor: currentTheme.accentColor }}
+              >
+                <Save className="w-4 h-4" /> Guardar Observación
+              </button>
+              
               {isAdmin() && (
-                <label className="w-full py-2 px-3 rounded-lg font-bold text-xs bg-blue-100 text-blue-700 hover:bg-blue-200 cursor-pointer transition-colors flex items-center justify-center gap-2">
-                  📂 Cargar JSON
+                <label className="w-full py-2 px-4 rounded-xl font-bold text-xs bg-slate-50 border border-slate-200 text-slate-700 hover:bg-slate-100 cursor-pointer transition-colors flex items-center justify-center gap-2 hover:scale-102 shadow-sm">
+                  <Upload className="w-3.5 h-3.5" /> Cargar JSON
                   <input
                     type="file"
                     accept=".json"
@@ -1155,14 +1186,6 @@ newObservations[hora] = {
                   />
                 </label>
               )}
-              {/* Guardar */}
-              <button
-                onClick={handleSave}
-                className="w-full py-2 px-3 rounded-lg text-white font-bold text-sm transition-all shadow-md hover:opacity-90"
-                style={{ backgroundColor: currentTheme.accentColor }}
-              >
-                💾 Guardar
-              </button>
             </div>
           </div>
         </div>

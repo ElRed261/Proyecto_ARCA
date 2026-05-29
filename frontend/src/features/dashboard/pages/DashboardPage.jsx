@@ -54,7 +54,7 @@ const DashboardPage = ({ user, onLogout, onNavigate }) => {
     return (
         <div className="min-h-screen bg-gray-50">
             {/* Barra Superior */}
-            <nav className="bg-white shadow-sm border-b border-gray-200 px-8 py-4 flex justify-between items-center sticky top-0 z-30">
+            <nav className="bg-white/80 backdrop-blur-md shadow-sm border-b border-gray-200 px-8 py-4 flex justify-between items-center sticky top-0 z-30">
                 <div className="flex items-center gap-3">
                     <Logo variant="medium" />
                     <div className="h-6 w-px bg-gray-300 mx-2"></div>

@@ -25,14 +25,38 @@ pub fn save_cli3074_json(
     let year = parts[0];
     let month = parts[1];
 
-    let base_dir = get_arca_base_dir(&app_handle, "cli3074");
-    let target_dir = ensure_arca_dirs(&base_dir, year, month)?;
+    let base_dir = get_arca_base_dir(&app_handle, "synop");
+    let target_dir = ensure_arca_dirs_with_station(&base_dir, &station_id, year, month)?;
 
-    let file_name = format!("{}_{}_{}.json", station_id, date, "cli3074");
-    let mut file_path = target_dir;
-    file_path.push(file_name);
+    let fecha_formatted = format_date_for_filename(&date);
+    let file_name = format!("{}{}.json", station_id, fecha_formatted);
+    let file_path = target_dir.join(file_name);
 
-    let json_string = serde_json::to_string_pretty(&data).map_err(|e| e.to_string())?;
+    // Leer archivo existente si existe para no borrar datos de Synop u otros CLIs
+    let mut root_map = if file_path.exists() {
+        let existing_data = fs::read_to_string(&file_path).map_err(|e| e.to_string())?;
+        let val: Value = serde_json::from_str(&existing_data).map_err(|e| e.to_string())?;
+        val.as_object().cloned().unwrap_or_else(serde_json::Map::new)
+    } else {
+        let mut map = serde_json::Map::new();
+        let mut meta = serde_json::Map::new();
+        meta.insert("estacion".to_string(), Value::String(station_id.clone()));
+        meta.insert("fecha".to_string(), Value::String(fecha_formatted.clone()));
+        map.insert("meta".to_string(), Value::Object(meta));
+        map
+    };
+
+    // Actualizar fecha de última actualización en meta
+    if let Some(meta) = root_map.get_mut("meta").and_then(|m| m.as_object_mut()) {
+        meta.insert(
+            "ultima_actualizacion".to_string(),
+            Value::String(chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string()),
+        );
+    }
+
+    root_map.insert("cli3074".to_string(), data);
+
+    let json_string = serde_json::to_string_pretty(&root_map).map_err(|e| e.to_string())?;
     fs::write(&file_path, json_string).map_err(|e| format!("Error escribiendo archivo: {}", e))?;
 
     Ok(format!("Guardado en: {}", file_path.display()))
@@ -52,12 +76,14 @@ pub fn load_cli3074_json(
     let year = parts[0];
     let month = parts[1];
 
-    let base_dir = get_arca_base_dir(&app_handle, "cli3074");
+    let base_dir = get_arca_base_dir(&app_handle, "synop");
     let mut file_path = base_dir.clone();
+    file_path.push(&station_id);
     file_path.push(year);
     file_path.push(month);
 
-    let file_name = format!("{}_{}_{}.json", station_id, date, "cli3074");
+    let fecha_formatted = format_date_for_filename(&date);
+    let file_name = format!("{}{}.json", station_id, fecha_formatted);
     file_path.push(file_name);
 
     if !file_path.exists() {
@@ -65,7 +91,17 @@ pub fn load_cli3074_json(
     }
 
     let contents = fs::read_to_string(&file_path).map_err(|e| e.to_string())?;
-    let json_val: Value = serde_json::from_str(&contents).map_err(|e| e.to_string())?;
+    let root_val: Value = serde_json::from_str(&contents).map_err(|e| e.to_string())?;
+
+    let json_val = if let Some(root_obj) = root_val.as_object() {
+        root_obj.get("cli3074").cloned().unwrap_or(Value::Null)
+    } else {
+        Value::Null
+    };
+
+    if json_val.is_null() {
+        return Ok(Value::Null);
+    }
 
     // Calcular campos automáticos
     if let Some(json_obj) = json_val.as_object() {
@@ -141,7 +177,7 @@ pub fn load_cli3074_json(
                     }
                 }
 
-                let mut result = json_obj.clone();
+                let mut result = json_val.as_object().unwrap().clone();
                 result.insert("horas".to_string(), Value::Object(new_horas));
                 return Ok(Value::Object(result));
             }
@@ -165,17 +201,38 @@ pub fn save_cli4074_json(
     validate_inputs(&station_id, &date)?;
     let (year, month) = parse_date_parts(&date);
 
-    let base_dir = get_arca_base_dir(&app_handle, "cli4074");
-    let mut file_path = base_dir.clone();
-    file_path.push(&year);
-    file_path.push(&month);
+    let base_dir = get_arca_base_dir(&app_handle, "synop");
+    let target_dir = ensure_arca_dirs_with_station(&base_dir, &station_id, &year, &month)?;
 
-    fs::create_dir_all(&file_path).map_err(|e| e.to_string())?;
+    let fecha_formatted = format_date_for_filename(&date);
+    let file_name = format!("{}{}.json", station_id, fecha_formatted);
+    let file_path = target_dir.join(file_name);
 
-    let file_name = format!("{}_{}_{}.json", station_id, date, "cli4074");
-    file_path.push(file_name);
+    // Leer archivo existente si existe
+    let mut root_map = if file_path.exists() {
+        let existing_data = fs::read_to_string(&file_path).map_err(|e| e.to_string())?;
+        let val: Value = serde_json::from_str(&existing_data).map_err(|e| e.to_string())?;
+        val.as_object().cloned().unwrap_or_else(serde_json::Map::new)
+    } else {
+        let mut map = serde_json::Map::new();
+        let mut meta = serde_json::Map::new();
+        meta.insert("estacion".to_string(), Value::String(station_id.clone()));
+        meta.insert("fecha".to_string(), Value::String(fecha_formatted.clone()));
+        map.insert("meta".to_string(), Value::Object(meta));
+        map
+    };
 
-    let json_string = serde_json::to_string_pretty(&data).map_err(|e| e.to_string())?;
+    // Actualizar fecha de última actualización en meta
+    if let Some(meta) = root_map.get_mut("meta").and_then(|m| m.as_object_mut()) {
+        meta.insert(
+            "ultima_actualizacion".to_string(),
+            Value::String(chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string()),
+        );
+    }
+
+    root_map.insert("cli4074".to_string(), data);
+
+    let json_string = serde_json::to_string_pretty(&root_map).map_err(|e| e.to_string())?;
     fs::write(&file_path, json_string).map_err(|e| e.to_string())?;
 
     let mut result = HashMap::new();
@@ -198,12 +255,14 @@ pub fn load_cli4074_json(
     let year = parts[0];
     let month = parts[1];
 
-    let base_dir = get_arca_base_dir(&app_handle, "cli4074");
+    let base_dir = get_arca_base_dir(&app_handle, "synop");
     let mut file_path = base_dir.clone();
+    file_path.push(&station_id);
     file_path.push(year);
     file_path.push(month);
 
-    let file_name = format!("{}_{}_{}.json", station_id, date, "cli4074");
+    let fecha_formatted = format_date_for_filename(&date);
+    let file_name = format!("{}{}.json", station_id, fecha_formatted);
     file_path.push(file_name);
 
     if !file_path.exists() {
@@ -211,7 +270,13 @@ pub fn load_cli4074_json(
     }
 
     let contents = fs::read_to_string(&file_path).map_err(|e| e.to_string())?;
-    let json_val: Value = serde_json::from_str(&contents).map_err(|e| e.to_string())?;
+    let root_val: Value = serde_json::from_str(&contents).map_err(|e| e.to_string())?;
+
+    let json_val = if let Some(root_obj) = root_val.as_object() {
+        root_obj.get("cli4074").cloned().unwrap_or(Value::Null)
+    } else {
+        Value::Null
+    };
 
     Ok(json_val)
 }
@@ -230,17 +295,38 @@ pub fn save_cli5074_json(
     validate_inputs(&station_id, &date)?;
     let (year, month) = parse_date_parts(&date);
 
-    let base_dir = get_arca_base_dir(&app_handle, "cli5074");
-    let mut file_path = base_dir.clone();
-    file_path.push(&year);
-    file_path.push(&month);
+    let base_dir = get_arca_base_dir(&app_handle, "synop");
+    let target_dir = ensure_arca_dirs_with_station(&base_dir, &station_id, &year, &month)?;
 
-    fs::create_dir_all(&file_path).map_err(|e| e.to_string())?;
+    let fecha_formatted = format_date_for_filename(&date);
+    let file_name = format!("{}{}.json", station_id, fecha_formatted);
+    let file_path = target_dir.join(file_name);
 
-    let file_name = format!("{}_{}_{}.json", station_id, date, "cli5074");
-    file_path.push(file_name);
+    // Leer archivo existente si existe
+    let mut root_map = if file_path.exists() {
+        let existing_data = fs::read_to_string(&file_path).map_err(|e| e.to_string())?;
+        let val: Value = serde_json::from_str(&existing_data).map_err(|e| e.to_string())?;
+        val.as_object().cloned().unwrap_or_else(serde_json::Map::new)
+    } else {
+        let mut map = serde_json::Map::new();
+        let mut meta = serde_json::Map::new();
+        meta.insert("estacion".to_string(), Value::String(station_id.clone()));
+        meta.insert("fecha".to_string(), Value::String(fecha_formatted.clone()));
+        map.insert("meta".to_string(), Value::Object(meta));
+        map
+    };
 
-    let json_string = serde_json::to_string_pretty(&data).map_err(|e| e.to_string())?;
+    // Actualizar fecha de última actualización en meta
+    if let Some(meta) = root_map.get_mut("meta").and_then(|m| m.as_object_mut()) {
+        meta.insert(
+            "ultima_actualizacion".to_string(),
+            Value::String(chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string()),
+        );
+    }
+
+    root_map.insert("cli5074".to_string(), data);
+
+    let json_string = serde_json::to_string_pretty(&root_map).map_err(|e| e.to_string())?;
     fs::write(&file_path, json_string).map_err(|e| e.to_string())?;
 
     let mut result = HashMap::new();
@@ -263,12 +349,14 @@ pub fn load_cli5074_json(
     let year = parts[0];
     let month = parts[1];
 
-    let base_dir = get_arca_base_dir(&app_handle, "cli5074");
+    let base_dir = get_arca_base_dir(&app_handle, "synop");
     let mut file_path = base_dir.clone();
+    file_path.push(&station_id);
     file_path.push(year);
     file_path.push(month);
 
-    let file_name = format!("{}_{}_{}.json", station_id, date, "cli5074");
+    let fecha_formatted = format_date_for_filename(&date);
+    let file_name = format!("{}{}.json", station_id, fecha_formatted);
     file_path.push(file_name);
 
     if !file_path.exists() {
@@ -276,7 +364,13 @@ pub fn load_cli5074_json(
     }
 
     let contents = fs::read_to_string(&file_path).map_err(|e| e.to_string())?;
-    let json_val: Value = serde_json::from_str(&contents).map_err(|e| e.to_string())?;
+    let root_val: Value = serde_json::from_str(&contents).map_err(|e| e.to_string())?;
+
+    let json_val = if let Some(root_obj) = root_val.as_object() {
+        root_obj.get("cli5074").cloned().unwrap_or(Value::Null)
+    } else {
+        Value::Null
+    };
 
     Ok(json_val)
 }
