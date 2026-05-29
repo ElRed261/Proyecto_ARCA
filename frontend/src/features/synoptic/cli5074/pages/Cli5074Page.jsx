@@ -44,6 +44,7 @@ const Cli5074Page = () => {
   const location = useLocation();
   const [stations, setStations] = useState({});
   const [selectedStation, setSelectedStation] = useState(location.state?.stationId || '');
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
 
   const [date, setDate] = useState(() => {
     if (location.state?.date) return location.state.date;
@@ -55,7 +56,15 @@ const Cli5074Page = () => {
 
   const loadFormData = async (currentStation, currentDate) => {
     if (!currentStation || !currentDate) return;
+    setIsDataLoaded(false);
     try {
+      const draft = sessionStorage.getItem(`cli5074_draft_${currentStation}_${currentDate}`);
+      if (draft) {
+        setFormData(JSON.parse(draft));
+        setIsDataLoaded(true);
+        return;
+      }
+
       const data = await invoke('load_cli5074_json', { stationId: currentStation, date: currentDate });
       if (data && Object.keys(data).length > 0 && data.daily) {
         setFormData(data);
@@ -141,8 +150,17 @@ const Cli5074Page = () => {
       }
     } catch (e) {
       console.error("Error cargando formulario", e);
+    } finally {
+      setIsDataLoaded(true);
     }
   };
+
+  // Auto-guardar borrador en sessionStorage al modificar datos
+  useEffect(() => {
+    if (isDataLoaded && selectedStation && date) {
+      sessionStorage.setItem(`cli5074_draft_${selectedStation}_${date}`, JSON.stringify(formData));
+    }
+  }, [formData, selectedStation, date, isDataLoaded]);
 
   useEffect(() => {
     const init = async () => {
@@ -191,18 +209,7 @@ const Cli5074Page = () => {
     });
   };
 
-  const handleSave = async () => {
-    if (!selectedStation) {
-      toast.error("Seleccione una estacion primero.");
-      return;
-    }
-    try {
-      await invoke('save_cli5074_json', { stationId: selectedStation, date, data: formData });
-      toast.success("Formulario CLI 5074 guardado exitosamente");
-    } catch (err) {
-      toast.error("Error al guardar el formulario: " + err);
-    }
-  };
+
 
   // Clases CSS reutilizables
   const thClass = spreadsheetStyles.th;
@@ -281,13 +288,7 @@ const Cli5074Page = () => {
           ))}
         </div>
 
-        <button 
-          onClick={handleSave} 
-          className="ml-auto px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white text-sm font-bold rounded-lg shadow-md transition-all flex items-center gap-2 hover:scale-105"
-        >
-          <Save className="w-4 h-4" />
-          Guardar Formulario
-        </button>
+
       </div>
 
       {/* Metadatos Estacion */}

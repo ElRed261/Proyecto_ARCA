@@ -273,11 +273,23 @@ const SynopticPage = () => {
         };
       }
 
+      // Leer borradores de CLI de sessionStorage si existen
+      const cli3074Draft = sessionStorage.getItem(`cli3074_draft_${stationId}_${fecha}`);
+      const cli4074Draft = sessionStorage.getItem(`cli4074_draft_${stationId}_${fecha}`);
+      const cli5074Draft = sessionStorage.getItem(`cli5074_draft_${stationId}_${fecha}`);
+
+      const cli3074 = cli3074Draft ? JSON.parse(cli3074Draft) : null;
+      const cli4074 = cli4074Draft ? JSON.parse(cli4074Draft) : null;
+      const cli5074 = cli5074Draft ? JSON.parse(cli5074Draft) : null;
+
       const response = await invoke('save_observation_json', {
         stationCode: stationId,
         fecha: fecha,
         observations: observationsWithResults,
-        observerName: getValue('observador') || null
+        observerName: getValue('observador') || null,
+        cli3074,
+        cli4074,
+        cli5074
       });
 
       if (response.success) {
@@ -288,9 +300,12 @@ const SynopticPage = () => {
           return `${dd}/${mm}/${yyyy}`;
         })() : '';
 
-        // Bloquear cambio de estación después de guardar y limpiar draft
+        // Bloquear cambio de estación después de guardar y limpiar drafts
         setIsStationLocked(true);
         clearDraft();
+        sessionStorage.removeItem(`cli3074_draft_${stationId}_${fecha}`);
+        sessionStorage.removeItem(`cli4074_draft_${stationId}_${fecha}`);
+        sessionStorage.removeItem(`cli5074_draft_${stationId}_${fecha}`);
 
         toast.success(`Observación guardada. Fecha: ${fechaFormatted}`);
       }
@@ -479,11 +494,22 @@ const SynopticPage = () => {
         observationsWithResults[hora] = observations[hora] || {};
       }
 
+      const cli3074Draft = sessionStorage.getItem(`cli3074_draft_${stationId}_${fecha}`);
+      const cli4074Draft = sessionStorage.getItem(`cli4074_draft_${stationId}_${fecha}`);
+      const cli5074Draft = sessionStorage.getItem(`cli5074_draft_${stationId}_${fecha}`);
+
+      const cli3074 = cli3074Draft ? JSON.parse(cli3074Draft) : null;
+      const cli4074 = cli4074Draft ? JSON.parse(cli4074Draft) : null;
+      const cli5074 = cli5074Draft ? JSON.parse(cli5074Draft) : null;
+
       await invoke('save_observation_json', {
         stationCode: stationId,
         fecha: fecha,
         observations: observationsWithResults,
-        observerName: getValue('nombre_observador') || null
+        observerName: getValue('nombre_observador') || null,
+        cli3074,
+        cli4074,
+        cli5074
       });
       console.log(`💾 Auto-guardado: ${formatDateDisplay(fecha)}`);
       return true;

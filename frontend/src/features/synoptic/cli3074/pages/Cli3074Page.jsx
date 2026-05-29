@@ -45,6 +45,7 @@ const Cli3074Page = () => {
   const location = useLocation();
   const [stations, setStations] = useState({});
   const [selectedStation, setSelectedStation] = useState(location.state?.stationId || '');
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
   
   const [date, setDate] = useState(() => {
     if (location.state?.date) return location.state.date;
@@ -81,7 +82,15 @@ const Cli3074Page = () => {
 
   const loadFormData = async (currentStation, currentDate) => {
       if (!currentStation || !currentDate) return;
+      setIsDataLoaded(false);
       try {
+          const draft = sessionStorage.getItem(`cli3074_draft_${currentStation}_${currentDate}`);
+          if (draft) {
+              setRows(JSON.parse(draft));
+              setIsDataLoaded(true);
+              return;
+          }
+
           const data = await invoke('load_cli3074_json', { stationId: currentStation, date: currentDate });
           if (data && Object.keys(data).length > 0) {
               setRows(data);
@@ -180,8 +189,17 @@ const Cli3074Page = () => {
     }
   } catch (e) {
     console.error("Error cargando formulario", e);
+  } finally {
+    setIsDataLoaded(true);
   }
 };
+
+  // Auto-guardar borrador en sessionStorage al modificar datos
+  useEffect(() => {
+    if (isDataLoaded && selectedStation && date) {
+      sessionStorage.setItem(`cli3074_draft_${selectedStation}_${date}`, JSON.stringify(rows));
+    }
+  }, [rows, selectedStation, date, isDataLoaded]);
 
   // Se inicializan estaciones y luego se carga el formulario
   useEffect(() => {
@@ -318,18 +336,7 @@ const calcCAR = (presEst, p3) => {
       }
   };
 
-  const handleSave = async () => {
-      if (!selectedStation) {
-          toast.error("Seleccione una estación primero.");
-          return;
-      }
-      try {
-          await invoke('save_cli3074_json', { stationId: selectedStation, date, data: rows });
-          toast.success("Formulario CLI 3074 guardado exitosamente");
-      } catch (err) {
-          toast.error("Error al guardar el formulario: " + err);
-      }
-  };
+
 
   const thClass = spreadsheetStyles.th;
   const subThClass = spreadsheetStyles.subTh;
@@ -419,13 +426,7 @@ const calcCAR = (presEst, p3) => {
                 ))}
             </div>
             
-            <button 
-                onClick={handleSave} 
-                className="ml-auto px-5 py-2 bg-sky-600 hover:bg-sky-700 text-white text-sm font-bold rounded-lg shadow-md transition-all flex items-center gap-2 hover:scale-105"
-            >
-                <Save className="w-4 h-4" />
-                Guardar Formulario
-            </button>
+
         </div>
 
         {/* HEADER BLOCK */}

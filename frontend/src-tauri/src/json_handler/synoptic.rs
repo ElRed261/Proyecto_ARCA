@@ -231,6 +231,9 @@ pub fn save_observation_json(
     fecha: String,
     observations: Value,
     observer_name: Option<String>,
+    cli3074: Option<Value>,
+    cli4074: Option<Value>,
+    cli5074: Option<Value>,
 ) -> Result<HashMap<String, String>, String> {
     validate_inputs(&station_code, &fecha)?;
     let (year, month) = parse_date_parts(&fecha);
@@ -329,6 +332,23 @@ pub fn save_observation_json(
     }
 
     root_map.insert("horas".to_string(), Value::Object(horas_map));
+
+    // Agregar datos de los CLIs si se recibieron del frontend
+    if let Some(c3074) = cli3074 {
+        if !c3074.is_null() {
+            root_map.insert("cli3074".to_string(), c3074);
+        }
+    }
+    if let Some(c4074) = cli4074 {
+        if !c4074.is_null() {
+            root_map.insert("cli4074".to_string(), c4074);
+        }
+    }
+    if let Some(c5074) = cli5074 {
+        if !c5074.is_null() {
+            root_map.insert("cli5074".to_string(), c5074);
+        }
+    }
 
     let data_str = serde_json::to_string_pretty(&root_map).map_err(|e| e.to_string())?;
     fs::write(&filepath, data_str).map_err(|e| e.to_string())?;
