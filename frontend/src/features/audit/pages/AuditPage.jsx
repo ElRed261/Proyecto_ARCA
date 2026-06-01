@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
+import { useNavigate } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 
 const AuditPage = () => {
+    const navigate = useNavigate();
     const [logs, setLogs] = useState([]);
     const [corrections, setCorrections] = useState([]);
     const [activeTab, setActiveTab] = useState('logs');
@@ -52,7 +55,16 @@ const AuditPage = () => {
 
     return (
         <div className="p-6">
-            <h1 className="text-2xl font-bold mb-4">Correcciones y Auditoría</h1>
+            <div className="flex items-center gap-4 mb-4">
+                <button
+                    onClick={() => navigate('/dashboard')}
+                    className="w-10 h-10 rounded-full bg-white border border-orange-200/60 shadow-sm transition-all hover:bg-orange-50 hover:scale-110 flex items-center justify-center text-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-200/50 cursor-pointer"
+                    title="Volver al Dashboard"
+                >
+                    <ArrowLeft className="w-5 h-5" />
+                </button>
+                <h1 className="text-2xl font-bold">Correcciones y Auditoría</h1>
+            </div>
 
             <div className="mb-4 border-b border-gray-200">
                 <nav className="-mb-px flex space-x-8">

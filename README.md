@@ -126,7 +126,7 @@ Este módulo recopila los fenómenos meteorológicos significativos del día y g
 | **☁️ CLI 4074** | 🟢 Activo | Nubosidad y temperatura con parseo de grupos 8, lluvia y suelo |
 | **🌧️ CLI 5074** | 🟢 Activo | Registro de fenómenos significativos y presiones horarias |
 | **🔍 Correcciones y Auditoría** | 🟢 Activo | Registro local y auditoría de eventos de modificaciones |
-| **📊 Resumen Mensual** | 🟢 Activo | Cálculo y consolidación mensual de observaciones |
+| **📊 Resumen Mensual** | 🟢 Activo | Cálculo mensual, historial y visualización gráfica interactiva (Recharts) de variables meteorológicas |
 
 ---
 
@@ -158,6 +158,7 @@ Este módulo recopila los fenómenos meteorológicos significativos del día y g
 | `Tailwind CSS v4` | Estilos atómicos y modernos |
 | `React Router v7` | Enrutamiento SPA protegido |
 | `Lucide React` | Iconografía vectorizada |
+| `Recharts` | Visualización interactiva de datos y gráficos |
 
 </td>
 </tr>
@@ -250,5 +251,5 @@ npm run tauri:dev
 ---
 
 <p align="center">
-  <sub>📅 Última actualización: Mayo 2026</sub>
+  <sub>📅 Última actualización: Junio 2026</sub>
 </p>

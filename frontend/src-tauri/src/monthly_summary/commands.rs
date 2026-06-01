@@ -30,7 +30,7 @@ pub async fn ms_list_history(app: AppHandle) -> Result<Vec<SummaryIndexEntry>, S
     let dir = get_monthly_summary_dir(&app)?;
     let mut history = list_summary_history(&dir)?;
     
-    // Sort by generated date conceptually (here we just reverse sort by period ideally)
+    // Sort by generated date conceptually (here we just reverse sort by period)
     history.sort_by(|a, b| b.period.cmp(&a.period));
     Ok(history)
 }
@@ -46,3 +46,64 @@ pub async fn ms_export_excel(_app: AppHandle, doc: MonthlySummaryDoc, out_path: 
     Ok(out_path)
 }
 
+#[command]
+pub async fn ms_load_station_month(
+    app: AppHandle,
+    station_code: String,
+    year: u32,
+    month: u32,
+) -> Result<MonthlySummaryDoc, String> {
+    // 1. Get documents directory
+    let docs_dir = app
+        .path()
+        .document_dir()
+        .map_err(|_| "No se pudo obtener la carpeta de documentos".to_string())?;
+    
+    let month_str = format!("{:02}", month);
+    let year_str = year.to_string();
+    let synop_dir = docs_dir
+        .join("ARCA")
+        .join("synop")
+        .join(&station_code)
+        .join(&year_str)
+        .join(&month_str);
+    
+    if !synop_dir.exists() {
+        return Err(format!(
+            "No se encontraron datos para la estación {} en el periodo {:02}/{}",
+            station_code, month, year
+        ));
+    }
+    
+    // 2. Find all json files in that directory
+    let mut paths = Vec::new();
+    for entry in std::fs::read_dir(&synop_dir).map_err(|e| e.to_string())? {
+        if let Ok(entry) = entry {
+            let path = entry.path();
+            if path.extension().and_then(|s| s.to_str()) == Some("json") {
+                paths.push(path.to_string_lossy().to_string());
+            }
+        }
+    }
+    
+    if paths.is_empty() {
+        return Err(format!(
+            "No se encontraron archivos JSON en la carpeta {:?}",
+            synop_dir
+        ));
+    }
+    
+    // 3. Analyze and automatically adapt files
+    let doc = analyze_files(paths)?;
+    
+    // 4. Save to summary history directory
+    let dir = get_monthly_summary_dir(&app)?;
+    save_summary(&doc, &dir)?;
+    
+    Ok(doc)
+}
+
+#[command]
+pub async fn ms_delete_summary(path: String) -> Result<(), String> {
+    trash::delete(Path::new(&path)).map_err(|e| e.to_string())
+}

@@ -5,13 +5,19 @@ fn safe_f64(val: Option<f64>) -> Option<f64> {
     val.filter(|v| v.is_finite())
 }
 
+fn round_half_up(val: f64, decimals: u32) -> f64 {
+    let multiplier = 10f64.powi(decimals as i32);
+    let sign = val.signum();
+    ((val.abs() * multiplier + 0.5 + 1e-12).floor() * sign) / multiplier
+}
+
 fn mean_or_none(vals: &[Option<f64>]) -> Option<f64> {
     let valid: Vec<f64> = vals.iter().filter_map(|&v| safe_f64(v)).collect();
     if valid.is_empty() {
         return None;
     }
     let sum: f64 = valid.iter().sum();
-    Some((sum / valid.len() as f64 * 10.0).round() / 10.0)
+    Some(sum / valid.len() as f64)
 }
 
 fn sum_or_none(vals: &[Option<f64>]) -> Option<f64> {
@@ -20,7 +26,7 @@ fn sum_or_none(vals: &[Option<f64>]) -> Option<f64> {
         return None;
     }
     let sum: f64 = valid.iter().sum();
-    Some((sum * 10.0).round() / 10.0)
+    Some(sum)
 }
 
 fn max_or_none(vals: &[Option<f64>]) -> Option<f64> {
@@ -35,7 +41,7 @@ fn max_or_none(vals: &[Option<f64>]) -> Option<f64> {
         }
     }
     if found {
-        Some((max_val * 10.0).round() / 10.0)
+        Some(max_val)
     } else {
         None
     }
@@ -53,13 +59,16 @@ fn min_or_none(vals: &[Option<f64>]) -> Option<f64> {
         }
     }
     if found {
-        Some((min_val * 10.0).round() / 10.0)
+        Some(min_val)
     } else {
         None
     }
 }
 
 fn degrees_to_cardinal(degrees: f64) -> String {
+    if !(0.0..=360.0).contains(&degrees) {
+        return "N/A".to_string();
+    }
     if degrees == 0.0 {
         return "CALMA".to_string();
     }
@@ -72,48 +81,43 @@ fn degrees_to_cardinal(degrees: f64) -> String {
 }
 
 fn wind_direction_mode(dirs: &[Option<f64>], speeds: &[Option<f64>]) -> Option<String> {
-    let mut speed_sum = 0.0;
-    let mut count = 0;
-    for &s in speeds {
-        if let Some(f) = safe_f64(s) {
-            speed_sum += f;
-            count += 1;
-        }
+    let speed_vals: Vec<f64> = speeds.iter().filter_map(|&s| safe_f64(s)).collect();
+    if speed_vals.is_empty() {
+        return None;
     }
-    if count > 0 && speed_sum / (count as f64) < 0.1 {
+    let speed_mean = speed_vals.iter().sum::<f64>() / speed_vals.len() as f64;
+    if speed_mean < 0.1 {
         return Some("CALMA".to_string());
     }
 
+    let mut dir_order = Vec::new();
     let mut freqs = HashMap::new();
+    
     for &d in dirs {
         if let Some(deg) = safe_f64(d) {
             let card = degrees_to_cardinal(deg);
-            *freqs.entry(card).or_insert(0) += 1;
+            if card != "N/A" && card != "CALMA" {
+                let count = freqs.entry(card.clone()).or_insert(0);
+                if *count == 0 {
+                    dir_order.push(card.clone());
+                }
+                *count += 1;
+            }
         }
     }
 
-    if freqs.is_empty() {
-        return None;
-    }
-
-    let mut max_count = 0;
-    let mut mode_dir = String::new();
-    for (dir, c) in &freqs {
-        if *c > max_count {
-            max_count = *c;
-            mode_dir = dir.clone();
+    for card in &dir_order {
+        if let Some(&count) = freqs.get(card) {
+            if count >= 3 {
+                return Some(card.clone());
+            }
         }
     }
 
-    if max_count >= 3 {
-        Some(mode_dir)
-    } else {
-        Some("VRB".to_string())
-    }
+    Some("VRB".to_string())
 }
 
 pub fn process_day_data(obs: &DailyObservation) -> DailyKpis {
-    // Collect 8-hourly observations
     let mut p_est = Vec::new();
     let mut p_nmm = Vec::new();
     let mut rocio = Vec::new();
@@ -122,11 +126,9 @@ pub fn process_day_data(obs: &DailyObservation) -> DailyKpis {
     let mut v_dir = Vec::new();
     let mut v_vel = Vec::new();
 
-    // Collect temps
     let mut tmaxs = Vec::new();
     let mut tmins = Vec::new();
     
-    // Collect clouds
     let mut nub_dia = Vec::new();
     let mut nub_tarde = Vec::new();
     let mut nub_all = Vec::new();
@@ -142,7 +144,6 @@ pub fn process_day_data(obs: &DailyObservation) -> DailyKpis {
                 v_dir.push(hr_rec.datos.v_dir_deg);
                 v_vel.push(hr_rec.datos.v_vel);
                 
-                // If cloud is in hourly (for json fallback)
                 if let Some(n) = hr_rec.datos.nub {
                     nub_all.push(Some(n));
                 }
@@ -161,61 +162,102 @@ pub fn process_day_data(obs: &DailyObservation) -> DailyKpis {
         }
     }
 
-    let p_nmm_media = mean_or_none(&p_nmm);
-    let p_nmm_max = max_or_none(&p_nmm);
-    let p_nmm_min = min_or_none(&p_nmm);
+    let p_nmm_max = max_or_none(&p_nmm).map(|v| round_half_up(v, 1));
+    let p_nmm_min = min_or_none(&p_nmm).map(|v| round_half_up(v, 1));
+    let p_nmm_media = if let (Some(mx), Some(mn)) = (p_nmm_max, p_nmm_min) {
+        Some(round_half_up((mx + mn) / 2.0, 1))
+    } else {
+        None
+    };
 
-    let p_est_media = mean_or_none(&p_est);
-    let p_est_max = max_or_none(&p_est);
-    let p_est_min = min_or_none(&p_est);
+    let p_est_media = mean_or_none(&p_est).map(|v| round_half_up(v, 1));
 
-    let rocio_media = mean_or_none(&rocio);
-    let t_vapor_media = mean_or_none(&t_vapor);
+    let rocio_media = mean_or_none(&rocio).map(|v| round_half_up(v, 1));
+    let t_vapor_media = mean_or_none(&t_vapor).map(|v| round_half_up(v, 1));
 
-    let hr_media = mean_or_none(&hr);
-    let hr_max = max_or_none(&hr).map(|v| v.round());
-    let hr_min = min_or_none(&hr).map(|v| v.round());
+    let hr_media = mean_or_none(&hr).map(|v| round_half_up(v, 1));
+    let hr_max = max_or_none(&hr).map(|v| round_half_up(v, 0));
+    let hr_min = min_or_none(&hr).map(|v| round_half_up(v, 0));
 
     let viento_dir_moda = wind_direction_mode(&v_dir, &v_vel);
     
-    // km/h conversion
     let v_vel_kmh: Vec<Option<f64>> = v_vel.iter().map(|&v| v.map(|x| x * 3.6)).collect();
-    let viento_vel_media = mean_or_none(&v_vel_kmh);
-    let viento_recorrido = sum_or_none(&v_vel_kmh);
+    let viento_vel_media = mean_or_none(&v_vel_kmh).map(|v| round_half_up(v, 1));
+    let viento_recorrido = sum_or_none(&v_vel_kmh).map(|v| round_half_up(v, 1));
 
-    let mut max_vel = -1.0;
-    let mut max_dir = None;
-    for (i, &vel) in v_vel_kmh.iter().enumerate() {
-        if let Some(v) = vel {
-            if v > max_vel {
-                max_vel = v;
-                max_dir = v_dir.get(i).copied().flatten();
+    let mut max_vel_ms = f64::MIN;
+    let mut max_vel_idx: Option<usize> = None;
+    for (i, &vel) in v_vel.iter().enumerate() {
+        if let Some(v) = safe_f64(vel) {
+            if v > max_vel_ms {
+                max_vel_ms = v;
+                max_vel_idx = Some(i);
             }
         }
     }
-    
-    let viento_max_dir = if max_vel >= 0.0 {
-        let max_vel_round = (max_vel * 10.0).round() / 10.0;
-        let dir_str = if let Some(d) = max_dir { degrees_to_cardinal(d) } else { "N/A".to_string() };
-        let vel_str = max_vel_round.to_string().replace('.', ",");
+
+    let viento_max_dir = if let Some(idx) = max_vel_idx {
+        let vel_max_kmh = max_vel_ms * 3.6;
+        let vel_max_redondeada = round_half_up(vel_max_kmh, 1);
+        let deg = v_dir.get(idx).copied().flatten();
+        let dir_str = if let Some(d) = deg {
+            degrees_to_cardinal(d)
+        } else {
+            "N/A".to_string()
+        };
+        let vel_str = format!("{:.1}", vel_max_redondeada).replace('.', ",");
         Some(format!("{} {}", dir_str, vel_str))
     } else {
-        None
+        Some("N/A".to_string())
     };
 
-    let nub_dia_media = if nub_dia.is_empty() { mean_or_none(&nub_all) } else { mean_or_none(&nub_dia) };
-    let nub_tarde_media = if nub_tarde.is_empty() { None } else { mean_or_none(&nub_tarde) };
-    let nub_media = mean_or_none(&nub_all);
+    let (nub_dia_media, nub_tarde_media, nub_media) = if !nub_dia.is_empty() || !nub_tarde.is_empty() {
+        let nub_dia_sum: f64 = nub_dia.iter().filter_map(|&v| safe_f64(v)).sum();
+        let nub_dia_count_valid = nub_dia.iter().filter_map(|&v| safe_f64(v)).count();
+        let nub_dia_val = if nub_dia_count_valid > 0 {
+            Some(nub_dia_sum / 3.0)
+        } else {
+            None
+        };
 
-    let t_max = max_or_none(&tmaxs);
-    let t_min = min_or_none(&tmins);
+        let nub_tarde_sum: f64 = nub_tarde.iter().filter_map(|&v| safe_f64(v)).sum();
+        let nub_tarde_count_valid = nub_tarde.iter().filter_map(|&v| safe_f64(v)).count();
+        let nub_tarde_val = if nub_tarde_count_valid > 0 {
+            Some(nub_tarde_sum / 3.0)
+        } else {
+            None
+        };
+
+        let nub_media_val = if let (Some(dia), Some(tarde)) = (nub_dia_val, nub_tarde_val) {
+            Some((dia + tarde) / 2.0)
+        } else {
+            None
+        };
+
+        (
+            nub_dia_val.map(|v| round_half_up(v, 1)),
+            nub_tarde_val.map(|v| round_half_up(v, 1)),
+            nub_media_val.map(|v| round_half_up(v, 1))
+        )
+    } else {
+        let valid_nub_all: Vec<f64> = nub_all.iter().filter_map(|&v| safe_f64(v)).collect();
+        if !valid_nub_all.is_empty() {
+            let mean_val = valid_nub_all.iter().sum::<f64>() / valid_nub_all.len() as f64;
+            let rounded = round_half_up(mean_val, 1);
+            (Some(rounded), None, Some(rounded))
+        } else {
+            (None, None, None)
+        }
+    };
+
+    let t_max = max_or_none(&tmaxs).map(|v| round_half_up(v, 1));
+    let t_min = min_or_none(&tmins).map(|v| round_half_up(v, 1));
     let t_media = if let (Some(mx), Some(mn)) = (t_max, t_min) {
-        Some(((mx + mn) / 2.0 * 10.0).round() / 10.0)
+        Some(round_half_up((mx + mn) / 2.0, 1))
     } else {
         None
     };
 
-    // YYYY-MM-DD from DDMMYYYY
     let dias = if obs.meta.fecha.len() == 8 {
         format!("{}-{}-{}", 
             &obs.meta.fecha[4..8], 
@@ -227,15 +269,25 @@ pub fn process_day_data(obs: &DailyObservation) -> DailyKpis {
 
     DailyKpis {
         dias,
-        p_est_media, p_est_max, p_est_min,
-        p_nmm_media, p_nmm_max, p_nmm_min,
-        rocio_media, t_vapor_media,
-        hr_media, hr_max, hr_min,
-        viento_dir_moda, viento_vel_media, viento_recorrido, viento_max_dir,
-        nub_dia_media, nub_tarde_media, nub_media,
-        t_obs1: None, t_obs2: None, t_obs3: None, t_obs4: None,
-        t_max, t_min, t_media,
+        t_max,
+        t_min,
+        t_media,
+        p_nmm_max,
+        p_nmm_min,
+        p_nmm_media,
+        p_est_media,
         lluvia: obs.resumen_dia.pp,
+        viento_dir_moda,
+        viento_vel_media,
+        viento_max_dir,
+        viento_recorrido,
+        nub_dia_media,
+        nub_tarde_media,
+        nub_media,
+        hr_max,
+        hr_min,
+        hr_media,
+        rocio_media,
+        t_vapor_media,
     }
 }
-

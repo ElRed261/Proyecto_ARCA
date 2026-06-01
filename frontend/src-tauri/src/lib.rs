@@ -35,10 +35,12 @@ pub fn run() {
             auth::update_user,
             auth::change_password,
             auth::delete_user,
+            monthly_summary::commands::ms_load_station_month,
             monthly_summary::commands::ms_generate_summary,
             monthly_summary::commands::ms_list_history,
             monthly_summary::commands::ms_load_summary,
-            monthly_summary::commands::ms_export_excel
+            monthly_summary::commands::ms_export_excel,
+            monthly_summary::commands::ms_delete_summary
         ])
         .setup(|app| {
             // Database init

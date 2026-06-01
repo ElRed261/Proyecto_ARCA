@@ -13,7 +13,7 @@ pub struct ObservationMeta {
     pub fecha: String, // DDMMYYYY
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct HourlyData {
     pub p_est: Option<f64>,
     pub p_nmm: Option<f64>,
@@ -52,66 +52,53 @@ pub struct DailyKpis {
     #[serde(rename = "Dias")]
     pub dias: String, // YYYY-MM-DD
     
-    #[serde(rename = "Presión Estación (media)")]
-    pub p_est_media: Option<f64>,
-    #[serde(rename = "Presión Estación (max)")]
-    pub p_est_max: Option<f64>,
-    #[serde(rename = "Presión Estación (min)")]
-    pub p_est_min: Option<f64>,
-    
-    #[serde(rename = "Presión NMM (media)")]
-    pub p_nmm_media: Option<f64>,
-    #[serde(rename = "Presión NMM (max)")]
-    pub p_nmm_max: Option<f64>,
-    #[serde(rename = "Presión NMM (min)")]
-    pub p_nmm_min: Option<f64>,
-    
-    #[serde(rename = "Punto de Rocío (media)")]
-    pub rocio_media: Option<f64>,
-    #[serde(rename = "Tensión Vapor (media)")]
-    pub t_vapor_media: Option<f64>,
-    
-    #[serde(rename = "HR (media)")]
-    pub hr_media: Option<f64>,
-    #[serde(rename = "HR (max)")]
-    pub hr_max: Option<f64>,
-    #[serde(rename = "HR (min)")]
-    pub hr_min: Option<f64>,
-    
-    #[serde(rename = "Viento Dir (moda)")]
-    pub viento_dir_moda: Option<String>,
-    #[serde(rename = "Viento Vel (media)")]
-    pub viento_vel_media: Option<f64>,
-    #[serde(rename = "Recorrido del Viento")]
-    pub viento_recorrido: Option<f64>,
-    #[serde(rename = "Viento max y dir")]
-    pub viento_max_dir: Option<String>,
-    
-    #[serde(rename = "Nubosidad Día (media)")]
-    pub nub_dia_media: Option<f64>,
-    #[serde(rename = "Nubosidad Tarde (media)")]
-    pub nub_tarde_media: Option<f64>,
-    #[serde(rename = "Media de nubosidad")]
-    pub nub_media: Option<f64>,
-    
-    #[serde(rename = "Temp Obs1")]
-    pub t_obs1: Option<f64>,
-    #[serde(rename = "Temp Obs2")]
-    pub t_obs2: Option<f64>,
-    #[serde(rename = "Temp Obs3")]
-    pub t_obs3: Option<f64>,
-    #[serde(rename = "Temp Obs4")]
-    pub t_obs4: Option<f64>,
-    
-    #[serde(rename = "Temp Máxima")]
+    #[serde(rename = "Mayor temperatura máxima")]
     pub t_max: Option<f64>,
-    #[serde(rename = "Temp Mínima")]
+    #[serde(rename = "Menor temperatura minima")]
     pub t_min: Option<f64>,
-    #[serde(rename = "Temp. Media")]
+    #[serde(rename = "Media temperatura")]
     pub t_media: Option<f64>,
     
-    #[serde(rename = "Lluvia (mm)")]
+    #[serde(rename = "MAxima presión nivel medio del mar")]
+    pub p_nmm_max: Option<f64>,
+    #[serde(rename = "Minima presión nivel medio del mar")]
+    pub p_nmm_min: Option<f64>,
+    #[serde(rename = "Media presión nivel medio del mar")]
+    pub p_nmm_media: Option<f64>,
+    
+    #[serde(rename = "Media presion en la estación")]
+    pub p_est_media: Option<f64>,
+    
+    #[serde(rename = "Lluvia")]
     pub lluvia: Option<f64>,
+    
+    #[serde(rename = "Dirección del viento")]
+    pub viento_dir_moda: Option<String>,
+    #[serde(rename = "Velocidad media del viento")]
+    pub viento_vel_media: Option<f64>,
+    #[serde(rename = "Velocidad máxima y direccion")]
+    pub viento_max_dir: Option<String>,
+    #[serde(rename = "Recorrido del viento")]
+    pub viento_recorrido: Option<f64>,
+    
+    #[serde(rename = "Nuvocidad dia")]
+    pub nub_dia_media: Option<f64>,
+    #[serde(rename = "Nuvocidad noche")]
+    pub nub_tarde_media: Option<f64>,
+    #[serde(rename = "Media de nuvocidad")]
+    pub nub_media: Option<f64>,
+    
+    #[serde(rename = "Humedad maxima")]
+    pub hr_max: Option<f64>,
+    #[serde(rename = "Humedad minima")]
+    pub hr_min: Option<f64>,
+    #[serde(rename = "Humedad media")]
+    pub hr_media: Option<f64>,
+    
+    #[serde(rename = "Punto de rocio")]
+    pub rocio_media: Option<f64>,
+    #[serde(rename = "Tensión de vapor")]
+    pub t_vapor_media: Option<f64>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -141,7 +128,13 @@ pub fn analyze_files(paths: Vec<String>) -> Result<MonthlySummaryDoc, String> {
         let path = Path::new(p);
         let obs = if p.to_lowercase().ends_with(".json") {
             let content = fs::read_to_string(path).map_err(|e| format!("Failed to read {}: {}", p, e))?;
-            serde_json::from_str::<DailyObservation>(&content).map_err(|e| format!("Failed to parse {}: {}", p, e))?
+            let val: serde_json::Value = serde_json::from_str(&content).map_err(|e| format!("Failed to parse JSON {}: {}", p, e))?;
+            
+            if val.get("horas").is_some() {
+                super::synop_adapter::adapt_synoptic_json(val).map_err(|e| format!("Failed to adapt synoptic JSON {}: {}", p, e))?
+            } else {
+                serde_json::from_value::<DailyObservation>(val).map_err(|e| format!("Failed to parse DailyObservation from JSON {}: {}", p, e))?
+            }
         } else {
             build_observation_from_excel(path, &config).map_err(|e| format!("Failed to read excel {}: {}", p, e))?
         };
@@ -263,14 +256,11 @@ pub fn export_to_excel(doc: &MonthlySummaryDoc, out_path: &Path) -> Result<(), S
     let worksheet = workbook.add_worksheet();
     
     let headers = [
-        "Dias", "Presión Estación (media)", "Presión Estación (max)", "Presión Estación (min)",
-        "Presión NMM (media)", "Presión NMM (max)", "Presión NMM (min)",
-        "Punto de Rocío (media)", "Tensión Vapor (media)",
-        "HR (media)", "HR (max)", "HR (min)",
-        "Viento Dir (moda)", "Viento Vel (media)", "Recorrido del Viento", "Viento max y dir",
-        "Nubosidad Día (media)", "Nubosidad Tarde (media)", "Media de nubosidad",
-        "Temp Obs1", "Temp Obs2", "Temp Obs3", "Temp Obs4",
-        "Temp Máxima", "Temp Mínima", "Temp. Media", "Lluvia (mm)"
+        "Dias", "Mayor temperatura máxima", "Menor temperatura minima", "Media temperatura",
+        "MAxima presión nivel medio del mar", "Minima presión nivel medio del mar", "Media presión nivel medio del mar",
+        "Media presion en la estación", "Lluvia", "Dirección del viento", "Velocidad media del viento",
+        "Velocidad máxima y direccion", "Recorrido del viento", "Nuvocidad dia", "Nuvocidad noche", "Media de nuvocidad",
+        "Humedad maxima", "Humedad minima", "Humedad media", "Punto de rocio", "Tensión de vapor"
     ];
     
     let format_header = Format::new().set_bold();
@@ -282,36 +272,28 @@ pub fn export_to_excel(doc: &MonthlySummaryDoc, out_path: &Path) -> Result<(), S
         let row_idx = (r + 1) as u32;
         worksheet.write_string(row_idx, 0, &row.dias).unwrap();
         
-        if let Some(v) = row.p_est_media { worksheet.write_number(row_idx, 1, v).unwrap(); }
-        if let Some(v) = row.p_est_max { worksheet.write_number(row_idx, 2, v).unwrap(); }
-        if let Some(v) = row.p_est_min { worksheet.write_number(row_idx, 3, v).unwrap(); }
-        if let Some(v) = row.p_nmm_media { worksheet.write_number(row_idx, 4, v).unwrap(); }
-        if let Some(v) = row.p_nmm_max { worksheet.write_number(row_idx, 5, v).unwrap(); }
-        if let Some(v) = row.p_nmm_min { worksheet.write_number(row_idx, 6, v).unwrap(); }
-        if let Some(v) = row.rocio_media { worksheet.write_number(row_idx, 7, v).unwrap(); }
-        if let Some(v) = row.t_vapor_media { worksheet.write_number(row_idx, 8, v).unwrap(); }
-        if let Some(v) = row.hr_media { worksheet.write_number(row_idx, 9, v).unwrap(); }
-        if let Some(v) = row.hr_max { worksheet.write_number(row_idx, 10, v).unwrap(); }
-        if let Some(v) = row.hr_min { worksheet.write_number(row_idx, 11, v).unwrap(); }
-        if let Some(ref v) = row.viento_dir_moda { worksheet.write_string(row_idx, 12, v).unwrap(); }
-        if let Some(v) = row.viento_vel_media { worksheet.write_number(row_idx, 13, v).unwrap(); }
-        if let Some(v) = row.viento_recorrido { worksheet.write_number(row_idx, 14, v).unwrap(); }
-        if let Some(ref v) = row.viento_max_dir { worksheet.write_string(row_idx, 15, v).unwrap(); }
-        if let Some(v) = row.nub_dia_media { worksheet.write_number(row_idx, 16, v).unwrap(); }
-        if let Some(v) = row.nub_tarde_media { worksheet.write_number(row_idx, 17, v).unwrap(); }
-        if let Some(v) = row.nub_media { worksheet.write_number(row_idx, 18, v).unwrap(); }
-        if let Some(v) = row.t_obs1 { worksheet.write_number(row_idx, 19, v).unwrap(); }
-        if let Some(v) = row.t_obs2 { worksheet.write_number(row_idx, 20, v).unwrap(); }
-        if let Some(v) = row.t_obs3 { worksheet.write_number(row_idx, 21, v).unwrap(); }
-        if let Some(v) = row.t_obs4 { worksheet.write_number(row_idx, 22, v).unwrap(); }
-        if let Some(v) = row.t_max { worksheet.write_number(row_idx, 23, v).unwrap(); }
-        if let Some(v) = row.t_min { worksheet.write_number(row_idx, 24, v).unwrap(); }
-        if let Some(v) = row.t_media { worksheet.write_number(row_idx, 25, v).unwrap(); }
-        if let Some(v) = row.lluvia { worksheet.write_number(row_idx, 26, v).unwrap(); }
+        if let Some(v) = row.t_max { worksheet.write_number(row_idx, 1, v).unwrap(); }
+        if let Some(v) = row.t_min { worksheet.write_number(row_idx, 2, v).unwrap(); }
+        if let Some(v) = row.t_media { worksheet.write_number(row_idx, 3, v).unwrap(); }
+        if let Some(v) = row.p_nmm_max { worksheet.write_number(row_idx, 4, v).unwrap(); }
+        if let Some(v) = row.p_nmm_min { worksheet.write_number(row_idx, 5, v).unwrap(); }
+        if let Some(v) = row.p_nmm_media { worksheet.write_number(row_idx, 6, v).unwrap(); }
+        if let Some(v) = row.p_est_media { worksheet.write_number(row_idx, 7, v).unwrap(); }
+        if let Some(v) = row.lluvia { worksheet.write_number(row_idx, 8, v).unwrap(); }
+        if let Some(ref v) = row.viento_dir_moda { worksheet.write_string(row_idx, 9, v).unwrap(); }
+        if let Some(v) = row.viento_vel_media { worksheet.write_number(row_idx, 10, v).unwrap(); }
+        if let Some(ref v) = row.viento_max_dir { worksheet.write_string(row_idx, 11, v).unwrap(); }
+        if let Some(v) = row.viento_recorrido { worksheet.write_number(row_idx, 12, v).unwrap(); }
+        if let Some(v) = row.nub_dia_media { worksheet.write_number(row_idx, 13, v).unwrap(); }
+        if let Some(v) = row.nub_tarde_media { worksheet.write_number(row_idx, 14, v).unwrap(); }
+        if let Some(v) = row.nub_media { worksheet.write_number(row_idx, 15, v).unwrap(); }
+        if let Some(v) = row.hr_max { worksheet.write_number(row_idx, 16, v).unwrap(); }
+        if let Some(v) = row.hr_min { worksheet.write_number(row_idx, 17, v).unwrap(); }
+        if let Some(v) = row.hr_media { worksheet.write_number(row_idx, 18, v).unwrap(); }
+        if let Some(v) = row.rocio_media { worksheet.write_number(row_idx, 19, v).unwrap(); }
+        if let Some(v) = row.t_vapor_media { worksheet.write_number(row_idx, 20, v).unwrap(); }
     }
     
     workbook.save(out_path).map_err(|e| format!("Failed to save excel: {}", e))?;
     Ok(())
 }
-
-
