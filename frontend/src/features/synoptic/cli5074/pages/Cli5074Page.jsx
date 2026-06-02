@@ -12,6 +12,46 @@ const synopRows = {
   "18Z": 14, "21Z": 17, "00Z": 20, "03Z": 23
 };
 
+const decimalFields5074 = [
+    'temp_max', 'temp_min', 'rafaga_vel', 
+    'pres_max', 'pres_min', 'insolac', 'radiac', 'lluvia', 
+    'evap_tanque_a', 'punto_rocio', 'recorrido_viento',
+    'lect_bar', 'term_anexo', 'correc_temp', 'correc_alt', 'pres_nmm', 'pres_est',
+    'd5', 'd10', 'd15', 'd20', 'd25', 'd50', 'd100',
+    'piche', 'tanque_c', 'evaporigrafo',
+    'raf_vel'
+];
+
+const enforceOneDecimal = (val, field) => {
+    if (val === undefined || val === null || val === '') return '';
+    
+    // La humedad relativa debe ser siempre un entero (redondeado hacia arriba)
+    if (field === 'hum_max' || field === 'hum_min') {
+        const num = parseFloat(val);
+        if (!isNaN(num)) {
+            return Math.ceil(num).toString();
+        }
+        return val;
+    }
+
+    if (decimalFields5074.includes(field)) {
+        if (typeof val === 'number') val = val.toString();
+        if (typeof val === 'string' && val.trim() !== '') {
+            const parts = val.split('.');
+            if (parts.length > 1 && parts[1].length > 1) {
+                const num = parseFloat(val);
+                if (!isNaN(num)) {
+                    const rounded = num >= 0 
+                        ? Math.ceil(num * 10) / 10 
+                        : Math.floor(num * 10) / 10;
+                    return rounded.toFixed(1);
+                }
+            }
+        }
+    }
+    return val;
+};
+
 function getInitialState() {
   return {
     daily: {
@@ -60,14 +100,51 @@ const Cli5074Page = () => {
     try {
       const draft = sessionStorage.getItem(`cli5074_draft_${currentStation}_${currentDate}`);
       if (draft) {
-        setFormData(JSON.parse(draft));
+        const parsedDraft = JSON.parse(draft);
+        const formatObj = (obj) => {
+            if (!obj) return obj;
+            const newObj = { ...obj };
+            Object.keys(newObj).forEach(k => {
+                newObj[k] = enforceOneDecimal(newObj[k], k);
+            });
+            return newObj;
+        };
+        if (parsedDraft.daily) parsedDraft.daily = formatObj(parsedDraft.daily);
+        if (parsedDraft.mensual) parsedDraft.mensual = formatObj(parsedDraft.mensual);
+        if (parsedDraft.hourly) {
+            Object.keys(parsedDraft.hourly).forEach(hour => {
+                parsedDraft.hourly[hour] = formatObj(parsedDraft.hourly[hour]);
+            });
+        }
+        setFormData(parsedDraft);
         setIsDataLoaded(true);
         return;
       }
 
       const data = await invoke('load_cli5074_json', { stationId: currentStation, date: currentDate });
       if (data && Object.keys(data).length > 0 && data.daily) {
-        setFormData(data);
+        const formatObj = (obj) => {
+            const newObj = { ...obj };
+            Object.keys(newObj).forEach(k => {
+                newObj[k] = enforceOneDecimal(newObj[k], k);
+            });
+            return newObj;
+        };
+
+        const formattedData = {
+            ...data,
+            daily: formatObj(data.daily),
+            hourly: {
+                2: formatObj(data.hourly[2]),
+                8: formatObj(data.hourly[8]),
+                14: formatObj(data.hourly[14]),
+                20: formatObj(data.hourly[20]),
+            },
+            subsuelo: formatObj(data.subsuelo),
+            evaporimetros: formatObj(data.evaporimetros),
+            fenomenos: data.fenomenos ? data.fenomenos.map(formatObj) : []
+        };
+        setFormData(formattedData);
       } else {
         const initial = getInitialState();
         
@@ -93,16 +170,16 @@ const Cli5074Page = () => {
                 }
               }
             });
-            if (maxT !== -999) initial.daily.temp_max = maxT.toString();
-            if (minT !== 999) initial.daily.temp_min = minT.toString();
+            if (maxT !== -999) initial.daily.temp_max = enforceOneDecimal(maxT.toString(), 'temp_max');
+            if (minT !== 999) initial.daily.temp_min = enforceOneDecimal(minT.toString(), 'temp_min');
 
             // Autocompletar Presiones (Horas 2, 8, 14, 20)
             const targetHours = [2, 8, 14, 20];
             Object.entries(synopRows).forEach(([horaZ, localH]) => {
               if (targetHours.includes(localH) && synopData[horaZ]) {
                 const hd = synopData[horaZ];
-                const presEst = hd.pres_est || '';
-                const presNmm = hd.pres_nmm || '';
+                const presEst = enforceOneDecimal(hd.pres_est || '', 'pres_est');
+                const presNmm = enforceOneDecimal(hd.pres_nmm || '', 'pres_nmm');
                 
                 // Si la correccion de altura no viene directamente, se calcula
                 let correcAlt = hd.correc_alt || '';
@@ -113,6 +190,7 @@ const Cli5074Page = () => {
                     correcAlt = (pN - pE).toFixed(1).replace('.0', '');
                   }
                 }
+                correcAlt = enforceOneDecimal(correcAlt, 'correc_alt');
 
                 initial.hourly[localH] = {
                   ...initial.hourly[localH],
@@ -123,25 +201,7 @@ const Cli5074Page = () => {
               }
             });
 
-            // Mapeo basico a fenomenos
-            const validHours = Object.keys(synopRows);
-            let fIdx = 0;
-            for (const horaKey of validHours) {
-              const horaData = synopData[horaKey];
-              if (!horaData) continue;
-              
-              const sevenWW = horaData.meteo_4_6 || horaData['7wwW1W2'] || '';
-              if (sevenWW.length >= 5 && fIdx < 12) {
-                const ww = sevenWW.substring(1, 3);
-                const wwNum = parseInt(ww, 10);
-                if (!isNaN(wwNum)) {
-                  initial.fenomenos[fIdx].fenomeno = ww; // Guardar codigo
-                  initial.fenomenos[fIdx].hora = synopRows[horaKey].toString();
-                  initial.fenomenos[fIdx].min = '00';
-                  fIdx++;
-                }
-              }
-            }
+            // Los fenómenos se deben llenar de forma manual. No se autocompletan de forma automática.
           }
         } catch (e) {
           console.log("No existe data sinoptica base para autocompletar.", e);
@@ -185,26 +245,84 @@ const Cli5074Page = () => {
 
 
   const updateSection = (section, field, value) => {
+    const formatted = enforceOneDecimal(value, field);
     setFormData(prev => ({
       ...prev,
-      [section]: { ...prev[section], [field]: value }
+      [section]: { ...prev[section], [field]: formatted }
     }));
   };
 
   const updateHourly = (hour, field, value) => {
+    const formatted = enforceOneDecimal(value, field);
     setFormData(prev => ({
       ...prev,
       hourly: {
         ...prev.hourly,
-        [hour]: { ...prev.hourly[hour], [field]: value }
+        [hour]: { ...prev.hourly[hour], [field]: formatted }
       }
     }));
   };
 
+  const calculateDuration = (inicio, final) => {
+    if (!inicio || !final) return '';
+    const parseTime = (str) => {
+      let clean = str.trim().replace(':', '');
+      if (!/^\d{3,4}$/.test(clean)) {
+        if (/^\d{1,2}:\d{2}$/.test(str.trim())) {
+          const parts = str.trim().split(':');
+          const h = parseInt(parts[0], 10);
+          const m = parseInt(parts[1], 10);
+          if (h >= 0 && h <= 23 && m >= 0 && m <= 59) {
+            return h * 60 + m;
+          }
+        }
+        return null;
+      }
+      const h = parseInt(clean.substring(0, clean.length - 2), 10);
+      const m = parseInt(clean.substring(clean.length - 2), 10);
+      if (h >= 0 && h <= 23 && m >= 0 && m <= 59) {
+        return h * 60 + m;
+      }
+      return null;
+    };
+
+    const startMinutes = parseTime(inicio);
+    const endMinutes = parseTime(final);
+
+    if (startMinutes === null || endMinutes === null) return '';
+
+    let diff = endMinutes - startMinutes;
+    if (diff < 0) {
+      diff += 24 * 60;
+    }
+
+    const hrs = Math.floor(diff / 60);
+    const mins = diff % 60;
+    return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+  };
+
+  const formatTimeOnBlur = (index, field, value) => {
+    let clean = value.trim().replace(':', '');
+    if (/^\d{3,4}$/.test(clean)) {
+      const h = clean.substring(0, clean.length - 2).padStart(2, '0');
+      const m = clean.substring(clean.length - 2);
+      const formatted = `${h}:${m}`;
+      updateFenomeno(index, field, formatted);
+    }
+  };
+
   const updateFenomeno = (index, field, value) => {
+    const formatted = enforceOneDecimal(value, field);
     setFormData(prev => {
       const newFenomenos = [...prev.fenomenos];
-      newFenomenos[index] = { ...newFenomenos[index], [field]: value };
+      newFenomenos[index] = { ...newFenomenos[index], [field]: formatted };
+      
+      // Auto-calcular duración si cambiaron inicio o final
+      if (field === 'inicio' || field === 'final') {
+        const row = newFenomenos[index];
+        newFenomenos[index].duracion = calculateDuration(row.inicio, row.final);
+      }
+      
       return { ...prev, fenomenos: newFenomenos };
     });
   };
@@ -544,8 +662,8 @@ const Cli5074Page = () => {
                     <td className={tdBorder}><input className={inputStyle} value={row.intensidad} onChange={e => updateFenomeno(i, 'intensidad', e.target.value)} /></td>
                     <td className={tdBorder}><input className={`${inputStyle} text-left px-2`} value={row.fenomeno} onChange={e => updateFenomeno(i, 'fenomeno', e.target.value)} placeholder="Ej: Tormenta, Granizo..." /></td>
                     
-                    <td className={tdBorder}><input className={inputStyle} maxLength="5" value={row.inicio} onChange={e => updateFenomeno(i, 'inicio', e.target.value)} /></td>
-                    <td className={tdBorder}><input className={inputStyle} maxLength="5" value={row.final} onChange={e => updateFenomeno(i, 'final', e.target.value)} /></td>
+                    <td className={tdBorder}><input className={inputStyle} maxLength="5" value={row.inicio} onChange={e => updateFenomeno(i, 'inicio', e.target.value)} onBlur={e => formatTimeOnBlur(i, 'inicio', e.target.value)} /></td>
+                    <td className={tdBorder}><input className={inputStyle} maxLength="5" value={row.final} onChange={e => updateFenomeno(i, 'final', e.target.value)} onBlur={e => formatTimeOnBlur(i, 'final', e.target.value)} /></td>
                     <td className={tdBorder}><input className={inputStyle} maxLength="5" value={row.duracion} onChange={e => updateFenomeno(i, 'duracion', e.target.value)} /></td>
                     
                     <td className={tdBorder}><input className={inputStyle} maxLength="5" value={row.iniciales} onChange={e => updateFenomeno(i, 'iniciales', e.target.value)} /></td>

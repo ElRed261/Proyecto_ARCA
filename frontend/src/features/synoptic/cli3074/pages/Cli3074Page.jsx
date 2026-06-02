@@ -40,6 +40,42 @@ const synopRows = {
   "18Z": 14, "21Z": 17, "00Z": 20, "03Z": 23
 };
 
+const decimalFields3074 = [
+    'pres_est', 'pres_nmm', 'pres_alti', 'tend_dif',
+    'temp_seco', 'temp_humedo', 'hum_ptor', 'hum_tvap',
+    'viento_vel', 'visibilidad'
+];
+
+const enforceOneDecimal = (val, field) => {
+    if (val === undefined || val === null || val === '') return '';
+    
+    // La humedad relativa debe ser siempre un entero (redondeado hacia arriba)
+    if (field === 'hum_hr') {
+        const num = parseFloat(val);
+        if (!isNaN(num)) {
+            return Math.ceil(num).toString();
+        }
+        return val;
+    }
+
+    if (decimalFields3074.includes(field)) {
+        if (typeof val === 'number') val = val.toString();
+        if (typeof val === 'string' && val.trim() !== '') {
+            const parts = val.split('.');
+            if (parts.length > 1 && parts[1].length > 1) {
+                const num = parseFloat(val);
+                if (!isNaN(num)) {
+                    const rounded = num >= 0 
+                        ? Math.ceil(num * 10) / 10 
+                        : Math.floor(num * 10) / 10;
+                    return rounded.toFixed(1);
+                }
+            }
+        }
+    }
+    return val;
+};
+
 const Cli3074Page = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -86,7 +122,15 @@ const Cli3074Page = () => {
       try {
           const draft = sessionStorage.getItem(`cli3074_draft_${currentStation}_${currentDate}`);
           if (draft) {
-              setRows(JSON.parse(draft));
+              const parsedDraft = JSON.parse(draft);
+              for (let i = 1; i <= 24; i++) {
+                  if (parsedDraft[i]) {
+                      Object.keys(parsedDraft[i]).forEach(k => {
+                          parsedDraft[i][k] = enforceOneDecimal(parsedDraft[i][k], k);
+                      });
+                  }
+              }
+              setRows(parsedDraft);
               setIsDataLoaded(true);
               return;
           }
@@ -106,9 +150,13 @@ const Cli3074Page = () => {
           if (data && Object.keys(data).length > 0) {
               for (let i = 1; i <= 24; i++) {
                   if (data[i]) {
+                      const formattedData = { ...data[i] };
+                      Object.keys(formattedData).forEach(k => {
+                          formattedData[k] = enforceOneDecimal(formattedData[k], k);
+                      });
                       initial[i] = {
                           ...initial[i],
-                          ...data[i],
+                          ...formattedData,
                           fenomenos: {
                               ...initial[i].fenomenos,
                               ...(data[i].fenomenos || {})
@@ -140,10 +188,10 @@ const Cli3074Page = () => {
                       
                       if (isEmpty) {
                           // Asignaciones directas desde los datos flattened
-                          row.pres_est = horaData.pres_est || '';
-                          row.temp_seco = horaData.ts || '';
-                          row.temp_humedo = horaData.th || '';
-                          row.visibilidad = horaData.visibilidad || '';
+                          row.pres_est = enforceOneDecimal(horaData.pres_est || '', 'pres_est');
+                          row.temp_seco = enforceOneDecimal(horaData.ts || '', 'temp_seco');
+                          row.temp_humedo = enforceOneDecimal(horaData.th || '', 'temp_humedo');
+                          row.visibilidad = enforceOneDecimal(horaData.visibilidad || '', 'visibilidad');
 
                           // Extraer Viento = Nddff (igual que la formula Excel M11)
                           const nddff = horaData.meteo_4_1 || horaData.Nddff || '';
@@ -155,18 +203,18 @@ const Cli3074Page = () => {
                           }
                           
                           if (horaData.viento_vel) {
-                              row.viento_vel = horaData.viento_vel;
+                              row.viento_vel = enforceOneDecimal(horaData.viento_vel, 'viento_vel');
                           } else if (nddff.length >= 5 && nddff[3] !== '/' && nddff[4] !== '/') {
                               const ff = parseInt(nddff.substring(3, 5), 10);
                               // Velocidad en m/s (1 nudo = 0.514444 m/s)
-                              if (!isNaN(ff)) row.viento_vel = (ff * 0.514444).toFixed(1);
+                              if (!isNaN(ff)) row.viento_vel = enforceOneDecimal((ff * 0.514444).toFixed(1), 'viento_vel');
                           }
 
                           // Tiempo Presente
                           row.fenomenos.tiempo_presente = horaData.tiempo_presente || '';
 
                           // DIF y CAR
-                          row.tend_dif = horaData.tend_dif || '';
+                          row.tend_dif = enforceOneDecimal(horaData.tend_dif || '', 'tend_dif');
                           row.tend_car = horaData.tend_car || '';
 
                           // Auto-calcular NMM, HR via backend Rust
@@ -187,10 +235,10 @@ const Cli3074Page = () => {
                                   });
 
                                   if (!calcData.error_message) {
-                                      row.pres_nmm = calcData.pres_nmm || '';
-                                      row.hum_ptor = calcData.punto_rocio || '';
-                                      row.hum_tvap = calcData.tension_vapor || '';
-                                      row.hum_hr = calcData.humedad_relativa || '';
+                                      row.pres_nmm = enforceOneDecimal(calcData.pres_nmm || '', 'pres_nmm');
+                                      row.hum_ptor = enforceOneDecimal(calcData.punto_rocio || '', 'hum_ptor');
+                                      row.hum_tvap = enforceOneDecimal(calcData.tension_vapor || '', 'hum_tvap');
+                                      row.hum_hr = enforceOneDecimal(calcData.humedad_relativa || '', 'hum_hr');
                                   }
                               } catch (calcErr) {
                                   console.warn(`Error calculando hora ${horaKey}:`, calcErr);
@@ -244,15 +292,17 @@ const Cli3074Page = () => {
 
 // Real-time Calculation Trigger
 const updateRowField = async (rowNum, fieldPath, value) => {
+  const formattedValue = enforceOneDecimal(value, fieldPath);
+  
   setRows(prev => {
     const newRows = { ...prev };
 
     // Handle nested phenomenos object
     if (fieldPath.startsWith('fenomenos.')) {
       const subField = fieldPath.split('.')[1];
-      newRows[rowNum] = { ...newRows[rowNum], fenomenos: { ...newRows[rowNum].fenomenos, [subField]: value } };
+      newRows[rowNum] = { ...newRows[rowNum], fenomenos: { ...newRows[rowNum].fenomenos, [subField]: formattedValue } };
     } else {
-      newRows[rowNum] = { ...newRows[rowNum], [fieldPath]: value };
+      newRows[rowNum] = { ...newRows[rowNum], [fieldPath]: formattedValue };
     }
 
     // Calcular DIF y CAR automáticamente cuando cambian pres_est o p3
@@ -334,9 +384,9 @@ const calcCAR = (presEst, p3) => {
                     ...prev,
                     [rowNum]: {
                         ...prev[rowNum],
-                        hum_ptor: calcData.punto_rocio || preservedRowState(prev, rowNum, 'hum_ptor'),
-                        hum_tvap: calcData.tension_vapor || preservedRowState(prev, rowNum, 'hum_tvap'),
-                        hum_hr: calcData.humedad_relativa || preservedRowState(prev, rowNum, 'hum_hr')
+                        hum_ptor: enforceOneDecimal(calcData.punto_rocio || preservedRowState(prev, rowNum, 'hum_ptor'), 'hum_ptor'),
+                        hum_tvap: enforceOneDecimal(calcData.tension_vapor || preservedRowState(prev, rowNum, 'hum_tvap'), 'hum_tvap'),
+                        hum_hr: enforceOneDecimal(calcData.humedad_relativa || preservedRowState(prev, rowNum, 'hum_hr'), 'hum_hr')
                     }
                 }));
             }

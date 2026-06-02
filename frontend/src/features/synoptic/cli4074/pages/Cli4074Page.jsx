@@ -33,6 +33,30 @@ const synopRows = {
 // Horas donde se registran T_max y T_min (sinópticas principales)
 const tempHours = ["00Z", "06Z", "12Z", "18Z"];
 
+const decimalFields4074 = [
+    'lluvia_6h', 'temp_max', 'temp_min'
+];
+
+const enforceOneDecimal = (val, field) => {
+    if (val === undefined || val === null || val === '') return '';
+    if (decimalFields4074.includes(field)) {
+        if (typeof val === 'number') val = val.toString();
+        if (typeof val === 'string' && val.trim() !== '') {
+            const parts = val.split('.');
+            if (parts.length > 1 && parts[1].length > 1) {
+                const num = parseFloat(val);
+                if (!isNaN(num)) {
+                    const rounded = num >= 0 
+                        ? Math.ceil(num * 10) / 10 
+                        : Math.floor(num * 10) / 10;
+                    return rounded.toFixed(1);
+                }
+            }
+        }
+    }
+    return val;
+};
+
 const Cli4074Page = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -260,7 +284,15 @@ const Cli4074Page = () => {
     try {
       const draft = sessionStorage.getItem(`cli4074_draft_${currentStation}_${currentDate}`);
       if (draft) {
-        setRows(JSON.parse(draft));
+        const parsedDraft = JSON.parse(draft);
+        for (let i = 1; i <= 24; i++) {
+          if (parsedDraft[i]) {
+            Object.keys(parsedDraft[i]).forEach(k => {
+              parsedDraft[i][k] = enforceOneDecimal(parsedDraft[i][k], k);
+            });
+          }
+        }
+        setRows(parsedDraft);
         setIsDataLoaded(true);
         return;
       }
@@ -283,7 +315,11 @@ const Cli4074Page = () => {
       if (data && Object.keys(data).length > 0) {
         for (let i = 1; i <= 24; i++) {
           if (data[i]) {
-            initial[i] = { ...initial[i], ...data[i] };
+            const formattedData = { ...data[i] };
+            Object.keys(formattedData).forEach(k => {
+              formattedData[k] = enforceOneDecimal(formattedData[k], k);
+            });
+            initial[i] = { ...initial[i], ...formattedData };
           }
         }
       }
@@ -395,7 +431,7 @@ const Cli4074Page = () => {
 
               // Lluvia
               if (horaData.LL) {
-                initial[rowNum].lluvia_6h = horaData.LL;
+                initial[rowNum].lluvia_6h = enforceOneDecimal(horaData.LL, 'lluvia_6h');
               }
 
               // Estado del suelo (desde 3Ejjj)
@@ -409,8 +445,8 @@ const Cli4074Page = () => {
 
               // Temperaturas (solo horas principales)
               if (tempHours.includes(horaKey)) {
-                initial[rowNum].temp_max = horaData.Tmax || '';
-                initial[rowNum].temp_min = horaData.Tmin || '';
+                initial[rowNum].temp_max = enforceOneDecimal(horaData.Tmax || '', 'temp_max');
+                initial[rowNum].temp_min = enforceOneDecimal(horaData.Tmin || '', 'temp_min');
               }
             }
           }
@@ -523,8 +559,8 @@ const Cli4074Page = () => {
 
               // Temperaturas
               if (tempHours.includes(horaKey)) {
-                initial[rowNum].temp_max = horaData.t_max || horaData.meteo_6_3?.substring(1) || '';
-                initial[rowNum].temp_min = horaData.t_min || horaData.meteo_6_4?.substring(1) || '';
+                initial[rowNum].temp_max = enforceOneDecimal(horaData.t_max || horaData.meteo_6_3?.substring(1) || '', 'temp_max');
+                initial[rowNum].temp_min = enforceOneDecimal(horaData.t_min || horaData.meteo_6_4?.substring(1) || '', 'temp_min');
               }
             }
 
@@ -552,11 +588,14 @@ const Cli4074Page = () => {
       return newValue;
     };
 
+    const valAfterHeight = autoConvertHeight(field, value);
+    const formattedValue = enforceOneDecimal(valAfterHeight, field);
+
     setRows(prev => ({
       ...prev,
       [rowNum]: { 
         ...prev[rowNum], 
-        [field]: autoConvertHeight(field, value)
+        [field]: formattedValue
       }
     }));
   };

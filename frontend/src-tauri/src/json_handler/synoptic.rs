@@ -492,6 +492,24 @@ pub fn get_observation(
                                 }
                             }
 
+                            // Sanitizar exclusión mutua de 0CS (meteo_6_2) y 56 (meteo_8_1)
+                            let val_6_2 = flat_hora.get("meteo_6_2").and_then(|v| v.as_str()).unwrap_or("").trim().to_string();
+                            let val_8_1 = flat_hora.get("meteo_8_1").and_then(|v| v.as_str()).unwrap_or("").trim().to_string();
+
+                            // Si meteo_6_2 inicia con "56", moverlo a meteo_8_1
+                            if val_6_2.starts_with("56") {
+                                flat_hora.insert("meteo_8_1".to_string(), serde_json::Value::String(val_6_2));
+                                flat_hora.insert("meteo_6_2".to_string(), serde_json::Value::String("".to_string()));
+                            }
+                            // Si meteo_8_1 inicia con "0", moverlo a meteo_6_2 o limpiarlo
+                            else if val_8_1.starts_with('0') {
+                                let current_6_2 = flat_hora.get("meteo_6_2").and_then(|v| v.as_str()).unwrap_or("").trim();
+                                if current_6_2.is_empty() {
+                                    flat_hora.insert("meteo_6_2".to_string(), serde_json::Value::String(val_8_1));
+                                }
+                                flat_hora.insert("meteo_8_1".to_string(), serde_json::Value::String("".to_string()));
+                            }
+
                             // CALCULADO
                             if let Some(calculado_obj) = calculado {
                                 for (key, value) in calculado_obj.iter() {

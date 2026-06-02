@@ -91,6 +91,10 @@ const FIELD_LABELS = {
     "t_max_24h": "Temperatura Máxima 24h",
     "t_min_24h": "Temperatura Mínima 24h",
     "correc_alt": "Corrección por Altitud",
+    "viento_dir": "Viento Dirección",
+    "viento_vel": "Viento Velocidad",
+    "LL": "Precipitación (Lluvia)",
+    "LL_24h": "Precipitación 24h (Lluvia 24h)",
     
     // Calculados automáticos
     "punto_rocio": "Punto de Rocío (Td)",
@@ -168,11 +172,15 @@ const AuditObservationPage = () => {
             const data = await invoke('audit_load_observation', { station, date });
             setObservationData(data);
             
-            // Elegir primera hora disponible que tenga datos en la observación
+            // Si ya hay una hora activa seleccionada con datos para este día, conservarla.
+            // De lo contrario, buscar la primera hora con datos disponible.
             const obs = data.observation;
-            const hourWithData = HOURS.find(h => obs[h] && Object.keys(obs[h]).length > 0);
-            if (hourWithData) {
-                setActiveHour(hourWithData);
+            const currentHourValid = activeHour && obs[activeHour] && Object.keys(obs[activeHour]).length > 0;
+            if (!currentHourValid) {
+                const hourWithData = HOURS.find(h => obs[h] && Object.keys(obs[h]).length > 0);
+                if (hourWithData) {
+                    setActiveHour(hourWithData);
+                }
             }
         } catch (error) {
             console.error("Error al cargar la observación:", error);
@@ -492,11 +500,13 @@ const AuditObservationPage = () => {
                             </div>
 
                             {/* Fila 6 (Temperaturas / Suelo) */}
-                            <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-7 gap-4">
                                 {renderDataField("8Nh CL CM CH", "meteo_6_0", "8NhCLCMCH")}
                                 {renderDataField("0CS DL DM DH", "meteo_6_2", "0CSDLDMDH")}
                                 {renderDataField("1sn Tx Tx Tx", "meteo_6_3", "1snTxTxTx")}
                                 {renderDataField("2sn Tn Tn Tn", "meteo_6_4", "2snTnTnTn")}
+                                {renderDataField("3E j j j", "meteo_6_5", "3Ejjj")}
+                                {renderDataField("5 EEE jE", "meteo_6_6", "5EEEjE")}
                                 {renderDataField("7 ww W1 W2", "meteo_4_6", "7wwW1W2")}
                             </div>
 
@@ -537,6 +547,22 @@ const AuditObservationPage = () => {
                                     {renderDataField("9sp (11)", "meteo_12_5", "9spspsp")}
                                     {renderDataField("9sp (12)", "meteo_12_6", "9spspsp")}
                                 </div>
+                                <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+                                    {renderDataField("9sp (13)", "meteo_14_0", "9spspsp")}
+                                    {renderDataField("9sp (14)", "meteo_14_1", "9spspsp")}
+                                    {renderDataField("9sp (15)", "meteo_14_2", "9spspsp")}
+                                    {renderDataField("9sp (16)", "meteo_14_3", "9spspsp")}
+                                    {renderDataField("9sp (17)", "meteo_14_4", "9spspsp")}
+                                    {renderDataField("9sp (18)", "meteo_14_5", "9spspsp")}
+                                </div>
+                                <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+                                    {renderDataField("9sp (19)", "meteo_14_6", "9spspsp")}
+                                    {renderDataField("9sp (20)", "meteo_16_0", "9spspsp")}
+                                    {renderDataField("9sp (21)", "meteo_16_1", "9spspsp")}
+                                    {renderDataField("9sp (22)", "meteo_16_2", "9spspsp")}
+                                    {renderDataField("9sp (23)", "meteo_16_3", "9spspsp")}
+                                    {renderDataField("9sp (24)", "meteo_16_4", "9spspsp")}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -560,11 +586,21 @@ const AuditObservationPage = () => {
                                 {renderDataField("Presión 24h (P24)", "p24", "hPa")}
                             </div>
 
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                            <div className="grid grid-cols-2 sm:grid-cols-6 gap-4">
                                 {renderDataField("Temp. Máxima (Tx)", "t_max", "°C")}
                                 {renderDataField("Temp. Mínima (Tn)", "t_min", "°C")}
                                 {renderDataField("Tx 24h", "t_max_24h", "°C")}
                                 {renderDataField("Tn 24h", "t_min_24h", "°C")}
+                                {renderDataField("Lluvia (LL)", "LL", "mm")}
+                                {renderDataField("Lluvia 24h (LL_24h)", "LL_24h", "mm")}
+                            </div>
+
+                            <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                {renderReadonlyField("Presión NMM", "pres_nmm")}
+                                {renderReadonlyField("Tensión Vapor", "tension_vapor")}
+                                {renderReadonlyField("Diferencia (Ts-Th)", "diferencia")}
+                                {renderDataField("Viento Dirección", "viento_dir", "dd")}
+                                {renderDataField("Viento Velocidad", "viento_vel", "ff")}
                             </div>
 
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-slate-50 p-3 rounded-xl border border-slate-100">

@@ -485,6 +485,39 @@ pub fn audit_load_observation(
                 }
             }
         }
+
+        // Recalcular campos automáticos/calculados tras aplicar correcciones
+        for (_hora_key, hora_val) in obs_obj.iter_mut() {
+            if let Some(hora_obj) = hora_val.as_object_mut() {
+                let ts = hora_obj.get("ts").and_then(|v| v.as_str()).map(|s| s.to_string());
+                let th = hora_obj.get("th").and_then(|v| v.as_str()).map(|s| s.to_string());
+                let pres_est = hora_obj.get("pres_est").and_then(|v| v.as_str()).map(|s| s.to_string());
+                let p3 = hora_obj.get("p3").and_then(|v| v.as_str()).map(|s| s.to_string());
+                let p24 = hora_obj.get("p24").and_then(|v| v.as_str()).map(|s| s.to_string());
+                let correc_alt = hora_obj.get("correc_alt").and_then(|v| v.as_str()).map(|s| s.to_string());
+
+                let calc_req = crate::calculations::CalculationRequest {
+                    station_id: Some(station.clone()),
+                    correc_alt,
+                    ts,
+                    th,
+                    pres_est,
+                    p3,
+                    p24,
+                    ir: None,
+                    ix: None,
+                };
+
+                let calc_res = crate::calculations::realizar_calculos(calc_req);
+
+                // Insertar los nuevos calculados recalculados
+                hora_obj.insert("tension_vapor".to_string(), serde_json::Value::String(calc_res.tension_vapor));
+                hora_obj.insert("humedad_relativa".to_string(), serde_json::Value::String(calc_res.humedad_relativa));
+                hora_obj.insert("punto_rocio".to_string(), serde_json::Value::String(calc_res.punto_rocio));
+                hora_obj.insert("diferencia".to_string(), serde_json::Value::String(calc_res.diferencia));
+                hora_obj.insert("pres_nmm".to_string(), serde_json::Value::String(calc_res.pres_nmm));
+            }
+        }
     }
 
     Ok(AuditObservationData {
