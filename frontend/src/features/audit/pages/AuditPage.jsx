@@ -39,6 +39,12 @@ const AuditPage = () => {
         }
     };
 
+    const getStationName = (code) => {
+        if (!code) return "";
+        const st = stations.find(s => s.code === code);
+        return st ? st.name : code;
+    };
+
     const handleSelectStation = async (stationCode) => {
         setSelectedStation(stationCode);
         setLoading(true);
@@ -152,7 +158,7 @@ const AuditPage = () => {
                             onClick={() => { setStep(2); setSelectedYear(null); }}
                             className={`hover:text-orange-600 transition-colors ${step === 2 ? 'text-orange-600 font-bold' : ''}`}
                         >
-                            Estación {selectedStation}
+                            Estación {getStationName(selectedStation)}
                         </button>
                     </>
                 )}
@@ -212,8 +218,8 @@ const AuditPage = () => {
                                     >
                                         <div>
                                             <span className="text-xs font-bold text-orange-500 uppercase tracking-wider block mb-1">Estación</span>
-                                            <h3 className="text-2xl font-black text-slate-800 tracking-tight group-hover:text-orange-600 transition-colors">
-                                                {st.code}
+                                            <h3 className="text-lg font-bold text-slate-800 tracking-tight group-hover:text-orange-600 transition-colors">
+                                                {st.name || st.code}
                                             </h3>
                                         </div>
                                         <div className="mt-4 pt-3 border-t border-slate-100 flex justify-between items-center text-sm font-semibold text-slate-500 group-hover:text-orange-500 transition-colors">
@@ -294,7 +300,7 @@ const AuditPage = () => {
                     <div>
                         <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
                             <FileText className="w-5 h-5 text-orange-500" />
-                            Listado de Días — Estación {selectedStation} ({getNombreMes(selectedMonth)} {selectedYear})
+                            Listado de Días — Estación {getStationName(selectedStation)} ({getNombreMes(selectedMonth)} {selectedYear})
                         </h2>
                         {days.length === 0 ? (
                             <div className="text-center py-16 bg-white border border-slate-200 rounded-xl shadow-sm">
@@ -313,10 +319,12 @@ const AuditPage = () => {
                                                 Día {day.date.split('-')[2]} ({day.date})
                                             </span>
                                             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-500">
-                                                <span className="flex items-center gap-1">
-                                                    <User className="w-4 h-4 text-slate-400" />
-                                                    Obs: <span className="font-semibold text-slate-700">{day.observador}</span>
-                                                </span>
+                                                {day.observador && day.observador !== 'Desconocido' && (
+                                                    <span className="flex items-center gap-1">
+                                                        <User className="w-4 h-4 text-slate-400" />
+                                                        Obs: <span className="font-semibold text-slate-700">{day.observador}</span>
+                                                    </span>
+                                                )}
                                                 <span className="flex items-center gap-1">
                                                     <Clock className="w-4 h-4 text-slate-400" />
                                                     Horas: <span className="font-semibold text-slate-700">{day.horas_registradas}</span>

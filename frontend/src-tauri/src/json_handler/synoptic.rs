@@ -260,8 +260,8 @@ pub fn save_observation_json(
     let mut meta = serde_json::Map::new();
     meta.insert("estacion".to_string(), Value::String(station_code.clone()));
     meta.insert("fecha".to_string(), Value::String(fecha_formatted.clone()));
-    if let Some(name) = observer_name {
-        meta.insert("observador".to_string(), Value::String(name));
+    if let Some(ref name) = observer_name {
+        meta.insert("observador".to_string(), Value::String(name.clone()));
     }
     meta.insert(
         "ultima_actualizacion".to_string(),
@@ -325,6 +325,17 @@ pub fn save_observation_json(
                     if !v.is_null() && !v.as_str().unwrap_or("").is_empty() { calculado.insert("dif".to_string(), v.clone()); }
                 }
                 if !calculado.is_empty() { hora_structure.insert("calculado".to_string(), Value::Object(calculado)); }
+
+                let hora_observer = hora_data_obj
+                    .get("nombre_observador")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string())
+                    .filter(|s| !s.trim().is_empty())
+                    .or_else(|| observer_name.clone());
+
+                if let Some(name) = hora_observer {
+                    hora_structure.insert("observador".to_string(), Value::String(name));
+                }
 
                 horas_map.insert(hora_key.clone(), Value::Object(hora_structure));
             }
@@ -525,6 +536,15 @@ pub fn get_observation(
                             // Preservar estación
                             if let Some(st_id) = result.get("station_id") {
                                 flat_hora.insert("station_id".to_string(), st_id.clone());
+                            }
+                            // Inyectar nombre del observador en cada hora
+                            let obs_val = hora_obj
+                                .get("observador")
+                                .cloned()
+                                .or_else(|| result.get("observador").cloned());
+
+                            if let Some(v) = obs_val {
+                                flat_hora.insert("observador".to_string(), v);
                             }
                             // Preservar correc_alt desde datos
                             if let Some(datos_obj) = datos {

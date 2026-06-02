@@ -3,9 +3,25 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { invoke } from '@tauri-apps/api/core';
 import { 
     ArrowLeft, AlertTriangle, CheckCircle, Clock, 
-    User, Calendar, HelpCircle, Save, X, Edit3, Trash2
+    User, Calendar, HelpCircle, Save, X, Edit3, Trash2,
+    BookOpen, ExternalLink
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+
+// Traducción de errores técnicos de Tauri a lenguaje humano
+const humanizeError = (error) => {
+    const msg = String(error);
+    if (msg.includes('missing required key')) {
+        return 'Error interno: faltan parámetros obligatorios en la solicitud. Verifica que hayas seleccionado un tipo de error y completado todos los campos requeridos antes de guardar.';
+    }
+    if (msg.includes('Este campo ya está marcado como error')) {
+        return 'Este campo ya tiene una marca de error registrada para esta hora y fecha. Si necesitás modificarla, primero eliminá la marca existente.';
+    }
+    if (msg.includes('invalid type') || msg.includes('invalid args')) {
+        return 'Error de comunicación con el backend. Intentá cerrar el modal y volver a abrirlo. Si persiste, reiniciá la aplicación.';
+    }
+    return msg;
+};
 
 // Claves de campos legibles
 const FIELD_LABELS = {
@@ -84,7 +100,8 @@ const FIELD_LABELS = {
     "tend_dif": "Tendencia Diferencia",
     "tend_car": "Tendencia Car",
     "visibilidad": "Visibilidad (VV)",
-    "tiempo_presente": "Tiempo Presente"
+    "tiempo_presente": "Tiempo Presente",
+    "observador": "Nombre del Observador"
 };
 
 const AuditObservationPage = () => {
@@ -94,6 +111,7 @@ const AuditObservationPage = () => {
     const [loading, setLoading] = useState(true);
     const [observationData, setObservationData] = useState(null);
     const [activeHour, setActiveHour] = useState("06Z");
+    const [stationName, setStationName] = useState("");
     
     // Seguridad y Roles
     const [currentUser, setCurrentUser] = useState({ email: '', roles: [] });
@@ -125,6 +143,21 @@ const AuditObservationPage = () => {
         const hasPermission = roles.some(r => r === 'admin' || r.name === 'admin' || r === 'control_calidad' || r.name === 'control_calidad');
         setCanAudit(hasPermission);
         setCorrectorName(email.split('@')[0]); // Valor por defecto
+
+        const fetchStationName = async () => {
+            try {
+                const stationsList = await invoke('get_stations');
+                if (stationsList && stationsList[station]) {
+                    setStationName(stationsList[station].name);
+                } else {
+                    setStationName(station);
+                }
+            } catch (err) {
+                console.error("Error fetching station name:", err);
+                setStationName(station);
+            }
+        };
+        fetchStationName();
 
         loadObservation();
     }, [station, date]);
@@ -208,7 +241,7 @@ const AuditObservationPage = () => {
                 fecha: date,
                 hora: selectedCell.hora,
                 campo: selectedCell.campo,
-                tipo_error: errorType,
+                tipoError: errorType,
                 nota: errorNote ? errorNote : null,
                 marcadoPor: currentUser.email
             });
@@ -216,7 +249,7 @@ const AuditObservationPage = () => {
             setShowErrorModal(false);
             loadObservation();
         } catch (error) {
-            toast.error("Error al marcar: " + error);
+            toast.error(humanizeError(error));
         }
     };
 
@@ -228,7 +261,7 @@ const AuditObservationPage = () => {
             setShowErrorModal(false);
             loadObservation();
         } catch (error) {
-            toast.error("Error al desmarcar: " + error);
+            toast.error(humanizeError(error));
         }
     };
 
@@ -256,7 +289,7 @@ const AuditObservationPage = () => {
             setShowErrorModal(false);
             loadObservation();
         } catch (error) {
-            toast.error("Error al aplicar corrección: " + error);
+            toast.error(humanizeError(error));
         }
     };
 
@@ -275,7 +308,7 @@ const AuditObservationPage = () => {
         
         if (corr) {
             cellClass = "bg-emerald-50 border-2 border-emerald-500 text-emerald-700 font-black text-sm px-3 py-2 rounded-lg w-full text-center font-mono cursor-pointer transition-all hover:bg-emerald-100";
-            tooltipText += ` | Corregido por ${corr.corregido_por}: ${corr.valor_original} → ${corr.valor_corregido}`;
+            tooltipText += ` | Corregido por ${corr.corregido_por}: ${corr.valor_original} → ${corr.valor_corregido === "" ? "(Vacío)" : corr.valor_corregido}`;
         }
 
         return (
@@ -319,7 +352,11 @@ const AuditObservationPage = () => {
         );
     }
 
-    const observador = observationData?.observation?.observador || "Desconocido";
+    const observadorGeneral = observationData?.observation?.observador || "";
+    // Observador por hora: si existe en la hora activa, mostrar ese; si no, usar el general
+    const observadorHora = getCellValue(activeHour, "observador");
+    const observador = observadorHora || observadorGeneral || "Desconocido";
+    const observadorFaltante = !observadorGeneral && !observadorHora;
 
     return (
         <div className="p-6 max-w-7xl mx-auto pb-16">
@@ -335,7 +372,7 @@ const AuditObservationPage = () => {
                     </button>
                     <div>
                         <div className="flex items-center gap-2 flex-wrap">
-                            <span className="bg-orange-600 text-white font-bold text-xs px-2.5 py-1 rounded-md uppercase">Estación {station}</span>
+                            <span className="bg-orange-600 text-white font-bold text-xs px-2.5 py-1 rounded-md uppercase">Estación {stationName || station}</span>
                             <span className="bg-slate-200 text-slate-700 font-semibold text-xs px-2.5 py-1 rounded-md flex items-center gap-1">
                                 <Calendar className="w-3.5 h-3.5" />
                                 {date}
@@ -345,18 +382,62 @@ const AuditObservationPage = () => {
                     </div>
                 </div>
 
-                <div className="bg-white border border-slate-100 rounded-xl p-3 shadow-sm flex items-center gap-4 text-xs font-semibold text-slate-500">
-                    <div className="flex items-center gap-1.5">
-                        <User className="w-4 h-4 text-slate-400" />
-                        Observador: <span className="text-slate-800 font-bold">{observador}</span>
+                <div className="flex flex-col items-end gap-2">
+                    <div className="bg-white border border-slate-100 rounded-xl p-3 shadow-sm flex items-center gap-4 text-xs font-semibold text-slate-500">
+                        <div className="flex items-center gap-1.5">
+                            <User className="w-4 h-4 text-slate-400" />
+                            Observador: <span className={`font-bold ${observadorFaltante ? 'text-red-600 animate-pulse' : 'text-slate-800'}`}>{observador}{observadorFaltante && ' ⚠ SIN NOMBRE'}</span>
+                        </div>
+                        <div className="h-4 w-px bg-slate-200"></div>
+                        <div className="flex items-center gap-1.5">
+                            <Clock className="w-4 h-4 text-slate-400" />
+                            Auditor: <span className="text-orange-600 font-bold">{currentUser.email}</span>
+                        </div>
                     </div>
-                    <div className="h-4 w-px bg-slate-200"></div>
-                    <div className="flex items-center gap-1.5">
-                        <Clock className="w-4 h-4 text-slate-400" />
-                        Auditor: <span className="text-orange-600 font-bold">{currentUser.email}</span>
+                    {/* Acceso a CLIs para referencia cruzada del auditor */}
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => navigate('/cli3074', { state: { fromAudit: true, stationId: station, station, date } })}
+                            className="flex items-center gap-1 bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-700 font-bold text-[11px] px-3 py-1.5 rounded-lg transition-all cursor-pointer border border-slate-200 hover:border-blue-300"
+                            title="Consultar CLI 3074 para referencia de corrección"
+                        >
+                            <BookOpen className="w-3.5 h-3.5" />
+                            CLI 3074
+                        </button>
+                        <button
+                            onClick={() => navigate('/cli4074', { state: { fromAudit: true, stationId: station, station, date } })}
+                            className="flex items-center gap-1 bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-700 font-bold text-[11px] px-3 py-1.5 rounded-lg transition-all cursor-pointer border border-slate-200 hover:border-blue-300"
+                            title="Consultar CLI 4074 para referencia de corrección"
+                        >
+                            <BookOpen className="w-3.5 h-3.5" />
+                            CLI 4074
+                        </button>
+                        <button
+                            onClick={() => navigate('/cli5074', { state: { fromAudit: true, stationId: station, station, date } })}
+                            className="flex items-center gap-1 bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-700 font-bold text-[11px] px-3 py-1.5 rounded-lg transition-all cursor-pointer border border-slate-200 hover:border-blue-300"
+                            title="Consultar CLI 5074 para referencia de corrección"
+                        >
+                            <BookOpen className="w-3.5 h-3.5" />
+                            CLI 5074
+                        </button>
                     </div>
                 </div>
             </div>
+
+            {/* Alerta automática: Observador sin nombre */}
+            {observadorFaltante && (
+                <div className="flex items-center gap-3 bg-red-50 border border-red-200 rounded-xl p-4 mb-4 shadow-sm">
+                    <AlertTriangle className="w-6 h-6 text-red-500 shrink-0" />
+                    <div className="flex-1">
+                        <p className="font-bold text-red-800 text-sm">⚠ Observador no identificado</p>
+                        <p className="text-red-600 text-xs mt-0.5">
+                            Esta observación no registra el nombre del observador de turno. 
+                            Según el protocolo, toda observación DEBE incluir la identificación del personal responsable. 
+                            Se recomienda marcar este dato como error de tipo "Falta de datos".
+                        </p>
+                    </div>
+                </div>
+            )}
 
             {/* Selector de Horas */}
             <div className="flex flex-wrap gap-2 mb-6 bg-white p-2 rounded-2xl border border-slate-100 shadow-sm">
@@ -499,28 +580,35 @@ const AuditObservationPage = () => {
                 {/* Panel Lateral de Auditoría */}
                 <div className="space-y-6">
                     {/* Estadísticas de la Observación */}
-                    <div className="bg-slate-900 text-white rounded-2xl p-5 shadow-lg border border-slate-800">
-                        <h3 className="font-bold text-sm text-slate-400 mb-3 uppercase tracking-wider">Estado de Auditoría</h3>
+                    <div className="bg-gradient-to-br from-orange-500 to-amber-600 text-white rounded-2xl p-5 shadow-md border border-orange-400/20 relative overflow-hidden">
+                        {/* Círculos decorativos translúcidos de fondo */}
+                        <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-white/10 rounded-full blur-xl" />
+                        <div className="absolute -left-6 -top-6 w-20 h-20 bg-white/10 rounded-full blur-lg" />
                         
-                        <div className="space-y-3">
-                            <div className="flex justify-between items-center bg-slate-800/50 p-3 rounded-xl">
-                                <span className="text-xs text-slate-300 font-semibold">Errores en el día:</span>
-                                <span className="bg-red-500 text-white font-bold text-xs px-2.5 py-1 rounded-full">
+                        <h3 className="font-bold text-xs text-orange-100 uppercase tracking-widest mb-4 flex items-center gap-1.5 relative z-10">
+                            <Radio className="w-3.5 h-3.5 animate-pulse" /> Estado de Auditoría
+                        </h3>
+                        
+                        <div className="grid grid-cols-2 gap-3 relative z-10">
+                            <div className="bg-white/10 backdrop-blur-md p-3.5 rounded-xl border border-white/15 flex flex-col justify-between">
+                                <span className="text-[11px] text-orange-100 font-semibold">Inconsistencias</span>
+                                <span className="text-2xl font-black mt-1.5 flex items-baseline gap-1">
                                     {observationData?.error_marks?.length || 0}
+                                    <span className="text-[10px] font-normal text-orange-200">campos</span>
                                 </span>
                             </div>
 
-                            <div className="flex justify-between items-center bg-slate-800/50 p-3 rounded-xl">
-                                <span className="text-xs text-slate-300 font-semibold">Correcciones aplicadas:</span>
-                                <span className="bg-emerald-500 text-white font-bold text-xs px-2.5 py-1 rounded-full">
+                            <div className="bg-white/10 backdrop-blur-md p-3.5 rounded-xl border border-white/15 flex flex-col justify-between">
+                                <span className="text-[11px] text-orange-100 font-semibold">Corregidos</span>
+                                <span className="text-2xl font-black mt-1.5 flex items-baseline gap-1">
                                     {observationData?.corrections?.length || 0}
+                                    <span className="text-[10px] font-normal text-orange-200">campos</span>
                                 </span>
-                            </div>
-
-                            <div className="text-[11px] text-slate-400 italic text-center pt-2">
-                                Las correcciones aplicadas operan como un "Overlay" dinámico sin alterar el archivo JSON original.
                             </div>
                         </div>
+                        <p className="text-[10px] text-orange-100/80 leading-normal text-center mt-3 pt-3 border-t border-white/10 relative z-10">
+                            Correcciones activas mediante <strong>Overlay dinámico</strong>.
+                        </p>
                     </div>
 
                     {/* Historial de Errores Marcados */}
@@ -713,7 +801,6 @@ const AuditObservationPage = () => {
                                     <span className="block text-[10px] font-bold text-emerald-600 mb-1 uppercase">Valor Corregido</span>
                                     <input 
                                         type="text" 
-                                        required
                                         value={correctedValue}
                                         onChange={(e) => setCorrectedValue(e.target.value)}
                                         className="font-mono bg-white border border-emerald-300 px-2 py-1 rounded w-full text-emerald-800 font-bold focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 text-center"

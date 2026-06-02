@@ -9,6 +9,7 @@ use tauri::AppHandle;
 #[derive(Serialize)]
 pub struct StationInfo {
     pub code: String,
+    pub name: String,
 }
 
 #[derive(Serialize)]
@@ -89,7 +90,10 @@ pub fn audit_browse_stations(app_handle: AppHandle) -> Result<Vec<StationInfo>, 
                 let name = entry.file_name().to_string_lossy().to_string();
                 // Validar que sea un número de estación (típicamente 5 dígitos)
                 if name.chars().all(|c| c.is_ascii_digit()) {
-                    stations.push(StationInfo { code: name });
+                    let station_name = crate::calculations::get_station_info(&name)
+                        .map(|info| info.name)
+                        .unwrap_or_else(|| "Estación Desconocida".to_string());
+                    stations.push(StationInfo { code: name, name: station_name });
                 }
             }
         }
@@ -122,6 +126,24 @@ pub fn audit_browse_years(app_handle: AppHandle, station: String) -> Result<Vec<
     Ok(years)
 }
 
+fn month_name_to_num(name: &str) -> Option<&'static str> {
+    match name.to_lowercase().as_str() {
+        "enero" | "january" => Some("01"),
+        "febrero" | "february" => Some("02"),
+        "marzo" | "march" => Some("03"),
+        "abril" | "april" => Some("04"),
+        "mayo" | "may" => Some("05"),
+        "junio" | "june" => Some("06"),
+        "julio" | "july" => Some("07"),
+        "agosto" | "august" => Some("08"),
+        "septiembre" | "september" => Some("09"),
+        "octubre" | "october" => Some("10"),
+        "noviembre" | "november" => Some("11"),
+        "diciembre" | "december" => Some("12"),
+        _ => None,
+    }
+}
+
 #[tauri::command]
 pub fn audit_browse_months(
     app_handle: AppHandle,
@@ -137,17 +159,36 @@ pub fn audit_browse_months(
     }
 
     let mut months = Vec::new();
-    if let Ok(entries) = fs::read_dir(year_dir) {
+    if let Ok(entries) = fs::read_dir(&year_dir) {
         for entry in entries.flatten() {
             if entry.file_type().map(|t| t.is_dir()).unwrap_or(false) {
                 let name = entry.file_name().to_string_lossy().to_string();
                 if name.len() == 2 && name.chars().all(|c| c.is_ascii_digit()) {
                     months.push(name);
+                } else if let Some(num) = month_name_to_num(&name) {
+                    let old_path = entry.path();
+                    let new_path = year_dir.join(num);
+                    if !new_path.exists() {
+                        let _ = fs::rename(&old_path, &new_path);
+                        months.push(num.to_string());
+                    } else {
+                        if let Ok(files) = fs::read_dir(&old_path) {
+                            for f in files.flatten() {
+                                let f_old = f.path();
+                                if let Some(fname) = f_old.file_name() {
+                                    let f_new = new_path.join(fname);
+                                    let _ = fs::rename(&f_old, &f_new);
+                                }
+                            }
+                        }
+                        let _ = fs::remove_dir(&old_path);
+                    }
                 }
             }
         }
     }
     months.sort();
+    months.dedup();
     Ok(months)
 }
 
@@ -206,7 +247,46 @@ pub fn audit_browse_days(
                                 }
                             }
                             if let Some(horas) = json.get("horas").and_then(|h| h.as_object()) {
-                                horas_registradas = horas.len();
+                                for (_hora_key, hora_val) in horas {
+                                    let mut tiene_datos = false;
+                                    if let Some(hora_obj) = hora_val.as_object() {
+                                        if let Some(datos_obj) = hora_obj.get("datos").and_then(|d| d.as_object()) {
+                                            for (k, v) in datos_obj {
+                                                if k != "correc_alt" && !v.is_null() {
+                                                    if let Some(s) = v.as_str() {
+                                                        if !s.trim().is_empty() {
+                                                            tiene_datos = true;
+                                                            break;
+                                                        }
+                                                    } else {
+                                                        tiene_datos = true;
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        if !tiene_datos {
+                                            if let Some(synop_obj) = hora_obj.get("synop").and_then(|s| s.as_object()) {
+                                                for (_k, v) in synop_obj {
+                                                    if !v.is_null() {
+                                                        if let Some(s) = v.as_str() {
+                                                            if !s.trim().is_empty() {
+                                                                tiene_datos = true;
+                                                                break;
+                                                            }
+                                                        } else {
+                                                            tiene_datos = true;
+                                                            break;
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    if tiene_datos {
+                                        horas_registradas += 1;
+                                    }
+                                }
                             }
                         }
                     }
@@ -318,6 +398,80 @@ pub fn audit_load_observation(
     for mark in errors_iter.flatten() {
         error_marks.push(mark);
     }
+
+    // 3.1. Validar nombre de observador faltante por hora de manera automática
+    let horas_keys = vec!["00Z", "03Z", "06Z", "09Z", "12Z", "15Z", "18Z", "21Z"];
+    let mut nuevas_marcas = Vec::new();
+
+    if let Some(obs_obj) = observation.as_object() {
+        for hora in &horas_keys {
+            if let Some(hora_val) = obs_obj.get(*hora) {
+                if let Some(hora_obj) = hora_val.as_object() {
+                    let mut tiene_datos = false;
+                    for (k, v) in hora_obj {
+                        if k != "observador" && k != "station_id" && k != "fecha" && k != "nombre_observador" {
+                            if !v.is_null() {
+                                if let Some(s) = v.as_str() {
+                                    if !s.trim().is_empty() {
+                                        tiene_datos = true;
+                                        break;
+                                    }
+                                } else {
+                                    tiene_datos = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    if tiene_datos {
+                        let obs_name = hora_obj.get("observador")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("")
+                            .trim();
+
+                        if obs_name.is_empty() || obs_name == "Desconocido" {
+                            let ya_marcado = error_marks.iter().any(|m| m.hora == **hora && m.campo == "observador");
+                            if !ya_marcado {
+                                let tipo_err = "Falta nombre de observador".to_string();
+                                let nota_err = "Generado automáticamente: observador no especificado en el turno.".to_string();
+                                let marcado_p = "Sistema de Calidad".to_string();
+
+                                let _ = conn.execute(
+                                    "INSERT INTO error_marks (station_id, fecha, hora, campo, tipo_error, nota, marcado_por) \
+                                     VALUES (?, ?, ?, ?, ?, ?, ?)",
+                                    params![
+                                        station,
+                                        date,
+                                        *hora,
+                                        "observador",
+                                        tipo_err,
+                                        nota_err,
+                                        marcado_p
+                                    ],
+                                );
+
+                                if let Ok(last_id) = conn.query_row("SELECT last_insert_rowid()", [], |row| row.get::<_, i32>(0)) {
+                                    nuevas_marcas.push(ErrorMark {
+                                        id: Some(last_id),
+                                        station_id: station.clone(),
+                                        fecha: date.clone(),
+                                        hora: hora.to_string(),
+                                        campo: "observador".to_string(),
+                                        tipo_error: tipo_err,
+                                        nota: Some(nota_err),
+                                        marcado_por: marcado_p,
+                                        created_at: Some(chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string()),
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    error_marks.extend(nuevas_marcas);
 
     // 4. Superponer correcciones aprobadas sobre la observación aplanada
     if let Some(obs_obj) = observation.as_object_mut() {

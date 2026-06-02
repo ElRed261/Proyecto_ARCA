@@ -43,7 +43,7 @@ const Cli5074Page = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [stations, setStations] = useState({});
-  const [selectedStation, setSelectedStation] = useState(location.state?.stationId || '');
+  const [selectedStation, setSelectedStation] = useState(location.state?.stationId || location.state?.station || '');
   const [isDataLoaded, setIsDataLoaded] = useState(false);
 
   const [date, setDate] = useState(() => {
@@ -225,7 +225,13 @@ const Cli5074Page = () => {
       {/* Header Info */}
       <div className="px-6 py-4 flex items-center gap-4 z-10 w-full max-w-full">
         <button
-          onClick={() => navigate('/synoptic', { state: { stationId: selectedStation, date } })}
+          onClick={() => {
+            if (location.state?.fromAudit) {
+              navigate(`/audit/observation/${selectedStation}/${date}`);
+            } else {
+              navigate('/synoptic', { state: { stationId: selectedStation, date } });
+            }
+          }}
           className="w-10 h-10 rounded-full border border-slate-200 bg-white flex items-center justify-center text-slate-500 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200 hover:scale-105 shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-rose-500"
           title="Volver a Observaciones"
         >
@@ -242,7 +248,7 @@ const Cli5074Page = () => {
                 toast.error("Seleccione una estación primero.");
                 return;
               }
-              navigate('/cli3074', { state: { stationId: selectedStation, date } });
+              navigate('/cli3074', { state: { stationId: selectedStation, date, fromAudit: location.state?.fromAudit } });
             }}
             className="px-3 py-1.5 rounded-md text-xs font-semibold transition-all text-slate-600 hover:bg-white/50"
           >
@@ -254,14 +260,14 @@ const Cli5074Page = () => {
                 toast.error("Seleccione una estación primero.");
                 return;
               }
-              navigate('/cli4074', { state: { stationId: selectedStation, date } });
+              navigate('/cli4074', { state: { stationId: selectedStation, date, fromAudit: location.state?.fromAudit } });
             }}
             className="px-3 py-1.5 rounded-md text-xs font-semibold transition-all text-slate-600 hover:bg-white/50"
           >
             4074
           </button>
           <button
-            onClick={() => navigate('/cli5074', { state: { stationId: selectedStation, date } })}
+            onClick={() => navigate('/cli5074', { state: { stationId: selectedStation, date, fromAudit: location.state?.fromAudit } })}
             className="px-3 py-1.5 rounded-md text-xs font-bold transition-all bg-white text-rose-700 shadow-sm"
           >
             5074
@@ -279,7 +285,11 @@ const Cli5074Page = () => {
                   toast.error("Seleccione una estación primero.");
                   return;
                 }
-                navigate('/synoptic', { state: { stationId: selectedStation, date, activeHour: h } });
+                if (location.state?.fromAudit) {
+                  navigate(`/audit/observation/${selectedStation}/${date}`);
+                } else {
+                  navigate('/synoptic', { state: { stationId: selectedStation, date, activeHour: h } });
+                }
               }}
               className="px-2 py-1 rounded bg-white hover:bg-rose-50 hover:text-rose-700 hover:scale-105 active:scale-95 transition-all text-[11px] font-bold text-slate-600 shadow-sm cursor-pointer"
             >

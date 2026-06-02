@@ -121,6 +121,11 @@ const SummaryPage = () => {
     const [selectedYear, setSelectedYear] = useState(() => new Date().getFullYear());
     const [selectedMonth, setSelectedMonth] = useState(() => new Date().getMonth() + 1); // 1-12
 
+    const getStationName = (code) => {
+        if (!code) return "";
+        return stations[code]?.name || `Estación ${code}`;
+    };
+
     useEffect(() => {
         const initialize = async () => {
             setLoading(true);
@@ -219,13 +224,13 @@ const SummaryPage = () => {
     const handleDeleteSummary = async (e, entry) => {
         e.stopPropagation(); // Prevent loading the summary when clicking delete
         
-        const firstConfirm = await ask(`¿Está seguro que desea enviar a la papelera el resumen generado para la estación "${entry.station}" del período "${entry.period}"?`, {
+        const firstConfirm = await ask(`¿Está seguro que desea enviar a la papelera el resumen generado para la estación "${getStationName(entry.station)}" del período "${entry.period}"?`, {
             title: 'Enviar a la papelera',
             kind: 'warning',
         });
         if (!firstConfirm) return;
         
-        const secondConfirm = await ask(`¡ATENCIÓN! ¿Confirma la acción para "${entry.station}" - "${entry.period}"?`, {
+        const secondConfirm = await ask(`¡ATENCIÓN! ¿Confirma la acción para "${getStationName(entry.station)}" - "${entry.period}"?`, {
             title: 'Confirmar eliminación',
             kind: 'warning',
         });
@@ -286,7 +291,7 @@ const SummaryPage = () => {
                 <div className="flex items-center gap-4">
                     <button
                         onClick={() => navigate('/dashboard')}
-                        className="w-10 h-10 rounded-full bg-white border border-purple-200/60 shadow-sm transition-all hover:bg-purple-50 hover:scale-110 flex items-center justify-center text-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-200/50 cursor-pointer"
+                        className="w-10 h-10 rounded-full bg-white/80 border border-slate-200/80 backdrop-blur-sm shadow-sm transition-all hover:bg-purple-50/80 hover:scale-110 flex items-center justify-center text-purple-600 focus:outline-none focus:ring-0 outline-none cursor-pointer"
                         title="Volver al Dashboard"
                     >
                         <ArrowLeft className="w-5 h-5" />
@@ -364,7 +369,7 @@ const SummaryPage = () => {
                                         <option value="">Seleccionar...</option>
                                         {Object.entries(stations).map(([id, info]) => (
                                             <option key={id} value={id}>
-                                                {id} - {info.name || `Estación ${id}`}
+                                                {info.name || `Estación ${id}`}
                                             </option>
                                         ))}
                                     </select>
@@ -455,7 +460,7 @@ const SummaryPage = () => {
                                         </div>
                                         <h3 className="text-lg font-black text-slate-800 mt-2 flex items-center gap-2">
                                             <div className="w-2 h-2 bg-purple-650 rounded-full animate-pulse"></div>
-                                            {entry.station}
+                                            {getStationName(entry.station)}
                                         </h3>
                                         <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
                                             <span className="text-[11px] font-medium text-slate-400 font-mono truncate max-w-[200px]" title={entry.path}>
@@ -475,7 +480,7 @@ const SummaryPage = () => {
                         <div className="p-5 border-b border-slate-200 bg-slate-50 flex justify-between items-center shrink-0">
                             <div>
                                 <h2 className="text-xl font-bold text-slate-850">
-                                    Estación {currentDoc.meta.estacion}
+                                    Estación {getStationName(currentDoc.meta.estacion)}
                                 </h2>
                                 <p className="text-sm text-slate-500 flex gap-4 mt-1">
                                     <span>Período: <span className="font-semibold text-slate-700">{currentDoc.meta.periodo}</span></span>

@@ -286,7 +286,7 @@ const SynopticPage = () => {
         stationCode: stationId,
         fecha: fecha,
         observations: observationsWithResults,
-        observerName: getValue('observador') || null,
+        observerName: getValue('nombre_observador') || null,
         cli3074,
         cli4074,
         cli5074
@@ -597,7 +597,7 @@ newObservations[hora] = {
   ...newObservations[hora],
 
   // Observador
-  nombre_observador: item.nombre_observador || '',
+  nombre_observador: item.observador || item.nombre_observador || jsonData.meta?.observador || '',
 
   // Temperaturas básicas
   ts: safeValue(d.ts),
@@ -901,21 +901,36 @@ newObservations[hora] = {
       }
       // Row 8: 58/59 P24 auto-generado en posición 2, 6RRR condicionado por Ir
       if (row === 8) {
+        // Detección de temporada ciclónica en RD (1 de junio - 30 de noviembre)
+        const isCyclonicSeason = (() => {
+          const fecha = getValue('fecha');
+          if (!fecha) return false;
+          const parts = fecha.split('-');
+          if (parts.length < 2) return false;
+          const month = parseInt(parts[1], 10);
+          return month >= 6 && month <= 11;
+        })();
+
         // Verificar si el campo opuesto (0CS DL DM DH) tiene valor
         const has0CSDLDM = (getValue('meteo_6_2') || '').trim() !== '';
+        const disable56 = has0CSDLDM || !isCyclonicSeason;
         
         return (
           <div key={row} className="grid grid-cols-7 gap-2 mb-3">
             <input className={inputClass} placeholder="" value={getValue('meteo_8_0')} onChange={(e) => handleChange('meteo_8_0', e.target.value)} onKeyDown={handleKeyDown} title="5nFnFnFn: insolación" />
-            {/* 56 DL DM DH - Deshabilitado si 0CS DL DM DH tiene valor */}
+            {/* 56 DL DM DH - Deshabilitado si 0CS DL DM DH tiene valor o si está fuera de temporada ciclónica */}
             <input 
-              className={has0CSDLDM ? `${inputClass} opacity-50 bg-gray-200` : inputClass} 
+              className={disable56 ? `${inputClass} opacity-50 bg-gray-200` : inputClass} 
               placeholder="56" 
               value={getValue('meteo_8_1')} 
               onChange={(e) => handleChange('meteo_8_1', e.target.value)} 
               onKeyDown={handleKeyDown} 
-              disabled={has0CSDLDM}
-              title={has0CSDLDM ? "Deshabilitado: use 0CS DL DM DH en su lugar" : "56DLDMDH: nubes dirección"} 
+              disabled={disable56}
+              title={disable56 
+                ? (!isCyclonicSeason 
+                    ? "Deshabilitado: fuera de temporada ciclónica (Junio - Noviembre)" 
+                    : "Deshabilitado: use 0CS DL DM DH en su lugar")
+                : "56DLDMDH: nubes dirección"} 
             />
             {/* 58/59 P24P24P24 - Auto-generado */}
             <input className={readonlyClass} value={results.grupo_58_59_p24 || ''} readOnly title="58/59: cambio presión 24h" />
