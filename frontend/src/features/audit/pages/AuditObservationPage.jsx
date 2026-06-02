@@ -4,7 +4,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { 
     ArrowLeft, AlertTriangle, CheckCircle, Clock, 
     User, Calendar, HelpCircle, Save, X, Edit3, Trash2,
-    BookOpen, ExternalLink
+    BookOpen, ExternalLink, Radio
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
