@@ -1,4 +1,4 @@
-use rusqlite::{Connection, Result};
+use rusqlite::{Connection, Result, params};
 use std::path::PathBuf;
 use tauri::AppHandle;
 use tauri::Manager;
@@ -74,6 +74,40 @@ pub fn init_db(app_handle: &AppHandle) -> Result<()> {
         [],
     )?;
 
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS error_marks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            station_id TEXT NOT NULL,
+            fecha TEXT NOT NULL,
+            hora TEXT NOT NULL,
+            campo TEXT NOT NULL,
+            tipo_error TEXT NOT NULL,
+            nota TEXT,
+            marcado_por TEXT NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )",
+        [],
+    )?;
+
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS corrections (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            station_id TEXT NOT NULL,
+            fecha TEXT NOT NULL,
+            hora TEXT NOT NULL,
+            campo TEXT NOT NULL,
+            valor_original TEXT NOT NULL,
+            valor_corregido TEXT NOT NULL,
+            justificacion TEXT NOT NULL,
+            corregido_por TEXT NOT NULL,
+            aprobado_por TEXT,
+            estado TEXT DEFAULT 'pendiente',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )",
+        [],
+    )?;
+
     // Seed default users if users table is empty
     let count: i64 = conn.query_row(
         "SELECT COUNT(*) FROM users",
@@ -81,20 +115,38 @@ pub fn init_db(app_handle: &AppHandle) -> Result<()> {
         |row| row.get(0),
     )?;
 
-    if count == 0 {
-        let default_users = vec![
-            ("admin@arca.rd", "admin123", "admin"),
-            ("encargado@arca.rd", "encargado123", "encargado"),
-            ("observador@arca.rd", "observador123", "observador"),
-        ];
+    let default_users = vec![
+        ("admin@arca.rd", "admin123", "admin"),
+        ("encargado@arca.rd", "encargado123", "encargado"),
+        ("observador@arca.rd", "observador123", "observador"),
+        ("calidad@arca.rd", "calidad123", "control_calidad"),
+    ];
 
-        for (email, password, role) in default_users {
+    if count == 0 {
+        for (email, password, role) in &default_users {
             let password_hash = hash(password, DEFAULT_COST)
                 .map_err(|e| rusqlite::Error::ToSqlConversionFailure(Box::new(e)))?;
             conn.execute(
                 "INSERT INTO users (email, password_hash, role, is_active) VALUES (?, ?, ?, 1)",
-                [email, &password_hash, role],
+                params![email, password_hash, role],
             )?;
+        }
+    } else {
+        // Asegurar que el usuario de calidad y otros usuarios por defecto existan si la BD ya fue creada previamente
+        for (email, password, role) in &default_users {
+            let user_exists: i64 = conn.query_row(
+                "SELECT COUNT(*) FROM users WHERE email = ?",
+                [email],
+                |row| row.get(0),
+            )?;
+            if user_exists == 0 {
+                let password_hash = hash(password, DEFAULT_COST)
+                    .map_err(|e| rusqlite::Error::ToSqlConversionFailure(Box::new(e)))?;
+                conn.execute(
+                    "INSERT INTO users (email, password_hash, role, is_active) VALUES (?, ?, ?, 1)",
+                    params![email, password_hash, role],
+                )?;
+            }
         }
     }
 

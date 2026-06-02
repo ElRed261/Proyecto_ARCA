@@ -8,6 +8,8 @@ import AdminPage from './features/auth/pages/AdminPage';
 import SynopticPage from './features/synoptic/pages/SynopticPage';
 import SummaryPage from './features/summary/pages/SummaryPage';
 import AuditPage from './features/audit/pages/AuditPage';
+import AuditObservationPage from './features/audit/pages/AuditObservationPage';
+import AuditReportPage from './features/audit/pages/AuditReportPage';
 import MaintenancePage from './features/maintenance/pages/MaintenancePage';
 import Cli3074Page from './features/synoptic/cli3074/pages/Cli3074Page';
 import Cli4074Page from './features/synoptic/cli4074/pages/Cli4074Page';
@@ -121,8 +123,27 @@ function App() {
           <ProtectedRoute user={user}>
             <div className="min-h-screen bg-gray-50 pb-20">
               <div className="max-w-7xl mx-auto pt-6 px-4 sm:px-6 lg:px-8">
-
                 <AuditPage />
+              </div>
+            </div>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/audit/observation/:station/:date" element={
+          <ProtectedRoute user={user}>
+            <div className="min-h-screen bg-gray-50 pb-20">
+              <div className="max-w-7xl mx-auto pt-6 px-4 sm:px-6 lg:px-8">
+                <AuditObservationPage />
+              </div>
+            </div>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/audit/report" element={
+          <ProtectedRoute user={user}>
+            <div className="min-h-screen bg-gray-50 pb-20">
+              <div className="max-w-7xl mx-auto pt-6 px-4 sm:px-6 lg:px-8">
+                <AuditReportPage />
               </div>
             </div>
           </ProtectedRoute>
