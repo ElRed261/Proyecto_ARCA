@@ -27,3 +27,45 @@
   border: 2px solid transparent;
   background-clip: padding-box;
 }
+
+/* Scrollbar para tablas con scroll horizontal */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 8px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 8px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Estilos de impresión para reportes de auditoría */
+@media print {
+  body {
+    background-color: white !important;
+    color: black !important;
+    font-size: 12px !important;
+  }
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  .print\:hidden,
+  button,
+  select,
+  input[type="text"]:not(.font-mono),
+  form {
+    display: none !important;
+  }
+  .max-w-7xl {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+}

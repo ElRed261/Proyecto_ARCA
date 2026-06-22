@@ -129,10 +129,10 @@ export const StationAdminTable = ({ addLog, fetchStationsAndConfig }) => {
                                     )}
                                 </td>
                                 <td className="px-6 py-4 text-right space-x-2">
-                                    <button onClick={() => openEdit(st)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-full">
+                                    <button onClick={() => openEdit(st)} aria-label="Editar estación" className="p-2 text-blue-600 hover:bg-blue-50 rounded-full">
                                         <Edit size={16} />
                                     </button>
-                                    <button onClick={() => handleDelete(st)} className="p-2 text-red-600 hover:bg-red-50 rounded-full">
+                                    <button onClick={() => handleDelete(st)} aria-label="Eliminar estación" className="p-2 text-red-600 hover:bg-red-50 rounded-full">
                                         <Trash2 size={16} />
                                     </button>
                                 </td>

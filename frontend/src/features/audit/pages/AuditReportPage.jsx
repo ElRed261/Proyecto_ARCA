@@ -452,32 +452,7 @@ const AuditReportPage = () => {
                 </div>
             </div>
 
-            {/* Estilos CSS Inline de Impresión */}
-            <style dangerouslySetInnerHTML={{__html: `
-                @media print {
-                    body {
-                        background-color: white !important;
-                        color: black !important;
-                        font-size: 12px !important;
-                    }
-                    /* Forzar que el fondo de las celdas y textos coloreados salgan */
-                    * {
-                        -webkit-print-color-adjust: exact !important;
-                        print-color-adjust: exact !important;
-                    }
-                    /* Esconder elementos innecesarios */
-                    .print\\:hidden, button, select, input[type="text"]:not(.font-mono), form {
-                        display: none !important;
-                    }
-                    /* Quitar bordes innecesarios del layout */
-                    .max-w-7xl {
-                        max-width: 100% !important;
-                        padding: 0 !important;
-                        margin: 0 !important;
-                    }
-                }
-            `}} />
-        </div>
+            </div>
     );
 };
 

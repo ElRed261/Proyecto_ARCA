@@ -728,10 +728,6 @@ newObservations[hora] = {
 
         // Confirmación de carga con fecha formateada
         const stationCode = stationNameToCode[jsonData.meta?.estacion] || jsonData.meta?.estacion;
-        const fecha = jsonData.meta?.fecha || '';
-        const fechaFormatted = fecha.length === 8
-          ? `${fecha.substring(0, 2)}/${fecha.substring(2, 4)}/${fecha.substring(4, 8)}`
-          : fecha;
 
         // Bloquear estación después de cargar (la observación pertenece a esa estación)
         setIsStationLocked(true);
