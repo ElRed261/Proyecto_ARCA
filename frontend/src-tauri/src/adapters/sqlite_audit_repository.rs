@@ -177,30 +177,18 @@ impl AuditRepository for SqliteAuditRepository {
             }
         }
 
-        if let Some(ref y) = year {
-            if !y.is_empty() {
-                query.push_str(" AND e.fecha LIKE ?");
-                args.push(format!("{}-%", y));
-            }
-        }
+        let y = year.as_deref().unwrap_or("");
+        let m = month.as_deref().unwrap_or("");
 
-        if let Some(ref m) = month {
-            if !m.is_empty() {
-                if let Some(ref y) = year {
-                    if !y.is_empty() {
-                        query.pop();
-                        args.pop();
-                        query.push_str(" AND e.fecha LIKE ?");
-                        args.push(format!("{}-{}-%", y, m));
-                    } else {
-                        query.push_str(" AND e.fecha LIKE ?");
-                        args.push(format!("%-{}-%", m));
-                    }
-                } else {
-                    query.push_str(" AND e.fecha LIKE ?");
-                    args.push(format!("%-{}-%", m));
-                }
-            }
+        if !y.is_empty() && !m.is_empty() {
+            query.push_str(" AND e.fecha LIKE ?");
+            args.push(format!("{}-{}-%", y, m));
+        } else if !y.is_empty() {
+            query.push_str(" AND e.fecha LIKE ?");
+            args.push(format!("{}-%", y));
+        } else if !m.is_empty() {
+            query.push_str(" AND e.fecha LIKE ?");
+            args.push(format!("%-{}-%", m));
         }
 
         query.push_str(" ORDER BY e.fecha DESC, e.hora ASC");
@@ -295,30 +283,18 @@ impl AuditRepository for SqliteAuditRepository {
             }
         }
 
-        if let Some(ref y) = year {
-            if !y.is_empty() {
-                err_query.push_str(" AND fecha LIKE ?");
-                err_args.push(format!("{}-%", y));
-            }
-        }
+        let y = year.as_deref().unwrap_or("");
+        let m = month.as_deref().unwrap_or("");
 
-        if let Some(ref m) = month {
-            if !m.is_empty() {
-                if let Some(ref y) = year {
-                    if !y.is_empty() {
-                        err_query.pop();
-                        err_args.pop();
-                        err_query.push_str(" AND fecha LIKE ?");
-                        err_args.push(format!("{}-{}-%", y, m));
-                    } else {
-                        err_query.push_str(" AND fecha LIKE ?");
-                        err_args.push(format!("%-{}-%", m));
-                    }
-                } else {
-                    err_query.push_str(" AND fecha LIKE ?");
-                    err_args.push(format!("%-{}-%", m));
-                }
-            }
+        if !y.is_empty() && !m.is_empty() {
+            err_query.push_str(" AND fecha LIKE ?");
+            err_args.push(format!("{}-{}-%", y, m));
+        } else if !y.is_empty() {
+            err_query.push_str(" AND fecha LIKE ?");
+            err_args.push(format!("{}-%", y));
+        } else if !m.is_empty() {
+            err_query.push_str(" AND fecha LIKE ?");
+            err_args.push(format!("%-{}-%", m));
         }
 
         err_query.push_str(" GROUP BY marcado_por");
@@ -348,30 +324,18 @@ impl AuditRepository for SqliteAuditRepository {
             }
         }
 
-        if let Some(ref y) = year {
-            if !y.is_empty() {
-                corr_query.push_str(" AND fecha LIKE ?");
-                corr_args.push(format!("{}-%", y));
-            }
-        }
+        let y = year.as_deref().unwrap_or("");
+        let m = month.as_deref().unwrap_or("");
 
-        if let Some(ref m) = month {
-            if !m.is_empty() {
-                if let Some(ref y) = year {
-                    if !y.is_empty() {
-                        corr_query.pop();
-                        corr_args.pop();
-                        corr_query.push_str(" AND fecha LIKE ?");
-                        corr_args.push(format!("{}-{}-%", y, m));
-                    } else {
-                        corr_query.push_str(" AND fecha LIKE ?");
-                        corr_args.push(format!("%-{}-%", m));
-                    }
-                } else {
-                    corr_query.push_str(" AND fecha LIKE ?");
-                    corr_args.push(format!("%-{}-%", m));
-                }
-            }
+        if !y.is_empty() && !m.is_empty() {
+            corr_query.push_str(" AND fecha LIKE ?");
+            corr_args.push(format!("{}-{}-%", y, m));
+        } else if !y.is_empty() {
+            corr_query.push_str(" AND fecha LIKE ?");
+            corr_args.push(format!("{}-%", y));
+        } else if !m.is_empty() {
+            corr_query.push_str(" AND fecha LIKE ?");
+            corr_args.push(format!("%-{}-%", m));
         }
 
         corr_query.push_str(" GROUP BY corregido_por");
