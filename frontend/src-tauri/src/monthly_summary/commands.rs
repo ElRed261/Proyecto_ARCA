@@ -15,6 +15,74 @@ fn get_monthly_summary_dir(app: &AppHandle) -> Result<PathBuf, String> {
     Ok(docs_dir.join("Proyecto_ARCA").join("Resumen_Mensual_Synop"))
 }
 
+fn validate_safe_path(app: &AppHandle, path_str: &str) -> Result<PathBuf, String> {
+    let base_dir = get_monthly_summary_dir(app)?;
+    let target_path = Path::new(path_str);
+    
+    let canonical_path = if target_path.exists() {
+        target_path.canonicalize().map_err(|e| format!("Error de ruta: {}", e))?
+    } else {
+        let parent = target_path.parent().ok_or("Ruta sin directorio padre")?;
+        if parent.exists() {
+            let canonical_parent = parent.canonicalize().map_err(|e| format!("Error de ruta: {}", e))?;
+            let file_name = target_path.file_name().ok_or("Nombre de archivo inválido")?;
+            canonical_parent.join(file_name)
+        } else {
+            return Err("El directorio de destino no existe".to_string());
+        }
+    };
+
+    let canonical_base = base_dir.canonicalize().unwrap_or(base_dir);
+    if !canonical_path.starts_with(&canonical_base) {
+        return Err("Acceso no autorizado: la ruta está fuera del directorio permitido".to_string());
+    }
+
+    Ok(canonical_path)
+}
+
+fn validate_export_path(app: &AppHandle, path_str: &str) -> Result<PathBuf, String> {
+    let target_path = Path::new(path_str);
+    
+    let extension = target_path.extension()
+        .and_then(|ext| ext.to_str())
+        .ok_or_else(|| "El archivo de destino debe tener una extensión válida".to_string())?
+        .to_lowercase();
+        
+    if extension != "xlsx" && extension != "xls" {
+        return Err("Extensión de archivo no permitida. Solo se admite .xlsx".to_string());
+    }
+
+    if path_str.contains("..") {
+        return Err("Ruta inválida: no se permiten rutas relativas".to_string());
+    }
+
+    let docs = app.path().document_dir().ok();
+    let downloads = app.path().download_dir().ok();
+    let desktop = app.path().desktop_dir().ok();
+    
+    let path_abs = if target_path.is_absolute() {
+        target_path.to_path_buf()
+    } else {
+        return Err("Se requiere una ruta absoluta para exportar".to_string());
+    };
+
+    let mut is_safe = false;
+    for safe_dir in [docs, downloads, desktop].into_iter().flatten() {
+        if let Ok(safe_base) = safe_dir.canonicalize() {
+            if path_abs.starts_with(&safe_base) {
+                is_safe = true;
+                break;
+            }
+        }
+    }
+
+    if !is_safe {
+        return Err("Acceso no autorizado: solo se permite exportar a Documentos, Descargas o Escritorio".to_string());
+    }
+
+    Ok(path_abs)
+}
+
 #[command]
 pub async fn ms_generate_summary(app: AppHandle, files: Vec<String>) -> Result<MonthlySummaryDoc, String> {
     let doc = analyze_files(files)?;
@@ -36,14 +104,16 @@ pub async fn ms_list_history(app: AppHandle) -> Result<Vec<SummaryIndexEntry>, S
 }
 
 #[command]
-pub async fn ms_load_summary(path: String) -> Result<MonthlySummaryDoc, String> {
-    load_summary(Path::new(&path))
+pub async fn ms_load_summary(app: AppHandle, path: String) -> Result<MonthlySummaryDoc, String> {
+    let safe_path = validate_safe_path(&app, &path)?;
+    load_summary(&safe_path)
 }
 
 #[command]
-pub async fn ms_export_excel(_app: AppHandle, doc: MonthlySummaryDoc, out_path: String) -> Result<String, String> {
-    export_to_excel(&doc, Path::new(&out_path))?;
-    Ok(out_path)
+pub async fn ms_export_excel(app: AppHandle, doc: MonthlySummaryDoc, out_path: String) -> Result<String, String> {
+    let safe_path = validate_export_path(&app, &out_path)?;
+    export_to_excel(&doc, &safe_path)?;
+    Ok(safe_path.to_string_lossy().to_string())
 }
 
 #[command]
@@ -175,6 +245,7 @@ pub async fn ms_load_station_month_with_corrections(
 }
 
 #[command]
-pub async fn ms_delete_summary(path: String) -> Result<(), String> {
-    trash::delete(Path::new(&path)).map_err(|e| e.to_string())
+pub async fn ms_delete_summary(app: AppHandle, path: String) -> Result<(), String> {
+    let safe_path = validate_safe_path(&app, &path)?;
+    trash::delete(&safe_path).map_err(|e| e.to_string())
 }

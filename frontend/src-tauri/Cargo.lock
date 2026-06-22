@@ -108,6 +108,7 @@ dependencies = [
  "tauri-plugin-dialog",
  "tauri-plugin-log",
  "trash",
+ "uuid",
  "walkdir",
 ]
 

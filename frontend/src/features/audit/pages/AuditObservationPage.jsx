@@ -246,15 +246,16 @@ const AuditObservationPage = () => {
         e.preventDefault();
         if (!selectedCell) return;
         const currentHour = selectedCell.hora;
+        const token = localStorage.getItem('token') || '';
         try {
             await invoke('audit_mark_error', {
+                token,
                 stationId: station,
                 fecha: date,
                 hora: selectedCell.hora,
                 campo: selectedCell.campo,
                 tipoError: errorType,
-                nota: errorNote ? errorNote : null,
-                marcadoPor: currentUser.email
+                nota: errorNote ? errorNote : null
             });
             toast.success("Error marcado correctamente.");
             setShowErrorModal(false);
@@ -267,8 +268,9 @@ const AuditObservationPage = () => {
     const handleRemoveErrorMark = async (markId) => {
         if (!window.confirm("¿Seguro que deseas quitar esta marca de error? Esto también eliminará cualquier propuesta de corrección asociada.")) return;
         const currentHour = activeHour;
+        const token = localStorage.getItem('token') || '';
         try {
-            await invoke('audit_unmark_error', { id: markId });
+            await invoke('audit_unmark_error', { token, id: markId });
             toast.success("Marca de error y corrección eliminadas.");
             setShowErrorModal(false);
             loadObservation(currentHour);
@@ -280,22 +282,19 @@ const AuditObservationPage = () => {
     const handleSaveCorrection = async (e) => {
         e.preventDefault();
         if (!selectedCell) return;
-        if (!correctorName.trim()) {
-            toast.error("Debe especificar su nombre para registrar la corrección.");
-            return;
-        }
 
         const currentHour = selectedCell.hora;
+        const token = localStorage.getItem('token') || '';
         try {
             await invoke('audit_propose_correction', {
+                token,
                 stationId: station,
                 fecha: date,
                 hora: selectedCell.hora,
                 campo: selectedCell.campo,
                 valorOriginal: selectedCell.valorActual,
                 valorCorregido: correctedValue,
-                justificacion: correctionJustification,
-                corregidoPor: correctorName
+                justificacion: correctionJustification
             });
             toast.success("Corrección aplicada correctamente (Overlay activo).");
             setShowCorrectionModal(false);
@@ -437,7 +436,8 @@ const AuditObservationPage = () => {
                         <button
                             onClick={async () => {
                                 try {
-                                    const path = await invoke('audit_export_corrected_json', { stationId: station, fecha: date });
+                                    const token = localStorage.getItem('token') || '';
+                                    const path = await invoke('audit_export_corrected_json', { token, stationId: station, fecha: date });
                                     toast.success(`¡JSON Corregido guardado con éxito!\nGuardado en: ${path}`, { duration: 5000 });
                                 } catch (error) {
                                     console.error(error);

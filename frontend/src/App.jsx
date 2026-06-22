@@ -15,9 +15,32 @@ import Cli3074Page from './features/synoptic/cli3074/pages/Cli3074Page';
 import Cli4074Page from './features/synoptic/cli4074/pages/Cli4074Page';
 import Cli5074Page from './features/synoptic/cli5074/pages/Cli5074Page';
 
-const ProtectedRoute = ({ user, children }) => {
+const normalizeRoles = (rolesData) => {
+  if (!rolesData) return [];
+  try {
+    const rawRoles = typeof rolesData === 'string' ? JSON.parse(rolesData) : rolesData;
+    const arr = Array.isArray(rawRoles) ? rawRoles : [rawRoles];
+    return arr.map(r => {
+      if (!r) return '';
+      if (typeof r === 'string') return r.toLowerCase();
+      if (typeof r === 'object' && r.name) return r.name.toLowerCase();
+      return '';
+    }).filter(Boolean);
+  } catch (e) {
+    console.error("Error normalizando roles:", e);
+    return [];
+  }
+};
+
+const ProtectedRoute = ({ user, allowedRoles, children }) => {
   if (!user) {
     return <Navigate to="/" replace />;
+  }
+  if (allowedRoles) {
+    const hasRole = user.roles.some(role => allowedRoles.includes(role));
+    if (!hasRole) {
+      return <Navigate to="/dashboard" replace />;
+    }
   }
   return children;
 };
@@ -37,11 +60,10 @@ function App() {
     const savedRoles = localStorage.getItem('user_roles');
 
     if (token && email) {
-      const roles = savedRoles ? JSON.parse(savedRoles) : [];
+      const roles = normalizeRoles(savedRoles);
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setUser({ email, roles });
       addLog('Sistema restaurado. Sesión activa detectada.', 'success');
-      // Si estamos en root, ir a dashboard
       if (location.pathname === '/') {
         navigate('/dashboard');
       }
@@ -49,7 +71,8 @@ function App() {
   }, []);
 
   const handleLoginSuccess = (userData) => {
-    setUser({ email: userData.user_email, roles: userData.roles || [] });
+    const roles = normalizeRoles(userData.roles);
+    setUser({ email: userData.user_email, roles });
     addLog(`Autenticación correcta. Bienvenido: ${userData.user_email}`, 'success');
     navigate('/dashboard');
   };
@@ -91,7 +114,7 @@ function App() {
 
         {/* Admin */}
         <Route path="/admin" element={
-          <ProtectedRoute user={user}>
+          <ProtectedRoute user={user} allowedRoles={['admin']}>
             <AdminPage
               onBack={() => navigate('/dashboard')}
               addLog={addLog}
@@ -120,7 +143,7 @@ function App() {
 
         {/* Audit Module */}
         <Route path="/audit" element={
-          <ProtectedRoute user={user}>
+          <ProtectedRoute user={user} allowedRoles={['admin', 'control_calidad']}>
             <div className="min-h-screen bg-gray-50 pb-20">
               <div className="max-w-7xl mx-auto pt-6 px-4 sm:px-6 lg:px-8">
                 <AuditPage />
@@ -130,7 +153,7 @@ function App() {
         } />
 
         <Route path="/audit/observation/:station/:date" element={
-          <ProtectedRoute user={user}>
+          <ProtectedRoute user={user} allowedRoles={['admin', 'control_calidad']}>
             <div className="min-h-screen bg-gray-50 pb-20">
               <div className="max-w-7xl mx-auto pt-6 px-4 sm:px-6 lg:px-8">
                 <AuditObservationPage />
@@ -140,7 +163,7 @@ function App() {
         } />
 
         <Route path="/audit/report" element={
-          <ProtectedRoute user={user}>
+          <ProtectedRoute user={user} allowedRoles={['admin', 'control_calidad']}>
             <div className="min-h-screen bg-gray-50 pb-20">
               <div className="max-w-7xl mx-auto pt-6 px-4 sm:px-6 lg:px-8">
                 <AuditReportPage />

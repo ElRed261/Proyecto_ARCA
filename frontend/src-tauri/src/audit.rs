@@ -530,6 +530,8 @@ pub fn audit_load_observation(
 
 #[tauri::command]
 pub fn audit_mark_error(
+    session_store: tauri::State<'_, crate::auth::SessionStore>,
+    token: String,
     app_handle: AppHandle,
     station_id: String,
     fecha: String,
@@ -537,8 +539,10 @@ pub fn audit_mark_error(
     campo: String,
     tipo_error: String,
     nota: Option<String>,
-    marcado_por: String,
 ) -> Result<ErrorMark, String> {
+    let session = crate::auth::require_role(&session_store, &token, &["admin", "control_calidad"])?;
+    let marcado_por = session.email;
+
     let db_path = get_db_path(&app_handle);
     let conn = Connection::open(&db_path).map_err(|e| e.to_string())?;
 
@@ -580,7 +584,14 @@ pub fn audit_mark_error(
 }
 
 #[tauri::command]
-pub fn audit_unmark_error(app_handle: AppHandle, id: i32) -> Result<bool, String> {
+pub fn audit_unmark_error(
+    session_store: tauri::State<'_, crate::auth::SessionStore>,
+    token: String,
+    app_handle: AppHandle,
+    id: i32,
+) -> Result<bool, String> {
+    crate::auth::require_role(&session_store, &token, &["admin", "control_calidad"])?;
+
     let db_path = get_db_path(&app_handle);
     let conn = Connection::open(&db_path).map_err(|e| e.to_string())?;
 
@@ -607,10 +618,14 @@ pub fn audit_unmark_error(app_handle: AppHandle, id: i32) -> Result<bool, String
 
 #[tauri::command]
 pub fn audit_update_error_mark_note(
+    session_store: tauri::State<'_, crate::auth::SessionStore>,
+    token: String,
     app_handle: AppHandle,
     id: i32,
     nota: Option<String>,
 ) -> Result<bool, String> {
+    crate::auth::require_role(&session_store, &token, &["admin", "control_calidad"])?;
+
     let db_path = get_db_path(&app_handle);
     let conn = Connection::open(&db_path).map_err(|e| e.to_string())?;
 
@@ -622,6 +637,8 @@ pub fn audit_update_error_mark_note(
 
 #[tauri::command]
 pub fn audit_propose_correction(
+    session_store: tauri::State<'_, crate::auth::SessionStore>,
+    token: String,
     app_handle: AppHandle,
     station_id: String,
     fecha: String,
@@ -630,8 +647,10 @@ pub fn audit_propose_correction(
     valor_original: String,
     valor_corregido: String,
     justificacion: String,
-    corregido_por: String,
 ) -> Result<Correction, String> {
+    let session = crate::auth::require_role(&session_store, &token, &["admin", "control_calidad"])?;
+    let corregido_por = session.email;
+
     let db_path = get_db_path(&app_handle);
     let conn = Connection::open(&db_path).map_err(|e| e.to_string())?;
 
@@ -805,11 +824,16 @@ fn map_frontend_to_json_calculado_field(campo: &str) -> Option<&'static str> {
 
 #[tauri::command]
 pub fn audit_export_corrected_json(
+    session_store: tauri::State<'_, crate::auth::SessionStore>,
+    token: String,
     pool: tauri::State<'_, crate::db::DbPool>,
     app_handle: AppHandle,
     station_id: String,
     fecha: String, // YYYY-MM-DD
 ) -> Result<String, String> {
+    crate::auth::require_role(&session_store, &token, &["admin", "control_calidad"])?;
+    crate::json_handler::utils::validate_inputs(&station_id, &fecha)?;
+
     // 1. Validar y formatear fecha
     let parts: Vec<&str> = fecha.split('-').collect();
     if parts.len() != 3 {

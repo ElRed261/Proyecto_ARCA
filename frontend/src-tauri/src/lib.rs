@@ -14,6 +14,7 @@ use tauri::Manager;
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .manage(auth::SessionStore::default())
         .invoke_handler(tauri::generate_handler![
             calculations::get_stations,
             calculations::create_station,

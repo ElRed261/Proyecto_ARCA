@@ -35,4 +35,5 @@ regex = "1.12.3"
 trash = "5.2.3"
 r2d2 = "0.8.10"
 r2d2_sqlite = "0.24.0"
+uuid = { version = "1.8.0", features = ["v4"] }
 

@@ -131,14 +131,23 @@ pub fn init_db(app_handle: &AppHandle) -> Result<DbPool, Box<dyn std::error::Err
         |row| row.get(0),
     )?;
 
-    let default_users = vec![
-        ("admin@arca.rd", "admin123", "admin"),
-        ("encargado@arca.rd", "encargado123", "encargado"),
-        ("observador@arca.rd", "observador123", "observador"),
-        ("calidad@arca.rd", "calidad123", "control_calidad"),
-    ];
-
     if count == 0 {
+        use std::fs::File;
+        use std::io::Write;
+        use uuid::Uuid;
+
+        let admin_pass = Uuid::new_v4().to_string()[..12].to_string();
+        let encargado_pass = Uuid::new_v4().to_string()[..12].to_string();
+        let observador_pass = Uuid::new_v4().to_string()[..12].to_string();
+        let calidad_pass = Uuid::new_v4().to_string()[..12].to_string();
+
+        let default_users = vec![
+            ("admin@arca.rd", admin_pass.clone(), "admin"),
+            ("encargado@arca.rd", encargado_pass.clone(), "encargado"),
+            ("observador@arca.rd", observador_pass.clone(), "observador"),
+            ("calidad@arca.rd", calidad_pass.clone(), "control_calidad"),
+        ];
+
         for (email, password, role) in &default_users {
             let password_hash = hash(password, DEFAULT_COST)
                 .map_err(|e| rusqlite::Error::ToSqlConversionFailure(Box::new(e)))?;
@@ -147,22 +156,26 @@ pub fn init_db(app_handle: &AppHandle) -> Result<DbPool, Box<dyn std::error::Err
                 params![email, password_hash, role],
             )?;
         }
-    } else {
-        // Asegurar que el usuario de calidad y otros usuarios por defecto existan si la BD ya fue creada previamente
-        for (email, password, role) in &default_users {
-            let user_exists: i64 = conn.query_row(
-                "SELECT COUNT(*) FROM users WHERE email = ?",
-                [email],
-                |row| row.get(0),
-            )?;
-            if user_exists == 0 {
-                let password_hash = hash(password, DEFAULT_COST)
-                    .map_err(|e| rusqlite::Error::ToSqlConversionFailure(Box::new(e)))?;
-                conn.execute(
-                    "INSERT INTO users (email, password_hash, role, is_active) VALUES (?, ?, ?, 1)",
-                    params![email, password_hash, role],
-                )?;
-            }
+
+        let mut seed_file_path = get_db_path(app_handle);
+        seed_file_path.pop(); // Ir al directorio padre (app_data_dir)
+        seed_file_path.push("primer_inicio.txt");
+
+        if let Ok(mut file) = File::create(&seed_file_path) {
+            let content = format!(
+                "=== CREDENCIALES DE PRIMER INICIO PARA PROYECTO ARCA ===\n\n\
+                 admin@arca.rd : {}\n\
+                 encargado@arca.rd : {}\n\
+                 observador@arca.rd : {}\n\
+                 calidad@arca.rd : {}\n\n\
+                 IMPORTANTE: Por razones de seguridad, cambie estas contraseñas inmediatamente en el panel de administración.\n",
+                admin_pass, encargado_pass, observador_pass, calidad_pass
+            );
+            let _ = file.write_all(content.as_bytes());
+            println!("################################################################");
+            println!("SE HAN GENERADO LAS CREDENCIALES DE PRIMER INICIO EN:");
+            println!("{:?}", seed_file_path);
+            println!("################################################################");
         }
     }
 

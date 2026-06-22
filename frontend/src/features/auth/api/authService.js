@@ -30,11 +30,14 @@ export const authService = {
 
     // --- ADMIN METHODS usando Tauri IPC y Rust ---
     getUsers: async () => {
-        return await invoke('get_users');
+        const token = localStorage.getItem('token') || '';
+        return await invoke('get_users', { token });
     },
 
     updateUser: async (userId, data) => {
+        const token = localStorage.getItem('token') || '';
         return await invoke('update_user', {
+            token,
             userId,
             roleName: data.role_name,
             isActive: data.is_active,
@@ -42,13 +45,16 @@ export const authService = {
     },
 
     changePassword: async (userId, password) => {
+        const token = localStorage.getItem('token') || '';
         return await invoke('change_password', {
+            token,
             userId,
             passwordVal: password,
         });
     },
 
     deleteUser: async (userId) => {
-        return await invoke('delete_user', { userId });
+        const token = localStorage.getItem('token') || '';
+        return await invoke('delete_user', { token, userId });
     },
 };
