@@ -16,10 +16,11 @@ fn get_nubosidad_from_nddff(hora_data_obj: &serde_json::Map<String, Value>) -> O
     if let Some(synop) = hora_data_obj.get("synop").and_then(|s| s.as_object()) {
         if let Some(nddff) = synop.get("Nddff").and_then(|v| v.as_str()) {
             if !nddff.is_empty() {
-                let n_char = nddff.chars().next().unwrap();
-                if let Some(d) = n_char.to_digit(10) {
-                    if d <= 9 {
-                        return Some(d as f64);
+                if let Some(n_char) = nddff.chars().next() {
+                    if let Some(d) = n_char.to_digit(10) {
+                        if d <= 9 {
+                            return Some(d as f64);
+                        }
                     }
                 }
             }
@@ -32,10 +33,11 @@ fn get_nubosidad_fallback(hora_data_obj: &serde_json::Map<String, Value>) -> Opt
     if let Some(synop) = hora_data_obj.get("synop").and_then(|s| s.as_object()) {
         if let Some(g8) = synop.get("8NhCLCMCH").and_then(|v| v.as_str()) {
             if g8.len() >= 2 {
-                let nh_char = g8.chars().nth(1).unwrap();
-                if let Some(d) = nh_char.to_digit(10) {
-                    if d <= 8 {
-                        return Some(d as f64);
+                if let Some(nh_char) = g8.chars().nth(1) {
+                    if let Some(d) = nh_char.to_digit(10) {
+                        if d <= 8 {
+                            return Some(d as f64);
+                        }
                     }
                 }
             }

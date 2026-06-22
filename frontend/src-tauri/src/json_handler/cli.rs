@@ -1,9 +1,93 @@
+use crate::infrastructure::error::AppError;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::fs;
 use tauri::AppHandle;
 use super::utils::*;
 use super::synoptic::*;
+
+fn save_cli_generic(
+    app_handle: &AppHandle,
+    station_id: &str,
+    date: &str,
+    cli_key: &str,
+    data: Value,
+) -> Result<String, AppError> {
+    validate_inputs(station_id, date).map_err(|e| AppError::Validation(e))?;
+    let parts: Vec<&str> = date.split('-').collect();
+    if parts.len() != 3 {
+        return Err(AppError::Validation("La fecha debe tener formato YYYY-MM-DD".to_string()));
+    }
+    let year = parts[0];
+    let month = parts[1];
+
+    let base_dir = get_arca_base_dir(app_handle, "synop");
+    let target_dir = ensure_arca_dirs_with_station(&base_dir, station_id, year, month)
+        .map_err(|e| AppError::Io(std::io::Error::new(std::io::ErrorKind::Other, e)))?;
+
+    let fecha_formatted = format_date_for_filename(date);
+    let file_name = format!("{}{}.json", station_id, fecha_formatted);
+    let file_path = target_dir.join(file_name);
+
+    let mut root_map = if file_path.exists() {
+        let existing_data = fs::read_to_string(&file_path)?;
+        let val: Value = serde_json::from_str(&existing_data).map_err(|e| AppError::Internal(e.to_string()))?;
+        val.as_object().cloned().unwrap_or_else(serde_json::Map::new)
+    } else {
+        let mut map = serde_json::Map::new();
+        let mut meta = serde_json::Map::new();
+        meta.insert("estacion".to_string(), Value::String(station_id.to_string()));
+        meta.insert("fecha".to_string(), Value::String(fecha_formatted.clone()));
+        map.insert("meta".to_string(), Value::Object(meta));
+        map
+    };
+
+    if let Some(meta) = root_map.get_mut("meta").and_then(|m| m.as_object_mut()) {
+        meta.insert(
+            "ultima_actualizacion".to_string(),
+            Value::String(chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string()),
+        );
+    }
+
+    root_map.insert(cli_key.to_string(), data);
+
+    let json_string = serde_json::to_string_pretty(&root_map).map_err(|e| AppError::Internal(e.to_string()))?;
+    fs::write(&file_path, json_string)?;
+
+    Ok(file_path.to_string_lossy().to_string())
+}
+
+fn load_cli_generic(
+    app_handle: &AppHandle,
+    station_id: &str,
+    date: &str,
+    cli_key: &str,
+) -> Result<Value, AppError> {
+    validate_inputs(station_id, date).map_err(|e| AppError::Validation(e))?;
+    let parts: Vec<&str> = date.split('-').collect();
+    if parts.len() != 3 {
+        return Err(AppError::Validation("Formato de fecha inválido".to_string()));
+    }
+    let year = parts[0];
+    let month = parts[1];
+
+    let base_dir = get_arca_base_dir(app_handle, "synop");
+    let file_path = base_dir.join(station_id).join(year).join(month)
+        .join(format!("{}{}.json", station_id, format_date_for_filename(date)));
+
+    if !file_path.exists() {
+        return Ok(Value::Null);
+    }
+
+    let contents = fs::read_to_string(&file_path)?;
+    let root_val: Value = serde_json::from_str(&contents).map_err(|e| AppError::Internal(e.to_string()))?;
+
+    Ok(if let Some(root_obj) = root_val.as_object() {
+        root_obj.get(cli_key).cloned().unwrap_or(Value::Null)
+    } else {
+        Value::Null
+    })
+}
 
 // =============================================================================
 // CLI 3074 - Observaciones de Superficie
@@ -15,51 +99,9 @@ pub fn save_cli3074_json(
     station_id: String,
     date: String,
     data: Value,
-) -> Result<String, String> {
-    validate_inputs(&station_id, &date)?;
-    let parts: Vec<&str> = date.split('-').collect();
-    if parts.len() != 3 {
-        return Err("La fecha debe tener formato YYYY-MM-DD".to_string());
-    }
-
-    let year = parts[0];
-    let month = parts[1];
-
-    let base_dir = get_arca_base_dir(&app_handle, "synop");
-    let target_dir = ensure_arca_dirs_with_station(&base_dir, &station_id, year, month)?;
-
-    let fecha_formatted = format_date_for_filename(&date);
-    let file_name = format!("{}{}.json", station_id, fecha_formatted);
-    let file_path = target_dir.join(file_name);
-
-    // Leer archivo existente si existe para no borrar datos de Synop u otros CLIs
-    let mut root_map = if file_path.exists() {
-        let existing_data = fs::read_to_string(&file_path).map_err(|e| e.to_string())?;
-        let val: Value = serde_json::from_str(&existing_data).map_err(|e| e.to_string())?;
-        val.as_object().cloned().unwrap_or_else(serde_json::Map::new)
-    } else {
-        let mut map = serde_json::Map::new();
-        let mut meta = serde_json::Map::new();
-        meta.insert("estacion".to_string(), Value::String(station_id.clone()));
-        meta.insert("fecha".to_string(), Value::String(fecha_formatted.clone()));
-        map.insert("meta".to_string(), Value::Object(meta));
-        map
-    };
-
-    // Actualizar fecha de última actualización en meta
-    if let Some(meta) = root_map.get_mut("meta").and_then(|m| m.as_object_mut()) {
-        meta.insert(
-            "ultima_actualizacion".to_string(),
-            Value::String(chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string()),
-        );
-    }
-
-    root_map.insert("cli3074".to_string(), data);
-
-    let json_string = serde_json::to_string_pretty(&root_map).map_err(|e| e.to_string())?;
-    fs::write(&file_path, json_string).map_err(|e| format!("Error escribiendo archivo: {}", e))?;
-
-    Ok(format!("Guardado en: {}", file_path.display()))
+) -> Result<String, AppError> {
+    let path = save_cli_generic(&app_handle, &station_id, &date, "cli3074", data)?;
+    Ok(format!("Guardado en: {}", path))
 }
 
 #[tauri::command]
@@ -67,38 +109,8 @@ pub fn load_cli3074_json(
     app_handle: AppHandle,
     station_id: String,
     date: String,
-) -> Result<Value, String> {
-    validate_inputs(&station_id, &date)?;
-    let parts: Vec<&str> = date.split('-').collect();
-    if parts.len() != 3 {
-        return Err("Formato de fecha inválido".to_string());
-    }
-    let year = parts[0];
-    let month = parts[1];
-
-    let base_dir = get_arca_base_dir(&app_handle, "synop");
-    let mut file_path = base_dir.clone();
-    file_path.push(&station_id);
-    file_path.push(year);
-    file_path.push(month);
-
-    let fecha_formatted = format_date_for_filename(&date);
-    let file_name = format!("{}{}.json", station_id, fecha_formatted);
-    file_path.push(file_name);
-
-    if !file_path.exists() {
-        return Ok(Value::Null);
-    }
-
-    let contents = fs::read_to_string(&file_path).map_err(|e| e.to_string())?;
-    let root_val: Value = serde_json::from_str(&contents).map_err(|e| e.to_string())?;
-
-    let json_val = if let Some(root_obj) = root_val.as_object() {
-        root_obj.get("cli3074").cloned().unwrap_or(Value::Null)
-    } else {
-        Value::Null
-    };
-
+) -> Result<Value, AppError> {
+    let json_val = load_cli_generic(&app_handle, &station_id, &date, "cli3074")?;
     if json_val.is_null() {
         return Ok(Value::Null);
     }
@@ -177,7 +189,7 @@ pub fn load_cli3074_json(
                     }
                 }
 
-                let mut result = json_val.as_object().unwrap().clone();
+                let mut result = json_obj.clone();
                 result.insert("horas".to_string(), Value::Object(new_horas));
                 return Ok(Value::Object(result));
             }
@@ -197,47 +209,11 @@ pub fn save_cli4074_json(
     station_id: String,
     date: String,
     data: Value,
-) -> Result<HashMap<String, String>, String> {
-    validate_inputs(&station_id, &date)?;
-    let (year, month) = parse_date_parts(&date);
-
-    let base_dir = get_arca_base_dir(&app_handle, "synop");
-    let target_dir = ensure_arca_dirs_with_station(&base_dir, &station_id, &year, &month)?;
-
-    let fecha_formatted = format_date_for_filename(&date);
-    let file_name = format!("{}{}.json", station_id, fecha_formatted);
-    let file_path = target_dir.join(file_name);
-
-    // Leer archivo existente si existe
-    let mut root_map = if file_path.exists() {
-        let existing_data = fs::read_to_string(&file_path).map_err(|e| e.to_string())?;
-        let val: Value = serde_json::from_str(&existing_data).map_err(|e| e.to_string())?;
-        val.as_object().cloned().unwrap_or_else(serde_json::Map::new)
-    } else {
-        let mut map = serde_json::Map::new();
-        let mut meta = serde_json::Map::new();
-        meta.insert("estacion".to_string(), Value::String(station_id.clone()));
-        meta.insert("fecha".to_string(), Value::String(fecha_formatted.clone()));
-        map.insert("meta".to_string(), Value::Object(meta));
-        map
-    };
-
-    // Actualizar fecha de última actualización en meta
-    if let Some(meta) = root_map.get_mut("meta").and_then(|m| m.as_object_mut()) {
-        meta.insert(
-            "ultima_actualizacion".to_string(),
-            Value::String(chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string()),
-        );
-    }
-
-    root_map.insert("cli4074".to_string(), data);
-
-    let json_string = serde_json::to_string_pretty(&root_map).map_err(|e| e.to_string())?;
-    fs::write(&file_path, json_string).map_err(|e| e.to_string())?;
-
+) -> Result<HashMap<String, String>, AppError> {
+    let path = save_cli_generic(&app_handle, &station_id, &date, "cli4074", data)?;
     let mut result = HashMap::new();
     result.insert("status".to_string(), "saved".to_string());
-    result.insert("path".to_string(), file_path.to_string_lossy().to_string());
+    result.insert("path".to_string(), path);
     Ok(result)
 }
 
@@ -246,39 +222,8 @@ pub fn load_cli4074_json(
     app_handle: AppHandle,
     station_id: String,
     date: String,
-) -> Result<Value, String> {
-    validate_inputs(&station_id, &date)?;
-    let parts: Vec<&str> = date.split('-').collect();
-    if parts.len() != 3 {
-        return Err("Formato de fecha inválido".to_string());
-    }
-    let year = parts[0];
-    let month = parts[1];
-
-    let base_dir = get_arca_base_dir(&app_handle, "synop");
-    let mut file_path = base_dir.clone();
-    file_path.push(&station_id);
-    file_path.push(year);
-    file_path.push(month);
-
-    let fecha_formatted = format_date_for_filename(&date);
-    let file_name = format!("{}{}.json", station_id, fecha_formatted);
-    file_path.push(file_name);
-
-    if !file_path.exists() {
-        return Ok(Value::Null);
-    }
-
-    let contents = fs::read_to_string(&file_path).map_err(|e| e.to_string())?;
-    let root_val: Value = serde_json::from_str(&contents).map_err(|e| e.to_string())?;
-
-    let json_val = if let Some(root_obj) = root_val.as_object() {
-        root_obj.get("cli4074").cloned().unwrap_or(Value::Null)
-    } else {
-        Value::Null
-    };
-
-    Ok(json_val)
+) -> Result<Value, AppError> {
+    load_cli_generic(&app_handle, &station_id, &date, "cli4074")
 }
 
 // =============================================================================
@@ -291,47 +236,11 @@ pub fn save_cli5074_json(
     station_id: String,
     date: String,
     data: Value,
-) -> Result<HashMap<String, String>, String> {
-    validate_inputs(&station_id, &date)?;
-    let (year, month) = parse_date_parts(&date);
-
-    let base_dir = get_arca_base_dir(&app_handle, "synop");
-    let target_dir = ensure_arca_dirs_with_station(&base_dir, &station_id, &year, &month)?;
-
-    let fecha_formatted = format_date_for_filename(&date);
-    let file_name = format!("{}{}.json", station_id, fecha_formatted);
-    let file_path = target_dir.join(file_name);
-
-    // Leer archivo existente si existe
-    let mut root_map = if file_path.exists() {
-        let existing_data = fs::read_to_string(&file_path).map_err(|e| e.to_string())?;
-        let val: Value = serde_json::from_str(&existing_data).map_err(|e| e.to_string())?;
-        val.as_object().cloned().unwrap_or_else(serde_json::Map::new)
-    } else {
-        let mut map = serde_json::Map::new();
-        let mut meta = serde_json::Map::new();
-        meta.insert("estacion".to_string(), Value::String(station_id.clone()));
-        meta.insert("fecha".to_string(), Value::String(fecha_formatted.clone()));
-        map.insert("meta".to_string(), Value::Object(meta));
-        map
-    };
-
-    // Actualizar fecha de última actualización en meta
-    if let Some(meta) = root_map.get_mut("meta").and_then(|m| m.as_object_mut()) {
-        meta.insert(
-            "ultima_actualizacion".to_string(),
-            Value::String(chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string()),
-        );
-    }
-
-    root_map.insert("cli5074".to_string(), data);
-
-    let json_string = serde_json::to_string_pretty(&root_map).map_err(|e| e.to_string())?;
-    fs::write(&file_path, json_string).map_err(|e| e.to_string())?;
-
+) -> Result<HashMap<String, String>, AppError> {
+    let path = save_cli_generic(&app_handle, &station_id, &date, "cli5074", data)?;
     let mut result = HashMap::new();
     result.insert("status".to_string(), "saved".to_string());
-    result.insert("path".to_string(), file_path.to_string_lossy().to_string());
+    result.insert("path".to_string(), path);
     Ok(result)
 }
 
@@ -340,37 +249,6 @@ pub fn load_cli5074_json(
     app_handle: AppHandle,
     station_id: String,
     date: String,
-) -> Result<Value, String> {
-    validate_inputs(&station_id, &date)?;
-    let parts: Vec<&str> = date.split('-').collect();
-    if parts.len() != 3 {
-        return Err("Formato de fecha invalido".to_string());
-    }
-    let year = parts[0];
-    let month = parts[1];
-
-    let base_dir = get_arca_base_dir(&app_handle, "synop");
-    let mut file_path = base_dir.clone();
-    file_path.push(&station_id);
-    file_path.push(year);
-    file_path.push(month);
-
-    let fecha_formatted = format_date_for_filename(&date);
-    let file_name = format!("{}{}.json", station_id, fecha_formatted);
-    file_path.push(file_name);
-
-    if !file_path.exists() {
-        return Ok(Value::Null);
-    }
-
-    let contents = fs::read_to_string(&file_path).map_err(|e| e.to_string())?;
-    let root_val: Value = serde_json::from_str(&contents).map_err(|e| e.to_string())?;
-
-    let json_val = if let Some(root_obj) = root_val.as_object() {
-        root_obj.get("cli5074").cloned().unwrap_or(Value::Null)
-    } else {
-        Value::Null
-    };
-
-    Ok(json_val)
+) -> Result<Value, AppError> {
+    load_cli_generic(&app_handle, &station_id, &date, "cli5074")
 }
