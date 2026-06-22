@@ -15,7 +15,17 @@ dist/
 # --- IDEs ---
 .vscode/
 .idea/
-*.swpBase para modulos/
+*.swp
+
+# --- RUST / TAURI ---
+target/
+frontend/src-tauri/target/
+
+# --- LOCAL DATABASE & ARTIFACTS ---
+*.db
+*.log
+*.bak
+*.xlsm
 
 # --- AGENT TEAMS LITE ---
 .atl/

@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches: [ ERP-Meteorológico, main ]
+  pull_request:
+    branches: [ ERP-Meteorológico, main ]
+
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Frontend Dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Lint Frontend
+        run: |
+          cd frontend
+          npm run lint
+
+      - name: Build Frontend
+        run: |
+          cd frontend
+          npm run build
+
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux Dependencies for Tauri
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgtk-3-dev \
+            libwebkit2gtk-4.1-dev \
+            libjavascriptcoregtk-4.1-dev \
+            libsoup-3.0-dev \
+            curl \
+            wget \
+            file \
+            libappindicator3-dev \
+            librsvg2-dev
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust Cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: frontend/src-tauri -> target
+
+      - name: Cargo Check
+        run: |
+          cd frontend/src-tauri
+          cargo check
+
+      - name: Run Backend Tests
+        run: |
+          cd frontend/src-tauri
+          cargo test
+
+      - name: Rust Clippy
+        run: |
+          cd frontend/src-tauri
+          cargo clippy -- -D warnings
