@@ -1,7 +1,7 @@
-use crate::db::get_db_path;
+use crate::infrastructure::error::AppError;
 use crate::json_handler::utils::get_arca_base_dir;
 use crate::json_handler::synoptic::get_observation;
-use rusqlite::{Connection, params};
+use crate::ports::AuditRepository;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use tauri::AppHandle;
@@ -15,7 +15,7 @@ pub struct StationInfo {
 #[derive(Serialize)]
 pub struct DayInfo {
     pub filename: String,
-    pub date: String, // YYYY-MM-DD
+    pub date: String,
     pub observador: String,
     pub horas_registradas: usize,
     pub error_count: i64,
@@ -77,7 +77,7 @@ pub struct ErrorReportRow {
 }
 
 #[tauri::command]
-pub fn audit_browse_stations(pool: tauri::State<'_, crate::db::DbPool>, app_handle: AppHandle) -> Result<Vec<StationInfo>, String> {
+pub fn audit_browse_stations(pool: tauri::State<'_, crate::db::DbPool>, app_handle: AppHandle) -> Result<Vec<StationInfo>, AppError> {
     let base_dir = get_arca_base_dir(&app_handle, "synop");
     if !base_dir.exists() {
         return Ok(Vec::new());
@@ -88,7 +88,6 @@ pub fn audit_browse_stations(pool: tauri::State<'_, crate::db::DbPool>, app_hand
         for entry in entries.flatten() {
             if entry.file_type().map(|t| t.is_dir()).unwrap_or(false) {
                 let name = entry.file_name().to_string_lossy().to_string();
-                // Validar que sea un número de estación (típicamente 5 dígitos)
                 if name.chars().all(|c| c.is_ascii_digit()) {
                     let station_name = crate::calculations::get_station_info(&pool, &name)
                         .map(|info| info.name)
@@ -103,7 +102,7 @@ pub fn audit_browse_stations(pool: tauri::State<'_, crate::db::DbPool>, app_hand
 }
 
 #[tauri::command]
-pub fn audit_browse_years(app_handle: AppHandle, station: String) -> Result<Vec<String>, String> {
+pub fn audit_browse_years(app_handle: AppHandle, station: String) -> Result<Vec<String>, AppError> {
     let mut station_dir = get_arca_base_dir(&app_handle, "synop");
     station_dir.push(&station);
 
@@ -122,7 +121,7 @@ pub fn audit_browse_years(app_handle: AppHandle, station: String) -> Result<Vec<
             }
         }
     }
-    years.sort_by(|a, b| b.cmp(a)); // Años más recientes primero
+    years.sort_by(|a, b| b.cmp(a));
     Ok(years)
 }
 
@@ -149,7 +148,7 @@ pub fn audit_browse_months(
     app_handle: AppHandle,
     station: String,
     year: String,
-) -> Result<Vec<String>, String> {
+) -> Result<Vec<String>, AppError> {
     let mut year_dir = get_arca_base_dir(&app_handle, "synop");
     year_dir.push(&station);
     year_dir.push(&year);
@@ -194,11 +193,12 @@ pub fn audit_browse_months(
 
 #[tauri::command]
 pub fn audit_browse_days(
+    pool: tauri::State<'_, crate::db::DbPool>,
     app_handle: AppHandle,
     station: String,
     year: String,
     month: String,
-) -> Result<Vec<DayInfo>, String> {
+) -> Result<Vec<DayInfo>, AppError> {
     let mut month_dir = get_arca_base_dir(&app_handle, "synop");
     month_dir.push(&station);
     month_dir.push(&year);
@@ -208,8 +208,10 @@ pub fn audit_browse_days(
         return Ok(Vec::new());
     }
 
-    let db_path = get_db_path(&app_handle);
-    let conn = Connection::open(&db_path).map_err(|e| e.to_string())?;
+    let repo = crate::adapters::sqlite_audit_repository::SqliteAuditRepository::new(pool.inner().clone());
+    let month_prefix = format!("{}-{}-%", year, month);
+    let error_counts = repo.get_daily_error_counts(&station, &month_prefix)?;
+    let correction_counts = repo.get_daily_correction_counts(&station, &month_prefix)?;
 
     let mut days = Vec::new();
     if let Ok(entries) = fs::read_dir(month_dir) {
@@ -218,7 +220,6 @@ pub fn audit_browse_days(
                 let path = entry.path();
                 if path.extension().map_or(false, |ext| ext == "json") {
                     let filename = entry.file_name().to_string_lossy().to_string();
-                    // Extraer fecha
                     let date_str = if filename.len() >= 8 {
                         let base_fname = path.file_stem().unwrap_or_default().to_string_lossy();
                         if base_fname.len() >= 8 {
@@ -235,7 +236,6 @@ pub fn audit_browse_days(
                         format!("{}-{}-01", year, month)
                     };
 
-                    // Intentar leer para sacar el observador y las horas
                     let mut observador = "Desconocido".to_string();
                     let mut horas_registradas = 0;
 
@@ -271,8 +271,8 @@ pub fn audit_browse_days(
                                                     if !v.is_null() {
                                                         if let Some(s) = v.as_str() {
                                                             if !s.trim().is_empty() {
-                                                                tiene_datos = true;
-                                                                break;
+                                                                 tiene_datos = true;
+                                                                 break;
                                                             }
                                                         } else {
                                                             tiene_datos = true;
@@ -291,22 +291,8 @@ pub fn audit_browse_days(
                         }
                     }
 
-                    // Consultar errores y correcciones en la BD para este día
-                    let error_count: i64 = conn
-                        .query_row(
-                            "SELECT COUNT(*) FROM error_marks WHERE station_id = ? AND fecha = ?",
-                            [&station, &date_str],
-                            |row| row.get(0),
-                        )
-                        .unwrap_or(0);
-
-                    let correction_count: i64 = conn
-                        .query_row(
-                            "SELECT COUNT(*) FROM corrections WHERE station_id = ? AND fecha = ?",
-                            [&station, &date_str],
-                            |row| row.get(0),
-                        )
-                        .unwrap_or(0);
+                    let error_count = *error_counts.get(&date_str).unwrap_or(&0);
+                    let correction_count = *correction_counts.get(&date_str).unwrap_or(&0);
 
                     days.push(DayInfo {
                         filename,
@@ -331,76 +317,16 @@ pub fn audit_load_observation(
     app_handle: AppHandle,
     station: String,
     date: String,
-) -> Result<AuditObservationData, String> {
-    // 1. Cargar la observación aplanada usando la función original
-    let mut observation = get_observation(app_handle.clone(), station.clone(), date.clone())?;
+) -> Result<AuditObservationData, AppError> {
+    let mut observation = get_observation(app_handle.clone(), station.clone(), date.clone())
+        .map_err(|e| AppError::Validation(e))?;
 
-    let db_path = get_db_path(&app_handle);
-    let conn = Connection::open(&db_path).map_err(|e| e.to_string())?;
+    let repo = crate::adapters::sqlite_audit_repository::SqliteAuditRepository::new(pool.inner().clone());
 
-    // 2. Cargar todas las correcciones de la base de datos para esta estación y fecha
-    let mut stmt_corr = conn
-        .prepare(
-            "SELECT id, station_id, fecha, hora, campo, valor_original, valor_corregido, \
-             justificacion, corregido_por, aprobado_por, estado, created_at \
-             FROM corrections WHERE station_id = ? AND fecha = ?",
-        )
-        .map_err(|e| e.to_string())?;
+    let corrections = repo.get_corrections(&station, &date)?;
 
-    let corrections_iter = stmt_corr
-        .query_map([&station, &date], |row| {
-            Ok(Correction {
-                id: Some(row.get(0)?),
-                station_id: row.get(1)?,
-                fecha: row.get(2)?,
-                hora: row.get(3)?,
-                campo: row.get(4)?,
-                valor_original: row.get(5)?,
-                valor_corregido: row.get(6)?,
-                justificacion: row.get(7)?,
-                corregido_por: row.get(8)?,
-                aprobado_por: row.get(9)?,
-                estado: row.get(10)?,
-                created_at: Some(row.get(11)?),
-            })
-        })
-        .map_err(|e| e.to_string())?;
+    let mut error_marks = repo.get_error_marks(&station, &date)?;
 
-    let mut corrections = Vec::new();
-    for corr in corrections_iter.flatten() {
-        corrections.push(corr);
-    }
-
-    // 3. Cargar las marcas de error
-    let mut stmt_err = conn
-        .prepare(
-            "SELECT id, station_id, fecha, hora, campo, tipo_error, nota, marcado_por, created_at \
-             FROM error_marks WHERE station_id = ? AND fecha = ?",
-        )
-        .map_err(|e| e.to_string())?;
-
-    let errors_iter = stmt_err
-        .query_map([&station, &date], |row| {
-            Ok(ErrorMark {
-                id: Some(row.get(0)?),
-                station_id: row.get(1)?,
-                fecha: row.get(2)?,
-                hora: row.get(3)?,
-                campo: row.get(4)?,
-                tipo_error: row.get(5)?,
-                nota: row.get(6)?,
-                marcado_por: row.get(7)?,
-                created_at: Some(row.get(8)?),
-            })
-        })
-        .map_err(|e| e.to_string())?;
-
-    let mut error_marks = Vec::new();
-    for mark in errors_iter.flatten() {
-        error_marks.push(mark);
-    }
-
-    // 3.1. Validar nombre de observador faltante por hora de manera automática
     let horas_keys = vec!["00Z", "03Z", "06Z", "09Z", "12Z", "15Z", "18Z", "21Z"];
     let mut nuevas_marcas = Vec::new();
 
@@ -438,32 +364,22 @@ pub fn audit_load_observation(
                                 let nota_err = "Generado automáticamente: observador no especificado en el turno.".to_string();
                                 let marcado_p = "Sistema de Calidad".to_string();
 
-                                let _ = conn.execute(
-                                    "INSERT INTO error_marks (station_id, fecha, hora, campo, tipo_error, nota, marcado_por) \
-                                     VALUES (?, ?, ?, ?, ?, ?, ?)",
-                                    params![
-                                        station,
-                                        date,
-                                        *hora,
-                                        "observador",
-                                        tipo_err,
-                                        nota_err,
-                                        marcado_p
-                                    ],
-                                );
+                                let new_mark = ErrorMark {
+                                    id: None,
+                                    station_id: station.clone(),
+                                    fecha: date.clone(),
+                                    hora: hora.to_string(),
+                                    campo: "observador".to_string(),
+                                    tipo_error: tipo_err.clone(),
+                                    nota: Some(nota_err.clone()),
+                                    marcado_por: marcado_p.clone(),
+                                    created_at: Some(chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string()),
+                                };
 
-                                if let Ok(last_id) = conn.query_row("SELECT last_insert_rowid()", [], |row| row.get::<_, i32>(0)) {
-                                    nuevas_marcas.push(ErrorMark {
-                                        id: Some(last_id),
-                                        station_id: station.clone(),
-                                        fecha: date.clone(),
-                                        hora: hora.to_string(),
-                                        campo: "observador".to_string(),
-                                        tipo_error: tipo_err,
-                                        nota: Some(nota_err),
-                                        marcado_por: marcado_p,
-                                        created_at: Some(chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string()),
-                                    });
+                                if let Ok(inserted_id) = repo.mark_error(&new_mark) {
+                                    let mut final_mark = new_mark.clone();
+                                    final_mark.id = Some(inserted_id);
+                                    nuevas_marcas.push(final_mark);
                                 }
                             }
                         }
@@ -474,11 +390,9 @@ pub fn audit_load_observation(
     }
     error_marks.extend(nuevas_marcas);
 
-    // 4. Superponer correcciones aprobadas sobre la observación aplanada
     if let Some(obs_obj) = observation.as_object_mut() {
         for corr in &corrections {
             if corr.estado == "aprobado" {
-                // Las observaciones aplanadas estructuran los datos por hora ("06Z", "12Z", etc.)
                 if let Some(hora_val) = obs_obj.get_mut(&corr.hora) {
                     if let Some(hora_obj) = hora_val.as_object_mut() {
                         hora_obj.insert(corr.campo.clone(), serde_json::Value::String(corr.valor_corregido.clone()));
@@ -487,7 +401,6 @@ pub fn audit_load_observation(
             }
         }
 
-        // Recalcular campos automáticos/calculados tras aplicar correcciones
         for (_hora_key, hora_val) in obs_obj.iter_mut() {
             if let Some(hora_obj) = hora_val.as_object_mut() {
                 let ts = hora_obj.get("ts").and_then(|v| v.as_str()).map(|s| s.to_string());
@@ -511,7 +424,6 @@ pub fn audit_load_observation(
 
                 let calc_res = crate::calculations::realizar_calculos(&pool, calc_req);
 
-                // Insertar los nuevos calculados recalculados
                 hora_obj.insert("tension_vapor".to_string(), serde_json::Value::String(calc_res.tension_vapor));
                 hora_obj.insert("humedad_relativa".to_string(), serde_json::Value::String(calc_res.humedad_relativa));
                 hora_obj.insert("punto_rocio".to_string(), serde_json::Value::String(calc_res.punto_rocio));
@@ -532,46 +444,22 @@ pub fn audit_load_observation(
 pub fn audit_mark_error(
     session_store: tauri::State<'_, crate::auth::SessionStore>,
     token: String,
-    app_handle: AppHandle,
+    pool: tauri::State<'_, crate::db::DbPool>,
+    _app_handle: AppHandle,
     station_id: String,
     fecha: String,
     hora: String,
     campo: String,
     tipo_error: String,
     nota: Option<String>,
-) -> Result<ErrorMark, String> {
+) -> Result<ErrorMark, AppError> {
     let session = crate::auth::require_role(&session_store, &token, &["admin", "control_calidad"])?;
     let marcado_por = session.email;
 
-    let db_path = get_db_path(&app_handle);
-    let conn = Connection::open(&db_path).map_err(|e| e.to_string())?;
+    let repo = crate::adapters::sqlite_audit_repository::SqliteAuditRepository::new(pool.inner().clone());
 
-    // Evitar marcas duplicadas para el mismo campo/hora/fecha
-    let exists: i64 = conn
-        .query_row(
-            "SELECT COUNT(*) FROM error_marks WHERE station_id = ? AND fecha = ? AND hora = ? AND campo = ?",
-            [&station_id, &fecha, &hora, &campo],
-            |row| row.get(0),
-        )
-        .unwrap_or(0);
-
-    if exists > 0 {
-        return Err("Este campo ya está marcado como error".to_string());
-    }
-
-    conn.execute(
-        "INSERT INTO error_marks (station_id, fecha, hora, campo, tipo_error, nota, marcado_por) \
-         VALUES (?, ?, ?, ?, ?, ?, ?)",
-        params![station_id, fecha, hora, campo, tipo_error, nota, marcado_por],
-    )
-    .map_err(|e| e.to_string())?;
-
-    let last_id: i32 = conn
-        .query_row("SELECT last_insert_rowid()", [], |row| row.get(0))
-        .map_err(|e| e.to_string())?;
-
-    Ok(ErrorMark {
-        id: Some(last_id),
+    let mark = ErrorMark {
+        id: None,
         station_id,
         fecha,
         hora,
@@ -580,38 +468,33 @@ pub fn audit_mark_error(
         nota,
         marcado_por,
         created_at: Some(chrono::Local::now().to_rfc3339()),
-    })
+    };
+
+    let inserted_id = repo.mark_error(&mark)?;
+
+    let mut final_mark = mark;
+    final_mark.id = Some(inserted_id);
+
+    Ok(final_mark)
 }
 
 #[tauri::command]
 pub fn audit_unmark_error(
     session_store: tauri::State<'_, crate::auth::SessionStore>,
     token: String,
-    app_handle: AppHandle,
+    pool: tauri::State<'_, crate::db::DbPool>,
+    _app_handle: AppHandle,
     id: i32,
-) -> Result<bool, String> {
+) -> Result<bool, AppError> {
     crate::auth::require_role(&session_store, &token, &["admin", "control_calidad"])?;
 
-    let db_path = get_db_path(&app_handle);
-    let conn = Connection::open(&db_path).map_err(|e| e.to_string())?;
+    let repo = crate::adapters::sqlite_audit_repository::SqliteAuditRepository::new(pool.inner().clone());
 
-    // Obtener los detalles de la marca de error antes de borrarla para poder borrar también la corrección propuesta
-    let mark_info: Result<(String, String, String, String), _> = conn.query_row(
-        "SELECT station_id, fecha, hora, campo FROM error_marks WHERE id = ?",
-        [id],
-        |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
-    );
-
-    if let Ok((station_id, fecha, hora, campo)) = mark_info {
-        // Borrar correcciones propuestas para este campo
-        let _ = conn.execute(
-            "DELETE FROM corrections WHERE station_id = ? AND fecha = ? AND hora = ? AND campo = ?",
-            [station_id, fecha, hora, campo],
-        );
+    if let Ok((station_id, fecha, hora, campo)) = repo.get_mark_details(id) {
+        let _ = repo.delete_corrections_by_mark(&station_id, &fecha, &hora, &campo);
     }
 
-    conn.execute("DELETE FROM error_marks WHERE id = ?", [id])
-        .map_err(|e| e.to_string())?;
+    repo.unmark_error(id)?;
 
     Ok(true)
 }
@@ -620,17 +503,15 @@ pub fn audit_unmark_error(
 pub fn audit_update_error_mark_note(
     session_store: tauri::State<'_, crate::auth::SessionStore>,
     token: String,
-    app_handle: AppHandle,
+    pool: tauri::State<'_, crate::db::DbPool>,
+    _app_handle: AppHandle,
     id: i32,
     nota: Option<String>,
-) -> Result<bool, String> {
+) -> Result<bool, AppError> {
     crate::auth::require_role(&session_store, &token, &["admin", "control_calidad"])?;
 
-    let db_path = get_db_path(&app_handle);
-    let conn = Connection::open(&db_path).map_err(|e| e.to_string())?;
-
-    conn.execute("UPDATE error_marks SET nota = ? WHERE id = ?", params![nota, id])
-        .map_err(|e| e.to_string())?;
+    let repo = crate::adapters::sqlite_audit_repository::SqliteAuditRepository::new(pool.inner().clone());
+    repo.update_mark_note(id, nota)?;
 
     Ok(true)
 }
@@ -639,7 +520,8 @@ pub fn audit_update_error_mark_note(
 pub fn audit_propose_correction(
     session_store: tauri::State<'_, crate::auth::SessionStore>,
     token: String,
-    app_handle: AppHandle,
+    pool: tauri::State<'_, crate::db::DbPool>,
+    _app_handle: AppHandle,
     station_id: String,
     fecha: String,
     hora: String,
@@ -647,147 +529,45 @@ pub fn audit_propose_correction(
     valor_original: String,
     valor_corregido: String,
     justificacion: String,
-) -> Result<Correction, String> {
+) -> Result<Correction, AppError> {
     let session = crate::auth::require_role(&session_store, &token, &["admin", "control_calidad"])?;
     let corregido_por = session.email;
 
-    let db_path = get_db_path(&app_handle);
-    let conn = Connection::open(&db_path).map_err(|e| e.to_string())?;
+    let repo = crate::adapters::sqlite_audit_repository::SqliteAuditRepository::new(pool.inner().clone());
 
-    // Borrar correcciones previas para el mismo campo/hora/fecha
-    let _ = conn.execute(
-        "DELETE FROM corrections WHERE station_id = ? AND fecha = ? AND hora = ? AND campo = ?",
-        [&station_id, &fecha, &hora, &campo],
-    );
-
-    // Como solo el admin o control_calidad pueden invocar esto (validado en frontend),
-    // se aprueba directamente al guardarse
-    let estado = "aprobado".to_string();
-
-    conn.execute(
-        "INSERT INTO corrections (station_id, fecha, hora, campo, valor_original, valor_corregido, \
-         justificacion, corregido_por, aprobado_por, estado) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        params![
-            station_id,
-            fecha,
-            hora,
-            campo,
-            valor_original,
-            valor_corregido,
-            justificacion,
-            corregido_por,
-            Some(corregido_por.clone()),
-            estado
-        ],
-    )
-    .map_err(|e| e.to_string())?;
-
-    let last_id: i32 = conn
-        .query_row("SELECT last_insert_rowid()", [], |row| row.get(0))
-        .map_err(|e| e.to_string())?;
-
-    Ok(Correction {
-        id: Some(last_id),
-        station_id,
-        fecha,
-        hora,
-        campo,
+    let corr = Correction {
+        id: None,
+        station_id: station_id.clone(),
+        fecha: fecha.clone(),
+        hora: hora.clone(),
+        campo: campo.clone(),
         valor_original,
         valor_corregido,
         justificacion,
         corregido_por: corregido_por.clone(),
-        aprobado_por: Some(corregido_por),
-        estado,
+        aprobado_por: Some(corregido_por.clone()),
+        estado: "aprobado".to_string(),
         created_at: Some(chrono::Local::now().to_rfc3339()),
-    })
+    };
+
+    let inserted_id = repo.propose_correction(&corr)?;
+    
+    let mut final_corr = corr;
+    final_corr.id = Some(inserted_id);
+
+    Ok(final_corr)
 }
 
 #[tauri::command]
 pub fn audit_get_error_report(
-    app_handle: AppHandle,
+    pool: tauri::State<'_, crate::db::DbPool>,
+    _app_handle: AppHandle,
     station_id: Option<String>,
     year: Option<String>,
     month: Option<String>,
-) -> Result<Vec<ErrorReportRow>, String> {
-    let db_path = get_db_path(&app_handle);
-    let conn = Connection::open(&db_path).map_err(|e| e.to_string())?;
-
-    let mut query = "SELECT e.id, e.station_id, e.fecha, e.hora, e.campo, e.tipo_error, e.nota, e.marcado_por, \
-                     c.valor_original, c.valor_corregido, c.justificacion, c.corregido_por, c.estado, e.created_at \
-                     FROM error_marks e \
-                     LEFT JOIN corrections c ON e.station_id = c.station_id AND e.fecha = c.fecha AND e.hora = c.hora AND e.campo = c.campo \
-                     WHERE 1=1".to_string();
-
-    let mut args: Vec<String> = Vec::new();
-
-    if let Some(ref st) = station_id {
-        if !st.is_empty() {
-            query.push_str(" AND e.station_id = ?");
-            args.push(st.clone());
-        }
-    }
-
-    if let Some(ref y) = year {
-        if !y.is_empty() {
-            query.push_str(" AND e.fecha LIKE ?");
-            args.push(format!("{}-%", y));
-        }
-    }
-
-    if let Some(ref m) = month {
-        if !m.is_empty() {
-            // El formato de fecha es YYYY-MM-DD
-            if let Some(ref y) = year {
-                if !y.is_empty() {
-                    // Si ya se especificó año, filtramos por YYYY-MM-%
-                    query.pop(); // Sacar el "AND e.fecha LIKE ?" anterior
-                    args.pop();
-                    query.push_str(" AND e.fecha LIKE ?");
-                    args.push(format!("{}-{}-%", y, m));
-                } else {
-                    query.push_str(" AND e.fecha LIKE ?");
-                    args.push(format!("%-{}-%", m));
-                }
-            } else {
-                query.push_str(" AND e.fecha LIKE ?");
-                args.push(format!("%-{}-%", m));
-            }
-        }
-    }
-
-    query.push_str(" ORDER BY e.fecha DESC, e.hora ASC");
-
-    let mut stmt = conn.prepare(&query).map_err(|e| e.to_string())?;
-
-    // rusqlite requiere que pasemos los parámetros. Dado que el número de argumentos varía,
-    // usamos query_map pasándole una referencia a los parámetros mapeados de rusqlite::params_from_iter.
-    let rows_iter = stmt
-        .query_map(rusqlite::params_from_iter(args.iter()), |row| {
-            Ok(ErrorReportRow {
-                error_id: row.get(0)?,
-                station_id: row.get(1)?,
-                fecha: row.get(2)?,
-                hora: row.get(3)?,
-                campo: row.get(4)?,
-                tipo_error: row.get(5)?,
-                nota: row.get(6)?,
-                marcado_por: row.get(7)?,
-                valor_original: row.get(8)?,
-                valor_corregido: row.get(9)?,
-                justificacion: row.get(10)?,
-                corregido_por: row.get(11)?,
-                estado: row.get(12)?,
-                created_at: row.get(13)?,
-            })
-        })
-        .map_err(|e| e.to_string())?;
-
-    let mut rows = Vec::new();
-    for row in rows_iter.flatten() {
-        rows.push(row);
-    }
-
-    Ok(rows)
+) -> Result<Vec<ErrorReportRow>, AppError> {
+    let repo = crate::adapters::sqlite_audit_repository::SqliteAuditRepository::new(pool.inner().clone());
+    repo.get_error_report(station_id, year, month)
 }
 
 fn map_frontend_to_json_datos_field(campo: &str) -> Option<&'static str> {
@@ -829,15 +609,15 @@ pub fn audit_export_corrected_json(
     pool: tauri::State<'_, crate::db::DbPool>,
     app_handle: AppHandle,
     station_id: String,
-    fecha: String, // YYYY-MM-DD
-) -> Result<String, String> {
+    fecha: String,
+) -> Result<String, AppError> {
     crate::auth::require_role(&session_store, &token, &["admin", "control_calidad"])?;
-    crate::json_handler::utils::validate_inputs(&station_id, &fecha)?;
+    crate::json_handler::utils::validate_inputs(&station_id, &fecha)
+        .map_err(|e| AppError::Validation(e))?;
 
-    // 1. Validar y formatear fecha
     let parts: Vec<&str> = fecha.split('-').collect();
     if parts.len() != 3 {
-        return Err("Formato de fecha inválido. Debe ser YYYY-MM-DD".to_string());
+        return Err(AppError::Validation("Formato de fecha inválido. Debe ser YYYY-MM-DD".to_string()));
     }
     let year = parts[0];
     let month = parts[1];
@@ -850,84 +630,62 @@ pub fn audit_export_corrected_json(
     let original_filepath = dir_path.join(&filename);
 
     if !original_filepath.exists() {
-        return Err(format!("No existe la observación original en {:?}", original_filepath));
+        return Err(AppError::NotFound(format!("No existe la observación original en {:?}", original_filepath)));
     }
 
-    // 2. Leer JSON original
-    let existing_data = fs::read_to_string(&original_filepath).map_err(|e| e.to_string())?;
-    let mut root_val: serde_json::Value = serde_json::from_str(&existing_data).map_err(|e| e.to_string())?;
+    let existing_data = fs::read_to_string(&original_filepath)?;
+    let mut root_val: serde_json::Value = serde_json::from_str(&existing_data)?;
 
-    // 3. Cargar correcciones aprobadas de la base de datos
-    let db_path = get_db_path(&app_handle);
-    let conn = Connection::open(&db_path).map_err(|e| e.to_string())?;
-    let mut stmt = conn.prepare(
-        "SELECT hora, campo, valor_corregido FROM corrections \
-         WHERE station_id = ? AND fecha = ? AND estado = 'aprobado'"
-    ).map_err(|e| e.to_string())?;
-    
-    let corrections_rows = stmt.query_map([&station_id, &fecha], |row| {
-        Ok((
-            row.get::<_, String>(0)?,
-            row.get::<_, String>(1)?,
-            row.get::<_, String>(2)?,
-        ))
-    }).map_err(|e| e.to_string())?;
+    let repo = crate::adapters::sqlite_audit_repository::SqliteAuditRepository::new(pool.inner().clone());
+    let corrections_rows = repo.get_approved_corrections_for_date(&station_id, &fecha)?;
 
-    // 4. Aplicar overlay de correcciones
     if let Some(root_obj) = root_val.as_object_mut() {
         if let Some(horas_val) = root_obj.get_mut("horas") {
             if let Some(horas_obj) = horas_val.as_object_mut() {
-                for corr_res in corrections_rows {
-                    if let Ok((hora, campo, valor_corregido)) = corr_res {
-                        if let Some(hora_val) = horas_obj.get_mut(&hora) {
-                            if let Some(hora_obj) = hora_val.as_object_mut() {
-                                // Observador
-                                if campo == "nombre_observador" || campo == "observador" {
-                                    hora_obj.insert("observador".to_string(), serde_json::Value::String(valor_corregido));
-                                }
-                                // Campos instrumentales (datos)
-                                else if let Some(datos_field) = map_frontend_to_json_datos_field(&campo) {
-                                    if let Some(datos_val) = hora_obj.get_mut("datos") {
-                                        if let Some(datos_obj) = datos_val.as_object_mut() {
-                                            datos_obj.insert(datos_field.to_string(), serde_json::Value::String(valor_corregido));
-                                        }
-                                    } else {
-                                        let mut datos_obj = serde_json::Map::new();
+                for (hora, campo, valor_corregido) in corrections_rows {
+                    if let Some(hora_val) = horas_obj.get_mut(&hora) {
+                        if let Some(hora_obj) = hora_val.as_object_mut() {
+                            if campo == "nombre_observador" || campo == "observador" {
+                                hora_obj.insert("observador".to_string(), serde_json::Value::String(valor_corregido));
+                            }
+                            else if let Some(datos_field) = map_frontend_to_json_datos_field(&campo) {
+                                if let Some(datos_val) = hora_obj.get_mut("datos") {
+                                    if let Some(datos_obj) = datos_val.as_object_mut() {
                                         datos_obj.insert(datos_field.to_string(), serde_json::Value::String(valor_corregido));
-                                        hora_obj.insert("datos".to_string(), serde_json::Value::Object(datos_obj));
                                     }
+                                } else {
+                                    let mut datos_obj = serde_json::Map::new();
+                                    datos_obj.insert(datos_field.to_string(), serde_json::Value::String(valor_corregido));
+                                    hora_obj.insert("datos".to_string(), serde_json::Value::Object(datos_obj));
                                 }
-                                // Campos calculados
-                                else if let Some(calc_field) = map_frontend_to_json_calculado_field(&campo) {
-                                    if let Some(calc_val) = hora_obj.get_mut("calculado") {
-                                        if let Some(calc_obj) = calc_val.as_object_mut() {
-                                            calc_obj.insert(calc_field.to_string(), serde_json::Value::String(valor_corregido));
-                                        }
-                                    } else {
-                                        let mut calc_obj = serde_json::Map::new();
+                            }
+                            else if let Some(calc_field) = map_frontend_to_json_calculado_field(&campo) {
+                                if let Some(calc_val) = hora_obj.get_mut("calculado") {
+                                    if let Some(calc_obj) = calc_val.as_object_mut() {
                                         calc_obj.insert(calc_field.to_string(), serde_json::Value::String(valor_corregido));
-                                        hora_obj.insert("calculado".to_string(), serde_json::Value::Object(calc_obj));
                                     }
+                                } else {
+                                    let mut calc_obj = serde_json::Map::new();
+                                    calc_obj.insert(calc_field.to_string(), serde_json::Value::String(valor_corregido));
+                                    hora_obj.insert("calculado".to_string(), serde_json::Value::Object(calc_obj));
                                 }
-                                // Campos SYNOP
-                                else {
-                                    let synop_field = crate::json_handler::synoptic::to_synop_name(&campo);
-                                    if let Some(synop_val) = hora_obj.get_mut("synop") {
-                                        if let Some(synop_obj) = synop_val.as_object_mut() {
-                                            synop_obj.insert(synop_field, serde_json::Value::String(valor_corregido));
-                                        }
-                                    } else {
-                                        let mut synop_obj = serde_json::Map::new();
+                            }
+                            else {
+                                let synop_field = crate::json_handler::synoptic::to_synop_name(&campo);
+                                if let Some(synop_val) = hora_obj.get_mut("synop") {
+                                    if let Some(synop_obj) = synop_val.as_object_mut() {
                                         synop_obj.insert(synop_field, serde_json::Value::String(valor_corregido));
-                                        hora_obj.insert("synop".to_string(), serde_json::Value::Object(synop_obj));
                                     }
+                                } else {
+                                    let mut synop_obj = serde_json::Map::new();
+                                    synop_obj.insert(synop_field, serde_json::Value::String(valor_corregido));
+                                    hora_obj.insert("synop".to_string(), serde_json::Value::Object(synop_obj));
                                 }
                             }
                         }
                     }
                 }
 
-                // 5. Recalcular las variables derivadas para todas las horas tras aplicar correcciones
                 for (_hora_key, hora_val) in horas_obj.iter_mut() {
                     if let Some(hora_obj) = hora_val.as_object_mut() {
                         let mut ts = None;
@@ -977,7 +735,6 @@ pub fn audit_export_corrected_json(
             }
         }
 
-        // Actualizar ultima_actualizacion en meta
         if let Some(meta_val) = root_obj.get_mut("meta") {
             if let Some(meta_obj) = meta_val.as_object_mut() {
                 meta_obj.insert(
@@ -988,17 +745,16 @@ pub fn audit_export_corrected_json(
         }
     }
 
-    // 6. Escribir a subcarpeta correcciones
     let corr_dir = dir_path.join("correcciones");
     if !corr_dir.exists() {
-        fs::create_dir_all(&corr_dir).map_err(|e| e.to_string())?;
+        fs::create_dir_all(&corr_dir)?;
     }
     
     let corr_filename = format!("{}{}_cor.json", station_id, filename_date);
     let corr_filepath = corr_dir.join(&corr_filename);
     
-    let data_str = serde_json::to_string_pretty(&root_val).map_err(|e| e.to_string())?;
-    fs::write(&corr_filepath, data_str).map_err(|e| e.to_string())?;
+    let data_str = serde_json::to_string_pretty(&root_val)?;
+    fs::write(&corr_filepath, data_str)?;
     
     Ok(corr_filepath.to_string_lossy().to_string())
 }
@@ -1013,133 +769,12 @@ pub struct PersonSummaryRow {
 
 #[tauri::command]
 pub fn audit_get_person_summary(
-    app_handle: AppHandle,
+    pool: tauri::State<'_, crate::db::DbPool>,
+    _app_handle: AppHandle,
     station_id: Option<String>,
     year: Option<String>,
     month: Option<String>,
-) -> Result<Vec<PersonSummaryRow>, String> {
-    use std::collections::HashMap;
-
-    let db_path = get_db_path(&app_handle);
-    let conn = Connection::open(&db_path).map_err(|e| e.to_string())?;
-
-    let mut map: HashMap<String, PersonSummaryRow> = HashMap::new();
-
-    // 1. Obtener errores marcados
-    let mut err_query = "SELECT marcado_por, COUNT(*) FROM error_marks WHERE 1=1".to_string();
-    let mut err_args: Vec<String> = Vec::new();
-
-    if let Some(ref st) = station_id {
-        if !st.is_empty() {
-            err_query.push_str(" AND station_id = ?");
-            err_args.push(st.clone());
-        }
-    }
-
-    if let Some(ref y) = year {
-        if !y.is_empty() {
-            err_query.push_str(" AND fecha LIKE ?");
-            err_args.push(format!("{}-%", y));
-        }
-    }
-
-    if let Some(ref m) = month {
-        if !m.is_empty() {
-            if let Some(ref y) = year {
-                if !y.is_empty() {
-                    err_query.pop();
-                    err_args.pop();
-                    err_query.push_str(" AND fecha LIKE ?");
-                    err_args.push(format!("{}-{}-%", y, m));
-                } else {
-                    err_query.push_str(" AND fecha LIKE ?");
-                    err_args.push(format!("%-{}-%", m));
-                }
-            } else {
-                err_query.push_str(" AND fecha LIKE ?");
-                err_args.push(format!("%-{}-%", m));
-            }
-        }
-    }
-
-    err_query.push_str(" GROUP BY marcado_por");
-
-    let mut err_stmt = conn.prepare(&err_query).map_err(|e| e.to_string())?;
-    let err_rows = err_stmt.query_map(rusqlite::params_from_iter(err_args.iter()), |row| {
-        Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
-    }).map_err(|e| e.to_string())?;
-
-    for r in err_rows.flatten() {
-        let (persona, count) = r;
-        map.insert(persona.clone(), PersonSummaryRow {
-            persona,
-            errores_marcados: count,
-            correcciones_propuestas: 0,
-            correcciones_aprobadas: 0,
-        });
-    }
-
-    // 2. Obtener correcciones
-    let mut corr_query = "SELECT corregido_por, COUNT(*), SUM(CASE WHEN estado = 'aprobado' THEN 1 ELSE 0 END) FROM corrections WHERE 1=1".to_string();
-    let mut corr_args: Vec<String> = Vec::new();
-
-    if let Some(ref st) = station_id {
-        if !st.is_empty() {
-            corr_query.push_str(" AND station_id = ?");
-            corr_args.push(st.clone());
-        }
-    }
-
-    if let Some(ref y) = year {
-        if !y.is_empty() {
-            corr_query.push_str(" AND fecha LIKE ?");
-            corr_args.push(format!("{}-%", y));
-        }
-    }
-
-    if let Some(ref m) = month {
-        if !m.is_empty() {
-            if let Some(ref y) = year {
-                if !y.is_empty() {
-                    corr_query.pop();
-                    corr_args.pop();
-                    corr_query.push_str(" AND fecha LIKE ?");
-                    corr_args.push(format!("{}-{}-%", y, m));
-                } else {
-                    corr_query.push_str(" AND fecha LIKE ?");
-                    corr_args.push(format!("%-{}-%", m));
-                }
-            } else {
-                corr_query.push_str(" AND fecha LIKE ?");
-                corr_args.push(format!("%-{}-%", m));
-            }
-        }
-    }
-
-    corr_query.push_str(" GROUP BY corregido_por");
-
-    let mut corr_stmt = conn.prepare(&corr_query).map_err(|e| e.to_string())?;
-    let corr_rows = corr_stmt.query_map(rusqlite::params_from_iter(corr_args.iter()), |row| {
-        Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?, row.get::<_, i64>(2)?))
-    }).map_err(|e| e.to_string())?;
-
-    for r in corr_rows.flatten() {
-        let (persona, total, aprobadas) = r;
-        if let Some(row) = map.get_mut(&persona) {
-            row.correcciones_propuestas = total;
-            row.correcciones_aprobadas = aprobadas;
-        } else {
-            map.insert(persona.clone(), PersonSummaryRow {
-                persona,
-                errores_marcados: 0,
-                correcciones_propuestas: total,
-                correcciones_aprobadas: aprobadas,
-            });
-        }
-    }
-
-    let mut res: Vec<PersonSummaryRow> = map.into_values().collect();
-    res.sort_by(|a, b| b.errores_marcados.cmp(&a.errores_marcados));
-    Ok(res)
+) -> Result<Vec<PersonSummaryRow>, AppError> {
+    let repo = crate::adapters::sqlite_audit_repository::SqliteAuditRepository::new(pool.inner().clone());
+    repo.get_person_summary(station_id, year, month)
 }
-

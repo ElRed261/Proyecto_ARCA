@@ -3,9 +3,12 @@ use serde::{Deserialize, Serialize};
 use bcrypt::{hash, verify, DEFAULT_COST};
 use tauri::{AppHandle, command, State};
 use crate::db::get_db_path;
+use crate::infrastructure::error::AppError;
 use std::collections::HashMap;
 use std::sync::Mutex;
-use uuid::Uuid;
+use std::sync::atomic::{AtomicUsize, Ordering};
+
+static COUNTER: AtomicUsize = AtomicUsize::new(0);
 
 #[derive(Clone, Debug)]
 pub struct Session {
@@ -29,7 +32,9 @@ impl Default for SessionStore {
 
 impl SessionStore {
     pub fn create_session(&self, user_id: i64, email: String, role: String) -> String {
-        let token = Uuid::new_v4().to_string();
+        let count = COUNTER.fetch_add(1, Ordering::SeqCst);
+        let timestamp = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
+        let token = format!("{:x}-{:x}", timestamp, count);
         let session = Session {
             user_id,
             email,
@@ -41,17 +46,16 @@ impl SessionStore {
         token
     }
 
-    pub fn validate_session(&self, token: &str) -> Result<Session, String> {
+    pub fn validate_session(&self, token: &str) -> Result<Session, AppError> {
         let sessions = self.sessions.lock().unwrap();
         if let Some(session) = sessions.get(token) {
             let now = chrono::Utc::now().timestamp();
-            // 8 horas de sesión
             if now - session.created_at > 28800 {
-                return Err("Sesión expirada".to_string());
+                return Err(AppError::Unauthorized("Sesión expirada".to_string()));
             }
             Ok(session.clone())
         } else {
-            Err("Sesión no encontrada o inválida".to_string())
+            Err(AppError::Unauthorized("Sesión no encontrada o inválida".to_string()))
         }
     }
 
@@ -137,10 +141,10 @@ pub fn require_role(
     session_store: &SessionStore,
     token: &str,
     allowed_roles: &[&str],
-) -> Result<Session, String> {
+) -> Result<Session, AppError> {
     let session = session_store.validate_session(token)?;
     if !allowed_roles.contains(&session.role.as_str()) {
-        return Err("No autorizado: privilegios insuficientes".to_string());
+        return Err(AppError::Unauthorized("No autorizado: privilegios insuficientes".to_string()));
     }
     Ok(session)
 }
@@ -151,7 +155,7 @@ pub fn get_users(
     session_store: State<'_, SessionStore>,
     token: String,
 ) -> Result<Vec<UserResponse>, String> {
-    require_role(&session_store, &token, &["admin"])?;
+    require_role(&session_store, &token, &["admin"]).map_err(|e| e.to_string())?;
 
     let db_path = get_db_path(&app_handle);
     let conn = Connection::open(&db_path).map_err(|e| e.to_string())?;
@@ -198,7 +202,7 @@ pub fn update_user(
     role_name: String,
     is_active: bool,
 ) -> Result<String, String> {
-    require_role(&session_store, &token, &["admin"])?;
+    require_role(&session_store, &token, &["admin"]).map_err(|e| e.to_string())?;
 
     let db_path = get_db_path(&app_handle);
     let conn = Connection::open(&db_path).map_err(|e| e.to_string())?;
@@ -222,7 +226,7 @@ pub fn change_password(
     user_id: i64,
     password_val: String,
 ) -> Result<String, String> {
-    let session = session_store.validate_session(&token)?;
+    let session = session_store.validate_session(&token).map_err(|e| e.to_string())?;
     // Permite cambiar contraseña si es admin o si el usuario coincide
     if session.role != "admin" && session.user_id != user_id {
         return Err("No autorizado: no puede cambiar la contraseña de otro usuario".to_string());
@@ -253,7 +257,7 @@ pub fn delete_user(
     token: String,
     user_id: i64,
 ) -> Result<String, String> {
-    require_role(&session_store, &token, &["admin"])?;
+    require_role(&session_store, &token, &["admin"]).map_err(|e| e.to_string())?;
 
     let db_path = get_db_path(&app_handle);
     let conn = Connection::open(&db_path).map_err(|e| e.to_string())?;
@@ -286,5 +290,123 @@ pub fn validate_user_role(conn: &Connection, user_id: i64, allowed_roles: &[&str
             Ok(allowed_roles.contains(&role.as_str()))
         }
         Err(_) => Ok(false),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_create_session_returns_non_empty_token() {
+        let store = SessionStore::default();
+        let token = store.create_session(1, "test@arca.do".to_string(), "admin".to_string());
+        assert!(!token.is_empty(), "Token no debe estar vacío");
+    }
+
+    #[test]
+    fn test_create_session_stores_session_data() {
+        let store = SessionStore::default();
+        let token = store.create_session(42, "user@arca.do".to_string(), "control_calidad".to_string());
+        let session = store.validate_session(&token).expect("Sesión válida");
+        assert_eq!(session.user_id, 42);
+        assert_eq!(session.email, "user@arca.do");
+        assert_eq!(session.role, "control_calidad");
+    }
+
+    #[test]
+    fn test_create_two_sessions_returns_different_tokens() {
+        let store = SessionStore::default();
+        let t1 = store.create_session(1, "a@arca.do".to_string(), "admin".to_string());
+        let t2 = store.create_session(2, "b@arca.do".to_string(), "admin".to_string());
+        assert_ne!(t1, t2, "Cada sesión debe tener un token único");
+    }
+
+    #[test]
+    fn test_validate_session_invalid_token() {
+        let store = SessionStore::default();
+        let result = store.validate_session("token-inexistente");
+        assert!(result.is_err(), "Token inválido debe dar error");
+        assert!(result.unwrap_err().to_string().contains("no encontrada"));
+    }
+
+    #[test]
+    fn test_validate_session_expired() {
+        let store = SessionStore::default();
+        let token = store.create_session(1, "test@arca.do".to_string(), "admin".to_string());
+        // Simular expiración: modificar created_at a 9 horas atrás (32400s > 28800s)
+        {
+            let mut sessions = store.sessions.lock().unwrap();
+            if let Some(session) = sessions.get_mut(&token) {
+                session.created_at = chrono::Utc::now().timestamp() - 32400;
+            }
+        }
+        let result = store.validate_session(&token);
+        assert!(result.is_err(), "Sesión expirada debe dar error");
+        assert!(result.unwrap_err().to_string().contains("expirada"));
+    }
+
+    #[test]
+    fn test_validate_session_not_yet_expired() {
+        let store = SessionStore::default();
+        let token = store.create_session(1, "test@arca.do".to_string(), "admin".to_string());
+        // Simular 7 horas de sesión (25200s < 28800s)
+        {
+            let mut sessions = store.sessions.lock().unwrap();
+            if let Some(session) = sessions.get_mut(&token) {
+                session.created_at = chrono::Utc::now().timestamp() - 25200;
+            }
+        }
+        let result = store.validate_session(&token);
+        assert!(result.is_ok(), "Sesión dentro de las 8h debe ser válida");
+    }
+
+    #[test]
+    fn test_delete_session_removes_token() {
+        let store = SessionStore::default();
+        let token = store.create_session(1, "test@arca.do".to_string(), "admin".to_string());
+        store.delete_session(&token);
+        let result = store.validate_session(&token);
+        assert!(result.is_err(), "Sesión eliminada no debe validar");
+    }
+
+    #[test]
+    fn test_delete_session_nonexistent_is_noop() {
+        let store = SessionStore::default();
+        // No debe panicar al eliminar un token que no existe
+        store.delete_session("token-inexistente");
+    }
+
+    #[test]
+    fn test_require_role_allowed() {
+        let store = SessionStore::default();
+        let token = store.create_session(1, "admin@arca.do".to_string(), "admin".to_string());
+        let result = require_role(&store, &token, &["admin"]);
+        assert!(result.is_ok(), "Admin debe tener acceso a commands de admin");
+        assert_eq!(result.unwrap().role, "admin");
+    }
+
+    #[test]
+    fn test_require_role_denied() {
+        let store = SessionStore::default();
+        let token = store.create_session(1, "qc@arca.do".to_string(), "control_calidad".to_string());
+        let result = require_role(&store, &token, &["admin"]);
+        assert!(result.is_err(), "control_calidad NO debe tener acceso admin");
+        assert!(result.unwrap_err().to_string().contains("insuficientes"));
+    }
+
+    #[test]
+    fn test_require_role_multiple_allowed() {
+        let store = SessionStore::default();
+        let token = store.create_session(1, "qc@arca.do".to_string(), "control_calidad".to_string());
+        let result = require_role(&store, &token, &["admin", "control_calidad"]);
+        assert!(result.is_ok(), "control_calidad debe pasar cuando está en la lista");
+    }
+
+    #[test]
+    fn test_require_role_invalid_token() {
+        let store = SessionStore::default();
+        let result = require_role(&store, "token-falso", &["admin"]);
+        assert!(result.is_err(), "Token inválido debe fallar antes de checkear rol");
     }
 }

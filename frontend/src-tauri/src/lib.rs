@@ -8,6 +8,9 @@ pub mod summary;
 pub mod monthly_summary;
 pub mod app_config;
 pub mod repositories;
+pub mod infrastructure;
+pub mod ports;
+pub mod adapters;
 
 use tauri::Manager;
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -63,15 +66,9 @@ pub fn run() {
             app_config::get_assigned_station
         ])
         .setup(|app| {
-            // Database init
-            match db::init_db(app.handle()) {
-                Ok(pool) => {
-                    app.manage(pool);
-                }
-                Err(err) => {
-                    eprintln!("Error initializing database: {}", err);
-                }
-            }
+            let pool = db::init_db(app.handle())
+                .expect("FATAL: No se pudo inicializar la base de datos");
+            app.manage(pool);
             if cfg!(debug_assertions) {
                 app.handle().plugin(
                     tauri_plugin_log::Builder::default()
