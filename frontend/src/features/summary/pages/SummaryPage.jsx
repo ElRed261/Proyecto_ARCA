@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import { ResponsiveContainer, LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
+import { normalizeRoles, hasRole } from '../../../shared/utils/auth';
 
 
 const SummaryPage = () => {
@@ -131,7 +132,7 @@ const SummaryPage = () => {
         return stations[code]?.name || `Estación ${code}`;
     };
 
-    const canSeeCorrections = currentUserRoles.includes('admin') || currentUserRoles.includes('control_calidad');
+    const canSeeCorrections = hasRole(currentUserRoles, ['admin', 'control_calidad']);
 
     useEffect(() => {
         const initialize = async () => {
@@ -148,8 +149,7 @@ const SummaryPage = () => {
                 // Get user roles
                 const savedRoles = localStorage.getItem('user_roles');
                 if (savedRoles) {
-                    const roles = JSON.parse(savedRoles);
-                    setCurrentUserRoles(roles.map(r => typeof r === 'string' ? r : r.name));
+                    setCurrentUserRoles(normalizeRoles(savedRoles));
                 }
             } catch (error) {
                 console.error("Error loading stations and roles:", error);
@@ -271,8 +271,8 @@ const SummaryPage = () => {
     const handleExportExcel = async () => {
         if (!currentDoc) return;
         try {
-            const safeStation = currentDoc.meta.estacion.replace(/[\/\\]/g, '_');
-            const safePeriod = currentDoc.meta.periodo.replace(/[\/\\]/g, '');
+            const safeStation = currentDoc.meta.estacion.replace(/[/\\]/g, '_');
+            const safePeriod = currentDoc.meta.periodo.replace(/[/\\]/g, '');
             const defaultName = `resumen_${safeStation}_${safePeriod}.xlsx`;
 
             const savePath = await saveDialog({

@@ -14,33 +14,21 @@ import MaintenancePage from './features/maintenance/pages/MaintenancePage';
 import Cli3074Page from './features/synoptic/cli3074/pages/Cli3074Page';
 import Cli4074Page from './features/synoptic/cli4074/pages/Cli4074Page';
 import Cli5074Page from './features/synoptic/cli5074/pages/Cli5074Page';
+import { normalizeRoles, hasRole } from './shared/utils/auth';
 
-const normalizeRoles = (rolesData) => {
-  if (!rolesData) return [];
-  try {
-    const rawRoles = typeof rolesData === 'string' ? JSON.parse(rolesData) : rolesData;
-    const arr = Array.isArray(rawRoles) ? rawRoles : [rawRoles];
-    return arr.map(r => {
-      if (!r) return '';
-      if (typeof r === 'string') return r.toLowerCase();
-      if (typeof r === 'object' && r.name) return r.name.toLowerCase();
-      return '';
-    }).filter(Boolean);
-  } catch (e) {
-    console.error("Error normalizando roles:", e);
-    return [];
-  }
-};
-
-const ProtectedRoute = ({ user, allowedRoles, children }) => {
+const ProtectedRoute = ({ user, children }) => {
   if (!user) {
     return <Navigate to="/" replace />;
   }
-  if (allowedRoles) {
-    const hasRole = user.roles.some(role => allowedRoles.includes(role));
-    if (!hasRole) {
-      return <Navigate to="/dashboard" replace />;
-    }
+  return children;
+};
+
+const RoleRoute = ({ user, roles, children }) => {
+  if (!user) {
+    return <Navigate to="/" replace />;
+  }
+  if (!hasRole(user.roles, roles)) {
+    return <Navigate to="/dashboard" replace />;
   }
   return children;
 };
@@ -114,12 +102,12 @@ function App() {
 
         {/* Admin */}
         <Route path="/admin" element={
-          <ProtectedRoute user={user} allowedRoles={['admin']}>
+          <RoleRoute user={user} roles={['admin']}>
             <AdminPage
               onBack={() => navigate('/dashboard')}
               addLog={addLog}
             />
-          </ProtectedRoute>
+          </RoleRoute>
         } />
 
         {/* Synoptic Module */}
@@ -143,33 +131,33 @@ function App() {
 
         {/* Audit Module */}
         <Route path="/audit" element={
-          <ProtectedRoute user={user} allowedRoles={['admin', 'control_calidad']}>
+          <RoleRoute user={user} roles={['admin', 'control_calidad']}>
             <div className="min-h-screen bg-gray-50 pb-20">
               <div className="max-w-7xl mx-auto pt-6 px-4 sm:px-6 lg:px-8">
                 <AuditPage />
               </div>
             </div>
-          </ProtectedRoute>
+          </RoleRoute>
         } />
 
         <Route path="/audit/observation/:station/:date" element={
-          <ProtectedRoute user={user} allowedRoles={['admin', 'control_calidad']}>
+          <RoleRoute user={user} roles={['admin', 'control_calidad']}>
             <div className="min-h-screen bg-gray-50 pb-20">
               <div className="max-w-7xl mx-auto pt-6 px-4 sm:px-6 lg:px-8">
                 <AuditObservationPage />
               </div>
             </div>
-          </ProtectedRoute>
+          </RoleRoute>
         } />
 
         <Route path="/audit/report" element={
-          <ProtectedRoute user={user} allowedRoles={['admin', 'control_calidad']}>
+          <RoleRoute user={user} roles={['admin', 'control_calidad']}>
             <div className="min-h-screen bg-gray-50 pb-20">
               <div className="max-w-7xl mx-auto pt-6 px-4 sm:px-6 lg:px-8">
                 <AuditReportPage />
               </div>
             </div>
-          </ProtectedRoute>
+          </RoleRoute>
         } />
 
         {/* Maintenance Module (4074, 5074) */}

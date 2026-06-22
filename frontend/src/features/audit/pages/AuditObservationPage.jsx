@@ -7,6 +7,7 @@ import {
     BookOpen, ExternalLink, Radio
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { normalizeRoles, hasRole } from '../../../shared/utils/auth';
 
 // Traducción de errores técnicos de Tauri a lenguaje humano
 const humanizeError = (error) => {
@@ -141,10 +142,10 @@ const AuditObservationPage = () => {
         // Cargar datos de usuario
         const email = localStorage.getItem('user_email') || 'auditor@arca.rd';
         const rolesRaw = localStorage.getItem('user_roles');
-        const roles = rolesRaw ? JSON.parse(rolesRaw) : [];
+        const roles = normalizeRoles(rolesRaw);
         setCurrentUser({ email, roles });
         
-        const hasPermission = roles.some(r => r === 'admin' || r.name === 'admin' || r === 'control_calidad' || r.name === 'control_calidad');
+        const hasPermission = hasRole(roles, ['admin', 'control_calidad']);
         setCanAudit(hasPermission);
         setCorrectorName(email.split('@')[0]); // Valor por defecto
 

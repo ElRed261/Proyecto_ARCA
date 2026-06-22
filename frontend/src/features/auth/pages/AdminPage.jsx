@@ -4,6 +4,7 @@ import { authService } from '../api/authService';
 import { Users, Edit, Key, Trash2, CheckCircle, XCircle, ShieldAlert, Landmark, Save } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { StationAdminTable } from '../components/StationAdminTable';
+import { normalizeRole } from '../../../shared/utils/auth';
 
 const AdminPage = ({ onBack, addLog }) => {
     const [users, setUsers] = useState([]);
@@ -58,7 +59,7 @@ const AdminPage = ({ onBack, addLog }) => {
     const handleEditClick = (user) => {
         setSelectedUser(user);
         // Asumimos que el usuario tiene un rol principal o tomamos el primero
-        const currentRole = user.roles && user.roles.length > 0 ? user.roles[0].name : 'user';
+        const currentRole = user.roles && user.roles.length > 0 ? normalizeRole(user.roles[0]) : 'user';
         setEditForm({ role_name: currentRole, is_active: user.is_active });
         setShowEditModal(true);
     };
@@ -168,11 +169,14 @@ const AdminPage = ({ onBack, addLog }) => {
                                         </td>
                                         <td className="px-6 py-4">
                                             {user.roles && user.roles.length > 0 ? (
-                                                user.roles.map(role => (
-                                                    <span key={role.id} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 mr-1">
-                                                        {role.name}
-                                                    </span>
-                                                ))
+                                                user.roles.map((role, idx) => {
+                                                    const roleName = normalizeRole(role);
+                                                    return (
+                                                        <span key={roleName || idx} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 mr-1">
+                                                            {roleName}
+                                                        </span>
+                                                    );
+                                                })
                                             ) : (
                                                 <span className="text-xs text-gray-400">Sin rol</span>
                                             )}

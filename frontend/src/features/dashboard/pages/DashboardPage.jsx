@@ -5,6 +5,7 @@ import { Activity, Calendar, ShieldCheck, Settings } from 'lucide-react';
 import UserMenu from '../../../shared/components/UserMenu';
 
 import Logo from '../../../shared/components/Logo';
+import { hasRole } from '../../../shared/utils/auth';
 
 const DashboardPage = ({ user, onLogout, onNavigate }) => {
 
@@ -44,7 +45,7 @@ const DashboardPage = ({ user, onLogout, onNavigate }) => {
     ];
 
     // Filtrar módulos según rol
-    const isAdmin = user.roles && user.roles.some(r => ['admin', 'administrador'].includes(r.toLowerCase()));
+    const isAdmin = hasRole(user.roles, ['admin', 'administrador']);
 
     const visibleModules = modules.filter(mod => {
         if (mod.id === 'admin') return isAdmin;
