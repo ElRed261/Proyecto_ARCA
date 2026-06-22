@@ -26,6 +26,7 @@ pub fn init_db(app_handle: &AppHandle) -> Result<DbPool, Box<dyn std::error::Err
 
     // Habilitar modo WAL para mejor concurrencia
     conn.pragma_update(None, "journal_mode", &"wal")?;
+    conn.pragma_update(None, "foreign_keys", &"ON")?;
 
     // Crear tabla de usuarios si no existe
     conn.execute(
@@ -38,146 +39,6 @@ pub fn init_db(app_handle: &AppHandle) -> Result<DbPool, Box<dyn std::error::Err
         )",
         [],
     )?;
-
-    // Crear tablas si no existen
-    conn.execute(
-        "CREATE TABLE IF NOT EXISTS audit_logs (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            action TEXT NOT NULL,
-            station_id TEXT NOT NULL,
-            details TEXT,
-            user_id INTEGER,
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-        )",
-        [],
-    )?;
-
-    conn.execute(
-        "CREATE TABLE IF NOT EXISTS summary_logs (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            station_id TEXT NOT NULL,
-            year INTEGER NOT NULL,
-            month INTEGER NOT NULL,
-            data TEXT NOT NULL,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )",
-        [],
-    )?;
-
-    conn.execute(
-        "CREATE TABLE IF NOT EXISTS correction_requests (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            station_id TEXT NOT NULL,
-            fecha TEXT NOT NULL,
-            hora TEXT NOT NULL,
-            campo TEXT NOT NULL,
-            valor_actual TEXT NOT NULL,
-            valor_propuesto TEXT NOT NULL,
-            justificacion TEXT NOT NULL,
-            estado TEXT DEFAULT 'pendiente',
-            requester_id INTEGER NOT NULL,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )",
-        [],
-    )?;
-
-    conn.execute(
-        "CREATE TABLE IF NOT EXISTS error_marks (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            station_id TEXT NOT NULL,
-            fecha TEXT NOT NULL,
-            hora TEXT NOT NULL,
-            campo TEXT NOT NULL,
-            tipo_error TEXT NOT NULL,
-            nota TEXT,
-            marcado_por TEXT NOT NULL,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )",
-        [],
-    )?;
-
-    conn.execute(
-        "CREATE TABLE IF NOT EXISTS corrections (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            station_id TEXT NOT NULL,
-            fecha TEXT NOT NULL,
-            hora TEXT NOT NULL,
-            campo TEXT NOT NULL,
-            valor_original TEXT NOT NULL,
-            valor_corregido TEXT NOT NULL,
-            justificacion TEXT NOT NULL,
-            corregido_por TEXT NOT NULL,
-            aprobado_por TEXT,
-            estado TEXT DEFAULT 'pendiente',
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )",
-        [],
-    )?;
-
-    conn.execute(
-        "CREATE TABLE IF NOT EXISTS app_config (
-            key TEXT PRIMARY KEY,
-            value TEXT NOT NULL,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )",
-        [],
-    )?;
-
-    // Seed default users if users table is empty
-    let count: i64 = conn.query_row(
-        "SELECT COUNT(*) FROM users",
-        [],
-        |row| row.get(0),
-    )?;
-
-    if count == 0 {
-        use std::fs::File;
-        use std::io::Write;
-        use uuid::Uuid;
-
-        let admin_pass = Uuid::new_v4().to_string()[..12].to_string();
-        let encargado_pass = Uuid::new_v4().to_string()[..12].to_string();
-        let observador_pass = Uuid::new_v4().to_string()[..12].to_string();
-        let calidad_pass = Uuid::new_v4().to_string()[..12].to_string();
-
-        let default_users = vec![
-            ("admin@arca.rd", admin_pass.clone(), "admin"),
-            ("encargado@arca.rd", encargado_pass.clone(), "encargado"),
-            ("observador@arca.rd", observador_pass.clone(), "observador"),
-            ("calidad@arca.rd", calidad_pass.clone(), "control_calidad"),
-        ];
-
-        for (email, password, role) in &default_users {
-            let password_hash = hash(password, DEFAULT_COST)
-                .map_err(|e| rusqlite::Error::ToSqlConversionFailure(Box::new(e)))?;
-            conn.execute(
-                "INSERT INTO users (email, password_hash, role, is_active) VALUES (?, ?, ?, 1)",
-                params![email, password_hash, role],
-            )?;
-        }
-
-        let mut seed_file_path = get_db_path(app_handle);
-        seed_file_path.pop(); // Ir al directorio padre (app_data_dir)
-        seed_file_path.push("primer_inicio.txt");
-
-        if let Ok(mut file) = File::create(&seed_file_path) {
-            let content = format!(
-                "=== CREDENCIALES DE PRIMER INICIO PARA PROYECTO ARCA ===\n\n\
-                 admin@arca.rd : {}\n\
-                 encargado@arca.rd : {}\n\
-                 observador@arca.rd : {}\n\
-                 calidad@arca.rd : {}\n\n\
-                 IMPORTANTE: Por razones de seguridad, cambie estas contraseñas inmediatamente en el panel de administración.\n",
-                admin_pass, encargado_pass, observador_pass, calidad_pass
-            );
-            let _ = file.write_all(content.as_bytes());
-            println!("################################################################");
-            println!("SE HAN GENERADO LAS CREDENCIALES DE PRIMER INICIO EN:");
-            println!("{:?}", seed_file_path);
-            println!("################################################################");
-        }
-    }
 
     conn.execute(
         "CREATE TABLE IF NOT EXISTS stations (
@@ -219,6 +80,154 @@ pub fn init_db(app_handle: &AppHandle) -> Result<DbPool, Box<dyn std::error::Err
                 "INSERT INTO stations (id, name, provincia, latitud, longitud, elevacion, ch) VALUES (?, ?, ?, ?, ?, ?, ?)",
                 params![st.0, st.1, st.2, st.3, st.4, st.5, st.6],
             );
+        }
+    }
+
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS summary_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            station_id TEXT NOT NULL,
+            year INTEGER NOT NULL,
+            month INTEGER NOT NULL,
+            data TEXT NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (station_id) REFERENCES stations(id)
+        )",
+        [],
+    )?;
+
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS error_marks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            station_id TEXT NOT NULL,
+            fecha TEXT NOT NULL,
+            hora TEXT NOT NULL,
+            campo TEXT NOT NULL,
+            tipo_error TEXT NOT NULL,
+            nota TEXT,
+            marcado_por TEXT NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (station_id) REFERENCES stations(id)
+        )",
+        [],
+    )?;
+
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS corrections (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            station_id TEXT NOT NULL,
+            fecha TEXT NOT NULL,
+            hora TEXT NOT NULL,
+            campo TEXT NOT NULL,
+            valor_original TEXT NOT NULL,
+            valor_corregido TEXT NOT NULL,
+            justificacion TEXT NOT NULL,
+            corregido_por TEXT NOT NULL,
+            aprobado_por TEXT,
+            estado TEXT DEFAULT 'pendiente',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (station_id) REFERENCES stations(id)
+        )",
+        [],
+    )?;
+
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS app_config (
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )",
+        [],
+    )?;
+
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_error_marks_station_fecha ON error_marks(station_id, fecha)",
+        [],
+    )?;
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_corrections_station_fecha ON corrections(station_id, fecha)",
+        [],
+    )?;
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_summary_logs_station_period ON summary_logs(station_id, year, month)",
+        [],
+    )?;
+
+    // Seed default users if users table is empty
+    let count: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM users",
+        [],
+        |row| row.get(0),
+    )?;
+
+    if count == 0 {
+        use std::fs::File;
+        use std::io::Write;
+
+        let mut state = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(123456789) as u64;
+        if state == 0 {
+            state = 0xDEADC0DE;
+        }
+
+        let chars: &[u8] = b"abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+        let next_char = |s: &mut u64| -> char {
+            *s ^= *s << 13;
+            *s ^= *s >> 7;
+            *s ^= *s << 17;
+            let idx = (*s as usize) % chars.len();
+            chars[idx] as char
+        };
+
+        let make_pass = |s: &mut u64| -> String {
+            let mut p = String::new();
+            for _ in 0..12 {
+                p.push(next_char(s));
+            }
+            p
+        };
+
+        let admin_pass = make_pass(&mut state);
+        let encargado_pass = make_pass(&mut state);
+        let observador_pass = make_pass(&mut state);
+        let calidad_pass = make_pass(&mut state);
+
+        let default_users = vec![
+            ("admin@arca.rd", admin_pass.clone(), "admin"),
+            ("encargado@arca.rd", encargado_pass.clone(), "encargado"),
+            ("observador@arca.rd", observador_pass.clone(), "observador"),
+            ("calidad@arca.rd", calidad_pass.clone(), "control_calidad"),
+        ];
+
+        for (email, password, role) in &default_users {
+            let password_hash = hash(password, DEFAULT_COST)
+                .map_err(|e| rusqlite::Error::ToSqlConversionFailure(Box::new(e)))?;
+            conn.execute(
+                "INSERT INTO users (email, password_hash, role, is_active) VALUES (?, ?, ?, 1)",
+                params![email, password_hash, role],
+            )?;
+        }
+
+        let mut seed_file_path = get_db_path(app_handle);
+        seed_file_path.pop(); // Ir al directorio padre (app_data_dir)
+        seed_file_path.push("primer_inicio.txt");
+
+        if let Ok(mut file) = File::create(&seed_file_path) {
+            let content = format!(
+                "=== CREDENCIALES DE PRIMER INICIO PARA PROYECTO ARCA ===\n\n\
+                 admin@arca.rd : {}\n\
+                 encargado@arca.rd : {}\n\
+                 observador@arca.rd : {}\n\
+                 calidad@arca.rd : {}\n\n\
+                 IMPORTANTE: Por razones de seguridad, cambie estas contraseñas inmediatamente en el panel de administración.\n",
+                admin_pass, encargado_pass, observador_pass, calidad_pass
+            );
+            let _ = file.write_all(content.as_bytes());
+            println!("################################################################");
+            println!("SE HAN GENERADO LAS CREDENCIALES DE PRIMER INICIO EN:");
+            println!("{:?}", seed_file_path);
+            println!("################################################################");
         }
     }
 
