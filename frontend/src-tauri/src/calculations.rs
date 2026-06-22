@@ -1,53 +1,9 @@
+use crate::db::DbPool;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use crate::repositories::stations_repo::{self, StationInfo};
 
-// =============================================================================
-// DATOS DE ESTACIONES (IIiii → Corrección de Altura)
-// =============================================================================
-
-#[derive(Serialize, Clone)]
-pub struct StationInfo {
-    pub name: String,
-    pub ch: f64,
-    pub lat: f64,
-    pub lon: f64,
-    pub h: f64,
-}
-
-lazy_static::lazy_static! {
-    pub static ref STATIONS: HashMap<&'static str, StationInfo> = {
-        let mut m = HashMap::new();
-        m.insert("78451", StationInfo { name: "Monte Cristi".to_string(), ch: 0.5, lat: 19.8499, lon: -71.6535, h: 8.0 });
-        m.insert("MDCY", StationInfo { name: "Catey".to_string(), ch: 0.8, lat: 19.267, lon: -69.7337, h: 4.0 });
-        m.insert("78457", StationInfo { name: "Puerto Plata".to_string(), ch: 1.0, lat: 19.7542, lon: -70.5632, h: 16.0 });
-        m.insert("78482", StationInfo { name: "Barahona".to_string(), ch: 1.2, lat: 18.24861, lon: -71.12288, h: 19.5 });
-        m.insert("78467", StationInfo { name: "Sabana de la mar".to_string(), ch: 1.2, lat: 19.0527, lon: -69.3888, h: 11.0 });
-        m.insert("78464", StationInfo { name: "Cabrera".to_string(), ch: 1.5, lat: 19.6444, lon: -69.9063, h: 18.0 });
-        m.insert("78486", StationInfo { name: "Central".to_string(), ch: 1.6, lat: 18.4734, lon: -69.8705, h: 14.0 });
-        m.insert("78485", StationInfo { name: "Las américas".to_string(), ch: 2.0, lat: 18.4331, lon: -69.6796, h: 7.0 });
-        m.insert("78479", StationInfo { name: "Punta Cana".to_string(), ch: 2.0, lat: 18.546, lon: -68.3594, h: 7.0 });
-        m.insert("78484", StationInfo { name: "El Higüero".to_string(), ch: 3.5, lat: 18.57696, lon: -69.98158, h: 27.0 });
-        m.insert("78466", StationInfo { name: "Arroyo Barril".to_string(), ch: 3.5, lat: 19.2005, lon: -69.43144, h: 49.4 });
-        m.insert("78480", StationInfo { name: "Jimaní".to_string(), ch: 4.8, lat: 18.4928, lon: -71.853, h: 45.0 });
-        m.insert("78473", StationInfo { name: "Bayaguana".to_string(), ch: 6.0, lat: 18.7422, lon: -69.6308, h: 53.0 });
-        m.insert("78488", StationInfo { name: "La Romana".to_string(), ch: 8.5, lat: 18.4485, lon: -68.9093, h: 62.0 });
-        m.insert("78460", StationInfo { name: "Santiago".to_string(), ch: 19.8, lat: 19.4031, lon: -70.5978, h: 170.0 });
-        m
-    };
-}
-
-pub fn get_station_info(station_id: &str) -> Option<StationInfo> {
-    let sid = station_id.trim().to_uppercase();
-    if let Some(info) = STATIONS.get(sid.as_str()) {
-        return Some(info.clone());
-    }
-    // Search by ending
-    for (k, v) in STATIONS.iter() {
-        if k.ends_with(&sid) || sid.ends_with(k) {
-            return Some(v.clone());
-        }
-    }
-    None
+pub fn get_station_info(pool: &DbPool, station_id: &str) -> Option<StationInfo> {
+    stations_repo::get_station_by_id(pool, station_id).unwrap_or(None)
 }
 
 // =============================================================================
@@ -260,7 +216,7 @@ pub struct CalculationResponse {
 // ALGORITMO PRINCIPAL
 // =============================================================================
 
-pub fn realizar_calculos(data: CalculationRequest) -> CalculationResponse {
+pub fn realizar_calculos(pool: &DbPool, data: CalculationRequest) -> CalculationResponse {
     let mut res = CalculationResponse {
         tension_vapor: "".to_string(),
         humedad_relativa: "".to_string(),
@@ -285,7 +241,7 @@ pub fn realizar_calculos(data: CalculationRequest) -> CalculationResponse {
     };
 
     if let Some(st_id) = &data.station_id {
-        if let Some(info) = get_station_info(st_id) {
+        if let Some(info) = get_station_info(pool, st_id) {
             res.correc_alt = info.ch.to_string();
             res.station_info = Some(info);
         }
@@ -365,14 +321,36 @@ pub fn realizar_calculos(data: CalculationRequest) -> CalculationResponse {
     res
 }
 
+use std::collections::HashMap;
+
 #[tauri::command]
-pub fn get_stations() -> HashMap<&'static str, StationInfo> {
-    STATIONS.clone()
+pub fn get_stations(pool: tauri::State<'_, DbPool>) -> Result<HashMap<String, StationInfo>, String> {
+    let stations = stations_repo::get_all_stations(&pool)?;
+    let mut map = HashMap::new();
+    for st in stations {
+        map.insert(st.id.clone(), st);
+    }
+    Ok(map)
 }
 
 #[tauri::command]
-pub fn calculate_observations(data: CalculationRequest) -> CalculationResponse {
-    realizar_calculos(data)
+pub fn create_station(pool: tauri::State<'_, DbPool>, station: StationInfo) -> Result<(), String> {
+    stations_repo::insert_station(&pool, &station)
+}
+
+#[tauri::command]
+pub fn update_station(pool: tauri::State<'_, DbPool>, station: StationInfo) -> Result<(), String> {
+    stations_repo::update_station(&pool, &station)
+}
+
+#[tauri::command]
+pub fn delete_station(pool: tauri::State<'_, DbPool>, id: String) -> Result<(), String> {
+    stations_repo::delete_station(&pool, &id)
+}
+
+#[tauri::command]
+pub fn calculate_observations(pool: tauri::State<'_, DbPool>, data: CalculationRequest) -> CalculationResponse {
+    realizar_calculos(&pool, data)
 }
 
 #[cfg(test)]

@@ -166,7 +166,7 @@ const AuditObservationPage = () => {
         loadObservation();
     }, [station, date]);
 
-    const loadObservation = async () => {
+    const loadObservation = async (targetHour = activeHour) => {
         setLoading(true);
         try {
             const data = await invoke('audit_load_observation', { station, date });
@@ -175,12 +175,14 @@ const AuditObservationPage = () => {
             // Si ya hay una hora activa seleccionada con datos para este día, conservarla.
             // De lo contrario, buscar la primera hora con datos disponible.
             const obs = data.observation;
-            const currentHourValid = activeHour && obs[activeHour] && Object.keys(obs[activeHour]).length > 0;
+            const currentHourValid = targetHour && obs[targetHour] && Object.keys(obs[targetHour]).length > 0;
             if (!currentHourValid) {
                 const hourWithData = HOURS.find(h => obs[h] && Object.keys(obs[h]).length > 0);
                 if (hourWithData) {
                     setActiveHour(hourWithData);
                 }
+            } else {
+                setActiveHour(targetHour);
             }
         } catch (error) {
             console.error("Error al cargar la observación:", error);
@@ -243,6 +245,7 @@ const AuditObservationPage = () => {
     const handleSaveErrorMark = async (e) => {
         e.preventDefault();
         if (!selectedCell) return;
+        const currentHour = selectedCell.hora;
         try {
             await invoke('audit_mark_error', {
                 stationId: station,
@@ -255,7 +258,7 @@ const AuditObservationPage = () => {
             });
             toast.success("Error marcado correctamente.");
             setShowErrorModal(false);
-            loadObservation();
+            loadObservation(currentHour);
         } catch (error) {
             toast.error(humanizeError(error));
         }
@@ -263,11 +266,12 @@ const AuditObservationPage = () => {
 
     const handleRemoveErrorMark = async (markId) => {
         if (!window.confirm("¿Seguro que deseas quitar esta marca de error? Esto también eliminará cualquier propuesta de corrección asociada.")) return;
+        const currentHour = activeHour;
         try {
             await invoke('audit_unmark_error', { id: markId });
             toast.success("Marca de error y corrección eliminadas.");
             setShowErrorModal(false);
-            loadObservation();
+            loadObservation(currentHour);
         } catch (error) {
             toast.error(humanizeError(error));
         }
@@ -281,6 +285,7 @@ const AuditObservationPage = () => {
             return;
         }
 
+        const currentHour = selectedCell.hora;
         try {
             await invoke('audit_propose_correction', {
                 stationId: station,
@@ -295,7 +300,7 @@ const AuditObservationPage = () => {
             toast.success("Corrección aplicada correctamente (Overlay activo).");
             setShowCorrectionModal(false);
             setShowErrorModal(false);
-            loadObservation();
+            loadObservation(currentHour);
         } catch (error) {
             toast.error(humanizeError(error));
         }
@@ -402,8 +407,8 @@ const AuditObservationPage = () => {
                             Auditor: <span className="text-orange-600 font-bold">{currentUser.email}</span>
                         </div>
                     </div>
-                    {/* Acceso a CLIs para referencia cruzada del auditor */}
-                    <div className="flex gap-2">
+                    {/* Acceso a CLIs para referencia cruzada del auditor y botón de exportar JSON corregido */}
+                    <div className="flex gap-2 flex-wrap items-center">
                         <button
                             onClick={() => navigate('/cli3074', { state: { fromAudit: true, stationId: station, station, date } })}
                             className="flex items-center gap-1 bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-700 font-bold text-[11px] px-3 py-1.5 rounded-lg transition-all cursor-pointer border border-slate-200 hover:border-blue-300"
@@ -427,6 +432,23 @@ const AuditObservationPage = () => {
                         >
                             <BookOpen className="w-3.5 h-3.5" />
                             CLI 5074
+                        </button>
+                        <div className="h-6 w-px bg-slate-200"></div>
+                        <button
+                            onClick={async () => {
+                                try {
+                                    const path = await invoke('audit_export_corrected_json', { stationId: station, fecha: date });
+                                    toast.success(`¡JSON Corregido guardado con éxito!\nGuardado en: ${path}`, { duration: 5000 });
+                                } catch (error) {
+                                    console.error(error);
+                                    toast.error(`Error al exportar JSON corregido: ${error}`);
+                                }
+                            }}
+                            className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-sm px-5 py-2.5 rounded-xl transition-all cursor-pointer shadow-md shadow-emerald-500/20 border-0 transform hover:scale-105"
+                            title="Guarda la observación permanentemente con todas las correcciones aplicadas"
+                        >
+                            <Save className="w-4 h-4" />
+                            Guardar Correcciones
                         </button>
                     </div>
                 </div>
@@ -505,8 +527,8 @@ const AuditObservationPage = () => {
                                 {renderDataField("0CS DL DM DH", "meteo_6_2", "0CSDLDMDH")}
                                 {renderDataField("1sn Tx Tx Tx", "meteo_6_3", "1snTxTxTx")}
                                 {renderDataField("2sn Tn Tn Tn", "meteo_6_4", "2snTnTnTn")}
-                                {renderDataField("3E j j j", "meteo_6_5", "3Ejjj")}
-                                {renderDataField("5 EEE jE", "meteo_6_6", "5EEEjE")}
+                                {renderDataField("3 E E E j", "meteo_6_5", "3Ejjj")}
+                                {renderDataField("5 E E E j", "meteo_6_6", "5EEEjE")}
                                 {renderDataField("7 ww W1 W2", "meteo_4_6", "7wwW1W2")}
                             </div>
 

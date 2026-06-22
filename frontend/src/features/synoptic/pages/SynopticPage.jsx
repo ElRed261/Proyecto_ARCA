@@ -66,6 +66,7 @@ const SynopticPage = () => {
   const [isCalculating, setIsCalculating] = useState(false);
   const [isLoading, setIsLoading] = useState(!!savedDraft); // Evitar recálculo inicial si restauramos draft
   const [isStationLocked, setIsStationLocked] = useState(false);
+  const [assignedStation, setAssignedStation] = useState(null);
 
   // Refs para acceso sincrónico en saveDraft
   const observationsRef = React.useRef(observations);
@@ -86,17 +87,38 @@ const SynopticPage = () => {
   // Determinar si la hora activa es par (tiene T_max/T_min)
   const isEvenHour = evenHours.includes(activeHour);
 
-  // Cargar lista de estaciones al montar
+  // Cargar lista de estaciones y validar estación asignada al montar
   useEffect(() => {
-    const fetchStations = async () => {
+    const initializeData = async () => {
       try {
         const data = await invoke('get_stations');
         setStations(data);
+
+        const assigned = await invoke('get_assigned_station');
+        if (assigned) {
+          setAssignedStation(assigned);
+          // Forzar la estación asignada y su correc_alt ch
+          setObservations(prev => {
+            const updated = { ...prev };
+            let changed = false;
+            hours.forEach(hour => {
+              if (updated[hour].station_id !== assigned) {
+                updated[hour] = { 
+                  ...updated[hour], 
+                  station_id: assigned,
+                  correc_alt: data[assigned] ? data[assigned].ch.toString() : (updated[hour].correc_alt || '')
+                };
+                changed = true;
+              }
+            });
+            return changed ? updated : prev;
+          });
+        }
       } catch (error) {
-        console.error('Error al cargar estaciones:', error);
+        console.error('Error al inicializar estaciones y configuración:', error);
       }
     };
-    fetchStations();
+    initializeData();
   }, []);
 
   // Llamar al backend cuando cambian los datos
@@ -562,6 +584,14 @@ const SynopticPage = () => {
 
           // Mapear nombre de estación a código
           const stationCode = stationNameToCode[estacionNombre] || estacionNombre;
+
+          // Validar estación bloqueada
+          if (assignedStation && stationCode !== assignedStation) {
+            toast.error(`Error: Esta instalación está bloqueada para la estación ${assignedStation}. El archivo que intenta cargar pertenece a la estación ${stationCode || 'desconocida'}.`);
+            event.target.value = '';
+            return;
+          }
+
           const correcAlt = stations[stationCode]?.ch || '';
 
           // Convertir fecha de DDMMYYYY a YYYY-MM-DD
@@ -785,15 +815,17 @@ newObservations[hora] = {
                       <input className={constantClass} value={AAXX} readOnly title="Constante AAXX" />
                       {/* YYGG Iw */}
                       <input className={inputClass} placeholder="" value={getValue('meteo_2_1')} onChange={(e) => handleChange('meteo_2_1', e.target.value)} />
-                      {/* IIiii - Selector de estación (bloqueado después de guardar) */}
+                      {/* IIiii - Selector de estación (bloqueado si está asignado o después de guardar) */}
                       <select
-                        className={`${inputClass} ${isStationLocked ? 'bg-gray-300 cursor-not-allowed opacity-75' : ''}`}
+                        className={`${inputClass} ${(isStationLocked || assignedStation) ? 'bg-gray-300 cursor-not-allowed opacity-75' : ''}`}
                         value={getValue('station_id')}
                         onChange={(e) => handleStationChange(e.target.value)}
-                        disabled={isStationLocked}
-                        title={isStationLocked
-                          ? '🔒 Estación bloqueada (ya se guardó una observación)'
-                          : (stations[getValue('station_id')]?.name || 'Seleccionar estación')}
+                        disabled={isStationLocked || !!assignedStation}
+                        title={assignedStation
+                          ? `🔒 Estación asignada permanentemente: ${stations[assignedStation]?.name || assignedStation}`
+                          : (isStationLocked
+                            ? '🔒 Estación bloqueada (ya se guardó una observación)'
+                            : (stations[getValue('station_id')]?.name || 'Seleccionar estación'))}
                       >
                         <option value="">Seleccionar...</option>
                         {Object.keys(stations).map((id) => (

@@ -496,19 +496,27 @@ pub fn get_observation(
                             let val_6_2 = flat_hora.get("meteo_6_2").and_then(|v| v.as_str()).unwrap_or("").trim().to_string();
                             let val_8_1 = flat_hora.get("meteo_8_1").and_then(|v| v.as_str()).unwrap_or("").trim().to_string();
 
-                            // Si meteo_6_2 inicia con "56", moverlo a meteo_8_1
-                            if val_6_2.starts_with("56") {
-                                flat_hora.insert("meteo_8_1".to_string(), serde_json::Value::String(val_6_2));
-                                flat_hora.insert("meteo_6_2".to_string(), serde_json::Value::String("".to_string()));
-                            }
-                            // Si meteo_8_1 inicia con "0", moverlo a meteo_6_2 o limpiarlo
-                            else if val_8_1.starts_with('0') {
-                                let current_6_2 = flat_hora.get("meteo_6_2").and_then(|v| v.as_str()).unwrap_or("").trim();
-                                if current_6_2.is_empty() {
-                                    flat_hora.insert("meteo_6_2".to_string(), serde_json::Value::String(val_8_1));
+                            let mut final_6_2 = val_6_2.clone();
+                            let mut final_8_1 = val_8_1.clone();
+
+                            // Si meteo_6_2 no empieza con '0', no pertenece aquí
+                            if !val_6_2.is_empty() && !val_6_2.starts_with('0') {
+                                final_6_2 = "".to_string();
+                                if val_6_2.starts_with("56") && val_8_1.is_empty() {
+                                    final_8_1 = val_6_2.clone();
                                 }
-                                flat_hora.insert("meteo_8_1".to_string(), serde_json::Value::String("".to_string()));
                             }
+                            
+                            // Si meteo_8_1 no empieza con '56', no pertenece aquí
+                            if !val_8_1.is_empty() && !val_8_1.starts_with("56") {
+                                final_8_1 = "".to_string();
+                                if val_8_1.starts_with('0') && final_6_2.is_empty() {
+                                    final_6_2 = val_8_1.clone();
+                                }
+                            }
+
+                            flat_hora.insert("meteo_6_2".to_string(), serde_json::Value::String(final_6_2));
+                            flat_hora.insert("meteo_8_1".to_string(), serde_json::Value::String(final_8_1));
 
                             // CALCULADO
                             if let Some(calculado_obj) = calculado {

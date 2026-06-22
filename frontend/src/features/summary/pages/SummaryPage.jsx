@@ -5,6 +5,9 @@ import { FileSpreadsheet, FileJson, Download, Plus, Clock, FileWarning, Loader2,
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { ResponsiveContainer, LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
+
 
 const SummaryPage = () => {
     const navigate = useNavigate();
@@ -120,11 +123,15 @@ const SummaryPage = () => {
     const [selectedStation, setSelectedStation] = useState('');
     const [selectedYear, setSelectedYear] = useState(() => new Date().getFullYear());
     const [selectedMonth, setSelectedMonth] = useState(() => new Date().getMonth() + 1); // 1-12
+    const [currentUserRoles, setCurrentUserRoles] = useState([]);
+    const [includeCorrections, setIncludeCorrections] = useState(false);
 
     const getStationName = (code) => {
         if (!code) return "";
         return stations[code]?.name || `Estación ${code}`;
     };
+
+    const canSeeCorrections = currentUserRoles.includes('admin') || currentUserRoles.includes('control_calidad');
 
     useEffect(() => {
         const initialize = async () => {
@@ -137,8 +144,15 @@ const SummaryPage = () => {
                 if (keys.length > 0) {
                     setSelectedStation(keys[0]);
                 }
+
+                // Get user roles
+                const savedRoles = localStorage.getItem('user_roles');
+                if (savedRoles) {
+                    const roles = JSON.parse(savedRoles);
+                    setCurrentUserRoles(roles.map(r => typeof r === 'string' ? r : r.name));
+                }
             } catch (error) {
-                console.error("Error loading stations:", error);
+                console.error("Error loading stations and roles:", error);
             }
             await fetchHistory();
             setLoading(false);
@@ -189,7 +203,11 @@ const SummaryPage = () => {
         }
         setProcessing(true);
         try {
-            const doc = await invoke('ms_load_station_month', {
+            const command = (includeCorrections && canSeeCorrections)
+                ? 'ms_load_station_month_with_corrections'
+                : 'ms_load_station_month';
+
+            const doc = await invoke(command, {
                 stationCode: selectedStation,
                 year: parseInt(selectedYear, 10),
                 month: parseInt(selectedMonth, 10)
@@ -269,6 +287,72 @@ const SummaryPage = () => {
         } catch (error) {
             console.error("Export error:", error);
             toast.error("Error al exportar a Excel");
+        }
+    };
+
+    const [exportingPDF, setExportingPDF] = useState(false);
+
+    const handleExportChartsPDF = async () => {
+        if (!currentDoc) return;
+        setExportingPDF(true);
+        const toastId = toast.loading("Generando reporte de gráficos en PDF...");
+        
+        try {
+            const pdf = new jsPDF({
+                orientation: 'landscape',
+                unit: 'px',
+                format: [800, 600]
+            });
+            
+            const chartIds = [
+                { id: 'chart-pdf-temp', title: 'Gráfico de Temperatura (°C)' },
+                { id: 'chart-pdf-pressure', title: 'Gráfico de Presión Atmosférica (hPa)' },
+                { id: 'chart-pdf-humidity', title: 'Gráfico de Humedad (%) y Punto de Rocío (°C)' },
+                { id: 'chart-pdf-rain', title: 'Gráfico de Precipitación Diaria (mm)' },
+                { id: 'chart-pdf-wind', title: 'Gráfico de Velocidad del Viento (km/h)' },
+                { id: 'chart-pdf-clouds', title: 'Gráfico de Nubosidad Total (Octas)' }
+            ];
+
+            for (let i = 0; i < chartIds.length; i++) {
+                const item = chartIds[i];
+                const element = document.getElementById(item.id);
+                if (!element) continue;
+
+                // Capturar canvas del elemento
+                const canvas = await html2canvas(element, {
+                    scale: 2, // Mayor calidad
+                    logging: false,
+                    useCORS: true
+                });
+
+                const imgData = canvas.toDataURL('image/png');
+                
+                // Agregar encabezado a la página del PDF
+                pdf.setFontSize(14);
+                pdf.setFont("helvetica", "bold");
+                pdf.setTextColor(30, 41, 59); // Slate-800
+                pdf.text(`Estación: ${getStationName(currentDoc.meta.estacion)} (${currentDoc.meta.estacion})`, 40, 40);
+                pdf.text(`Período: ${currentDoc.meta.periodo}`, 40, 55);
+                pdf.setFontSize(12);
+                pdf.setTextColor(71, 85, 105); // Slate-600
+                pdf.text(item.title, 40, 75);
+                
+                // Agregar imagen al PDF
+                pdf.addImage(imgData, 'PNG', 40, 100, 720, 420);
+
+                if (i < chartIds.length - 1) {
+                    pdf.addPage();
+                }
+            }
+
+            const fileName = `Graficos_Resumen_${currentDoc.meta.estacion}_${currentDoc.meta.periodo.replace('/', '_')}.pdf`;
+            pdf.save(fileName);
+            toast.success("¡PDF con gráficos descargado con éxito!", { id: toastId });
+        } catch (error) {
+            console.error("Error al exportar gráficos a PDF:", error);
+            toast.error("Error al generar PDF: " + error.toString(), { id: toastId });
+        } finally {
+            setExportingPDF(false);
         }
     };
 
@@ -409,6 +493,21 @@ const SummaryPage = () => {
                                         ))}
                                     </select>
                                 </div>
+
+                                {canSeeCorrections && (
+                                    <div className="flex items-center gap-2 mb-2 self-end h-[42px] px-2">
+                                        <input
+                                            type="checkbox"
+                                            id="includeCorr"
+                                            checked={includeCorrections}
+                                            onChange={(e) => setIncludeCorrections(e.target.checked)}
+                                            className="w-4.5 h-4.5 text-purple-600 border-slate-300 rounded focus:ring-purple-500 transition cursor-pointer"
+                                        />
+                                        <label htmlFor="includeCorr" className="text-xs font-bold text-slate-700 cursor-pointer select-none">
+                                            Incluir correcciones (overlay)
+                                        </label>
+                                    </div>
+                                )}
                                 
                                 <button
                                     onClick={handleLoadStationMonth}
@@ -595,6 +694,16 @@ const SummaryPage = () => {
                                     </button>
                                 );
                             })}
+                            <div className="mt-auto pt-4 border-t border-slate-200">
+                                <button
+                                    onClick={handleExportChartsPDF}
+                                    disabled={exportingPDF}
+                                    className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold text-sm bg-purple-600 hover:bg-purple-700 text-white transition-all shadow-md shadow-purple-500/20 hover:shadow-lg disabled:opacity-50 cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                                >
+                                    {exportingPDF ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                                    {exportingPDF ? 'Exportando...' : 'Exportar PDF'}
+                                </button>
+                            </div>
                         </div>
 
                         {/* Chart content panel */}
@@ -898,6 +1007,110 @@ const SummaryPage = () => {
                     </div>
                 )}
             </div>
+            {/* Contenedor oculto para exportar a PDF */}
+            {currentDoc && (
+                <div style={{ position: 'absolute', left: '-9999px', top: '-9999px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    <div id="chart-pdf-temp" style={{ width: '800px', height: '400px', backgroundColor: '#ffffff', padding: '20px' }}>
+                        <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', fontWeight: 'bold', color: '#1e293b' }}>Temperatura (°C)</h4>
+                        <AreaChart width={760} height={350} data={chartData}>
+                            <defs>
+                                <linearGradient id="pdfColorTempMax" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#ef4444" stopOpacity={0.2}/>
+                                    <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
+                                </linearGradient>
+                                <linearGradient id="pdfColorTempMin" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.2}/>
+                                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                                </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                            <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} tickLine={false} />
+                            <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
+                            <Legend iconType="circle" />
+                            <Area name="Temp Máxima" type="monotone" dataKey="tempMax" stroke="#ef4444" strokeWidth={2} fillOpacity={1} fill="url(#pdfColorTempMax)" isAnimationActive={false} />
+                            <Area name="Temp Mínima" type="monotone" dataKey="tempMin" stroke="#3b82f6" strokeWidth={2} fillOpacity={1} fill="url(#pdfColorTempMin)" isAnimationActive={false} />
+                            <Line name="Temp Media" type="monotone" dataKey="tempMedia" stroke="#f59e0b" strokeWidth={2.5} dot={{ r: 3 }} isAnimationActive={false} />
+                        </AreaChart>
+                    </div>
+
+                    <div id="chart-pdf-pressure" style={{ width: '800px', height: '400px', backgroundColor: '#ffffff', padding: '20px' }}>
+                        <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', fontWeight: 'bold', color: '#1e293b' }}>Presión Atmosférica (hPa)</h4>
+                        <LineChart width={760} height={350} data={chartData}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                            <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} tickLine={false} />
+                            <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} domain={['auto', 'auto']} />
+                            <Legend iconType="circle" />
+                            <Line name="P.NMM Máx" type="monotone" dataKey="presNmmMax" stroke="#ef4444" strokeWidth={1.5} dot={false} isAnimationActive={false} />
+                            <Line name="P.NMM Mín" type="monotone" dataKey="presNmmMin" stroke="#3b82f6" strokeWidth={1.5} dot={false} isAnimationActive={false} />
+                            <Line name="P.NMM Media" type="monotone" dataKey="presNmmMedia" stroke="#8b5cf6" strokeWidth={2} dot={{ r: 2 }} isAnimationActive={false} />
+                            <Line name="Pres. Estación" type="monotone" dataKey="presEstMedia" stroke="#64748b" strokeWidth={1.5} strokeDasharray="5 5" dot={false} isAnimationActive={false} />
+                        </LineChart>
+                    </div>
+
+                    <div id="chart-pdf-humidity" style={{ width: '800px', height: '400px', backgroundColor: '#ffffff', padding: '20px' }}>
+                        <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', fontWeight: 'bold', color: '#1e293b' }}>Humedad (%) y Punto de Rocío (°C)</h4>
+                        <AreaChart width={760} height={350} data={chartData}>
+                            <defs>
+                                <linearGradient id="pdfColorHr" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#0d9488" stopOpacity={0.15}/>
+                                    <stop offset="95%" stopColor="#0d9488" stopOpacity={0}/>
+                                </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                            <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} tickLine={false} />
+                            <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
+                            <Legend iconType="circle" />
+                            <Area name="HR Media (%)" type="monotone" dataKey="hrMedia" stroke="#0d9488" strokeWidth={2} fillOpacity={1} fill="url(#pdfColorHr)" isAnimationActive={false} />
+                            <Line name="HR Máx (%)" type="monotone" dataKey="hrMax" stroke="#3b82f6" strokeWidth={1.5} dot={false} isAnimationActive={false} />
+                            <Line name="HR Mín (%)" type="monotone" dataKey="hrMin" stroke="#22d3ee" strokeWidth={1.5} dot={false} isAnimationActive={false} />
+                            <Line name="Pto. Rocío (°C)" type="monotone" dataKey="rocio" stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} isAnimationActive={false} />
+                        </AreaChart>
+                    </div>
+
+                    <div id="chart-pdf-rain" style={{ width: '800px', height: '400px', backgroundColor: '#ffffff', padding: '20px' }}>
+                        <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', fontWeight: 'bold', color: '#1e293b' }}>Precipitación Diaria (mm)</h4>
+                        <BarChart width={760} height={350} data={chartData}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                            <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} tickLine={false} />
+                            <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
+                            <Legend iconType="circle" />
+                            <Bar name="Lluvia (mm)" dataKey="lluvia" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={40} isAnimationActive={false} />
+                        </BarChart>
+                    </div>
+
+                    <div id="chart-pdf-wind" style={{ width: '800px', height: '400px', backgroundColor: '#ffffff', padding: '20px' }}>
+                        <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', fontWeight: 'bold', color: '#1e293b' }}>Velocidad del Viento (km/h)</h4>
+                        <LineChart width={760} height={350} data={chartData}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                            <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} tickLine={false} />
+                            <YAxis yAxisId="left" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
+                            <YAxis yAxisId="right" orientation="right" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
+                            <Legend iconType="circle" />
+                            <Line yAxisId="left" name="Vel. Viento (km/h)" type="monotone" dataKey="vientoVel" stroke="#06b6d4" strokeWidth={2.5} dot={{ r: 3 }} isAnimationActive={false} />
+                            <Line yAxisId="right" name="Recorrido (km)" type="monotone" dataKey="vientoRecorrido" stroke="#6366f1" strokeWidth={1.5} dot={false} strokeDasharray="3 3" isAnimationActive={false} />
+                        </LineChart>
+                    </div>
+
+                    <div id="chart-pdf-clouds" style={{ width: '800px', height: '400px', backgroundColor: '#ffffff', padding: '20px' }}>
+                        <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', fontWeight: 'bold', color: '#1e293b' }}>Nubosidad Total (Octas)</h4>
+                        <AreaChart width={760} height={350} data={chartData}>
+                            <defs>
+                                <linearGradient id="pdfColorClouds" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.15}/>
+                                    <stop offset="95%" stopColor="#f59e0b" stopOpacity={0}/>
+                                </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                            <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} tickLine={false} />
+                            <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} domain={[0, 8]} tickCount={9} />
+                            <Legend iconType="circle" />
+                            <Area name="Nub. Media" type="monotone" dataKey="nubMedia" stroke="#f59e0b" strokeWidth={2.5} fillOpacity={1} fill="url(#pdfColorClouds)" isAnimationActive={false} />
+                            <Line name="Nub. Día" type="monotone" dataKey="nubDia" stroke="#3b82f6" strokeWidth={1.5} dot={{ r: 2 }} isAnimationActive={false} />
+                            <Line name="Nub. Tarde" type="monotone" dataKey="nubNoche" stroke="#64748b" strokeWidth={1.5} dot={{ r: 2 }} isAnimationActive={false} />
+                        </AreaChart>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

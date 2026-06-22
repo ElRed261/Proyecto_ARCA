@@ -210,8 +210,8 @@ const Cli3074Page = () => {
                               if (!isNaN(ff)) row.viento_vel = enforceOneDecimal((ff * 0.514444).toFixed(1), 'viento_vel');
                           }
 
-                          // Tiempo Presente
-                          row.fenomenos.tiempo_presente = horaData.tiempo_presente || '';
+                          // Tiempo Presente (Se solicitó que se llene de forma manual)
+                          // row.fenomenos.tiempo_presente = horaData.tiempo_presente || '';
 
                           // DIF y CAR
                           row.tend_dif = enforceOneDecimal(horaData.tend_dif || '', 'tend_dif');

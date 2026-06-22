@@ -121,11 +121,13 @@ pub struct MonthlySummaryDoc {
 
 pub fn analyze_files(paths: Vec<String>) -> Result<MonthlySummaryDoc, String> {
     let config = get_default_config();
-    let mut observations = Vec::new();
+    let mut obs_map = std::collections::HashMap::new();
 
     // 1. Load all observations
     for p in &paths {
         let path = Path::new(p);
+        let is_cor = p.to_lowercase().ends_with("_cor.json");
+        
         let obs = if p.to_lowercase().ends_with(".json") {
             let content = fs::read_to_string(path).map_err(|e| format!("Failed to read {}: {}", p, e))?;
             let val: serde_json::Value = serde_json::from_str(&content).map_err(|e| format!("Failed to parse JSON {}: {}", p, e))?;
@@ -138,8 +140,16 @@ pub fn analyze_files(paths: Vec<String>) -> Result<MonthlySummaryDoc, String> {
         } else {
             build_observation_from_excel(path, &config).map_err(|e| format!("Failed to read excel {}: {}", p, e))?
         };
-        observations.push(obs);
+        
+        let fecha = obs.meta.fecha.clone();
+        if is_cor {
+            obs_map.insert(fecha, obs);
+        } else {
+            obs_map.entry(fecha).or_insert(obs);
+        }
     }
+
+    let mut observations: Vec<DailyObservation> = obs_map.into_values().collect();
 
     if observations.is_empty() {
         return Err("No valid files to analyze".to_string());

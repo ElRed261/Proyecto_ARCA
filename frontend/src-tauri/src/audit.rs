@@ -77,7 +77,7 @@ pub struct ErrorReportRow {
 }
 
 #[tauri::command]
-pub fn audit_browse_stations(app_handle: AppHandle) -> Result<Vec<StationInfo>, String> {
+pub fn audit_browse_stations(pool: tauri::State<'_, crate::db::DbPool>, app_handle: AppHandle) -> Result<Vec<StationInfo>, String> {
     let base_dir = get_arca_base_dir(&app_handle, "synop");
     if !base_dir.exists() {
         return Ok(Vec::new());
@@ -90,7 +90,7 @@ pub fn audit_browse_stations(app_handle: AppHandle) -> Result<Vec<StationInfo>, 
                 let name = entry.file_name().to_string_lossy().to_string();
                 // Validar que sea un número de estación (típicamente 5 dígitos)
                 if name.chars().all(|c| c.is_ascii_digit()) {
-                    let station_name = crate::calculations::get_station_info(&name)
+                    let station_name = crate::calculations::get_station_info(&pool, &name)
                         .map(|info| info.name)
                         .unwrap_or_else(|| "Estación Desconocida".to_string());
                     stations.push(StationInfo { code: name, name: station_name });
@@ -327,6 +327,7 @@ pub fn audit_browse_days(
 
 #[tauri::command]
 pub fn audit_load_observation(
+    pool: tauri::State<'_, crate::db::DbPool>,
     app_handle: AppHandle,
     station: String,
     date: String,
@@ -508,7 +509,7 @@ pub fn audit_load_observation(
                     ix: None,
                 };
 
-                let calc_res = crate::calculations::realizar_calculos(calc_req);
+                let calc_res = crate::calculations::realizar_calculos(&pool, calc_req);
 
                 // Insertar los nuevos calculados recalculados
                 hora_obj.insert("tension_vapor".to_string(), serde_json::Value::String(calc_res.tension_vapor));
@@ -769,3 +770,352 @@ pub fn audit_get_error_report(
 
     Ok(rows)
 }
+
+fn map_frontend_to_json_datos_field(campo: &str) -> Option<&'static str> {
+    match campo {
+        "ts" => Some("ts"),
+        "th" => Some("th"),
+        "pres_est" => Some("pres_est"),
+        "p3" => Some("p3"),
+        "p24" => Some("p24"),
+        "viento_dir" => Some("viento_dir"),
+        "viento_vel" => Some("viento_vel"),
+        "visibilidad" => Some("visibilidad"),
+        "t_max" => Some("Tmax"),
+        "t_min" => Some("Tmin"),
+        "ll" => Some("LL"),
+        "t_max_24h" => Some("Tmax_24h"),
+        "t_min_24h" => Some("Tmin_24h"),
+        "ll_24h" => Some("LL_24h"),
+        "correc_alt" => Some("correc_alt"),
+        _ => None
+    }
+}
+
+fn map_frontend_to_json_calculado_field(campo: &str) -> Option<&'static str> {
+    match campo {
+        "pres_nmm" => Some("pres_nmm"),
+        "punto_rocio" => Some("pr"),
+        "tension_vapor" => Some("tv"),
+        "humedad_relativa" => Some("hr"),
+        "diferencia" => Some("dif"),
+        _ => None
+    }
+}
+
+#[tauri::command]
+pub fn audit_export_corrected_json(
+    pool: tauri::State<'_, crate::db::DbPool>,
+    app_handle: AppHandle,
+    station_id: String,
+    fecha: String, // YYYY-MM-DD
+) -> Result<String, String> {
+    // 1. Validar y formatear fecha
+    let parts: Vec<&str> = fecha.split('-').collect();
+    if parts.len() != 3 {
+        return Err("Formato de fecha inválido. Debe ser YYYY-MM-DD".to_string());
+    }
+    let year = parts[0];
+    let month = parts[1];
+    let day = parts[2];
+    let filename_date = format!("{}{}{}", day, month, year);
+
+    let base_dir = get_arca_base_dir(&app_handle, "synop");
+    let dir_path = base_dir.join(&station_id).join(&year).join(&month);
+    let filename = format!("{}{}.json", station_id, filename_date);
+    let original_filepath = dir_path.join(&filename);
+
+    if !original_filepath.exists() {
+        return Err(format!("No existe la observación original en {:?}", original_filepath));
+    }
+
+    // 2. Leer JSON original
+    let existing_data = fs::read_to_string(&original_filepath).map_err(|e| e.to_string())?;
+    let mut root_val: serde_json::Value = serde_json::from_str(&existing_data).map_err(|e| e.to_string())?;
+
+    // 3. Cargar correcciones aprobadas de la base de datos
+    let db_path = get_db_path(&app_handle);
+    let conn = Connection::open(&db_path).map_err(|e| e.to_string())?;
+    let mut stmt = conn.prepare(
+        "SELECT hora, campo, valor_corregido FROM corrections \
+         WHERE station_id = ? AND fecha = ? AND estado = 'aprobado'"
+    ).map_err(|e| e.to_string())?;
+    
+    let corrections_rows = stmt.query_map([&station_id, &fecha], |row| {
+        Ok((
+            row.get::<_, String>(0)?,
+            row.get::<_, String>(1)?,
+            row.get::<_, String>(2)?,
+        ))
+    }).map_err(|e| e.to_string())?;
+
+    // 4. Aplicar overlay de correcciones
+    if let Some(root_obj) = root_val.as_object_mut() {
+        if let Some(horas_val) = root_obj.get_mut("horas") {
+            if let Some(horas_obj) = horas_val.as_object_mut() {
+                for corr_res in corrections_rows {
+                    if let Ok((hora, campo, valor_corregido)) = corr_res {
+                        if let Some(hora_val) = horas_obj.get_mut(&hora) {
+                            if let Some(hora_obj) = hora_val.as_object_mut() {
+                                // Observador
+                                if campo == "nombre_observador" || campo == "observador" {
+                                    hora_obj.insert("observador".to_string(), serde_json::Value::String(valor_corregido));
+                                }
+                                // Campos instrumentales (datos)
+                                else if let Some(datos_field) = map_frontend_to_json_datos_field(&campo) {
+                                    if let Some(datos_val) = hora_obj.get_mut("datos") {
+                                        if let Some(datos_obj) = datos_val.as_object_mut() {
+                                            datos_obj.insert(datos_field.to_string(), serde_json::Value::String(valor_corregido));
+                                        }
+                                    } else {
+                                        let mut datos_obj = serde_json::Map::new();
+                                        datos_obj.insert(datos_field.to_string(), serde_json::Value::String(valor_corregido));
+                                        hora_obj.insert("datos".to_string(), serde_json::Value::Object(datos_obj));
+                                    }
+                                }
+                                // Campos calculados
+                                else if let Some(calc_field) = map_frontend_to_json_calculado_field(&campo) {
+                                    if let Some(calc_val) = hora_obj.get_mut("calculado") {
+                                        if let Some(calc_obj) = calc_val.as_object_mut() {
+                                            calc_obj.insert(calc_field.to_string(), serde_json::Value::String(valor_corregido));
+                                        }
+                                    } else {
+                                        let mut calc_obj = serde_json::Map::new();
+                                        calc_obj.insert(calc_field.to_string(), serde_json::Value::String(valor_corregido));
+                                        hora_obj.insert("calculado".to_string(), serde_json::Value::Object(calc_obj));
+                                    }
+                                }
+                                // Campos SYNOP
+                                else {
+                                    let synop_field = crate::json_handler::synoptic::to_synop_name(&campo);
+                                    if let Some(synop_val) = hora_obj.get_mut("synop") {
+                                        if let Some(synop_obj) = synop_val.as_object_mut() {
+                                            synop_obj.insert(synop_field, serde_json::Value::String(valor_corregido));
+                                        }
+                                    } else {
+                                        let mut synop_obj = serde_json::Map::new();
+                                        synop_obj.insert(synop_field, serde_json::Value::String(valor_corregido));
+                                        hora_obj.insert("synop".to_string(), serde_json::Value::Object(synop_obj));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // 5. Recalcular las variables derivadas para todas las horas tras aplicar correcciones
+                for (_hora_key, hora_val) in horas_obj.iter_mut() {
+                    if let Some(hora_obj) = hora_val.as_object_mut() {
+                        let mut ts = None;
+                        let mut th = None;
+                        let mut pres_est = None;
+                        let mut p3 = None;
+                        let mut p24 = None;
+                        let mut correc_alt = None;
+
+                        if let Some(datos_val) = hora_obj.get("datos") {
+                            if let Some(datos_obj) = datos_val.as_object() {
+                                ts = datos_obj.get("ts").and_then(|v| v.as_str()).map(|s| s.to_string());
+                                th = datos_obj.get("th").and_then(|v| v.as_str()).map(|s| s.to_string());
+                                pres_est = datos_obj.get("pres_est").and_then(|v| v.as_str()).map(|s| s.to_string());
+                                p3 = datos_obj.get("p3").and_then(|v| v.as_str()).map(|s| s.to_string());
+                                p24 = datos_obj.get("p24").and_then(|v| v.as_str()).map(|s| s.to_string());
+                                correc_alt = datos_obj.get("correc_alt").and_then(|v| v.as_str()).map(|s| s.to_string());
+                            }
+                        }
+
+                        let calc_req = crate::calculations::CalculationRequest {
+                            station_id: Some(station_id.clone()),
+                            correc_alt,
+                            ts,
+                            th,
+                            pres_est,
+                            p3,
+                            p24,
+                            ir: None,
+                            ix: None,
+                        };
+
+                        let calc_res = crate::calculations::realizar_calculos(&pool, calc_req);
+                        
+                        let mut calculado_obj = serde_json::Map::new();
+                        if !calc_res.pres_nmm.is_empty() { calculado_obj.insert("pres_nmm".to_string(), serde_json::Value::String(calc_res.pres_nmm)); }
+                        if !calc_res.punto_rocio.is_empty() { calculado_obj.insert("pr".to_string(), serde_json::Value::String(calc_res.punto_rocio)); }
+                        if !calc_res.tension_vapor.is_empty() { calculado_obj.insert("tv".to_string(), serde_json::Value::String(calc_res.tension_vapor)); }
+                        if !calc_res.humedad_relativa.is_empty() { calculado_obj.insert("hr".to_string(), serde_json::Value::String(calc_res.humedad_relativa)); }
+                        if !calc_res.diferencia.is_empty() { calculado_obj.insert("dif".to_string(), serde_json::Value::String(calc_res.diferencia)); }
+
+                        if !calculado_obj.is_empty() {
+                            hora_obj.insert("calculado".to_string(), serde_json::Value::Object(calculado_obj));
+                        }
+                    }
+                }
+            }
+        }
+
+        // Actualizar ultima_actualizacion en meta
+        if let Some(meta_val) = root_obj.get_mut("meta") {
+            if let Some(meta_obj) = meta_val.as_object_mut() {
+                meta_obj.insert(
+                    "ultima_actualizacion".to_string(),
+                    serde_json::Value::String(chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string()),
+                );
+            }
+        }
+    }
+
+    // 6. Escribir a subcarpeta correcciones
+    let corr_dir = dir_path.join("correcciones");
+    if !corr_dir.exists() {
+        fs::create_dir_all(&corr_dir).map_err(|e| e.to_string())?;
+    }
+    
+    let corr_filename = format!("{}{}_cor.json", station_id, filename_date);
+    let corr_filepath = corr_dir.join(&corr_filename);
+    
+    let data_str = serde_json::to_string_pretty(&root_val).map_err(|e| e.to_string())?;
+    fs::write(&corr_filepath, data_str).map_err(|e| e.to_string())?;
+    
+    Ok(corr_filepath.to_string_lossy().to_string())
+}
+
+#[derive(Serialize)]
+pub struct PersonSummaryRow {
+    pub persona: String,
+    pub errores_marcados: i64,
+    pub correcciones_propuestas: i64,
+    pub correcciones_aprobadas: i64,
+}
+
+#[tauri::command]
+pub fn audit_get_person_summary(
+    app_handle: AppHandle,
+    station_id: Option<String>,
+    year: Option<String>,
+    month: Option<String>,
+) -> Result<Vec<PersonSummaryRow>, String> {
+    use std::collections::HashMap;
+
+    let db_path = get_db_path(&app_handle);
+    let conn = Connection::open(&db_path).map_err(|e| e.to_string())?;
+
+    let mut map: HashMap<String, PersonSummaryRow> = HashMap::new();
+
+    // 1. Obtener errores marcados
+    let mut err_query = "SELECT marcado_por, COUNT(*) FROM error_marks WHERE 1=1".to_string();
+    let mut err_args: Vec<String> = Vec::new();
+
+    if let Some(ref st) = station_id {
+        if !st.is_empty() {
+            err_query.push_str(" AND station_id = ?");
+            err_args.push(st.clone());
+        }
+    }
+
+    if let Some(ref y) = year {
+        if !y.is_empty() {
+            err_query.push_str(" AND fecha LIKE ?");
+            err_args.push(format!("{}-%", y));
+        }
+    }
+
+    if let Some(ref m) = month {
+        if !m.is_empty() {
+            if let Some(ref y) = year {
+                if !y.is_empty() {
+                    err_query.pop();
+                    err_args.pop();
+                    err_query.push_str(" AND fecha LIKE ?");
+                    err_args.push(format!("{}-{}-%", y, m));
+                } else {
+                    err_query.push_str(" AND fecha LIKE ?");
+                    err_args.push(format!("%-{}-%", m));
+                }
+            } else {
+                err_query.push_str(" AND fecha LIKE ?");
+                err_args.push(format!("%-{}-%", m));
+            }
+        }
+    }
+
+    err_query.push_str(" GROUP BY marcado_por");
+
+    let mut err_stmt = conn.prepare(&err_query).map_err(|e| e.to_string())?;
+    let err_rows = err_stmt.query_map(rusqlite::params_from_iter(err_args.iter()), |row| {
+        Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
+    }).map_err(|e| e.to_string())?;
+
+    for r in err_rows.flatten() {
+        let (persona, count) = r;
+        map.insert(persona.clone(), PersonSummaryRow {
+            persona,
+            errores_marcados: count,
+            correcciones_propuestas: 0,
+            correcciones_aprobadas: 0,
+        });
+    }
+
+    // 2. Obtener correcciones
+    let mut corr_query = "SELECT corregido_por, COUNT(*), SUM(CASE WHEN estado = 'aprobado' THEN 1 ELSE 0 END) FROM corrections WHERE 1=1".to_string();
+    let mut corr_args: Vec<String> = Vec::new();
+
+    if let Some(ref st) = station_id {
+        if !st.is_empty() {
+            corr_query.push_str(" AND station_id = ?");
+            corr_args.push(st.clone());
+        }
+    }
+
+    if let Some(ref y) = year {
+        if !y.is_empty() {
+            corr_query.push_str(" AND fecha LIKE ?");
+            corr_args.push(format!("{}-%", y));
+        }
+    }
+
+    if let Some(ref m) = month {
+        if !m.is_empty() {
+            if let Some(ref y) = year {
+                if !y.is_empty() {
+                    corr_query.pop();
+                    corr_args.pop();
+                    corr_query.push_str(" AND fecha LIKE ?");
+                    corr_args.push(format!("{}-{}-%", y, m));
+                } else {
+                    corr_query.push_str(" AND fecha LIKE ?");
+                    corr_args.push(format!("%-{}-%", m));
+                }
+            } else {
+                corr_query.push_str(" AND fecha LIKE ?");
+                corr_args.push(format!("%-{}-%", m));
+            }
+        }
+    }
+
+    corr_query.push_str(" GROUP BY corregido_por");
+
+    let mut corr_stmt = conn.prepare(&corr_query).map_err(|e| e.to_string())?;
+    let corr_rows = corr_stmt.query_map(rusqlite::params_from_iter(corr_args.iter()), |row| {
+        Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?, row.get::<_, i64>(2)?))
+    }).map_err(|e| e.to_string())?;
+
+    for r in corr_rows.flatten() {
+        let (persona, total, aprobadas) = r;
+        if let Some(row) = map.get_mut(&persona) {
+            row.correcciones_propuestas = total;
+            row.correcciones_aprobadas = aprobadas;
+        } else {
+            map.insert(persona.clone(), PersonSummaryRow {
+                persona,
+                errores_marcados: 0,
+                correcciones_propuestas: total,
+                correcciones_aprobadas: aprobadas,
+            });
+        }
+    }
+
+    let mut res: Vec<PersonSummaryRow> = map.into_values().collect();
+    res.sort_by(|a, b| b.errores_marcados.cmp(&a.errores_marcados));
+    Ok(res)
+}
+

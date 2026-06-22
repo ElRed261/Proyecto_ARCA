@@ -6,13 +6,19 @@ pub mod db;
 pub mod json_handler;
 pub mod summary;
 pub mod monthly_summary;
+pub mod app_config;
+pub mod repositories;
 
+use tauri::Manager;
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             calculations::get_stations,
+            calculations::create_station,
+            calculations::update_station,
+            calculations::delete_station,
             calculations::calculate_observations,
             cli_autofill::calculate_cli_autofill,
             json_handler::synoptic::save_observation_json,
@@ -35,6 +41,8 @@ pub fn run() {
             audit::audit_update_error_mark_note,
             audit::audit_propose_correction,
             audit::audit_get_error_report,
+            audit::audit_export_corrected_json,
+            audit::audit_get_person_summary,
             summary::get_monthly_summaries,
             summary::create_monthly_summary,
             auth::login_user,
@@ -43,16 +51,25 @@ pub fn run() {
             auth::change_password,
             auth::delete_user,
             monthly_summary::commands::ms_load_station_month,
+            monthly_summary::commands::ms_load_station_month_with_corrections,
             monthly_summary::commands::ms_generate_summary,
             monthly_summary::commands::ms_list_history,
             monthly_summary::commands::ms_load_summary,
             monthly_summary::commands::ms_export_excel,
-            monthly_summary::commands::ms_delete_summary
+            monthly_summary::commands::ms_delete_summary,
+            app_config::get_app_config,
+            app_config::set_app_config,
+            app_config::get_assigned_station
         ])
         .setup(|app| {
             // Database init
-            if let Err(err) = db::init_db(app.handle()) {
-                eprintln!("Error initializing database: {}", err);
+            match db::init_db(app.handle()) {
+                Ok(pool) => {
+                    app.manage(pool);
+                }
+                Err(err) => {
+                    eprintln!("Error initializing database: {}", err);
+                }
             }
             if cfg!(debug_assertions) {
                 app.handle().plugin(
