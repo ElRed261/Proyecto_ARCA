@@ -365,3 +365,270 @@ impl AuditRepository for SqliteAuditRepository {
         Ok(res)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::audit::{Correction, ErrorMark};
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
+    static TEST_DB_COUNTER: AtomicUsize = AtomicUsize::new(0);
+
+    fn setup_pool() -> Pool<SqliteConnectionManager> {
+        let n = TEST_DB_COUNTER.fetch_add(1, Ordering::SeqCst);
+        let mut path = std::env::temp_dir();
+        path.push(format!("arca_audit_test_{}_{}.db", std::process::id(), n));
+        let _ = std::fs::remove_file(&path);
+
+        let manager = SqliteConnectionManager::file(&path);
+        let pool = Pool::new(manager).unwrap();
+
+        let conn = pool.get().unwrap();
+        conn.execute_batch(
+            r#"
+            CREATE TABLE IF NOT EXISTS stations (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                provincia TEXT NOT NULL,
+                latitud REAL NOT NULL,
+                longitud REAL NOT NULL,
+                elevacion REAL NOT NULL,
+                ch REAL NOT NULL,
+                is_active INTEGER DEFAULT 1
+            );
+
+            CREATE TABLE IF NOT EXISTS error_marks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                station_id TEXT NOT NULL,
+                fecha TEXT NOT NULL,
+                hora TEXT NOT NULL,
+                campo TEXT NOT NULL,
+                tipo_error TEXT NOT NULL,
+                nota TEXT,
+                marcado_por TEXT NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (station_id) REFERENCES stations(id)
+            );
+
+            CREATE TABLE IF NOT EXISTS corrections (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                station_id TEXT NOT NULL,
+                fecha TEXT NOT NULL,
+                hora TEXT NOT NULL,
+                campo TEXT NOT NULL,
+                valor_original TEXT NOT NULL,
+                valor_corregido TEXT NOT NULL,
+                justificacion TEXT NOT NULL,
+                corregido_por TEXT NOT NULL,
+                aprobado_por TEXT,
+                estado TEXT DEFAULT 'pendiente',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (station_id) REFERENCES stations(id)
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_error_marks_station_fecha ON error_marks(station_id, fecha);
+            CREATE INDEX IF NOT EXISTS idx_corrections_station_fecha ON corrections(station_id, fecha);
+            "#,
+        )
+        .unwrap();
+
+        pool
+    }
+
+    fn insert_station(conn: &rusqlite::Connection, id: &str) {
+        conn.execute(
+            "INSERT INTO stations (id, name, provincia, latitud, longitud, elevacion, ch) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            params![id, "Test Station", "Test", 0.0, 0.0, 0.0, 0.0],
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn test_new_creates_repository() {
+        let pool = setup_pool();
+        let repo = SqliteAuditRepository::new(pool);
+        // Repository creation itself is the assertion; we only need it to compile and hold the pool.
+        let _ = repo;
+    }
+
+    #[test]
+    fn test_mark_error_inserts_error_mark() {
+        let pool = setup_pool();
+        let repo = SqliteAuditRepository::new(pool);
+        {
+            let conn = repo.pool.get().unwrap();
+            insert_station(&conn, "ST001");
+        }
+
+        let mark = ErrorMark {
+            id: None,
+            station_id: "ST001".to_string(),
+            fecha: "2024-01-01".to_string(),
+            hora: "12".to_string(),
+            campo: "temperatura".to_string(),
+            tipo_error: "fuera_rango".to_string(),
+            nota: Some("nota".to_string()),
+            marcado_por: "analista".to_string(),
+            created_at: None,
+        };
+
+        let id = repo.mark_error(&mark).unwrap();
+        assert!(id > 0);
+
+        let marks = repo.get_error_marks("ST001", "2024-01-01").unwrap();
+        assert_eq!(marks.len(), 1);
+        assert_eq!(marks[0].campo, "temperatura");
+    }
+
+    #[test]
+    fn test_unmark_error_removes_error_mark() {
+        let pool = setup_pool();
+        let repo = SqliteAuditRepository::new(pool);
+        {
+            let conn = repo.pool.get().unwrap();
+            insert_station(&conn, "ST002");
+        }
+
+        let mark = ErrorMark {
+            id: None,
+            station_id: "ST002".to_string(),
+            fecha: "2024-02-01".to_string(),
+            hora: "06".to_string(),
+            campo: "humedad".to_string(),
+            tipo_error: "inconsistencia".to_string(),
+            nota: None,
+            marcado_por: "analista".to_string(),
+            created_at: None,
+        };
+
+        let id = repo.mark_error(&mark).unwrap();
+        repo.unmark_error(id).unwrap();
+
+        let marks = repo.get_error_marks("ST002", "2024-02-01").unwrap();
+        assert!(marks.is_empty());
+    }
+
+    #[test]
+    fn test_get_error_report_returns_correct_counts() {
+        let pool = setup_pool();
+        let repo = SqliteAuditRepository::new(pool);
+        {
+            let conn = repo.pool.get().unwrap();
+            insert_station(&conn, "ST003");
+        }
+
+        let mark = ErrorMark {
+            id: None,
+            station_id: "ST003".to_string(),
+            fecha: "2024-03-05".to_string(),
+            hora: "00".to_string(),
+            campo: "presion".to_string(),
+            tipo_error: "error".to_string(),
+            nota: None,
+            marcado_por: "analista".to_string(),
+            created_at: None,
+        };
+        let error_id = repo.mark_error(&mark).unwrap();
+
+        let correction = Correction {
+            id: None,
+            station_id: "ST003".to_string(),
+            fecha: "2024-03-05".to_string(),
+            hora: "00".to_string(),
+            campo: "presion".to_string(),
+            valor_original: "1013".to_string(),
+            valor_corregido: "1014".to_string(),
+            justificacion: "correccion".to_string(),
+            corregido_por: "supervisor".to_string(),
+            aprobado_por: None,
+            estado: "pendiente".to_string(),
+            created_at: None,
+        };
+        repo.propose_correction(&correction).unwrap();
+
+        let report = repo
+            .get_error_report(Some("ST003".to_string()), Some("2024".to_string()), Some("03".to_string()))
+            .unwrap();
+        assert_eq!(report.len(), 1);
+        assert_eq!(report[0].error_id, error_id);
+        assert_eq!(report[0].valor_original.as_deref(), Some("1013"));
+        assert_eq!(report[0].estado.as_deref(), Some("pendiente"));
+    }
+
+    #[test]
+    fn test_get_daily_error_counts_returns_aggregated_data() {
+        let pool = setup_pool();
+        let repo = SqliteAuditRepository::new(pool);
+        {
+            let conn = repo.pool.get().unwrap();
+            insert_station(&conn, "ST004");
+        }
+
+        for hora in &["00", "06", "12"] {
+            let mark = ErrorMark {
+                id: None,
+                station_id: "ST004".to_string(),
+                fecha: "2024-04-10".to_string(),
+                hora: hora.to_string(),
+                campo: "temp".to_string(),
+                tipo_error: "tipo".to_string(),
+                nota: None,
+                marcado_por: "analista".to_string(),
+                created_at: None,
+            };
+            repo.mark_error(&mark).unwrap();
+        }
+
+        let counts = repo.get_daily_error_counts("ST004", "2024-04-%").unwrap();
+        assert_eq!(counts.get("2024-04-10"), Some(&3));
+    }
+
+    #[test]
+    fn test_get_person_summary_returns_person_stats() {
+        let pool = setup_pool();
+        let repo = SqliteAuditRepository::new(pool);
+        {
+            let conn = repo.pool.get().unwrap();
+            insert_station(&conn, "ST005");
+        }
+
+        let mark = ErrorMark {
+            id: None,
+            station_id: "ST005".to_string(),
+            fecha: "2024-05-01".to_string(),
+            hora: "00".to_string(),
+            campo: "viento".to_string(),
+            tipo_error: "tipo".to_string(),
+            nota: None,
+            marcado_por: "alice".to_string(),
+            created_at: None,
+        };
+        repo.mark_error(&mark).unwrap();
+
+        let correction = Correction {
+            id: None,
+            station_id: "ST005".to_string(),
+            fecha: "2024-05-01".to_string(),
+            hora: "00".to_string(),
+            campo: "viento".to_string(),
+            valor_original: "10".to_string(),
+            valor_corregido: "12".to_string(),
+            justificacion: "ajuste".to_string(),
+            corregido_por: "alice".to_string(),
+            aprobado_por: Some("bob".to_string()),
+            estado: "aprobado".to_string(),
+            created_at: None,
+        };
+        repo.propose_correction(&correction).unwrap();
+
+        let summary = repo
+            .get_person_summary(Some("ST005".to_string()), Some("2024".to_string()), Some("05".to_string()))
+            .unwrap();
+        assert_eq!(summary.len(), 1);
+        assert_eq!(summary[0].persona, "alice");
+        assert_eq!(summary[0].errores_marcados, 1);
+        assert_eq!(summary[0].correcciones_propuestas, 1);
+        assert_eq!(summary[0].correcciones_aprobadas, 1);
+    }
+}

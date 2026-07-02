@@ -207,3 +207,91 @@ pub fn init_db(app_handle: &AppHandle) -> Result<DbPool, Box<dyn std::error::Err
 
     Ok(pool)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rusqlite::Connection;
+
+    #[test]
+    fn test_get_migrations_returns_migrations() {
+        let migrations = get_migrations();
+        let mut conn = Connection::open_in_memory().unwrap();
+        // Applying migrations should succeed, proving the migrations object is valid.
+        migrations.to_latest(&mut conn).unwrap();
+    }
+
+    #[test]
+    fn test_migrations_create_expected_tables() {
+        let mut conn = Connection::open_in_memory().unwrap();
+        let migrations = get_migrations();
+        migrations.to_latest(&mut conn).unwrap();
+
+        let expected_tables = [
+            "users",
+            "stations",
+            "error_marks",
+            "corrections",
+            "summary_logs",
+        ];
+        for table in &expected_tables {
+            let count: i64 = conn
+                .query_row(
+                    "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?",
+                    [table],
+                    |row| row.get(0),
+                )
+                .unwrap();
+            assert_eq!(count, 1, "Table {} should exist after migrations", table);
+        }
+    }
+
+    #[test]
+    fn test_foreign_keys_pragma_is_on_after_enabling() {
+        let mut conn = Connection::open_in_memory().unwrap();
+        let migrations = get_migrations();
+        migrations.to_latest(&mut conn).unwrap();
+        conn.pragma_update(None, "foreign_keys", "ON").unwrap();
+
+        let fk_on: i32 = conn
+            .query_row("PRAGMA foreign_keys", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(fk_on, 1, "foreign_keys pragma should be ON");
+    }
+
+    #[test]
+    fn test_foreign_key_enforcement_rejects_invalid_station_id() {
+        let mut conn = Connection::open_in_memory().unwrap();
+        let migrations = get_migrations();
+        migrations.to_latest(&mut conn).unwrap();
+        conn.pragma_update(None, "foreign_keys", "ON").unwrap();
+
+        let result = conn.execute(
+            "INSERT INTO error_marks (station_id, fecha, hora, campo, tipo_error, marcado_por) VALUES (?, ?, ?, ?, ?, ?)",
+            params!["NONEXISTENT", "2024-01-01", "12", "temperatura", "tipo_a", "tester"],
+        );
+        assert!(result.is_err(), "Inserting error_mark for non-existent station should fail due to FK constraint");
+    }
+
+    #[test]
+    fn test_expected_indexes_exist() {
+        let mut conn = Connection::open_in_memory().unwrap();
+        let migrations = get_migrations();
+        migrations.to_latest(&mut conn).unwrap();
+
+        let expected_indexes = [
+            "idx_corrections_station_fecha",
+            "idx_summary_logs_station_period",
+        ];
+        for idx in &expected_indexes {
+            let count: i64 = conn
+                .query_row(
+                    "SELECT COUNT(*) FROM sqlite_master WHERE type='index' AND name=?",
+                    [idx],
+                    |row| row.get(0),
+                )
+                .unwrap();
+            assert_eq!(count, 1, "Index {} should exist after migrations", idx);
+        }
+    }
+}

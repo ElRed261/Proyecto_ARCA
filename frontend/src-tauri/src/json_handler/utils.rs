@@ -162,3 +162,56 @@ pub fn create_backup(filepath: &Path, station_code: &str, app_handle: &AppHandle
 
     None
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_validate_inputs_with_valid_data_returns_ok() {
+        let result = validate_inputs("ST001", "2024-05-21");
+        assert!(result.is_ok());
+
+        let result = validate_inputs("ST001", "21052024");
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_validate_inputs_with_empty_station_returns_err() {
+        let result = validate_inputs("", "2024-05-21");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("estación"));
+    }
+
+    #[test]
+    fn test_validate_inputs_with_invalid_date_format_returns_err() {
+        let result = validate_inputs("ST001", "2024/05/21");
+        assert!(result.is_err());
+
+        let result = validate_inputs("ST001", "21-05-2024");
+        assert!(result.is_err());
+
+        let result = validate_inputs("ST001", "abcd");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_format_date_for_filename_converts_yyyy_mm_dd() {
+        assert_eq!(format_date_for_filename("2024-05-21"), "21052024");
+    }
+
+    #[test]
+    fn test_format_date_for_filename_leaves_ddmmyyyy_unchanged() {
+        assert_eq!(format_date_for_filename("21052024"), "21052024");
+    }
+
+    #[test]
+    fn test_parse_date_parts_extracts_year_and_month() {
+        assert_eq!(parse_date_parts("2024-05-21"), ("2024".to_string(), "05".to_string()));
+    }
+
+    #[test]
+    fn test_parse_date_parts_parses_ddmmyyyy() {
+        assert_eq!(parse_date_parts("21052024"), ("2024".to_string(), "05".to_string()));
+    }
+}
