@@ -1,9 +1,9 @@
-use rusqlite::{params, Connection};
+use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
 use bcrypt::{hash, verify, DEFAULT_COST};
-use tauri::{AppHandle, command, State};
-use crate::db::get_db_path;
+use tauri::{command, State};
 use crate::infrastructure::error::AppError;
+use crate::ports::UserRepository;
 use std::collections::HashMap;
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -87,54 +87,45 @@ pub struct LoginResponse {
     pub roles: Vec<String>,
 }
 
-#[command]
-pub fn login_user(
-    app_handle: AppHandle,
-    session_store: State<'_, SessionStore>,
-    email: String,
-    password: String,
+pub fn login_user_logic(
+    repo: &dyn UserRepository,
+    session_store: &SessionStore,
+    email: &str,
+    password: &str,
 ) -> Result<LoginResponse, String> {
-    let db_path = get_db_path(&app_handle);
-    let conn = Connection::open(&db_path).map_err(|e| e.to_string())?;
-
-    let mut stmt = conn
-        .prepare("SELECT id, email, password_hash, role, is_active FROM users WHERE email = ?")
-        .map_err(|e| e.to_string())?;
-
-    let user_row = stmt
-        .query_row([&email], |row| {
-            Ok((
-                row.get::<_, i64>(0)?,
-                row.get::<_, String>(1)?,
-                row.get::<_, String>(2)?,
-                row.get::<_, String>(3)?,
-                row.get::<_, i32>(4)?,
-            ))
-        });
-
-    let (id, user_email, password_hash, role, is_active) = match user_row {
-        Ok(data) => data,
-        Err(_) => return Err("Usuario o contraseña incorrectos".to_string()),
+    let user = match repo.find_by_email(email)? {
+        Some(u) => u,
+        None => return Err("Usuario o contraseña incorrectos".to_string()),
     };
 
-    if is_active == 0 {
+    if !user.is_active {
         return Err("La cuenta de usuario está desactivada".to_string());
     }
 
-    let is_valid = verify(&password, &password_hash).map_err(|e| e.to_string())?;
+    let is_valid = verify(password, &user.password_hash).map_err(|e| e.to_string())?;
     if !is_valid {
         return Err("Usuario o contraseña incorrectos".to_string());
     }
 
-    // Generamos un token efímero seguro guardándolo en memoria
-    let access_token = session_store.create_session(id, user_email.clone(), role.clone());
+    let access_token = session_store.create_session(user.id, user.email.clone(), user.role.clone());
 
     Ok(LoginResponse {
         access_token,
         token_type: "bearer".to_string(),
-        user_email,
-        roles: vec![role],
+        user_email: user.email,
+        roles: vec![user.role],
     })
+}
+
+#[command]
+pub fn login_user(
+    pool: State<'_, crate::db::DbPool>,
+    session_store: State<'_, SessionStore>,
+    email: String,
+    password: String,
+) -> Result<LoginResponse, String> {
+    let repo = crate::adapters::sqlite_user_repository::SqliteUserRepository::new(pool.inner().clone());
+    login_user_logic(&repo, &session_store, &email, &password)
 }
 
 pub fn require_role(
@@ -149,85 +140,73 @@ pub fn require_role(
     Ok(session)
 }
 
-#[command]
-pub fn get_users(
-    app_handle: AppHandle,
-    session_store: State<'_, SessionStore>,
-    token: String,
+pub fn get_users_logic(
+    repo: &dyn UserRepository,
+    session_store: &SessionStore,
+    token: &str,
 ) -> Result<Vec<UserResponse>, String> {
-    require_role(&session_store, &token, &["admin"]).map_err(|e| e.to_string())?;
+    require_role(session_store, token, &["admin"]).map_err(|e| e.to_string())?;
 
-    let db_path = get_db_path(&app_handle);
-    let conn = Connection::open(&db_path).map_err(|e| e.to_string())?;
-
-    let mut stmt = conn
-        .prepare("SELECT id, email, role, is_active FROM users")
-        .map_err(|e| e.to_string())?;
-
-    let rows = stmt
-        .query_map([], |row| {
-            let id: i64 = row.get(0)?;
-            let email: String = row.get(1)?;
-            let role_name: String = row.get(2)?;
-            let is_active: i32 = row.get(3)?;
-
-            Ok(UserResponse {
-                id,
-                email,
-                roles: vec![UserRole {
-                    id: 1,
-                    name: role_name,
-                }],
-                is_active: is_active == 1,
-            })
+    let records = repo.get_all()?;
+    let users = records
+        .into_iter()
+        .map(|user| UserResponse {
+            id: user.id,
+            email: user.email,
+            roles: vec![UserRole {
+                id: 1,
+                name: user.role,
+            }],
+            is_active: user.is_active,
         })
-        .map_err(|e| e.to_string())?;
-
-    let mut users = Vec::new();
-    for row in rows {
-        if let Ok(user) = row {
-            users.push(user);
-        }
-    }
-
+        .collect();
     Ok(users)
 }
 
 #[command]
+pub fn get_users(
+    pool: State<'_, crate::db::DbPool>,
+    session_store: State<'_, SessionStore>,
+    token: String,
+) -> Result<Vec<UserResponse>, String> {
+    let repo = crate::adapters::sqlite_user_repository::SqliteUserRepository::new(pool.inner().clone());
+    get_users_logic(&repo, &session_store, &token)
+}
+
+pub fn update_user_logic(
+    repo: &dyn UserRepository,
+    session_store: &SessionStore,
+    token: &str,
+    user_id: i64,
+    role_name: &str,
+    is_active: bool,
+) -> Result<String, String> {
+    require_role(session_store, token, &["admin"]).map_err(|e| e.to_string())?;
+    repo.update(user_id, role_name, is_active)?;
+    Ok("Usuario actualizado exitosamente".to_string())
+}
+
+#[command]
 pub fn update_user(
-    app_handle: AppHandle,
+    pool: State<'_, crate::db::DbPool>,
     session_store: State<'_, SessionStore>,
     token: String,
     user_id: i64,
     role_name: String,
     is_active: bool,
 ) -> Result<String, String> {
-    require_role(&session_store, &token, &["admin"]).map_err(|e| e.to_string())?;
-
-    let db_path = get_db_path(&app_handle);
-    let conn = Connection::open(&db_path).map_err(|e| e.to_string())?;
-
-    let is_active_int = if is_active { 1 } else { 0 };
-
-    conn.execute(
-        "UPDATE users SET role = ?, is_active = ? WHERE id = ?",
-        params![role_name, is_active_int, user_id],
-    )
-    .map_err(|e| e.to_string())?;
-
-    Ok("Usuario actualizado exitosamente".to_string())
+    let repo = crate::adapters::sqlite_user_repository::SqliteUserRepository::new(pool.inner().clone());
+    update_user_logic(&repo, &session_store, &token, user_id, &role_name, is_active)
 }
 
-#[command]
-pub fn change_password(
-    app_handle: AppHandle,
-    session_store: State<'_, SessionStore>,
-    token: String,
+pub fn change_password_logic(
+    repo: &dyn UserRepository,
+    session_store: &SessionStore,
+    token: &str,
     user_id: i64,
-    password_val: String,
+    password_val: &str,
 ) -> Result<String, String> {
-    let session = session_store.validate_session(&token).map_err(|e| e.to_string())?;
-    // Permite cambiar contraseña si es admin o si el usuario coincide
+    let session = session_store.validate_session(token).map_err(|e| e.to_string())?;
     if session.role != "admin" && session.user_id != user_id {
         return Err("No autorizado: no puede cambiar la contraseña de otro usuario".to_string());
     }
@@ -236,18 +215,21 @@ pub fn change_password(
         return Err("La contraseña no puede estar vacía".to_string());
     }
 
-    let db_path = get_db_path(&app_handle);
-    let conn = Connection::open(&db_path).map_err(|e| e.to_string())?;
-
-    let password_hash = hash(&password_val, DEFAULT_COST).map_err(|e| e.to_string())?;
-
-    conn.execute(
-        "UPDATE users SET password_hash = ? WHERE id = ?",
-        params![password_hash, user_id],
-    )
-    .map_err(|e| e.to_string())?;
-
+    let password_hash = hash(password_val, DEFAULT_COST).map_err(|e| e.to_string())?;
+    repo.change_password(user_id, &password_hash)?;
     Ok("Contraseña actualizada exitosamente".to_string())
+}
+
+#[command]
+pub fn change_password(
+    pool: State<'_, crate::db::DbPool>,
+    session_store: State<'_, SessionStore>,
+    token: String,
+    user_id: i64,
+    password_val: String,
+) -> Result<String, String> {
+    let repo = crate::adapters::sqlite_user_repository::SqliteUserRepository::new(pool.inner().clone());
+    change_password_logic(&repo, &session_store, &token, user_id, &password_val)
 }
 
 #[command]
@@ -270,51 +252,56 @@ pub fn logout(
     Ok("Sesión cerrada".to_string())
 }
 
+pub fn create_user_logic(
+    repo: &dyn UserRepository,
+    session_store: &SessionStore,
+    token: &str,
+    email: &str,
+    password: &str,
+    role: &str,
+) -> Result<String, String> {
+    require_role(session_store, token, &["admin"]).map_err(|e| e.to_string())?;
+
+    let password_hash = hash(password, DEFAULT_COST).map_err(|e| e.to_string())?;
+    repo.create(email, &password_hash, role)
+        .map_err(|e| format!("Error al crear usuario: {}", e))?;
+
+    Ok("Usuario creado exitosamente".to_string())
+}
+
 #[command]
 pub fn create_user(
-    app_handle: AppHandle,
+    pool: State<'_, crate::db::DbPool>,
     session_store: State<'_, SessionStore>,
     token: String,
     email: String,
     password: String,
     role: String,
 ) -> Result<String, String> {
-    require_role(&session_store, &token, &["admin"]).map_err(|e| e.to_string())?;
+    let repo = crate::adapters::sqlite_user_repository::SqliteUserRepository::new(pool.inner().clone());
+    create_user_logic(&repo, &session_store, &token, &email, &password, &role)
+}
 
-    let db_path = get_db_path(&app_handle);
-    let conn = Connection::open(&db_path).map_err(|e| e.to_string())?;
-
-    let password_hash = hash(&password, DEFAULT_COST).map_err(|e| e.to_string())?;
-
-    conn.execute(
-        "INSERT INTO users (email, password_hash, role, is_active) VALUES (?, ?, ?, 1)",
-        params![email, password_hash, role],
-    )
-    .map_err(|e| format!("Error al crear usuario: {}", e))?;
-
-    Ok("Usuario creado exitosamente".to_string())
+pub fn delete_user_logic(
+    repo: &dyn UserRepository,
+    session_store: &SessionStore,
+    token: &str,
+    user_id: i64,
+) -> Result<String, String> {
+    require_role(session_store, token, &["admin"]).map_err(|e| e.to_string())?;
+    repo.deactivate(user_id)?;
+    Ok("Usuario desactivado exitosamente".to_string())
 }
 
 #[command]
 pub fn delete_user(
-    app_handle: AppHandle,
+    pool: State<'_, crate::db::DbPool>,
     session_store: State<'_, SessionStore>,
     token: String,
     user_id: i64,
 ) -> Result<String, String> {
-    require_role(&session_store, &token, &["admin"]).map_err(|e| e.to_string())?;
-
-    let db_path = get_db_path(&app_handle);
-    let conn = Connection::open(&db_path).map_err(|e| e.to_string())?;
-
-    // Desactivar el usuario en lugar de borrarlo físicamente
-    conn.execute(
-        "UPDATE users SET is_active = 0 WHERE id = ?",
-        params![user_id],
-    )
-    .map_err(|e| e.to_string())?;
-
-    Ok("Usuario desactivado exitosamente".to_string())
+    let repo = crate::adapters::sqlite_user_repository::SqliteUserRepository::new(pool.inner().clone());
+    delete_user_logic(&repo, &session_store, &token, user_id)
 }
 
 // Función auxiliar para validar roles en otros comandos protegidos

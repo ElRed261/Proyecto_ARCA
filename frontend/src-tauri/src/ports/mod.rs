@@ -1,12 +1,22 @@
 use crate::infrastructure::error::AppError;
-use crate::auth::UserResponse;
 use crate::audit::{ErrorMark, Correction, ErrorReportRow, PersonSummaryRow};
 
-pub trait UserRepository {
-    fn get_all(&self) -> Result<Vec<UserResponse>, AppError>;
-    fn update(&self, user_id: i64, role: &str, is_active: bool) -> Result<(), AppError>;
-    fn change_password(&self, user_id: i64, password_hash: &str) -> Result<(), AppError>;
-    fn delete(&self, user_id: i64) -> Result<(), AppError>;
+#[derive(Debug, Clone)]
+pub struct UserRecord {
+    pub id: i64,
+    pub email: String,
+    pub password_hash: String,
+    pub role: String,
+    pub is_active: bool,
+}
+
+pub trait UserRepository: Send + Sync {
+    fn find_by_email(&self, email: &str) -> Result<Option<UserRecord>, String>;
+    fn create(&self, email: &str, password_hash: &str, role: &str) -> Result<(), String>;
+    fn get_all(&self) -> Result<Vec<UserRecord>, String>;
+    fn update(&self, user_id: i64, role: &str, is_active: bool) -> Result<(), String>;
+    fn change_password(&self, user_id: i64, password_hash: &str) -> Result<(), String>;
+    fn deactivate(&self, user_id: i64) -> Result<(), String>;
 }
 
 pub trait AuditRepository {

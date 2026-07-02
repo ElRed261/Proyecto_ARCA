@@ -1,7 +1,5 @@
-use crate::ports::UserRepository;
-use crate::infrastructure::error::AppError;
-use crate::auth::{UserResponse, UserRole};
-use rusqlite::params;
+use crate::ports::{UserRecord, UserRepository};
+use rusqlite::{params, OptionalExtension};
 use r2d2::Pool;
 use r2d2_sqlite::SqliteConnectionManager;
 
@@ -16,55 +14,90 @@ impl SqliteUserRepository {
 }
 
 impl UserRepository for SqliteUserRepository {
-    fn get_all(&self) -> Result<Vec<UserResponse>, AppError> {
-        let conn = self.pool.get().map_err(|e| AppError::Internal(e.to_string()))?;
-        let mut stmt = conn.prepare("SELECT id, email, role, is_active FROM users")?;
-        let rows = stmt.query_map([], |row| {
-            let id: i64 = row.get(0)?;
-            let email: String = row.get(1)?;
-            let role_name: String = row.get(2)?;
-            let is_active: i32 = row.get(3)?;
-
-            Ok(UserResponse {
-                id,
-                email,
-                roles: vec![UserRole { id: 1, name: role_name }],
-                is_active: is_active == 1,
+    fn find_by_email(&self, email: &str) -> Result<Option<UserRecord>, String> {
+        let conn = self.pool.get().map_err(|e| e.to_string())?;
+        let mut stmt = conn
+            .prepare("SELECT id, email, password_hash, role, is_active FROM users WHERE email = ?")
+            .map_err(|e| e.to_string())?;
+        let result = stmt
+            .query_row([email], |row| {
+                Ok(UserRecord {
+                    id: row.get(0)?,
+                    email: row.get(1)?,
+                    password_hash: row.get(2)?,
+                    role: row.get(3)?,
+                    is_active: row.get::<_, i32>(4)? == 1,
+                })
             })
-        })?;
+            .optional()
+            .map_err(|e| e.to_string())?;
+        Ok(result)
+    }
+
+    fn create(&self, email: &str, password_hash: &str, role: &str) -> Result<(), String> {
+        let conn = self.pool.get().map_err(|e| e.to_string())?;
+        conn.execute(
+            "INSERT INTO users (email, password_hash, role, is_active) VALUES (?, ?, ?, 1)",
+            params![email, password_hash, role],
+        )
+        .map_err(|e| e.to_string())?;
+        Ok(())
+    }
+
+    fn get_all(&self) -> Result<Vec<UserRecord>, String> {
+        let conn = self.pool.get().map_err(|e| e.to_string())?;
+        let mut stmt = conn
+            .prepare("SELECT id, email, password_hash, role, is_active FROM users")
+            .map_err(|e| e.to_string())?;
+        let rows = stmt
+            .query_map([], |row| {
+                Ok(UserRecord {
+                    id: row.get(0)?,
+                    email: row.get(1)?,
+                    password_hash: row.get(2)?,
+                    role: row.get(3)?,
+                    is_active: row.get::<_, i32>(4)? == 1,
+                })
+            })
+            .map_err(|e| e.to_string())?;
 
         let mut users = Vec::new();
         for row in rows {
-            users.push(row?);
+            if let Ok(user) = row {
+                users.push(user);
+            }
         }
         Ok(users)
     }
 
-    fn update(&self, user_id: i64, role: &str, is_active: bool) -> Result<(), AppError> {
-        let conn = self.pool.get().map_err(|e| AppError::Internal(e.to_string()))?;
+    fn update(&self, user_id: i64, role: &str, is_active: bool) -> Result<(), String> {
+        let conn = self.pool.get().map_err(|e| e.to_string())?;
         let is_active_int = if is_active { 1 } else { 0 };
         conn.execute(
             "UPDATE users SET role = ?, is_active = ? WHERE id = ?",
             params![role, is_active_int, user_id],
-        )?;
+        )
+        .map_err(|e| e.to_string())?;
         Ok(())
     }
 
-    fn change_password(&self, user_id: i64, password_hash: &str) -> Result<(), AppError> {
-        let conn = self.pool.get().map_err(|e| AppError::Internal(e.to_string()))?;
+    fn change_password(&self, user_id: i64, password_hash: &str) -> Result<(), String> {
+        let conn = self.pool.get().map_err(|e| e.to_string())?;
         conn.execute(
             "UPDATE users SET password_hash = ? WHERE id = ?",
             params![password_hash, user_id],
-        )?;
+        )
+        .map_err(|e| e.to_string())?;
         Ok(())
     }
 
-    fn delete(&self, user_id: i64) -> Result<(), AppError> {
-        let conn = self.pool.get().map_err(|e| AppError::Internal(e.to_string()))?;
+    fn deactivate(&self, user_id: i64) -> Result<(), String> {
+        let conn = self.pool.get().map_err(|e| e.to_string())?;
         conn.execute(
             "UPDATE users SET is_active = 0 WHERE id = ?",
             params![user_id],
-        )?;
+        )
+        .map_err(|e| e.to_string())?;
         Ok(())
     }
 }
@@ -122,61 +155,50 @@ mod tests {
     }
 
     #[test]
-    fn test_find_by_email_logic_returns_existing_user() {
+    fn test_find_by_email_returns_existing_user() {
         let pool = setup_pool();
-        let conn = pool.get().unwrap();
-        insert_user(&conn, "user@arca.rd", "pass", "admin", 1);
+        let repo = SqliteUserRepository::new(pool);
+        {
+            let conn = repo.pool.get().unwrap();
+            insert_user(&conn, "user@arca.rd", "pass", "admin", 1);
+        }
 
-        let result: Result<(i64, String, String, i32), rusqlite::Error> = conn.query_row(
-            "SELECT id, email, role, is_active FROM users WHERE email = ?",
-            ["user@arca.rd"],
-            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
-        );
-
-        assert!(result.is_ok());
-        let (id, email, role, is_active) = result.unwrap();
-        assert_eq!(email, "user@arca.rd");
-        assert_eq!(role, "admin");
-        assert_eq!(is_active, 1);
-        assert!(id > 0);
+        let user = repo.find_by_email("user@arca.rd").unwrap();
+        assert!(user.is_some());
+        let user = user.unwrap();
+        assert_eq!(user.email, "user@arca.rd");
+        assert_eq!(user.role, "admin");
+        assert!(user.is_active);
+        assert!(user.id > 0);
     }
 
     #[test]
-    fn test_find_by_email_logic_returns_none_for_missing_user() {
+    fn test_find_by_email_returns_none_for_missing_user() {
         let pool = setup_pool();
-        let conn = pool.get().unwrap();
+        let repo = SqliteUserRepository::new(pool);
 
-        let result: Result<(i64, String, String, i32), rusqlite::Error> = conn.query_row(
-            "SELECT id, email, role, is_active FROM users WHERE email = ?",
-            ["missing@arca.rd"],
-            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
-        );
-
-        assert!(matches!(result, Err(rusqlite::Error::QueryReturnedNoRows)));
+        let user = repo.find_by_email("missing@arca.rd").unwrap();
+        assert!(user.is_none());
     }
 
     #[test]
-    fn test_create_logic_inserts_user_and_can_find_by_email() {
+    fn test_create_inserts_user_and_can_find_by_email() {
         let pool = setup_pool();
-        let conn = pool.get().unwrap();
-
+        let repo = SqliteUserRepository::new(pool);
         let password_hash = hash("newpass", DEFAULT_COST).unwrap();
-        conn.execute(
-            "INSERT INTO users (email, password_hash, role, is_active) VALUES (?, ?, ?, 1)",
-            params!["new@arca.rd", password_hash, "control_calidad"],
-        )
-        .unwrap();
 
-        let result: Result<String, rusqlite::Error> = conn.query_row(
-            "SELECT role FROM users WHERE email = ?",
-            ["new@arca.rd"],
-            |row| row.get(0),
-        );
-        assert_eq!(result.unwrap(), "control_calidad");
+        repo.create("new@arca.rd", &password_hash, "control_calidad").unwrap();
+
+        let user = repo.find_by_email("new@arca.rd").unwrap();
+        assert!(user.is_some());
+        let user = user.unwrap();
+        assert_eq!(user.email, "new@arca.rd");
+        assert_eq!(user.role, "control_calidad");
+        assert!(user.is_active);
     }
 
     #[test]
-    fn test_get_all_returns_users_with_roles_array() {
+    fn test_get_all_returns_users() {
         let pool = setup_pool();
         let repo = SqliteUserRepository::new(pool);
         {
@@ -187,8 +209,8 @@ mod tests {
 
         let users = repo.get_all().unwrap();
         assert_eq!(users.len(), 2);
-        assert!(users.iter().any(|u| u.email == "a@arca.rd" && u.is_active && u.roles[0].name == "admin"));
-        assert!(users.iter().any(|u| u.email == "b@arca.rd" && !u.is_active && u.roles[0].name == "control_calidad"));
+        assert!(users.iter().any(|u| u.email == "a@arca.rd" && u.is_active && u.role == "admin"));
+        assert!(users.iter().any(|u| u.email == "b@arca.rd" && !u.is_active && u.role == "control_calidad"));
     }
 
     #[test]
@@ -213,6 +235,25 @@ mod tests {
     }
 
     #[test]
+    fn test_change_password_updates_password_hash() {
+        let pool = setup_pool();
+        let repo = SqliteUserRepository::new(pool);
+        let user_id = {
+            let conn = repo.pool.get().unwrap();
+            insert_user(&conn, "changer@arca.rd", "oldpass", "admin", 1)
+        };
+
+        let new_hash = hash("newpass", DEFAULT_COST).unwrap();
+        repo.change_password(user_id, &new_hash).unwrap();
+
+        let conn = repo.pool.get().unwrap();
+        let stored_hash: String = conn
+            .query_row("SELECT password_hash FROM users WHERE id = ?", [user_id], |row| row.get(0))
+            .unwrap();
+        assert_eq!(stored_hash, new_hash);
+    }
+
+    #[test]
     fn test_deactivate_sets_is_active_zero() {
         let pool = setup_pool();
         let repo = SqliteUserRepository::new(pool);
@@ -221,7 +262,7 @@ mod tests {
             insert_user(&conn, "deactivate@arca.rd", "pass", "admin", 1)
         };
 
-        repo.delete(user_id).unwrap();
+        repo.deactivate(user_id).unwrap();
 
         let conn = repo.pool.get().unwrap();
         let is_active: i32 = conn
