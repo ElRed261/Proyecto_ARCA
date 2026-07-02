@@ -121,8 +121,8 @@ pub fn init_db(app_handle: &AppHandle) -> Result<DbPool, Box<dyn std::error::Err
     let mut conn = pool.get()?;
 
     // Habilitar modo WAL para mejor concurrencia
-    conn.pragma_update(None, "journal_mode", &"wal")?;
-    conn.pragma_update(None, "foreign_keys", &"ON")?;
+    conn.pragma_update(None, "journal_mode", "wal")?;
+    conn.pragma_update(None, "foreign_keys", "ON")?;
 
     // Aplicar migraciones
     let migrations = get_migrations();

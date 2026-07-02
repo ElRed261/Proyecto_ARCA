@@ -68,10 +68,8 @@ pub fn get_all_stations(pool: &DbPool) -> Result<Vec<StationInfo>, String> {
     }).map_err(|e| e.to_string())?;
 
     let mut stations = Vec::new();
-    for st in stations_iter {
-        if let Ok(station) = st {
-            stations.push(station);
-        }
+    for station in stations_iter.flatten() {
+        stations.push(station);
     }
 
     Ok(stations)

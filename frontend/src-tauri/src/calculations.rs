@@ -96,13 +96,13 @@ fn calcular_tendencia_a(dif: f64) -> String {
     }
 
     if dif > 0.0 {
-        if abs_dif >= 0.1 && abs_dif <= 0.5 {
+        if (0.1..=0.5).contains(&abs_dif) {
             return "0".to_string();
         }
-        if abs_dif >= 0.6 && abs_dif <= 1.4 {
+        if (0.6..=1.4).contains(&abs_dif) {
             return "1".to_string();
         }
-        if abs_dif >= 1.5 && abs_dif <= 1.9 {
+        if (1.5..=1.9).contains(&abs_dif) {
             return "2".to_string();
         }
         if abs_dif >= 2.0 {
@@ -111,13 +111,13 @@ fn calcular_tendencia_a(dif: f64) -> String {
     }
 
     if dif < 0.0 {
-        if abs_dif >= 0.1 && abs_dif <= 0.5 {
+        if (0.1..=0.5).contains(&abs_dif) {
             return "5".to_string();
         }
-        if abs_dif >= 0.6 && abs_dif <= 1.4 {
+        if (0.6..=1.4).contains(&abs_dif) {
             return "6".to_string();
         }
-        if abs_dif >= 1.5 && abs_dif <= 1.9 {
+        if (1.5..=1.9).contains(&abs_dif) {
             return "7".to_string();
         }
         if abs_dif >= 2.0 {

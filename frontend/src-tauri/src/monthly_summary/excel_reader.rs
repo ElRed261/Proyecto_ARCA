@@ -58,11 +58,9 @@ pub fn build_observation_from_excel(path: &Path, config: &ExcelConfig) -> Result
     
     // Try to get station from B3 (row 2, col 1 in 0-indexed) or fallback to filename
     let mut estacion = extract_station_from_filename(path);
-    if let Some(cell) = sheet_3074.get_value((2, 1)) {
-        if let Data::String(s) = cell {
-            if !s.trim().is_empty() {
-                estacion = s.trim().to_string();
-            }
+    if let Some(Data::String(s)) = sheet_3074.get_value((2, 1)) {
+        if !s.trim().is_empty() {
+            estacion = s.trim().to_string();
         }
     }
 

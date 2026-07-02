@@ -168,14 +168,14 @@ pub(crate) fn calc_car(pres_est: &str, p3: &str) -> String {
         }
 
         if dif > 0.0 {
-            if abs_dif >= 0.1 && abs_dif <= 0.5 { return "0".to_string(); }
-            if abs_dif >= 0.6 && abs_dif <= 1.4 { return "1".to_string(); }
-            if abs_dif >= 1.5 && abs_dif <= 1.9 { return "2".to_string(); }
+            if (0.1..=0.5).contains(&abs_dif) { return "0".to_string(); }
+            if (0.6..=1.4).contains(&abs_dif) { return "1".to_string(); }
+            if (1.5..=1.9).contains(&abs_dif) { return "2".to_string(); }
             if abs_dif >= 2.0 { return "3".to_string(); }
         } else {
-            if abs_dif >= 0.1 && abs_dif <= 0.5 { return "5".to_string(); }
-            if abs_dif >= 0.6 && abs_dif <= 1.4 { return "6".to_string(); }
-            if abs_dif >= 1.5 && abs_dif <= 1.9 { return "7".to_string(); }
+            if (0.1..=0.5).contains(&abs_dif) { return "5".to_string(); }
+            if (0.6..=1.4).contains(&abs_dif) { return "6".to_string(); }
+            if (1.5..=1.9).contains(&abs_dif) { return "7".to_string(); }
             if abs_dif >= 2.0 { return "8".to_string(); }
         }
     }
@@ -225,6 +225,7 @@ pub(crate) fn get_prev_hour(hora: &str) -> &'static str {
 }
 
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub fn save_observation_json(
     app_handle: AppHandle,
     station_code: String,
@@ -606,7 +607,7 @@ pub fn get_station_date_range(
         let walker = walkdir::WalkDir::new(&station_dir);
         for entry in walker.into_iter().filter_map(|e| e.ok()) {
             if entry.file_type().is_file()
-                && entry.path().extension().map_or(false, |ext| ext == "json")
+                && entry.path().extension().is_some_and(|ext| ext == "json")
             {
                 let fname = entry
                     .path()

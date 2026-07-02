@@ -13,7 +13,7 @@ fn save_cli_generic(
     cli_key: &str,
     data: Value,
 ) -> Result<String, AppError> {
-    validate_inputs(station_id, date).map_err(|e| AppError::Validation(e))?;
+    validate_inputs(station_id, date).map_err(AppError::Validation)?;
     let parts: Vec<&str> = date.split('-').collect();
     if parts.len() != 3 {
         return Err(AppError::Validation("La fecha debe tener formato YYYY-MM-DD".to_string()));
@@ -23,7 +23,7 @@ fn save_cli_generic(
 
     let base_dir = get_arca_base_dir(app_handle, "synop");
     let target_dir = ensure_arca_dirs_with_station(&base_dir, station_id, year, month)
-        .map_err(|e| AppError::Io(std::io::Error::new(std::io::ErrorKind::Other, e)))?;
+        .map_err(|e| AppError::Io(std::io::Error::other(e)))?;
 
     let fecha_formatted = format_date_for_filename(date);
     let file_name = format!("{}{}.json", station_id, fecha_formatted);
@@ -63,7 +63,7 @@ fn load_cli_generic(
     date: &str,
     cli_key: &str,
 ) -> Result<Value, AppError> {
-    validate_inputs(station_id, date).map_err(|e| AppError::Validation(e))?;
+    validate_inputs(station_id, date).map_err(AppError::Validation)?;
     let parts: Vec<&str> = date.split('-').collect();
     if parts.len() != 3 {
         return Err(AppError::Validation("Formato de fecha inválido".to_string()));

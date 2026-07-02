@@ -62,10 +62,8 @@ impl UserRepository for SqliteUserRepository {
             .map_err(|e| e.to_string())?;
 
         let mut users = Vec::new();
-        for row in rows {
-            if let Ok(user) = row {
-                users.push(user);
-            }
+        for user in rows.flatten() {
+            users.push(user);
         }
         Ok(users)
     }

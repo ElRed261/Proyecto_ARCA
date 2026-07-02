@@ -54,10 +54,8 @@ pub fn get_monthly_summaries(
         .map_err(|e| e.to_string())?;
 
     let mut res = Vec::new();
-    for sum in summaries {
-        if let Ok(m) = sum {
-            res.push(m);
-        }
+    for m in summaries.flatten() {
+        res.push(m);
     }
     Ok(res)
 }

@@ -147,12 +147,10 @@ pub async fn ms_load_station_month(
     
     // 2. Find all json files in that directory
     let mut paths = Vec::new();
-    for entry in std::fs::read_dir(&synop_dir).map_err(|e| e.to_string())? {
-        if let Ok(entry) = entry {
-            let path = entry.path();
-            if path.extension().and_then(|s| s.to_str()) == Some("json") {
-                paths.push(path.to_string_lossy().to_string());
-            }
+    for entry in (std::fs::read_dir(&synop_dir).map_err(|e| e.to_string())?).flatten() {
+        let path = entry.path();
+        if path.extension().and_then(|s| s.to_str()) == Some("json") {
+            paths.push(path.to_string_lossy().to_string());
         }
     }
     
@@ -206,19 +204,17 @@ pub async fn ms_load_station_month_with_corrections(
     let corr_dir = synop_dir.join("correcciones");
     let mut paths = Vec::new();
     
-    for entry in std::fs::read_dir(&synop_dir).map_err(|e| e.to_string())? {
-        if let Ok(entry) = entry {
-            let path = entry.path();
-            if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("json") {
-                if let Some(file_name) = path.file_stem().and_then(|s| s.to_str()) {
-                    let corr_file_name = format!("{}_cor.json", file_name);
-                    let corr_path = corr_dir.join(&corr_file_name);
-                    
-                    if corr_path.exists() {
-                        paths.push(corr_path.to_string_lossy().to_string());
-                    } else {
-                        paths.push(path.to_string_lossy().to_string());
-                    }
+    for entry in (std::fs::read_dir(&synop_dir).map_err(|e| e.to_string())?).flatten() {
+        let path = entry.path();
+        if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("json") {
+            if let Some(file_name) = path.file_stem().and_then(|s| s.to_str()) {
+                let corr_file_name = format!("{}_cor.json", file_name);
+                let corr_path = corr_dir.join(&corr_file_name);
+                
+                if corr_path.exists() {
+                    paths.push(corr_path.to_string_lossy().to_string());
+                } else {
+                    paths.push(path.to_string_lossy().to_string());
                 }
             }
         }

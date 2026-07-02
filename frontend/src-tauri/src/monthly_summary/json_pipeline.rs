@@ -205,7 +205,7 @@ pub fn analyze_files(paths: Vec<String>) -> Result<MonthlySummaryDoc, String> {
 pub fn save_summary(doc: &MonthlySummaryDoc, dir: &Path) -> Result<PathBuf, String> {
     fs::create_dir_all(dir).map_err(|e| e.to_string())?;
     
-    let safe_station = doc.meta.estacion.replace('/', "_").replace('\\', "_");
+    let safe_station = doc.meta.estacion.replace(['/', '\\'], "_");
     let safe_period = doc.meta.periodo.replace('/', "");
     let filename = format!("resumen_{}_{}.json", safe_station, safe_period);
     
@@ -235,21 +235,19 @@ pub fn list_summary_history(dir: &Path) -> Result<Vec<SummaryIndexEntry>, String
         return Ok(entries);
     }
     
-    for entry in fs::read_dir(dir).map_err(|e| e.to_string())? {
-        if let Ok(entry) = entry {
-            let path = entry.path();
-            if path.extension().and_then(|s| s.to_str()) == Some("json") {
-                if let Ok(content) = fs::read_to_string(&path) {
-                    if let Ok(meta_doc) = serde_json::from_str::<serde_json::Value>(&content) {
-                        if let Some(meta) = meta_doc.get("meta") {
-                            let station = meta.get("estacion").and_then(|v| v.as_str()).unwrap_or("Desconocida").to_string();
-                            let period = meta.get("periodo").and_then(|v| v.as_str()).unwrap_or("S/F").to_string();
-                            entries.push(SummaryIndexEntry {
-                                station,
-                                period,
-                                path: path.to_string_lossy().to_string(),
-                            });
-                        }
+    for entry in (fs::read_dir(dir).map_err(|e| e.to_string())?).flatten() {
+        let path = entry.path();
+        if path.extension().and_then(|s| s.to_str()) == Some("json") {
+            if let Ok(content) = fs::read_to_string(&path) {
+                if let Ok(meta_doc) = serde_json::from_str::<serde_json::Value>(&content) {
+                    if let Some(meta) = meta_doc.get("meta") {
+                        let station = meta.get("estacion").and_then(|v| v.as_str()).unwrap_or("Desconocida").to_string();
+                        let period = meta.get("periodo").and_then(|v| v.as_str()).unwrap_or("S/F").to_string();
+                        entries.push(SummaryIndexEntry {
+                            station,
+                            period,
+                            path: path.to_string_lossy().to_string(),
+                        });
                     }
                 }
             }

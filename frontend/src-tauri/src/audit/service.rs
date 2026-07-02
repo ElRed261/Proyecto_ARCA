@@ -63,7 +63,7 @@ pub fn load_observation_with_audit(
     date: &str,
 ) -> Result<AuditObservationData, AppError> {
     let mut observation = get_observation(app_handle.clone(), station.to_string(), date.to_string())
-        .map_err(|e| AppError::Validation(e))?;
+        .map_err(AppError::Validation)?;
 
     let repo = crate::adapters::sqlite_audit_repository::SqliteAuditRepository::new(pool.clone());
 
@@ -79,17 +79,15 @@ pub fn load_observation_with_audit(
                 if let Some(hora_obj) = hora_val.as_object() {
                     let mut tiene_datos = false;
                     for (k, v) in hora_obj {
-                        if k != "observador" && k != "station_id" && k != "fecha" && k != "nombre_observador" {
-                            if !v.is_null() {
-                                if let Some(s) = v.as_str() {
-                                    if !s.trim().is_empty() {
-                                        tiene_datos = true;
-                                        break;
-                                    }
-                                } else {
+                        if k != "observador" && k != "station_id" && k != "fecha" && k != "nombre_observador" && !v.is_null() {
+                            if let Some(s) = v.as_str() {
+                                if !s.trim().is_empty() {
                                     tiene_datos = true;
                                     break;
                                 }
+                            } else {
+                                tiene_datos = true;
+                                break;
                             }
                         }
                     }
@@ -190,7 +188,7 @@ pub fn export_corrected_json(
     fecha: &str,
 ) -> Result<String, AppError> {
     crate::json_handler::utils::validate_inputs(station_id, fecha)
-        .map_err(|e| AppError::Validation(e))?;
+        .map_err(AppError::Validation)?;
 
     let parts: Vec<&str> = fecha.split('-').collect();
     if parts.len() != 3 {

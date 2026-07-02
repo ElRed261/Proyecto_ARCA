@@ -130,7 +130,7 @@ pub fn audit_browse_days(
         for entry in entries.flatten() {
             if entry.file_type().map(|t| t.is_file()).unwrap_or(false) {
                 let path = entry.path();
-                if path.extension().map_or(false, |ext| ext == "json") {
+                if path.extension().is_some_and(|ext| ext == "json") {
                     let filename = entry.file_name().to_string_lossy().to_string();
                     let date_str = if filename.len() >= 8 {
                         let base_fname = path.file_stem().unwrap_or_default().to_string_lossy();
@@ -234,6 +234,7 @@ pub fn audit_load_observation(
 }
 
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub fn audit_mark_error(
     session_store: tauri::State<'_, crate::auth::SessionStore>,
     token: String,
@@ -310,6 +311,7 @@ pub fn audit_update_error_mark_note(
 }
 
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub fn audit_propose_correction(
     session_store: tauri::State<'_, crate::auth::SessionStore>,
     token: String,
