@@ -251,6 +251,51 @@ pub fn change_password(
 }
 
 #[command]
+pub fn validate_token(
+    session_store: State<'_, SessionStore>,
+    token: String,
+) -> Result<bool, String> {
+    match session_store.validate_session(&token) {
+        Ok(_) => Ok(true),
+        Err(_) => Ok(false),
+    }
+}
+
+#[command]
+pub fn logout(
+    session_store: State<'_, SessionStore>,
+    token: String,
+) -> Result<String, String> {
+    session_store.delete_session(&token);
+    Ok("Sesión cerrada".to_string())
+}
+
+#[command]
+pub fn create_user(
+    app_handle: AppHandle,
+    session_store: State<'_, SessionStore>,
+    token: String,
+    email: String,
+    password: String,
+    role: String,
+) -> Result<String, String> {
+    require_role(&session_store, &token, &["admin"]).map_err(|e| e.to_string())?;
+
+    let db_path = get_db_path(&app_handle);
+    let conn = Connection::open(&db_path).map_err(|e| e.to_string())?;
+
+    let password_hash = hash(&password, DEFAULT_COST).map_err(|e| e.to_string())?;
+
+    conn.execute(
+        "INSERT INTO users (email, password_hash, role, is_active) VALUES (?, ?, ?, 1)",
+        params![email, password_hash, role],
+    )
+    .map_err(|e| format!("Error al crear usuario: {}", e))?;
+
+    Ok("Usuario creado exitosamente".to_string())
+}
+
+#[command]
 pub fn delete_user(
     app_handle: AppHandle,
     session_store: State<'_, SessionStore>,

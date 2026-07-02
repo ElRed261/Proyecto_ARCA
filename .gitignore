@@ -30,3 +30,6 @@ frontend/src-tauri/target/
 # --- AGENT TEAMS LITE ---
 .atl/
 .agent/
+
+# --- CODEBASE MEMORY (local graph artifact) ---
+.codebase-memory/

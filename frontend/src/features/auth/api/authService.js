@@ -21,11 +21,28 @@ export const authService = {
         throw { response: { data: { detail: 'Registro deshabilitado en modo local' } } };
     },
 
-    // Logout: limpia localStorage
-    logout: () => {
+    // Logout: limpia backend + localStorage
+    logout: async () => {
+        const token = localStorage.getItem('token') || '';
+        try {
+            if (token) await invoke('logout', { token });
+        } catch {
+            // Si el backend ya no tiene la sesión, no importa
+        }
         localStorage.removeItem('token');
         localStorage.removeItem('user_email');
         localStorage.removeItem('user_roles');
+    },
+
+    // Validar token contra el backend (SessionStore en memoria)
+    validateToken: async () => {
+        const token = localStorage.getItem('token') || '';
+        if (!token) return false;
+        try {
+            return await invoke('validate_token', { token });
+        } catch {
+            return false;
+        }
     },
 
     // --- ADMIN METHODS usando Tauri IPC y Rust ---
@@ -51,6 +68,11 @@ export const authService = {
             userId,
             passwordVal: password,
         });
+    },
+
+    createUser: async (email, password, role) => {
+        const token = localStorage.getItem('token') || '';
+        return await invoke('create_user', { token, email, password, role });
     },
 
     deleteUser: async (userId) => {

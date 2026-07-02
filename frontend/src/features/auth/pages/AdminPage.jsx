@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { authService } from '../api/authService';
-import { Users, Edit, Key, Trash2, CheckCircle, XCircle, ShieldAlert, Landmark, Save } from 'lucide-react';
+import { Users, Edit, Key, Trash2, CheckCircle, XCircle, ShieldAlert, Landmark, Save, UserPlus } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { StationAdminTable } from '../components/StationAdminTable';
 import { normalizeRole } from '../../../shared/utils/auth';
@@ -18,9 +18,12 @@ const AdminPage = ({ onBack, addLog }) => {
     const [assignedStation, setAssignedStation] = useState('');
     const [savingStation, setSavingStation] = useState(false);
 
+    const [showCreateModal, setShowCreateModal] = useState(false);
+
     // Form states
     const [editForm, setEditForm] = useState({ role_name: '', is_active: true });
     const [passwordForm, setPasswordForm] = useState({ password: '' });
+    const [createForm, setCreateForm] = useState({ email: '', password: '', role: 'user' });
 
     useEffect(() => {
         fetchUsers();
@@ -82,6 +85,26 @@ const AdminPage = ({ onBack, addLog }) => {
         }
     };
 
+    const handleCreateClick = () => {
+        setCreateForm({ email: '', password: '', role: 'user' });
+        setShowCreateModal(true);
+    };
+
+    const submitCreate = async (e) => {
+        e.preventDefault();
+        try {
+            await authService.createUser(createForm.email, createForm.password, createForm.role);
+            addLog(`Usuario ${createForm.email} creado exitosamente.`, 'success');
+            toast.success(`Usuario ${createForm.email} creado exitosamente`);
+            setShowCreateModal(false);
+            fetchUsers();
+        } catch (error) {
+            const msg = error?.toString() || 'Error desconocido';
+            addLog(`Error al crear usuario: ${msg}`, 'error');
+            toast.error(`Error: ${msg}`);
+        }
+    };
+
     const submitEdit = async (e) => {
         e.preventDefault();
         try {
@@ -140,8 +163,18 @@ const AdminPage = ({ onBack, addLog }) => {
                     </button>
                 </div>
 
-                {/* Table */}
+                {/* Tabla de Usuarios */}
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                        <h2 className="text-lg font-bold text-gray-800">Usuarios del Sistema</h2>
+                        <button
+                            onClick={handleCreateClick}
+                            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition shadow-sm flex items-center gap-2 text-sm font-medium"
+                        >
+                            <UserPlus size={18} />
+                            Crear Usuario
+                        </button>
+                    </div>
                     <div className="overflow-x-auto">
                         <table className="w-full text-left">
                             <thead className="bg-gray-50 border-b border-gray-200">
@@ -275,6 +308,56 @@ const AdminPage = ({ onBack, addLog }) => {
                 />
 
             </div>
+
+            {/* Modal Crear Usuario */}
+            {showCreateModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm">
+                    <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md">
+                        <h3 className="text-lg font-bold text-gray-900 mb-4">Crear Nuevo Usuario</h3>
+                        <form onSubmit={submitCreate} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Correo Electrónico</label>
+                                <input
+                                    type="email"
+                                    placeholder="usuario@arca.do"
+                                    required
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
+                                    value={createForm.email}
+                                    onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
+                                <input
+                                    type="password"
+                                    placeholder="Contraseña temporal"
+                                    required
+                                    minLength={6}
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
+                                    value={createForm.password}
+                                    onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Rol</label>
+                                <select
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
+                                    value={createForm.role}
+                                    onChange={(e) => setCreateForm({ ...createForm, role: e.target.value })}
+                                >
+                                    <option value="user">Usuario</option>
+                                    <option value="admin">Administrador</option>
+                                    <option value="manager">Gerente</option>
+                                </select>
+                            </div>
+                            <div className="flex justify-end gap-3 mt-6">
+                                <button type="button" onClick={() => setShowCreateModal(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Cancelar</button>
+                                <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">Crear Usuario</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
 
             {/* Modal Editar Usuario */}
             {showEditModal && (

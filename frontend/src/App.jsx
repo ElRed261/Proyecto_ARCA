@@ -15,6 +15,7 @@ import Cli3074Page from './features/synoptic/cli3074/pages/Cli3074Page';
 import Cli4074Page from './features/synoptic/cli4074/pages/Cli4074Page';
 import Cli5074Page from './features/synoptic/cli5074/pages/Cli5074Page';
 import { normalizeRoles, hasRole } from './shared/utils/auth';
+import { authService } from './features/auth/api/authService';
 
 const ProtectedRoute = ({ user, children }) => {
   if (!user) {
@@ -43,19 +44,32 @@ function App() {
   };
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const email = localStorage.getItem('user_email');
-    const savedRoles = localStorage.getItem('user_roles');
+    const restoreSession = async () => {
+      const token = localStorage.getItem('token');
+      const email = localStorage.getItem('user_email');
+      const savedRoles = localStorage.getItem('user_roles');
 
-    if (token && email) {
-      const roles = normalizeRoles(savedRoles);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setUser({ email, roles });
-      addLog('Sistema restaurado. Sesión activa detectada.', 'success');
-      if (location.pathname === '/') {
-        navigate('/dashboard');
+      if (token && email) {
+        // Validar token contra el backend (SessionStore en memoria)
+        const isValid = await authService.validateToken();
+        if (isValid) {
+          const roles = normalizeRoles(savedRoles);
+          // eslint-disable-next-line react-hooks/set-state-in-effect
+          setUser({ email, roles });
+          addLog('Sistema restaurado. Sesión activa detectada.', 'success');
+          if (location.pathname === '/') {
+            navigate('/dashboard');
+          }
+        } else {
+          // Sesión fantasma: el token ya no es válido en el backend
+          localStorage.removeItem('token');
+          localStorage.removeItem('user_email');
+          localStorage.removeItem('user_roles');
+          addLog('Sesión expirada o inválida. Por favor, inicie sesión nuevamente.', 'warning');
+        }
       }
-    }
+    };
+    restoreSession();
   }, []);
 
   const handleLoginSuccess = (userData) => {
@@ -65,10 +79,8 @@ function App() {
     navigate('/dashboard');
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user_email');
-    localStorage.removeItem('user_roles');
+  const handleLogout = async () => {
+    await authService.logout();
     setUser(null);
     navigate('/');
   };
