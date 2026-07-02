@@ -7,9 +7,9 @@ const ROLE_ID_MAP = {
 
 export const normalizeRole = (role) => {
     if (!role) return '';
-    if (typeof role === 'string') return role;
+    if (typeof role === 'string') return role.toLowerCase();
     if (typeof role === 'object') {
-        if (role.name) return role.name;
+        if (role.name) return role.name.toLowerCase();
         if (role.id !== undefined && ROLE_ID_MAP[role.id]) return ROLE_ID_MAP[role.id];
     }
     return '';
@@ -18,12 +18,12 @@ export const normalizeRole = (role) => {
 export const normalizeRoles = (rolesData) => {
     if (!rolesData) return [];
     try {
-        const rawRoles = typeof rolesData === 'string' ? JSON.parse(rolesData) : rolesData;
+        let rawRoles = typeof rolesData === 'string' ? JSON.parse(rolesData) : rolesData;
         const arr = Array.isArray(rawRoles) ? rawRoles : [rawRoles];
         return arr.map(normalizeRole).filter(Boolean);
-    } catch (e) {
-        console.error("Error normalizando roles:", e);
-        return [];
+    } catch {
+        // Not JSON — treat as a single role string
+        return [rolesData.toLowerCase()];
     }
 };
 

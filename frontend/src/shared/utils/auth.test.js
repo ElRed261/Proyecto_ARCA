@@ -7,16 +7,16 @@ describe('auth utilities', () => {
   });
 
   describe('normalizeRole', () => {
-    it('returns lowercase string roles as-is', () => {
+    it('returns lowercase string roles', () => {
       expect(normalizeRole('admin')).toBe('admin');
       expect(normalizeRole('user')).toBe('user');
       expect(normalizeRole('control_calidad')).toBe('control_calidad');
     });
 
-    it('preserves original casing for string roles', () => {
-      expect(normalizeRole('ADMIN')).toBe('ADMIN');
-      expect(normalizeRole('Admin')).toBe('Admin');
-      expect(normalizeRole('CONTROL_CALIDAD')).toBe('CONTROL_CALIDAD');
+    it('lowercases string roles regardless of original casing', () => {
+      expect(normalizeRole('ADMIN')).toBe('admin');
+      expect(normalizeRole('Admin')).toBe('admin');
+      expect(normalizeRole('CONTROL_CALIDAD')).toBe('control_calidad');
     });
 
     it('resolves numeric role ids to role names', () => {
@@ -26,9 +26,9 @@ describe('auth utilities', () => {
       expect(normalizeRole({ id: 4 })).toBe('control_calidad');
     });
 
-    it('returns the role name property when present', () => {
+    it('returns the lowercased role name property when present', () => {
       expect(normalizeRole({ name: 'admin' })).toBe('admin');
-      expect(normalizeRole({ name: 'CONTROL_CALIDAD' })).toBe('CONTROL_CALIDAD');
+      expect(normalizeRole({ name: 'CONTROL_CALIDAD' })).toBe('control_calidad');
     });
 
     it('returns empty string for falsy values', () => {
@@ -50,10 +50,9 @@ describe('auth utilities', () => {
       expect(normalizeRoles('["admin", "user"]')).toEqual(['admin', 'user']);
     });
 
-    it('returns an empty array for a plain string role (not valid JSON)', () => {
-      // The current implementation only accepts JSON arrays; plain strings fail to parse.
-      expect(normalizeRoles('admin')).toEqual([]);
-      expect(normalizeRoles('user')).toEqual([]);
+    it('wraps a plain string role in an array', () => {
+      expect(normalizeRoles('admin')).toEqual(['admin']);
+      expect(normalizeRoles('user')).toEqual(['user']);
     });
 
     it('wraps a valid JSON string role in an array', () => {
@@ -77,8 +76,8 @@ describe('auth utilities', () => {
       expect(normalizeRoles('')).toEqual([]);
     });
 
-    it('returns an empty array for invalid JSON strings', () => {
-      expect(normalizeRoles('{invalid')).toEqual([]);
+    it('treats invalid JSON strings as a single role string', () => {
+      expect(normalizeRoles('{invalid')).toEqual(['{invalid']);
     });
   });
 

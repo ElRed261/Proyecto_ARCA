@@ -135,9 +135,9 @@ describe('hasTemperatureData', () => {
     expect(hasTemperatureData({})).toBe(false);
   });
 
-  it('throws when observations are null', () => {
-    // The current implementation does not guard against null input.
-    expect(() => hasTemperatureData(null)).toThrow();
+  it('returns false when observations are null', () => {
+    expect(hasTemperatureData(null)).toBe(false);
+    expect(hasTemperatureData(undefined)).toBe(false);
   });
 
   it('ignores whitespace-only values', () => {

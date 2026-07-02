@@ -109,6 +109,7 @@ export const createInitialObservations = () => {
  * @returns {boolean}
  */
 export const hasTemperatureData = (observations) => {
+    if (!observations || typeof observations !== 'object') return false;
     for (const hora of HOURS) {
         const data = observations[hora] || {};
         if (data.ts && data.ts.trim() !== '') return true;
