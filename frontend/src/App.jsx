@@ -1,19 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { ArrowLeft } from 'lucide-react';
-import AuthPage from './features/auth/pages/AuthPage';
-import DashboardPage from './features/dashboard/pages/DashboardPage';
-import AdminPage from './features/auth/pages/AdminPage';
-import SynopticPage from './features/synoptic/pages/SynopticPage';
-import SummaryPage from './features/summary/pages/SummaryPage';
-import AuditPage from './features/audit/pages/AuditPage';
-import AuditObservationPage from './features/audit/pages/AuditObservationPage';
-import AuditReportPage from './features/audit/pages/AuditReportPage';
-import MaintenancePage from './features/maintenance/pages/MaintenancePage';
-import Cli3074Page from './features/synoptic/cli3074/pages/Cli3074Page';
-import Cli4074Page from './features/synoptic/cli4074/pages/Cli4074Page';
-import Cli5074Page from './features/synoptic/cli5074/pages/Cli5074Page';
+const AuthPage = lazy(() => import('./features/auth/pages/AuthPage'));
+const DashboardPage = lazy(() => import('./features/dashboard/pages/DashboardPage'));
+const AdminPage = lazy(() => import('./features/auth/pages/AdminPage'));
+const SynopticPage = lazy(() => import('./features/synoptic/pages/SynopticPage'));
+const SummaryPage = lazy(() => import('./features/summary/pages/SummaryPage'));
+const AuditPage = lazy(() => import('./features/audit/pages/AuditPage'));
+const AuditObservationPage = lazy(() => import('./features/audit/pages/AuditObservationPage'));
+const AuditReportPage = lazy(() => import('./features/audit/pages/AuditReportPage'));
+const MaintenancePage = lazy(() => import('./features/maintenance/pages/MaintenancePage'));
+const Cli3074Page = lazy(() => import('./features/synoptic/cli3074/pages/Cli3074Page'));
+const Cli4074Page = lazy(() => import('./features/synoptic/cli4074/pages/Cli4074Page'));
+const Cli5074Page = lazy(() => import('./features/synoptic/cli5074/pages/Cli5074Page'));
 import { normalizeRoles, hasRole } from './shared/utils/auth';
 import { authService } from './features/auth/api/authService';
 
@@ -88,7 +88,8 @@ function App() {
   return (
     <div className="relative min-h-screen bg-gray-100 font-sans text-gray-800">
       <Toaster position="top-right" />
-      <Routes>
+      <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><span className="text-gray-500">Cargando...</span></div>}>
+        <Routes>
         {/* Login */}
         <Route path="/" element={
           !user ? (
@@ -203,6 +204,7 @@ function App() {
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      </Suspense>
     </div>
   );
 }

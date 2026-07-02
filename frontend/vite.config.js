@@ -19,6 +19,17 @@ export default defineConfig({
     outDir: 'dist',
     assetsDir: 'assets',
     emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'chart-vendor': ['recharts'],
+          'jspdf-vendor': ['jspdf'],
+          'html2canvas-vendor': ['html2canvas'],
+          'excel-vendor': ['xlsx'],
+        },
+      },
+    },
   },
   test: {
     globals: true,
