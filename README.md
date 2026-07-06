@@ -3,8 +3,8 @@
 > **Arquitectura de Recursos, Cómputo y Administración**
 
 <p align="center">
-<img src="https://img.shields.io/badge/Estado-En_Desarrollo-orange?style=for-the-badge" alt="Status"/>
-<img src="https://img.shields.io/badge/Version-3.2.0-blue?style=for-the-badge" alt="Version"/>
+<img src="https://img.shields.io/badge/Estado-Beta-blue?style=for-the-badge" alt="Status"/>
+<img src="https://img.shields.io/badge/Version-2.0.0-blue?style=for-the-badge" alt="Version"/>
 <img src="https://img.shields.io/badge/Desktop-Tauri_v2-purple?style=for-the-badge" alt="Desktop"/>
 <img src="https://img.shields.io/badge/Backend-Rust-red?style=for-the-badge" alt="Backend"/>
 <img src="https://img.shields.io/badge/Frontend-React_Vite-blue?style=for-the-badge" alt="Frontend"/>
@@ -170,35 +170,36 @@ Este módulo recopila los fenómenos meteorológicos significativos del día y g
 
 ```
 Proyecto_ARCA/
-├── src-tauri/
-│   ├── capabilities/        # 🔒 Políticas de seguridad granulares
-│   └── src/
-│       ├── calculations.rs  # 🚀 Motor matemático WMO
-│       ├── json_handler/    # 🚀 Persistencia JSON modularizada (CLI + Synoptic)
-│       │   ├── mod.rs
-│       │   ├── utils.rs
-│       │   ├── synoptic.rs
-│       │   └── cli.rs
-│       ├── db.rs            # 🚀 SQLite manager (WAL enable)
-│       ├── auth.rs          # 🚀 Autenticación offline en Rust (bcrypt)
-│       ├── audit.rs         # 🚀 Auditoría de cambios
-│       ├── summary.rs       # 🚀 Consolidación mensual
-│       └── lib.rs           # 🚀 Registro de comandos Tauri
-│
 ├── frontend/
+│   ├── src-tauri/
+│   │   ├── capabilities/           # 🔒 Políticas de seguridad granulares
+│   │   └── src/
+│   │       ├── adapters/           # 🔌 Adaptadores (SqliteAuditRepository, SqliteUserRepository)
+│   │       ├── ports/              # 🔌 Traits de repositorios (hexagonal ports)
+│   │       ├── infrastructure/     # 🔌 Error handling (AppError con thiserror)
+│   │       ├── repositories/       # 🔌 Station repository + shared domain types
+│   │       ├── audit/              # 🔍 Auditoría (commands + service + adapters)
+│   │       ├── monthly_summary/    # 📊 Resumen mensual (commands + excel + pipeline)
+│   │       ├── json_handler/       # 🚀 Persistencia JSON (CLI + Synoptic)
+│   │       ├── calculations.rs     # 🚀 Motor matemático WMO
+│   │       ├── db.rs               # 🚀 SQLite manager (WAL + migraciones + FKs)
+│   │       ├── auth.rs             # 🚀 Autenticación (bcrypt + SessionStore)
+│   │       ├── app_config.rs       # 🚀 Configuración de la app
+│   │       └── lib.rs              # 🚀 Registro de comandos Tauri
+│   │
 │   └── src/
-│       ├── shared/          # 🧩 Componentes comunes (StationHeader, ErrorBoundary)
+│       ├── shared/                 # 🧩 Componentes comunes (ErrorBoundary, StationHeader, auth utils)
 │       └── features/
-│           ├── synoptic/
-│           │   ├── pages/       # 🌤️ SynopticPage
-│           │   ├── cli3074/     # 🔧 CLI 3074
-│           │   ├── cli4074/     # ☁️ CLI 4074
-│           │   └── cli5074/     # 🌧️ CLI 5074
-│           ├── summary/         # 📊 Resúmenes
-│           ├── audit/           # 🔍 Auditoría
-│           └── dashboard/       # Panel Principal
+│           ├── synoptic/           # 🌤️ Módulo sinóptico (SynopticPage + CLI 3074/4074/5074)
+│           ├── summary/            # 📊 Resúmenes mensuales con Recharts
+│           ├── audit/              # 🔍 Auditoría de observaciones
+│           ├── auth/               # 🔒 Panel de seguridad y gestión de usuarios
+│           └── dashboard/          # 📋 Panel principal
 │
-└── docs/                    # 📚 Documentos de referencia
+├── .github/workflows/ci.yml        # 🔧 CI (lint + tests + clippy + build)
+├── CONTRIBUTING.md                 # 📝 Guía de contribución
+├── CHANGELOG.md                    # 📝 Registro de cambios semántico
+└── docs/                           # 📚 Documentos de referencia (CSV WMO)
 ```
 
 ---
@@ -251,5 +252,5 @@ npm run tauri:dev
 ---
 
 <p align="center">
-  <sub>📅 Última actualización: Junio 2026</sub>
+  <sub>📅 Última actualización: Julio 2026</sub>
 </p>

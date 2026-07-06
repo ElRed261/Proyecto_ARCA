@@ -100,7 +100,13 @@ pub fn get_migrations() -> Migrations<'static> {
             CREATE INDEX IF NOT EXISTS idx_corrections_station_fecha ON corrections(station_id, fecha);
             CREATE INDEX IF NOT EXISTS idx_summary_logs_station_period ON summary_logs(station_id, year, month);
             "#
-        )
+        ),
+        M::up(
+            r#"
+            DROP TABLE IF EXISTS audit_logs;
+            DROP TABLE IF EXISTS correction_requests;
+            "#
+        ),
     ])
 }
 
@@ -292,6 +298,41 @@ mod tests {
                 )
                 .unwrap();
             assert_eq!(count, 1, "Index {} should exist after migrations", idx);
+        }
+    }
+
+    #[test]
+    fn test_dead_tables_are_dropped_by_migrations() {
+        let mut conn = Connection::open_in_memory().unwrap();
+        // Simulate an old DB that has the dead tables
+        conn.execute_batch(
+            "CREATE TABLE audit_logs (id INTEGER); CREATE TABLE correction_requests (id INTEGER);",
+        )
+        .unwrap();
+        // Verify they exist before migrations
+        for table in &["audit_logs", "correction_requests"] {
+            let count: i64 = conn
+                .query_row(
+                    "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?",
+                    [table],
+                    |row| row.get(0),
+                )
+                .unwrap();
+            assert_eq!(count, 1, "Dead table {} should exist before migrations", table);
+        }
+        // Run migrations — second migration should drop them
+        let migrations = get_migrations();
+        migrations.to_latest(&mut conn).unwrap();
+        // Verify they are gone
+        for table in &["audit_logs", "correction_requests"] {
+            let count: i64 = conn
+                .query_row(
+                    "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?",
+                    [table],
+                    |row| row.get(0),
+                )
+                .unwrap();
+            assert_eq!(count, 0, "Dead table {} should be dropped by migrations", table);
         }
     }
 }
