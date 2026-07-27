@@ -34,7 +34,7 @@
     "@eslint/js": "^9.39.1",
     "@tailwindcss/postcss": "^4.1.17",
     "@tauri-apps/cli": "2.11.1",
-    "@testing-library/jest-dom": "^6.4.2",
+    "@testing-library/jest-dom": "^7.0.0",
     "@testing-library/react": "^16.1.0",
     "@testing-library/user-event": "^14.5.2",
     "@types/react": "^19.2.5",
