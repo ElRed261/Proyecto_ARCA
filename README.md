@@ -197,9 +197,9 @@ Proyecto_ARCA/
 │           └── dashboard/          # 📋 Panel principal
 │
 ├── .github/workflows/ci.yml        # 🔧 CI (lint + tests + clippy + build)
-├── CONTRIBUTING.md                 # 📝 Guía de contribución
-├── CHANGELOG.md                    # 📝 Registro de cambios semántico
-└── docs/                           # 📚 Documentos de referencia (CSV WMO)
+├── scripts/run_full.sh             # 🚀 Script de desarrollo (dev + Tauri)
+├── docs/                           # 📚 Documentos (guías, plan, arquitectura, changelog)
+└── frontend/                       # 🖥️ Aplicación (React + Tauri/Rust)
 ```
 
 ---
