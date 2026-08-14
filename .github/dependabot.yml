@@ -7,6 +7,7 @@ updates:
       interval: "weekly"
       day: "monday"
     open-pull-requests-limit: 5
+    delete-branch-on-close: true
     labels:
       - "dependencies"
       - "rust"
@@ -20,6 +21,7 @@ updates:
       interval: "weekly"
       day: "monday"
     open-pull-requests-limit: 5
+    delete-branch-on-close: true
     labels:
       - "dependencies"
       - "frontend"
@@ -33,6 +35,7 @@ updates:
       interval: "weekly"
       day: "monday"
     open-pull-requests-limit: 3
+    delete-branch-on-close: true
     labels:
       - "dependencies"
       - "ci"
