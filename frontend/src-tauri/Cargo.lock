@@ -107,7 +107,7 @@ dependencies = [
  "tauri-build",
  "tauri-plugin-dialog",
  "tauri-plugin-log",
- "thiserror 1.0.69",
+ "thiserror 2.0.18",
  "trash",
  "walkdir",
 ]
