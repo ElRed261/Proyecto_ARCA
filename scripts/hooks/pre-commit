@@ -1,0 +1,28 @@
+#!/bin/bash
+# Pre-commit guard ARCA: lint + tests + bloqueo de secretos.
+# Instalado una vez con: git config core.hooksPath scripts/hooks
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel)"
+STAGED="$(git diff --cached --name-only)"
+
+# --- Bloqueador de secretos ---
+if echo "$STAGED" | grep -qE '(^|/)\.env(\.|$)|primer_inicio|credentials|secret'; then
+  echo "❌ Pre-commit: posible secreto en staged files:"
+  echo "$STAGED" | grep -E '(^|/)\.env(\.|$)|primer_inicio|credentials|secret'
+  exit 1
+fi
+
+# --- Backend Rust ---
+if echo "$STAGED" | grep -q 'src-tauri/.*\.rs$'; then
+  echo "🧪 Clippy + tests Rust..."
+  (cd "$ROOT/frontend/src-tauri" && cargo clippy -- -D warnings && cargo test --quiet)
+fi
+
+# --- Frontend ---
+if echo "$STAGED" | grep -q 'frontend/src/.*\.\(js\|jsx\)$'; then
+  echo "🧪 Lint + wiring tests..."
+  (cd "$ROOT/frontend" && npm run lint --silent && npx vitest run src/test/wiring.test.js --silent)
+fi
+
+echo "✅ Pre-commit OK"

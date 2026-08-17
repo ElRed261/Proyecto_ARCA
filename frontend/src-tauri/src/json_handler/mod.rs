@@ -5,7 +5,6 @@ pub mod cli;
 // Re-exportar todos los comandos para mantener compatibilidad
 pub use synoptic::{
     save_observation_json,
-    get_observations_list,
     get_observation,
     get_station_date_range,
 };

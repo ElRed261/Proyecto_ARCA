@@ -1,6 +1,7 @@
 use serde_json::Value;
 use std::collections::HashMap;
 use std::fs;
+use std::path::Path;
 use tauri::AppHandle;
 use super::utils::*;
 
@@ -236,17 +237,44 @@ pub fn save_observation_json(
     cli4074: Option<Value>,
     cli5074: Option<Value>,
 ) -> Result<HashMap<String, String>, String> {
+    let base_dir = get_arca_base_dir(&app_handle, "synop");
+    let station = station_code.clone();
+    save_observation_json_core(
+        &base_dir,
+        station_code,
+        fecha,
+        observations,
+        observer_name,
+        cli3074,
+        cli4074,
+        cli5074,
+        move |filepath| create_backup(filepath, &station, &app_handle),
+    )
+}
+
+// pub para tests de integración
+#[allow(clippy::too_many_arguments)]
+pub fn save_observation_json_core(
+    base_dir: &Path,
+    station_code: String,
+    fecha: String,
+    observations: Value,
+    observer_name: Option<String>,
+    cli3074: Option<Value>,
+    cli4074: Option<Value>,
+    cli5074: Option<Value>,
+    backup: impl FnOnce(&Path) -> Option<String>,
+) -> Result<HashMap<String, String>, String> {
     validate_inputs(&station_code, &fecha)?;
     let (year, month) = parse_date_parts(&fecha);
 
-    let base_dir = get_arca_base_dir(&app_handle, "synop");
-    let dir_path = ensure_arca_dirs_with_station(&base_dir, &station_code, &year, &month)?;
+    let dir_path = ensure_arca_dirs_with_station(base_dir, &station_code, &year, &month)?;
 
     let fecha_formatted = format_date_for_filename(&fecha);
     let filename = format!("{}{}.json", station_code, fecha_formatted);
     let filepath = dir_path.join(&filename);
 
-    let backup_path = create_backup(&filepath, &station_code, &app_handle).unwrap_or_default();
+    let backup_path = backup(&filepath).unwrap_or_default();
 
     // Leer archivo existente si existe para no borrar datos de CLI
     let mut root_map = if filepath.exists() {
@@ -375,51 +403,18 @@ pub fn save_observation_json(
 }
 
 #[tauri::command]
-pub fn get_observations_list(
-    app_handle: AppHandle,
-    station_code: Option<String>,
-) -> Result<HashMap<String, Value>, String> {
-    let base_dir = get_arca_base_dir(&app_handle, "synoptic");
-    let mut files = Vec::new();
-
-    let target_dir = if let Some(ref st) = station_code {
-        base_dir.join(st)
-    } else {
-        base_dir.clone()
-    };
-
-    if target_dir.exists() {
-        let walker = walkdir::WalkDir::new(&target_dir);
-        for entry in walker.into_iter().filter_map(|e| e.ok()) {
-            if entry.path().is_file() {
-                if let Some(ext) = entry.path().extension() {
-                    if ext == "json" {
-                        if let Ok(rel) = entry.path().strip_prefix(&base_dir) {
-                            files.push(Value::String(rel.to_string_lossy().to_string()));
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    files.sort_by(|a, b| {
-        let s1 = a.as_str().unwrap_or("");
-        let s2 = b.as_str().unwrap_or("");
-        s1.cmp(s2)
-    });
-
-    let count = files.len() as i64;
-    let mut res = HashMap::new();
-    res.insert("files".to_string(), Value::Array(files));
-    res.insert("count".to_string(), Value::Number(serde_json::Number::from(count)));
-
-    Ok(res)
-}
-
-#[tauri::command]
 pub fn get_observation(
     app_handle: AppHandle,
+    station_code: String,
+    fecha: String,
+) -> Result<Value, String> {
+    let base_dir = get_arca_base_dir(&app_handle, "synop");
+    get_observation_core(&base_dir, station_code, fecha)
+}
+
+// pub para tests de integración
+pub fn get_observation_core(
+    base_dir: &Path,
     station_code: String,
     fecha: String,
 ) -> Result<Value, String> {
@@ -428,8 +423,7 @@ pub fn get_observation(
     let fecha_formatted = format_date_for_filename(&fecha);
     let filename = format!("{}{}.json", station_code, fecha_formatted);
 
-    let base_dir = get_arca_base_dir(&app_handle, "synop");
-    let mut filepath = base_dir.clone();
+    let mut filepath = base_dir.to_path_buf();
     filepath.push(&station_code);
     filepath.push(&year);
     filepath.push(&month);

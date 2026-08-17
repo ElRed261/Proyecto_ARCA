@@ -2,12 +2,13 @@ use crate::infrastructure::error::AppError;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::fs;
+use std::path::Path;
 use tauri::AppHandle;
 use super::utils::*;
 use super::synoptic::*;
 
 fn save_cli_generic(
-    app_handle: &AppHandle,
+    base_dir: &Path,
     station_id: &str,
     date: &str,
     cli_key: &str,
@@ -21,8 +22,7 @@ fn save_cli_generic(
     let year = parts[0];
     let month = parts[1];
 
-    let base_dir = get_arca_base_dir(app_handle, "synop");
-    let target_dir = ensure_arca_dirs_with_station(&base_dir, station_id, year, month)
+    let target_dir = ensure_arca_dirs_with_station(base_dir, station_id, year, month)
         .map_err(|e| AppError::Io(std::io::Error::other(e)))?;
 
     let fecha_formatted = format_date_for_filename(date);
@@ -58,7 +58,7 @@ fn save_cli_generic(
 }
 
 fn load_cli_generic(
-    app_handle: &AppHandle,
+    base_dir: &Path,
     station_id: &str,
     date: &str,
     cli_key: &str,
@@ -71,7 +71,6 @@ fn load_cli_generic(
     let year = parts[0];
     let month = parts[1];
 
-    let base_dir = get_arca_base_dir(app_handle, "synop");
     let file_path = base_dir.join(station_id).join(year).join(month)
         .join(format!("{}{}.json", station_id, format_date_for_filename(date)));
 
@@ -100,7 +99,8 @@ pub fn save_cli3074_json(
     date: String,
     data: Value,
 ) -> Result<String, AppError> {
-    let path = save_cli_generic(&app_handle, &station_id, &date, "cli3074", data)?;
+    let base_dir = get_arca_base_dir(&app_handle, "synop");
+    let path = save_cli_generic(&base_dir, &station_id, &date, "cli3074", data)?;
     Ok(format!("Guardado en: {}", path))
 }
 
@@ -110,7 +110,13 @@ pub fn load_cli3074_json(
     station_id: String,
     date: String,
 ) -> Result<Value, AppError> {
-    let json_val = load_cli_generic(&app_handle, &station_id, &date, "cli3074")?;
+    let base_dir = get_arca_base_dir(&app_handle, "synop");
+    load_cli3074_json_core(&base_dir, &station_id, &date)
+}
+
+// pub para tests de integración
+pub fn load_cli3074_json_core(base_dir: &Path, station_id: &str, date: &str) -> Result<Value, AppError> {
+    let json_val = load_cli_generic(base_dir, station_id, date, "cli3074")?;
     if json_val.is_null() {
         return Ok(Value::Null);
     }
@@ -210,7 +216,8 @@ pub fn save_cli4074_json(
     date: String,
     data: Value,
 ) -> Result<HashMap<String, String>, AppError> {
-    let path = save_cli_generic(&app_handle, &station_id, &date, "cli4074", data)?;
+    let base_dir = get_arca_base_dir(&app_handle, "synop");
+    let path = save_cli_generic(&base_dir, &station_id, &date, "cli4074", data)?;
     let mut result = HashMap::new();
     result.insert("status".to_string(), "saved".to_string());
     result.insert("path".to_string(), path);
@@ -223,7 +230,13 @@ pub fn load_cli4074_json(
     station_id: String,
     date: String,
 ) -> Result<Value, AppError> {
-    load_cli_generic(&app_handle, &station_id, &date, "cli4074")
+    let base_dir = get_arca_base_dir(&app_handle, "synop");
+    load_cli4074_json_core(&base_dir, &station_id, &date)
+}
+
+// pub para tests de integración
+pub fn load_cli4074_json_core(base_dir: &Path, station_id: &str, date: &str) -> Result<Value, AppError> {
+    load_cli_generic(base_dir, station_id, date, "cli4074")
 }
 
 // =============================================================================
@@ -237,7 +250,8 @@ pub fn save_cli5074_json(
     date: String,
     data: Value,
 ) -> Result<HashMap<String, String>, AppError> {
-    let path = save_cli_generic(&app_handle, &station_id, &date, "cli5074", data)?;
+    let base_dir = get_arca_base_dir(&app_handle, "synop");
+    let path = save_cli_generic(&base_dir, &station_id, &date, "cli5074", data)?;
     let mut result = HashMap::new();
     result.insert("status".to_string(), "saved".to_string());
     result.insert("path".to_string(), path);
@@ -250,5 +264,11 @@ pub fn load_cli5074_json(
     station_id: String,
     date: String,
 ) -> Result<Value, AppError> {
-    load_cli_generic(&app_handle, &station_id, &date, "cli5074")
+    let base_dir = get_arca_base_dir(&app_handle, "synop");
+    load_cli5074_json_core(&base_dir, &station_id, &date)
+}
+
+// pub para tests de integración
+pub fn load_cli5074_json_core(base_dir: &Path, station_id: &str, date: &str) -> Result<Value, AppError> {
+    load_cli_generic(base_dir, station_id, date, "cli5074")
 }

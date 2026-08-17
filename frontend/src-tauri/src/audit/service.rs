@@ -1,10 +1,11 @@
 use crate::infrastructure::error::AppError;
 use crate::json_handler::utils::get_arca_base_dir;
-use crate::json_handler::synoptic::get_observation;
+use crate::json_handler::synoptic::get_observation_core;
 use crate::ports::AuditRepository;
 use crate::audit::{AuditObservationData, ErrorMark};
 use tauri::AppHandle;
 use std::fs;
+use std::path::Path;
 
 pub fn month_name_to_num(name: &str) -> Option<&'static str> {
     match name.to_lowercase().as_str() {
@@ -62,7 +63,18 @@ pub fn load_observation_with_audit(
     station: &str,
     date: &str,
 ) -> Result<AuditObservationData, AppError> {
-    let mut observation = get_observation(app_handle.clone(), station.to_string(), date.to_string())
+    let base_dir = get_arca_base_dir(app_handle, "synop");
+    load_observation_with_audit_core(pool, &base_dir, station, date)
+}
+
+// pub para tests de integración
+pub fn load_observation_with_audit_core(
+    pool: &crate::db::DbPool,
+    base_dir: &Path,
+    station: &str,
+    date: &str,
+) -> Result<AuditObservationData, AppError> {
+    let mut observation = get_observation_core(base_dir, station.to_string(), date.to_string())
         .map_err(AppError::Validation)?;
 
     let repo = crate::adapters::sqlite_audit_repository::SqliteAuditRepository::new(pool.clone());

@@ -128,13 +128,25 @@ pub async fn ms_load_station_month(
         .path()
         .document_dir()
         .map_err(|_| "No se pudo obtener la carpeta de documentos".to_string())?;
-    
+
+    let synop_base_dir = docs_dir.join("ARCA").join("synop");
+    let summary_dir = get_monthly_summary_dir(&app)?;
+
+    ms_load_station_month_core(&synop_base_dir, &summary_dir, &station_code, year, month)
+}
+
+// pub para tests de integración
+pub fn ms_load_station_month_core(
+    synop_base_dir: &Path,
+    summary_dir: &Path,
+    station_code: &str,
+    year: u32,
+    month: u32,
+) -> Result<MonthlySummaryDoc, String> {
     let month_str = format!("{:02}", month);
     let year_str = year.to_string();
-    let synop_dir = docs_dir
-        .join("ARCA")
-        .join("synop")
-        .join(&station_code)
+    let synop_dir = synop_base_dir
+        .join(station_code)
         .join(&year_str)
         .join(&month_str);
     
@@ -165,8 +177,7 @@ pub async fn ms_load_station_month(
     let doc = analyze_files(paths)?;
     
     // 4. Save to summary history directory
-    let dir = get_monthly_summary_dir(&app)?;
-    save_summary(&doc, &dir)?;
+    save_summary(&doc, summary_dir)?;
     
     Ok(doc)
 }
