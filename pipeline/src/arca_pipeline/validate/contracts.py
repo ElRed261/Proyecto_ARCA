@@ -21,7 +21,7 @@ rejected/ area with their raw payload, never into silver.
 
 import pandera as pa
 from pandera import DataFrameModel
-from pandera.typing import DataFrame
+from pandera.typing import DataFrame, Series
 
 
 class SilverSchema(DataFrameModel):

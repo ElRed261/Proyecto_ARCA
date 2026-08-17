@@ -16,8 +16,8 @@ UPSERT contract (table defined in migrations/, same unique constraint):
     DO UPDATE SET <payload fields> = EXCLUDED.<payload fields>
 """
 
-from sqlalchemy.engine import Engine
 from pandas import DataFrame
+from sqlalchemy.engine import Engine
 
 
 def upsert_observations(engine: Engine, df: DataFrame) -> int:
