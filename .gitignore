@@ -33,3 +33,4 @@ frontend/src-tauri/target/
 
 # --- CODEBASE MEMORY (local graph artifact) ---
 .codebase-memory/
+miscelaneos/base_para_modulos/Resumen_Mensual_Synop/

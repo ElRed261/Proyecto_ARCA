@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ ERP-Meteorológico, main ]
+    branches: [ ERP-Meteorológico, main, arca-pipeline ]
   pull_request:
-    branches: [ ERP-Meteorológico, main ]
+    branches: [ ERP-Meteorológico, main, arca-pipeline ]
 
 jobs:
   frontend:
