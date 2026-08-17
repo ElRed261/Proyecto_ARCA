@@ -1,0 +1,1 @@
+"""Load layer: idempotent writes to PostgreSQL (silver) and aggregate KPIs (gold)."""

@@ -1,0 +1,1 @@
+"""Transform layer: Excel (.xlsm) -> structured JSON observations."""
