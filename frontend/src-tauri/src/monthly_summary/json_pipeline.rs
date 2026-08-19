@@ -211,7 +211,7 @@ pub fn save_summary(doc: &MonthlySummaryDoc, dir: &Path) -> Result<PathBuf, Stri
     
     let path = dir.join(filename);
     let json_str = serde_json::to_string_pretty(doc).map_err(|e| e.to_string())?;
-    fs::write(&path, json_str).map_err(|e| e.to_string())?;
+    crate::infrastructure::storage::atomic_write(&path, &json_str).map_err(|e| e.to_string())?;
     
     Ok(path)
 }

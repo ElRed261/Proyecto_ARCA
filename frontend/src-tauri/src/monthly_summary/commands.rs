@@ -123,13 +123,10 @@ pub async fn ms_load_station_month(
     year: u32,
     month: u32,
 ) -> Result<MonthlySummaryDoc, String> {
-    // 1. Get documents directory
-    let docs_dir = app
-        .path()
-        .document_dir()
-        .map_err(|_| "No se pudo obtener la carpeta de documentos".to_string())?;
-
-    let synop_base_dir = docs_dir.join("ARCA").join("synop");
+    let synop_base_dir = crate::infrastructure::storage::arca_base_dir(
+        &app,
+        crate::infrastructure::storage::SYNOP_MODULE,
+    );
     let summary_dir = get_monthly_summary_dir(&app)?;
 
     ms_load_station_month_core(&synop_base_dir, &summary_dir, &station_code, year, month)
@@ -189,20 +186,13 @@ pub async fn ms_load_station_month_with_corrections(
     year: u32,
     month: u32,
 ) -> Result<MonthlySummaryDoc, String> {
-    // 1. Get documents directory
-    let docs_dir = app
-        .path()
-        .document_dir()
-        .map_err(|_| "No se pudo obtener la carpeta de documentos".to_string())?;
-    
+    let base = crate::infrastructure::storage::arca_base_dir(
+        &app,
+        crate::infrastructure::storage::SYNOP_MODULE,
+    );
     let month_str = format!("{:02}", month);
     let year_str = year.to_string();
-    let synop_dir = docs_dir
-        .join("ARCA")
-        .join("synop")
-        .join(&station_code)
-        .join(&year_str)
-        .join(&month_str);
+    let synop_dir = crate::infrastructure::storage::station_dir(&base, &station_code, &year_str, &month_str);
     
     if !synop_dir.exists() {
         return Err(format!(

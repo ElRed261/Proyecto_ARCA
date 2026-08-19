@@ -1,5 +1,5 @@
 use crate::infrastructure::error::AppError;
-use crate::json_handler::utils::get_arca_base_dir;
+use crate::infrastructure::storage::{arca_base_dir, atomic_write, station_dir, SYNOP_MODULE};
 use crate::json_handler::synoptic::get_observation_core;
 use crate::ports::AuditRepository;
 use crate::audit::{AuditObservationData, ErrorMark};
@@ -63,7 +63,7 @@ pub fn load_observation_with_audit(
     station: &str,
     date: &str,
 ) -> Result<AuditObservationData, AppError> {
-    let base_dir = get_arca_base_dir(app_handle, "synop");
+    let base_dir = arca_base_dir(app_handle, SYNOP_MODULE);
     load_observation_with_audit_core(pool, &base_dir, station, date)
 }
 
@@ -211,8 +211,8 @@ pub fn export_corrected_json(
     let day = parts[2];
     let filename_date = format!("{}{}{}", day, month, year);
 
-    let base_dir = get_arca_base_dir(app_handle, "synop");
-    let dir_path = base_dir.join(station_id).join(year).join(month);
+    let base_dir = arca_base_dir(app_handle, SYNOP_MODULE);
+    let dir_path = station_dir(&base_dir, station_id, year, month);
     let filename = format!("{}{}.json", station_id, filename_date);
     let original_filepath = dir_path.join(&filename);
 
@@ -341,7 +341,7 @@ pub fn export_corrected_json(
     let corr_filepath = corr_dir.join(&corr_filename);
     
     let data_str = serde_json::to_string_pretty(&root_val).map_err(|e| AppError::Internal(e.to_string()))?;
-    fs::write(&corr_filepath, data_str)?;
+    atomic_write(&corr_filepath, &data_str)?;
     
     Ok(corr_filepath.to_string_lossy().to_string())
 }

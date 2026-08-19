@@ -237,7 +237,7 @@ pub fn save_observation_json(
     cli4074: Option<Value>,
     cli5074: Option<Value>,
 ) -> Result<HashMap<String, String>, String> {
-    let base_dir = get_arca_base_dir(&app_handle, "synop");
+    let base_dir = get_arca_base_dir(&app_handle, crate::infrastructure::storage::SYNOP_MODULE);
     let station = station_code.clone();
     save_observation_json_core(
         &base_dir,
@@ -391,7 +391,7 @@ pub fn save_observation_json_core(
     }
 
     let data_str = serde_json::to_string_pretty(&root_map).map_err(|e| e.to_string())?;
-    fs::write(&filepath, data_str).map_err(|e| e.to_string())?;
+    crate::infrastructure::storage::atomic_write(&filepath, &data_str).map_err(|e| e.to_string())?;
 
     let mut res = HashMap::new();
     res.insert("success".to_string(), "true".to_string());
@@ -408,7 +408,7 @@ pub fn get_observation(
     station_code: String,
     fecha: String,
 ) -> Result<Value, String> {
-    let base_dir = get_arca_base_dir(&app_handle, "synop");
+    let base_dir = get_arca_base_dir(&app_handle, crate::infrastructure::storage::SYNOP_MODULE);
     get_observation_core(&base_dir, station_code, fecha)
 }
 
@@ -593,7 +593,7 @@ pub fn get_station_date_range(
     station_code: String,
 ) -> Result<HashMap<String, Value>, String> {
     validate_inputs(&station_code, "2026-05-28")?;
-    let base_dir = get_arca_base_dir(&app_handle, "synop");
+    let base_dir = get_arca_base_dir(&app_handle, crate::infrastructure::storage::SYNOP_MODULE);
     let station_dir = base_dir.join(&station_code);
 
     let mut dates = Vec::new();

@@ -1,5 +1,5 @@
 use crate::infrastructure::error::AppError;
-use crate::json_handler::utils::get_arca_base_dir;
+use crate::infrastructure::storage::{arca_base_dir, SYNOP_MODULE};
 use crate::ports::AuditRepository;
 use crate::audit::{StationInfo, DayInfo, ErrorMark, Correction, AuditObservationData, ErrorReportRow, PersonSummaryRow};
 use crate::audit::service;
@@ -8,7 +8,7 @@ use std::fs;
 
 #[tauri::command]
 pub fn audit_browse_stations(pool: tauri::State<'_, crate::db::DbPool>, app_handle: AppHandle) -> Result<Vec<StationInfo>, AppError> {
-    let base_dir = get_arca_base_dir(&app_handle, "synop");
+    let base_dir = arca_base_dir(&app_handle, SYNOP_MODULE);
     if !base_dir.exists() {
         return Ok(Vec::new());
     }
@@ -33,7 +33,7 @@ pub fn audit_browse_stations(pool: tauri::State<'_, crate::db::DbPool>, app_hand
 
 #[tauri::command]
 pub fn audit_browse_years(app_handle: AppHandle, station: String) -> Result<Vec<String>, AppError> {
-    let mut station_dir = get_arca_base_dir(&app_handle, "synop");
+    let mut station_dir = arca_base_dir(&app_handle, SYNOP_MODULE);
     station_dir.push(&station);
 
     if !station_dir.exists() {
@@ -61,7 +61,7 @@ pub fn audit_browse_months(
     station: String,
     year: String,
 ) -> Result<Vec<String>, AppError> {
-    let mut year_dir = get_arca_base_dir(&app_handle, "synop");
+    let mut year_dir = arca_base_dir(&app_handle, SYNOP_MODULE);
     year_dir.push(&station);
     year_dir.push(&year);
 
@@ -111,7 +111,7 @@ pub fn audit_browse_days(
     year: String,
     month: String,
 ) -> Result<Vec<DayInfo>, AppError> {
-    let mut month_dir = get_arca_base_dir(&app_handle, "synop");
+    let mut month_dir = arca_base_dir(&app_handle, SYNOP_MODULE);
     month_dir.push(&station);
     month_dir.push(&year);
     month_dir.push(&month);

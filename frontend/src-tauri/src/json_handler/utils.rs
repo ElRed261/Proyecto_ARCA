@@ -1,71 +1,9 @@
-use std::fs;
-use std::path::{Path, PathBuf};
-use tauri::{AppHandle, Manager};
-
-/// Obtiene el directorio base de Documents/ARCA/{modulo}/
-/// Funciona en Windows, macOS y Linux
-pub fn get_arca_base_dir(app_handle: &AppHandle, modulo: &str) -> PathBuf {
-    // ponytail: env override para tests de integración con FS temporal real
-    if let Ok(test_base) = std::env::var("ARCA_BASE_DIR") {
-        return PathBuf::from(test_base).join(modulo);
-    }
-    let mut path = app_handle.path().document_dir().unwrap_or_else(|_| {
-        // Fallback para sistemas que no soporten document_dir
-        let mut fallback = PathBuf::from(".");
-        #[cfg(target_os = "windows")]
-        {
-            if let Ok(home) = std::env::var("USERPROFILE") {
-                fallback = PathBuf::from(home);
-            }
-        }
-        #[cfg(any(target_os = "macos", target_os = "linux"))]
-        {
-            if let Ok(home) = std::env::var("HOME") {
-                fallback = PathBuf::from(home);
-                fallback.push("Documents");
-            }
-        }
-        fallback
-    });
-    path.push("ARCA");
-    path.push(modulo);
-    path
-}
-
-/// Crea la estructura de directorios para un módulo dado
-pub fn ensure_arca_dirs(base_dir: &Path, year: &str, month: &str) -> Result<PathBuf, String> {
-    let mut path = base_dir.to_path_buf();
-    path.push(year);
-    path.push(month);
-    fs::create_dir_all(&path).map_err(|e| format!("Error creando directorios: {}", e))?;
-    Ok(path)
-}
-
-/// Crea la estructura de directorios para un módulo dado incluyendo la estación
-pub fn ensure_arca_dirs_with_station(base_dir: &Path, station_code: &str, year: &str, month: &str) -> Result<PathBuf, String> {
-    let mut path = base_dir.to_path_buf();
-    path.push(station_code);
-    path.push(year);
-    path.push(month);
-    fs::create_dir_all(&path).map_err(|e| format!("Error creando directorios: {}", e))?;
-    Ok(path)
-}
-
-/// Helper para ubicar el directorio principal de datos usando el AppHandle
-pub fn get_base_data_dir(app_handle: &AppHandle) -> PathBuf {
-    let mut path = app_handle
-        .path()
-        .app_data_dir()
-        .unwrap_or_else(|_| PathBuf::from("."));
-    path.push("data");
-    path
-}
-
-pub fn get_backups_dir(app_handle: &AppHandle) -> PathBuf {
-    let mut path = get_base_data_dir(app_handle);
-    path.push(".backups");
-    path
-}
+// ponytail: single owner is infrastructure::storage; re-export for backward compat
+pub use crate::infrastructure::storage::{
+    arca_base_dir, atomic_write, create_backup, ensure_arca_dirs,
+    ensure_arca_dirs_with_station, ensure_station_dir, get_arca_base_dir, get_backups_dir,
+    get_base_data_dir, station_dir, SYNOP_MODULE,
+};
 
 /// Extrae DDMMYYYY desde un string "YYYY-MM-DD" o asume DDMMYYYY si no lo es
 pub fn format_date_for_filename(fecha: &str) -> String {
@@ -121,49 +59,5 @@ pub fn validate_inputs(station_code: &str, fecha: &str) -> Result<(), String> {
     }
 
     Ok(())
-}
-
-/// Helper para crear un backup manteniendo máximo los últimos 10 de esa estación
-pub fn create_backup(filepath: &Path, station_code: &str, app_handle: &AppHandle) -> Option<String> {
-    if !filepath.exists() {
-        return None;
-    }
-
-    let backup_dir = get_backups_dir(app_handle).join(station_code);
-    if !backup_dir.exists() {
-        let _ = fs::create_dir_all(&backup_dir);
-    }
-
-    let timestamp = chrono::Local::now().format("%Y%m%d_%H%M%S").to_string();
-    let filename = filepath
-        .file_stem()
-        .and_then(|s| s.to_str())
-        .unwrap_or("backup");
-    let backup_name = format!("{}.{}.bak", filename, timestamp);
-    let backup_path = backup_dir.join(&backup_name);
-
-    if fs::copy(filepath, &backup_path).is_ok() {
-        // Clean old backups
-        if let Ok(entries) = fs::read_dir(&backup_dir) {
-            let mut backups = Vec::new();
-            for entry in entries.flatten() {
-                if let Ok(metadata) = entry.metadata() {
-                    let name = entry.file_name().to_string_lossy().to_string();
-                    if name.starts_with(filename) && name.ends_with(".bak") {
-                        if let Ok(time) = metadata.modified() {
-                            backups.push((time, entry.path()));
-                        }
-                    }
-                }
-            }
-            backups.sort_by(|a, b| b.0.cmp(&a.0)); // Reverso (nuevos primero)
-            for old in backups.iter().skip(10) {
-                let _ = fs::remove_file(&old.1);
-            }
-        }
-        return Some(backup_path.to_string_lossy().to_string());
-    }
-
-    None
 }
 
