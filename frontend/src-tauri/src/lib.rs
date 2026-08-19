@@ -2,6 +2,7 @@ pub mod audit;
 pub mod auth;
 pub mod calculations;
 pub mod db;
+pub mod domain;
 pub mod json_handler;
 pub mod monthly_summary;
 pub mod app_config;

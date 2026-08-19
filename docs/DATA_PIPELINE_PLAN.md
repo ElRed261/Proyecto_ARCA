@@ -5,6 +5,8 @@
 > de ingeniería de datos (Medallion Architecture, Airflow Best Practices,
 > data quality y modelado dimensional) y define el plan de ejecución.
 
+> **Estado al 2026-08-19 — rama `arca-pipeline`**: pipeline implementado en `pipeline/` (ver §3). 35 tests aprobados, `ruff check` sin incidencias, venv en `/tmp/opencode/pipeline-venv`. Fases 0–6 completadas (ver §4). API consultable con 5 endpoints (ver §2).
+
 ---
 
 ## 1. Análisis del PRD/TRD
@@ -51,9 +53,14 @@ SILVER  obs_limpia  ── observaciones normalizadas (una fila por estación+fe
 GOLD  kpis_mensuales  ── agregados por estación/mes (medias, extremos, conteos)
       │ (4) consulta
       ▼
-FastAPI (localhost/reverse proxy) + dashboard Recharts o Metabase
+FastAPI (localhost / reverse proxy) ──▶ dashboard Recharts o Metabase
+      │  GET /health                                          → liveness
+      │  GET /state                                           → last_run.json
+      │  GET /stations/{code}/observations?from=&to=          → silver_observations
+      │  GET /stations/{code}/kpis?year=&month=               → gold_kpis_mensuales
+      │  GET /rejected                                        → rejected/*.rejected.json
       ▲
-   Prefect (o cron MVP): retries, backoff, estado, alerta
+   Prefect (con fallback sin dependencia): retries, backoff, estado, alerta
 ```
 
 Reglas de oro incorporadas (fuente: Medallion Architecture — Databricks; Best Practices — Airflow):
@@ -64,43 +71,66 @@ Reglas de oro incorporadas (fuente: Medallion Architecture — Databricks; Best 
 4. **Migraciones versionadas** para el warehouse; contratos con `schema_version`.
 5. **Observabilidad por corrida**: estado, métricas, alerta por umbral.
 
+### Endpoints API (implementados en `pipeline/src/arca_pipeline/api/main.py`)
+
+| Método | Ruta | Fuente | Descripción |
+|--------|------|--------|-------------|
+| GET | `/health` | — | Liveness check (`{"status":"ok"}`) |
+| GET | `/state` | `data/state/last_run.json` | Estado de la última corrida (o 404 si no hay corridas) |
+| GET | `/stations/{code}/observations?from=&to=` | `silver_observations` | Observaciones validadas por estación y rango de fechas (ISO `YYYY-MM-DD`) |
+| GET | `/stations/{code}/kpis?year=&month=` | `gold_kpis_mensuales` | KPIs mensuales por estación (404 si no existe) |
+| GET | `/rejected` | `data/rejected/*.rejected.json` | Listado de archivos rechazados con motivo |
+
+> Verificación local: `ls pipeline/src/arca_pipeline/api/` → `main.py` (FastAPI). Tests en `pipeline/tests/test_api.py`.
+
 ---
 
-## 3. Estructura del repo (nuevo directorio `arca-pipeline/`)
+## 3. Estructura del repo (directorio real `pipeline/`)
+
+> **Nota**: el nombre planificado `arca-pipeline/` se implementó como `pipeline/` en la raíz del repo. Toda referencia en este documento a `arca-pipeline/` debe leerse como `pipeline/`.
 
 ```
-arca-pipeline/
+pipeline/
 ├── pyproject.toml            # ruff, pytest, deps (no scripts sueltos)
 ├── .env.template             # credenciales NUNCA en el repo
 ├── README.md                 # diagrama de capas + cómo correr + cómo testear
+├── alembic.ini               # configuración Alembic (raíz del pipeline)
 ├── src/arca_pipeline/
 │   ├── config.py             # settings desde env (pydantic-settings)
-│   ├── ingest/               # conector Google Drive: poll, checksum, estado
-│   ├── transform/            # núcleo Excel→JSON puro + mapeo WMO
-│   ├── validate/             # contratos pandera (schema + rangos físicos)
+│   ├── contracts.py          # contratos versionados (schema_version)
+│   ├── api/                  # FastAPI consultable (main.py) — ver §2 endpoints
+│   ├── ingest/               # conector Google Drive: poll, checksum, control, drive
+│   ├── transform/            # núcleo Excel→JSON puro + mapeo WMO (fixture 01032026.xlsm)
+│   ├── validate/             # contratos pandera SilverSchema + rangos físicos WMO
 │   ├── load/                 # UPSERT a PostgreSQL (silver) + agregados (gold)
-│   └── orchestrate/          # runner Prefect (o cron) + estado + alerta
-├── flows/                    # definiciones de flujo (si Prefect)
-├── migrations/               # Alembic (versionado del warehouse)
-├── tests/                    # fixtures reales chicos + test de idempotencia
-├── docker/                   # docker-compose (postgres) + Dockerfile opcional
-└── sql/                      # consultas de verificación y dashboard
+│   └── orchestrate/          # runner Prefect con fallback + estado + alerta
+├── migrations/               # Alembic 0001_initial (stations, silver_observations, gold_kpis_mensuales)
+├── tests/                    # fixtures reales (estacion_central_01032026.xlsm) + test de idempotencia
+│   └── fixtures/estacion_central_01032026.xlsm  # fixture golden — estación 78486
+├── docker/                   # docker-compose (postgres 16) + Dockerfile opcional
+├── sql/                      # consultas de verificación y dashboard
+└── venv (no versionado)      # /tmp/opencode/pipeline-venv — entorno de ejecución local
 ```
+
+Verificación: `ls pipeline/src/arca_pipeline/api/` existe y contiene `main.py`.
 
 ---
 
-## 4. Plan por fases
+## 4. Plan por fases — estado al 2026-08-19
 
-| Fase | Entregable | Verificación | Buenas prácticas aplicadas |
-|------|-----------|--------------|----------------------------|
-| **0. Fundamento** | `arca-pipeline/` + pyproject + env template + CI (ruff, pytest) | CI verde en GitHub | Reproducibilidad, secrets, lint desde el día 1 |
-| **1. Ingesta (bronze)** | Conector Drive: poll por checksum, descarga a `raw/` + `_meta.json`, tabla de control | Archivo + meta en raw tras corrida; skip si checksum no cambió | Bronze inmutable, detección por contenido (G9) |
-| **2. Transform (silver)** | Núcleo puro Excel→JSON extraído de `excel_to_json.py` (sin GUI) + normalización | JSON/schema coincide con el contrato versionado | Funciones puras testeadas (G7) |
-| **3. Validación** | Contratos pandera: schema + rangos físicos WMO; `rejected/` con motivo | Archivo inválido → rejected/ con log; pipeline sigue | Fail vs reject (G2) |
-| **4. Carga (warehouse)** | PostgreSQL + Alembic: bronze/silver/gold; UPSERT `(station, fecha, sha256)` | SELECT de control; **rerun no duplica** | Medallion + idempotencia por contenido (G1, G3, G4) |
-| **5. Orquestación** | Prefect (o cron MVP): poll→transform→validate→load; retries, backoff, `last_run.json`, alerta por umbral | Corrida automática; fallo de red reintenta; estado visible | Observabilidad (G5, G8) |
-| **6. Consulta/UI** | FastAPI en localhost + reverse proxy con auth; endpoint de estado; dashboard Recharts o Metabase | Consulta por estación/fecha/variable responde | Warehouse consultable sin exponer a internet |
-| **7. Tests + docs** | Unit/integration con fixtures; test de idempotencia en CI; README de arquitectura | `pytest` verde; rerun sin duplicados; docs de cada capa | G6 + documentación de portafolio |
+| Fase | Estado | Entregable | Verificación | Buenas prácticas |
+|------|--------|-----------|--------------|------------------|
+| **0. Fundamento** | ✅ completada | `pipeline/` + pyproject + env template + CI (ruff, pytest) | `ruff check` limpio, `pytest` 35 passed | Reproducibilidad, secrets, lint desde el día 1 |
+| **1. Ingesta (bronze)** | ✅ completada | Conector Drive: poll por checksum (`ingest/control.py` + `ingest/drive.py`), descarga a `raw/` + `_meta.json`, tabla de control | Archivo + meta en raw tras corrida; skip si checksum no cambió; `test_ingest.py` | Bronze inmutable, detección por contenido (G9) |
+| **2. Transform (silver)** | ✅ completada | Núcleo puro Excel→JSON extraído de `excel_to_json.py` (sin GUI) + normalización; fixture real `01032026.xlsm` (estación 78486) | JSON/schema coincide con contrato versionado; `test_transform.py` golden | Funciones puras testeadas (G7) |
+| **3. Validación** | ✅ completada | Contratos pandera `SilverSchema` + rangos físicos WMO (T −60..60 °C, HR 0..100, presión 850..1100 hPa); `rejected/` con motivo | Archivo inválido → `rejected/` con log; pipeline sigue; `test_validate.py` | Fail vs reject (G2) |
+| **4. Carga (warehouse)** | ✅ completada | PostgreSQL + Alembic `0001` (stations, silver_observations, gold_kpis_mensuales); UPSERT `(station_code, fecha, hora, source_sha256)` + gold | SELECT de control; **rerun no duplica**; `test_load.py` | Medallion + idempotencia por contenido (G1, G3, G4) |
+| **5. Orquestación** | ✅ parcial (MVP) | Prefect con fallback sin dependencia (`orchestrate/runner.py`): poll→transform→validate→load; retries con backoff exponencial, `last_run.json` (`data/state/`), alerta por umbral | Corrida automática; fallo de red reintenta (3 intentos); estado visible; `test_orchestrate.py` | Observabilidad (G5, G8) |
+| **6. Consulta/UI** | ✅ completada | FastAPI (`api/main.py`) en localhost + endpoints `/health`, `/state`, `/stations/{code}/observations`, `/stations/{code}/kpis`, `/rejected`; reverse proxy con auth pendiente | Consulta por estación/fecha/variable responde; `test_api.py` | Warehouse consultable sin exponer a internet |
+| **7. Tests + docs** | 🔄 en curso | Unit/integration con fixtures reales + test de idempotencia en CI; README de arquitectura | `pytest` 35 passed; rerun sin duplicados; docs de cada capa (este plan + `pipeline/README.md`) | G6 + documentación de portafolio |
+
+> **Leyenda**: ✅ completada y verificada en `pipeline/tests` · 🔄 parcial / en curso.
+> **Evidencia 2026-08-19**: `35 passed, 4 warnings` · `ruff check` All checks passed · venv `/tmp/opencode/pipeline-venv` · rama `arca-pipeline`.
 
 ---
 
