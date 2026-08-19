@@ -1,3 +1,4 @@
+#![allow(clippy::doc_overindented_list_items)]
 //! cli — CLI 3074 / 4074 / 5074 sheets.
 //!
 //! Scope: the three CLI forms (pressure/humidity/wind, cloudiness/temperature,

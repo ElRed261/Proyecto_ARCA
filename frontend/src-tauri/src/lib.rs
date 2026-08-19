@@ -3,6 +3,7 @@ pub mod auth;
 pub mod calculations;
 pub mod db;
 pub mod domain;
+pub mod modules;
 pub mod json_handler;
 pub mod monthly_summary;
 pub mod app_config;
@@ -18,14 +19,14 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .manage(auth::SessionStore::default())
         .invoke_handler(tauri::generate_handler![
-            calculations::get_stations,
-            calculations::create_station,
-            calculations::update_station,
-            calculations::delete_station,
-            calculations::calculate_observations,
-            json_handler::synoptic::save_observation_json,
-            json_handler::synoptic::get_observation,
-            json_handler::synoptic::get_station_date_range,
+            modules::synoptic::calculations::get_stations,
+            modules::synoptic::calculations::create_station,
+            modules::synoptic::calculations::update_station,
+            modules::synoptic::calculations::delete_station,
+            modules::synoptic::calculations::calculate_observations,
+            modules::synoptic::storage::save_observation_json,
+            modules::synoptic::storage::get_observation,
+            modules::synoptic::storage::get_station_date_range,
             json_handler::cli::load_cli3074_json,
             json_handler::cli::load_cli4074_json,
             json_handler::cli::load_cli5074_json,

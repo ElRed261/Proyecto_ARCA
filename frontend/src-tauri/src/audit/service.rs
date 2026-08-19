@@ -162,26 +162,43 @@ pub fn load_observation_with_audit_core(
                 let p3 = hora_obj.get("p3").and_then(|v| v.as_str()).map(|s| s.to_string());
                 let p24 = hora_obj.get("p24").and_then(|v| v.as_str()).map(|s| s.to_string());
                 let correc_alt = hora_obj.get("correc_alt").and_then(|v| v.as_str()).map(|s| s.to_string());
+                let irixhv = hora_obj.get("meteo_4_irixhvv").and_then(|v| v.as_str()).map(|s| s.to_string());
+                let seven_ww = hora_obj.get("meteo_4_6").and_then(|v| v.as_str()).map(|s| s.to_string());
+                let nddff_actual = hora_obj.get("meteo_4_1").and_then(|v| v.as_str()).map(|s| s.to_string());
 
-                let calc_req = crate::calculations::CalculationRequest {
-                    station_id: Some(station.to_string()),
-                    correc_alt,
-                    ts,
-                    th,
-                    pres_est,
-                    p3,
-                    p24,
-                    ir: None,
-                    ix: None,
-                };
+                // política única — ponytail: una sola función para todos los derivados
+                let derived = crate::modules::synoptic::calculations::recalculate_derived_fields(
+                    Some(pool),
+                    Some(station),
+                    ts.as_deref(),
+                    th.as_deref(),
+                    pres_est.as_deref(),
+                    p3.as_deref(),
+                    p24.as_deref(),
+                    correc_alt.as_deref(),
+                    irixhv.as_deref(),
+                    seven_ww.as_deref(),
+                    nddff_actual.as_deref(),
+                    None,
+                );
 
-                let calc_res = crate::calculations::realizar_calculos(pool, calc_req);
-
-                hora_obj.insert("tension_vapor".to_string(), serde_json::Value::String(calc_res.tension_vapor));
-                hora_obj.insert("humedad_relativa".to_string(), serde_json::Value::String(calc_res.humedad_relativa));
-                hora_obj.insert("punto_rocio".to_string(), serde_json::Value::String(calc_res.punto_rocio));
-                hora_obj.insert("diferencia".to_string(), serde_json::Value::String(calc_res.diferencia));
-                hora_obj.insert("pres_nmm".to_string(), serde_json::Value::String(calc_res.pres_nmm));
+                hora_obj.insert("tension_vapor".to_string(), serde_json::Value::String(derived.tension_vapor));
+                hora_obj.insert("humedad_relativa".to_string(), serde_json::Value::String(derived.humedad_relativa));
+                hora_obj.insert("punto_rocio".to_string(), serde_json::Value::String(derived.punto_rocio));
+                hora_obj.insert("diferencia".to_string(), serde_json::Value::String(derived.diferencia));
+                hora_obj.insert("pres_nmm".to_string(), serde_json::Value::String(derived.pres_nmm));
+                if !derived.visibilidad.is_empty() {
+                    hora_obj.insert("visibilidad".to_string(), serde_json::Value::String(derived.visibilidad));
+                }
+                if !derived.tend_dif.is_empty() {
+                    hora_obj.insert("tend_dif".to_string(), serde_json::Value::String(derived.tend_dif));
+                }
+                if !derived.tend_car.is_empty() {
+                    hora_obj.insert("tend_car".to_string(), serde_json::Value::String(derived.tend_car));
+                }
+                if !derived.tiempo_presente.is_empty() {
+                    hora_obj.insert("tiempo_presente".to_string(), serde_json::Value::String(derived.tiempo_presente));
+                }
             }
         }
     }
@@ -293,26 +310,28 @@ pub fn export_corrected_json(
                             }
                         }
 
-                        let calc_req = crate::calculations::CalculationRequest {
-                            station_id: Some(station_id.to_string()),
-                            correc_alt,
-                            ts,
-                            th,
-                            pres_est,
-                            p3,
-                            p24,
-                            ir: None,
-                            ix: None,
-                        };
+                        // política única
+                        let derived = crate::modules::synoptic::calculations::recalculate_derived_fields(
+                            Some(pool),
+                            Some(station_id),
+                            ts.as_deref(),
+                            th.as_deref(),
+                            pres_est.as_deref(),
+                            p3.as_deref(),
+                            p24.as_deref(),
+                            correc_alt.as_deref(),
+                            None,
+                            None,
+                            None,
+                            None,
+                        );
 
-                        let calc_res = crate::calculations::realizar_calculos(pool, calc_req);
-                        
                         let mut calculado_obj = serde_json::Map::new();
-                        if !calc_res.pres_nmm.is_empty() { calculado_obj.insert("pres_nmm".to_string(), serde_json::Value::String(calc_res.pres_nmm)); }
-                        if !calc_res.punto_rocio.is_empty() { calculado_obj.insert("pr".to_string(), serde_json::Value::String(calc_res.punto_rocio)); }
-                        if !calc_res.tension_vapor.is_empty() { calculado_obj.insert("tv".to_string(), serde_json::Value::String(calc_res.tension_vapor)); }
-                        if !calc_res.humedad_relativa.is_empty() { calculado_obj.insert("hr".to_string(), serde_json::Value::String(calc_res.humedad_relativa)); }
-                        if !calc_res.diferencia.is_empty() { calculado_obj.insert("dif".to_string(), serde_json::Value::String(calc_res.diferencia)); }
+                        if !derived.pres_nmm.is_empty() { calculado_obj.insert("pres_nmm".to_string(), serde_json::Value::String(derived.pres_nmm)); }
+                        if !derived.punto_rocio.is_empty() { calculado_obj.insert("pr".to_string(), serde_json::Value::String(derived.punto_rocio)); }
+                        if !derived.tension_vapor.is_empty() { calculado_obj.insert("tv".to_string(), serde_json::Value::String(derived.tension_vapor)); }
+                        if !derived.humedad_relativa.is_empty() { calculado_obj.insert("hr".to_string(), serde_json::Value::String(derived.humedad_relativa)); }
+                        if !derived.diferencia.is_empty() { calculado_obj.insert("dif".to_string(), serde_json::Value::String(derived.diferencia)); }
 
                         if !calculado_obj.is_empty() {
                             hora_obj.insert("calculado".to_string(), serde_json::Value::Object(calculado_obj));

@@ -1,3 +1,4 @@
+#![allow(clippy::doc_overindented_list_items)]
 //! auth — users, sessions, roles.
 //!
 //! Scope: login/logout, session store, user CRUD, role checks, password

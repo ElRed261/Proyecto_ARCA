@@ -1,3 +1,4 @@
+#![allow(clippy::doc_overindented_list_items)]
 //! Domain modules — the modular monolith. Each module is an independent domain
 //! slice. The DIRECTORY of a module is its boundary; nothing outside it may
 //! reach into its internals.
@@ -26,6 +27,9 @@
 //! 4. Cross-module use cases (e.g. "export corrected day") are orchestrated in
 //!    the `app` layer, NOT inside a module.
 //!
-//! MIGRATION NOTE: modules/* are NOT declared in lib.rs yet. The current tree
-//! (json_handler/, auth.rs, calculations.rs, ...) keeps compiling untouched.
-//! Each module migrates one at a time, keeping the build green.
+//! MIGRATION NOTE: Fase 3 declares `modules::synoptic` in lib.rs; the remaining
+//! modules migrate one at a time, keeping the build green.
+
+pub mod auth;
+pub mod cli;
+pub mod synoptic;
