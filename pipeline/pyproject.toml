@@ -18,6 +18,8 @@ dependencies = [
     "openpyxl",
     "pydantic-settings",
     "psycopg2-binary",
+    "fastapi",
+    "uvicorn",
 ]
 
 [project.optional-dependencies]
