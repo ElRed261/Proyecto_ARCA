@@ -25,3 +25,4 @@
 //!   convention ("synop" vs "synoptic" vs "Resumen_Mensual_Synop" must become ONE).
 
 pub mod errors;
+pub mod models;

@@ -1,5 +1,5 @@
+use crate::domain::models::{Correction, ErrorMark, ErrorReportRow, PersonSummaryRow};
 use crate::infrastructure::error::AppError;
-use crate::audit::{ErrorMark, Correction, ErrorReportRow, PersonSummaryRow};
 
 #[derive(Debug, Clone)]
 pub struct UserRecord {

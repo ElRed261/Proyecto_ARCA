@@ -1,6 +1,6 @@
-use crate::ports::AuditRepository;
+use crate::domain::models::{Correction, ErrorMark, ErrorReportRow, PersonSummaryRow};
 use crate::infrastructure::error::AppError;
-use crate::audit::{ErrorMark, Correction, ErrorReportRow, PersonSummaryRow};
+use crate::ports::AuditRepository;
 use rusqlite::params;
 use r2d2::Pool;
 use r2d2_sqlite::SqliteConnectionManager;
