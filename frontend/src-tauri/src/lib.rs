@@ -17,7 +17,7 @@ use tauri::Manager;
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .manage(auth::SessionStore::default())
+        .manage(modules::auth::SessionStore::default())
         .invoke_handler(tauri::generate_handler![
             modules::synoptic::calculations::get_stations,
             modules::synoptic::calculations::create_station,
@@ -42,14 +42,14 @@ pub fn run() {
             audit::commands::audit_get_error_report,
             audit::commands::audit_export_corrected_json,
             audit::commands::audit_get_person_summary,
-            auth::login_user,
-            auth::validate_token,
-            auth::logout,
-            auth::get_users,
-            auth::update_user,
-            auth::change_password,
-            auth::create_user,
-            auth::delete_user,
+            modules::auth::login_user,
+            modules::auth::validate_token,
+            modules::auth::logout,
+            modules::auth::get_users,
+            modules::auth::update_user,
+            modules::auth::change_password,
+            modules::auth::create_user,
+            modules::auth::delete_user,
             monthly_summary::commands::ms_load_station_month,
             monthly_summary::commands::ms_load_station_month_with_corrections,
             monthly_summary::commands::ms_generate_summary,
