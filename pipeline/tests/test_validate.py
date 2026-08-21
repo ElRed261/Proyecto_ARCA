@@ -117,6 +117,18 @@ def test_invalid_hour_key_rejected():
     assert df.empty
 
 
+def test_cli_hour_24_fields_survive_validation():
+    """Local hour '24' (CLI convention 1..24) maps to Z=(24+4)%24='04Z';
+    the reverse lookup must find cli3074['24'], not a nonexistent '0' key."""
+    horas = {"04Z": _datos(), "06Z": _datos()}
+    cli3074 = {"24": _cli(pres_nmm="1016.5")}
+    df, errs = validate_day(_day(horas, cli3074))
+
+    assert errs == []
+    row = df.loc[df["hora"] == "04Z"].iloc[0]
+    assert float(row["pres_nmm"]) == 1016.5
+
+
 def test_validate_silver_raises_on_invalid_data():
     df, _ = validate_day(_day({"06Z": _datos()}))
     df.loc[0, "ts"] = 999.0

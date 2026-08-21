@@ -223,6 +223,10 @@ def validate_day(day_json: dict) -> tuple[pd.DataFrame, list[str]]:
     rows: list[dict] = []
     for z_key in sorted(candidates):
         cli_local = str((int(z_key.replace("Z", "")) - LOCAL_TO_Z_OFFSET_H) % 24)
+        # ponytail: el CLI numera horas locales '1'..'24'; el módulo da '0',
+        # clave que nunca existe — remapear a '24' para no perder sus campos.
+        if cli_local == "0":
+            cli_local = "24"
         cli_row = cli3074.get(str(cli_local)) if isinstance(cli3074, dict) else None
         if not isinstance(cli_row, dict):
             cli_row = {}
