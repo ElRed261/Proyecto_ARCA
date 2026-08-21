@@ -282,7 +282,6 @@ def _run_pipeline_impl(
                     "reason": f"parse_error: {exc}",
                 },
             )
-            known[dest.name] = sha
             continue
 
         day["source_sha256"] = sha
@@ -305,7 +304,6 @@ def _run_pipeline_impl(
                     "reason": reason,
                 },
             )
-            known[dest.name] = sha
             continue
 
         if errors:
@@ -348,7 +346,6 @@ def _run_pipeline_impl(
                     "reason": f"load_error: {exc}",
                 },
             )
-            known[dest.name] = sha
             continue
 
     # persist checksums
