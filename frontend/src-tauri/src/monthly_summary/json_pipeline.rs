@@ -119,6 +119,15 @@ pub struct MonthlySummaryDoc {
 // Orchestration & Persistence
 // -----------------------------------------------------------------------------
 
+// ponytail: only well-formed DDMMYYYY gets reordered; anything else sorts raw
+fn date_sort_key(fecha: &str) -> String {
+    if fecha.len() == 8 && fecha.bytes().all(|b| b.is_ascii_digit()) {
+        format!("{}{}{}", &fecha[4..], &fecha[2..4], &fecha[0..2])
+    } else {
+        fecha.to_string()
+    }
+}
+
 pub fn analyze_files(paths: Vec<String>) -> Result<MonthlySummaryDoc, String> {
     let config = get_default_config();
     let mut obs_map = std::collections::HashMap::new();
@@ -156,11 +165,7 @@ pub fn analyze_files(paths: Vec<String>) -> Result<MonthlySummaryDoc, String> {
     }
 
     // 2. Sort by date (DDMMYYYY)
-    observations.sort_by(|a, b| {
-        let date_a = format!("{}{}{}", &a.meta.fecha[4..], &a.meta.fecha[2..4], &a.meta.fecha[0..2]);
-        let date_b = format!("{}{}{}", &b.meta.fecha[4..], &b.meta.fecha[2..4], &b.meta.fecha[0..2]);
-        date_a.cmp(&date_b)
-    });
+    observations.sort_by(|a, b| date_sort_key(&a.meta.fecha).cmp(&date_sort_key(&b.meta.fecha)));
 
     // 3. Process into KPIs and handle rainfall shifting (rain recorded today belongs to yesterday)
     let mut kpis_list = Vec::new();
@@ -304,4 +309,21 @@ pub fn export_to_excel(doc: &MonthlySummaryDoc, out_path: &Path) -> Result<(), S
     
     workbook.save(out_path).map_err(|e| format!("Failed to save excel: {}", e))?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::date_sort_key;
+
+    #[test]
+    fn date_sort_key_handles_invalid_fecha_without_panicking() {
+        // well-formed DDMMYYYY -> YYYYMMDD
+        assert_eq!(date_sort_key("15032024"), "20240315");
+        // short / empty / multibyte must not panic and sort raw
+        assert_eq!(date_sort_key(""), "");
+        assert_eq!(date_sort_key("15/3"), "15/3");
+        assert_eq!(date_sort_key("1503ñ024"), "1503ñ024");
+        // non-digit 8-char stays raw (no bogus reorder)
+        assert_eq!(date_sort_key("15a32024"), "15a32024");
+    }
 }
