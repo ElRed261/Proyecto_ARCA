@@ -7,9 +7,10 @@ What it produces: a run-status dict used for observability (last_run.json).
 What it consumes: every pipeline layer above plus config.
 What it must NOT import: any UI/desktop code.
 
-Prefect @flow/@task wiring: if prefect is installed the same logic runs as a
-prefect flow (arca_flow) with task wrappers; otherwise plain functions run with
-a simple retry loop — no extra dependency required.
+Prefect @flow wiring: if prefect is installed the same logic runs as a
+prefect flow (arca_flow); otherwise the same plain function runs directly —
+no extra dependency required. Retries are flow-level (_retry_call), not
+per-task.
 """
 
 from __future__ import annotations
@@ -25,21 +26,13 @@ logger = logging.getLogger(__name__)
 
 # ponytail: try prefect, fallback to plain functions — no hard dependency
 try:
-    from prefect import flow, task  # type: ignore
+    from prefect import flow  # type: ignore
 
     _HAS_PREFECT = True
 except ImportError:  # pragma: no cover
     _HAS_PREFECT = False
 
     def flow(_fn=None, **_kw):  # type: ignore
-        def decorator(fn):
-            return fn
-
-        if _fn is not None:
-            return _fn
-        return decorator
-
-    def task(_fn=None, **_kw):  # type: ignore
         def decorator(fn):
             return fn
 
@@ -218,15 +211,8 @@ def _run_pipeline_impl(
             return eng
         try:
             eng = _build_engine(db_url)
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("failed to create engine for %s: %s", db_url, exc)
-            # ponytail: fallback to in-memory sqlite so pipeline can still run in tests without psycopg2
-            try:
-                from sqlalchemy import create_engine as _ce
-
-                eng = _ce("sqlite:///:memory:")
-            except Exception:  # noqa: BLE001
-                eng = None
+        except Exception as exc:
+            raise RuntimeError(f"cannot create database engine for {db_url}: {exc}") from exc
         return eng
 
     for meta in files:
@@ -393,34 +379,10 @@ def _run_pipeline_impl(
     return status
 
 
-# -- prefect wrappers -------------------------------------------------------
-# ponytail: minimal task wrappers — only defined when prefect is present, else plain funcs
+# -- prefect flow -------------------------------------------------------------
+# ponytail: one flow wrapper when prefect is present, plain function otherwise
 
 if _HAS_PREFECT:
-
-    @task(name="list_new_files", retries=1)
-    def _task_list_new_files(svc, folder_id, known):
-        return drive.list_new_files(svc, folder_id, known)
-
-    @task(name="download_atomic", retries=3)
-    def _task_download(svc, file_id, dest_dir):
-        return drive.download_atomic(svc, file_id, dest_dir)
-
-    @task(name="parse_excel")
-    def _task_parse(path):
-        return parse_excel(path)
-
-    @task(name="validate_day")
-    def _task_validate(day):
-        return validate_day(day)
-
-    @task(name="upsert_observations", retries=3)
-    def _task_upsert(engine, df):
-        return upsert_observations(engine, df)
-
-    @task(name="build_monthly_kpis")
-    def _task_gold(engine, station, year, month):
-        return build_monthly_kpis(engine, station, year, month)
 
     @flow(name="arca_flow")
     def arca_flow(  # type: ignore[no-redef]
