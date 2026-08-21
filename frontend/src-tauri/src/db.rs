@@ -107,6 +107,17 @@ pub fn get_migrations() -> Migrations<'static> {
             DROP TABLE IF EXISTS correction_requests;
             "#
         ),
+        // R6: barrera única contra marcas duplicadas (la carrera check-then-insert).
+        // Deduplicar ANTES de crear el índice para no romper BDs existentes con duplicados.
+        M::up(
+            r#"
+            DELETE FROM error_marks WHERE id NOT IN (
+                SELECT MIN(id) FROM error_marks GROUP BY station_id, fecha, hora, campo
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS uq_error_marks_slot
+                ON error_marks(station_id, fecha, hora, campo);
+            "#
+        ),
     ])
 }
 

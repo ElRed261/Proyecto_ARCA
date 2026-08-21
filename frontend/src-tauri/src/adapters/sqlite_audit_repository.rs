@@ -79,22 +79,20 @@ impl AuditRepository for SqliteAuditRepository {
 
     fn mark_error(&self, mark: &ErrorMark) -> Result<i32, AppError> {
         let conn = self.pool.get().map_err(|e| AppError::Internal(e.to_string()))?;
-        
-        let exists: i64 = conn.query_row(
-            "SELECT COUNT(*) FROM error_marks WHERE station_id = ? AND fecha = ? AND hora = ? AND campo = ?",
-            [&mark.station_id, &mark.fecha, &mark.hora, &mark.campo],
-            |row| row.get(0),
-        )?;
 
-        if exists > 0 {
-            return Err(AppError::Validation("Este campo ya está marcado como error".to_string()));
-        }
-
-        conn.execute(
+        // La barrera real contra duplicados es el índice UNIQUE uq_error_marks_slot
+        // (db.rs); aquí solo traducimos el conflicto a error de validación.
+        // ponytail: ON CONFLICT reemplaza al COUNT previo que tenía carrera TOCTOU.
+        let inserted = conn.execute(
             "INSERT INTO error_marks (station_id, fecha, hora, campo, tipo_error, nota, marcado_por) \
-             VALUES (?, ?, ?, ?, ?, ?, ?)",
+             VALUES (?, ?, ?, ?, ?, ?, ?) \
+             ON CONFLICT(station_id, fecha, hora, campo) DO NOTHING",
             params![mark.station_id, mark.fecha, mark.hora, mark.campo, mark.tipo_error, mark.nota, mark.marcado_por],
         )?;
+
+        if inserted == 0 {
+            return Err(AppError::Validation("Este campo ya está marcado como error".to_string()));
+        }
 
         let last_id: i32 = conn.query_row("SELECT last_insert_rowid()", [], |row| row.get(0))?;
         Ok(last_id)
@@ -268,8 +266,7 @@ impl AuditRepository for SqliteAuditRepository {
         Ok(result)
     }
 
-    fn get_person_summary(&self, station_id: Option<String>, year: Option<String>, month: Option<String>) -> Result<Vec<PersonSummaryRow>, AppError> {
-        let conn = self.pool.get().map_err(|e| AppError::Internal(e.to_string()))?;
+    fn get_person_summary(&self, station_id: Option<String>, year: Option<String>, month: Option<String>) -> Result<Vec<PersonSummaryRow>, AppError> {        let conn = self.pool.get().map_err(|e| AppError::Internal(e.to_string()))?;
 
         let mut map: HashMap<String, PersonSummaryRow> = HashMap::new();
 
@@ -363,6 +360,52 @@ impl AuditRepository for SqliteAuditRepository {
         let mut res: Vec<PersonSummaryRow> = map.into_values().collect();
         res.sort_by(|a, b| b.errores_marcados.cmp(&a.errores_marcados));
         Ok(res)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::db::get_migrations;
+
+    // ponytail: max_size(1) obligatorio — cada conexión de un pool :memory:
+    // es una BD distinta; con una sola conexión todos comparten la misma.
+    fn test_repo() -> SqliteAuditRepository {
+        let manager = SqliteConnectionManager::memory();
+        let pool = Pool::builder().max_size(1).build(manager).unwrap();
+        let mut conn = pool.get().unwrap();
+        get_migrations().to_latest(&mut conn).unwrap();
+        SqliteAuditRepository::new(pool)
+    }
+
+    fn mark(hora: &str) -> ErrorMark {
+        ErrorMark {
+            id: None,
+            station_id: "78451".into(),
+            fecha: "2024-03-15".into(),
+            hora: hora.into(),
+            campo: "t_max".into(),
+            tipo_error: "lectura".into(),
+            nota: None,
+            marcado_por: "tester".into(),
+            created_at: None,
+        }
+    }
+
+    #[test]
+    fn duplicate_mark_is_rejected_by_unique_barrier() {
+        let repo = test_repo();
+        let first = repo.mark_error(&mark("08")).unwrap();
+        assert!(first > 0);
+
+        let dup = repo.mark_error(&mark("08"));
+        assert!(
+            matches!(dup, Err(AppError::Validation(ref msg)) if msg.contains("ya está marcado")),
+            "expected validation error, got {dup:?}"
+        );
+
+        // distinta hora sí inserta
+        assert!(repo.mark_error(&mark("09")).is_ok());
     }
 }
 
