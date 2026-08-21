@@ -12,13 +12,23 @@ use bcrypt::{hash, verify, DEFAULT_COST};
 use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::Mutex;
+use std::sync::{Mutex, OnceLock};
 use tauri::{command, State};
 use crate::domain::errors::AppError;
 use crate::ports::UserRepository;
 
-static COUNTER: AtomicUsize = AtomicUsize::new(0);
+/// Sesiones expiran tras 8 horas.
+const SESSION_TTL_SECS: i64 = 28800;
+
+/// Hash bcrypt constante usado SOLO para igualar el tiempo de respuesta cuando
+/// el email no existe, de modo que el timing del login no permita enumerar usuarios.
+static DUMMY_HASH: OnceLock<String> = OnceLock::new();
+
+fn dummy_password_hash() -> String {
+    DUMMY_HASH
+        .get_or_init(|| hash("arca-timing-equalizer", DEFAULT_COST).expect("bcrypt disponible"))
+        .clone()
+}
 
 #[derive(Clone, Debug)]
 pub struct Session {
@@ -42,11 +52,10 @@ impl Default for SessionStore {
 
 impl SessionStore {
     pub fn create_session(&self, user_id: i64, email: String, role: String) -> String {
-        // TODO(security): replace predictable timestamp+counter with CSPRNG (e.g. uuid v4)
-        // — deferred to dedicated security fix, not structural migration (Fase 5).
-        let count = COUNTER.fetch_add(1, Ordering::SeqCst);
-        let timestamp = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
-        let token = format!("{:x}-{:x}", timestamp, count);
+        // Token de sesión = 32 bytes del CSPRNG del SO, hex (64 chars).
+        let mut bytes = [0u8; 32];
+        getrandom::getrandom(&mut bytes).expect("CSPRNG del sistema no disponible");
+        let token: String = bytes.iter().map(|b| format!("{:02x}", b)).collect();
         let session = Session {
             user_id,
             email,
@@ -59,16 +68,29 @@ impl SessionStore {
     }
 
     pub fn validate_session(&self, token: &str) -> Result<Session, AppError> {
-        let sessions = self.sessions.lock().unwrap();
-        if let Some(session) = sessions.get(token) {
-            let now = chrono::Utc::now().timestamp();
-            if now - session.created_at > 28800 {
-                return Err(AppError::Unauthorized("Sesión expirada".to_string()));
-            }
-            Ok(session.clone())
-        } else {
-            Err(AppError::Unauthorized("Sesión no encontrada o inválida".to_string()))
+        let mut sessions = self.sessions.lock().unwrap();
+        let expired = sessions
+            .get(token)
+            .is_some_and(|s| chrono::Utc::now().timestamp() - s.created_at > SESSION_TTL_SECS);
+        if expired {
+            // Eliminar la entrada vencida: el store no debe crecer sin límite.
+            sessions.remove(token);
+            return Err(AppError::Unauthorized("Sesión expirada".to_string()));
         }
+        match sessions.get(token) {
+            Some(session) => Ok(session.clone()),
+            None => Err(AppError::Unauthorized("Sesión no encontrada o inválida".to_string())),
+        }
+    }
+
+    /// Elimina todas las sesiones vencidas. Llamado en cada login para acotar
+    /// el crecimiento del store entre validaciones.
+    pub fn sweep_expired(&self) {
+        let now = chrono::Utc::now().timestamp();
+        self.sessions
+            .lock()
+            .unwrap()
+            .retain(|_, s| now - s.created_at <= SESSION_TTL_SECS);
     }
 
     pub fn delete_session(&self, token: &str) {
@@ -107,7 +129,12 @@ pub fn login_user_logic(
 ) -> Result<LoginResponse, String> {
     let user = match repo.find_by_email(email)? {
         Some(u) => u,
-        None => return Err("Usuario o contraseña incorrectos".to_string()),
+        None => {
+            // Igualar el coste del path "password incorrecta" (un bcrypt verify
+            // contra hash constante) para que el timing no enumere usuarios.
+            let _ = verify(password, &dummy_password_hash());
+            return Err("Usuario o contraseña incorrectos".to_string());
+        }
     };
 
     if !user.is_active {
@@ -118,6 +145,9 @@ pub fn login_user_logic(
     if !is_valid {
         return Err("Usuario o contraseña incorrectos".to_string());
     }
+
+    // Barrer sesiones vencidas en cada login acota el crecimiento del store.
+    session_store.sweep_expired();
 
     let access_token = session_store.create_session(user.id, user.email.clone(), user.role.clone());
 

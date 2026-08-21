@@ -36,6 +36,7 @@ r2d2 = "0.8.10"
 r2d2_sqlite = "0.24.0"
 rusqlite_migration = "1.2.0"
 thiserror = "1.0"
+getrandom = "0.2"
 
 [profile.release]
 lto = true

@@ -94,6 +94,7 @@ dependencies = [
  "bcrypt",
  "calamine",
  "chrono",
+ "getrandom 0.2.17",
  "log",
  "r2d2",
  "r2d2_sqlite",

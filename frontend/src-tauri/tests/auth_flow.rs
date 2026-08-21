@@ -1,6 +1,6 @@
 mod helpers;
 
-use app_lib::auth;
+use app_lib::auth::{self, SessionStore};
 use app_lib::ports::UserRepository;
 use helpers::{create_test_pool, create_user_and_login, TestUser};
 
@@ -52,6 +52,51 @@ fn logout_invalida_el_token() {
         err.to_string().contains("Sesión no encontrada"),
         "el token debe quedar inválido tras logout"
     );
+}
+
+#[test]
+fn tokens_de_sesion_son_csprng_unicos() {
+    let pool = create_test_pool();
+    let u1 = TestUser::create(&pool, "tokens_a@arca.test", "Clave123!", "admin");
+    let u2 = TestUser::create(&pool, "tokens_b@arca.test", "Clave123!", "admin");
+
+    for token in [&u1.login.access_token, &u2.login.access_token] {
+        assert_eq!(token.len(), 64, "el token debe ser hex de 32 bytes: {}", token);
+        assert!(token.chars().all(|c| c.is_ascii_hexdigit()), "token no hex: {}", token);
+    }
+    assert_ne!(u1.login.access_token, u2.login.access_token, "tokens deben ser únicos");
+}
+
+#[test]
+fn sesion_expirada_se_elimina_del_store() {
+    let store = SessionStore::default();
+    store.sessions.lock().unwrap().insert(
+        "viejo".to_string(),
+        auth::Session {
+            user_id: 1,
+            email: "x@arca.test".to_string(),
+            role: "admin".to_string(),
+            created_at: 0, // época => vencida
+        },
+    );
+
+    let err = store.validate_session("viejo").unwrap_err();
+    assert!(err.to_string().contains("expirada"), "error inesperado: {}", err);
+    // la entrada vencida se elimina: el store no crece sin límite (R5)
+    assert!(!store.sessions.lock().unwrap().contains_key("viejo"));
+
+    // sweep_expired barre el resto de sesiones vencidas en cada login
+    store.sessions.lock().unwrap().insert(
+        "otro-viejo".to_string(),
+        auth::Session {
+            user_id: 2,
+            email: "y@arca.test".to_string(),
+            role: "admin".to_string(),
+            created_at: 0,
+        },
+    );
+    store.sweep_expired();
+    assert!(store.sessions.lock().unwrap().is_empty());
 }
 
 #[test]
