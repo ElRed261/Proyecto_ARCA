@@ -121,14 +121,17 @@ pub fn get_db_path(app_handle: &AppHandle) -> PathBuf {
 
 pub fn init_db(app_handle: &AppHandle) -> Result<DbPool, Box<dyn std::error::Error>> {
     let db_path = get_db_path(app_handle);
-    let manager = SqliteConnectionManager::file(&db_path);
+    // Los PRAGMA son por-conexión en SQLite: aplicarlos vía with_init para que
+    // TODA conexión del pool tenga WAL y foreign_keys activos.
+    // ponytail: un solo closure de init cubre todas las conexiones del pool
+    let manager = SqliteConnectionManager::file(&db_path).with_init(|conn| {
+        conn.pragma_update(None, "journal_mode", "wal")?;
+        conn.pragma_update(None, "foreign_keys", "ON")?;
+        Ok(())
+    });
     let pool = Pool::new(manager)?;
 
     let mut conn = pool.get()?;
-
-    // Habilitar modo WAL para mejor concurrencia
-    conn.pragma_update(None, "journal_mode", "wal")?;
-    conn.pragma_update(None, "foreign_keys", "ON")?;
 
     // Aplicar migraciones
     let migrations = get_migrations();
