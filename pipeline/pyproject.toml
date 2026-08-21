@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "arca-pipeline"
-version = "0.1.0"
+version = "2.1.0"
 description = "Batch pipeline: Google Drive .xlsm -> JSON -> validate -> PostgreSQL (bronze/silver/gold)"
 requires-python = ">=3.12"
 dependencies = [

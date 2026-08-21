@@ -7,48 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-08-21
+
+### Added
+- Data pipeline (`pipeline/`): medallion bronze/silver/gold architecture with Google Drive ingestion, pure Excel→JSON transform core, pandera validation (WMO physical ranges), PostgreSQL warehouse with Alembic migrations, idempotent UPSERT by `(station_code, fecha, hora, source_sha256)`
+- Orchestration runner (`orchestrate/runner.py`) with Prefect flow fallback, exponential-backoff retries, `last_run.json` observability state
+- Query API FastAPI (`api/main.py`): `/health`, `/state`, `/stations/{code}/observations`, `/stations/{code}/kpis`, `/rejected`
+- Local file source backend (`ingest/local_source.py`) as Drive stand-in: recursive listing of `.xlsm`/`.xlsx`, atomic copy into `raw/`, selected via `SOURCE_DIR` setting — no Drive connection required
+- Modular monolith migration (Fases 1–6): `domain/errors.rs` + `domain/models.rs` single sources, centralized ARCA paths + atomic writes, `modules/synoptic`, `modules/cli`, `modules/auth`, `ports` + `adapters` hexagonal dependency direction (`domain ← ports ← adapters`)
+- CI pipeline workflow `.github/workflows/pipeline.yml` (ruff + pytest) alongside existing frontend/backend CI
+- Pre-commit hook `scripts/hooks/pre-commit`
+- Golden test fixture for Excel transform; integration/wiring/e2e test suites
+
 ### Security
-- Replaced forgeable hex token with in-memory `SessionStore` (session-based auth with 8h expiry)
-- Added `require_role()` authorization to all sensitive Tauri commands (delete_user, change_password, audit_propose_correction, audit_mark_error, audit_export_corrected_json)
-- Bound `marcado_por` / `corregido_por` to authenticated session email (no longer accepted from frontend)
-- Added `validate_safe_path()` and `validate_export_path()` to prevent path traversal in monthly_summary commands
-- Added `validate_inputs()` to `audit_export_corrected_json` for station_id sanitization
-- Removed hardcoded credentials from `db.rs` — now generates random passwords on first run
-- Removed credentials from `run_full.sh`
-- Added `RoleRoute` in frontend to protect `/admin` and `/audit` routes by role
+- Session tokens now CSPRNG-generated (were hex timestamp+counter); constant-time login miss to prevent user enumeration; expired sessions swept from store
+- Deterministic station resolution in `stations_repo`: exact match first, ambiguous suffix → error (was nondeterministic `id LIKE %suffix`)
+- Path traversal guard on `monthly_summary` commands via reused `validate_inputs`
+- Unique index on `error_marks(fecha, hora, campo, station_id)` closes duplicate-mark race
 
-### Architecture
-- Created `ports/` module with `UserRepository` and `AuditRepository` traits
-- Created `adapters/` with `SqliteUserRepository` and `SqliteAuditRepository`
-- Created `infrastructure/error.rs` with `AppError` enum (thiserror)
-- Refactored `audit.rs` to use `AuditRepository` trait (reduced from 1121 to ~962 LOC)
+### Fixed
+- Silver/gold UPSERT dialect-aware (sqlite vs postgresql) — was `UnsupportedCompilationError` on the documented Postgres deployment
+- Failed files no longer recorded as known checksums — transient DB outages no longer permanently drop files
+- SQLite pragmas (`journal_mode=wal`, `foreign_keys=ON`) applied pool-wide via `with_init` (were per-connection)
+- Local CLI hour '24' fields survive validation (reverse Z-hour mapping bug dropped them silently)
+- Engine config failures raise `RuntimeError` instead of silently falling back to ephemeral `sqlite:///:memory:`
 
-### Database
-- Added `PRAGMA foreign_keys=ON`
-- Added indexes on `error_marks(station_id, fecha)`, `corrections(station_id, fecha)`, `summary_logs(station_id, year, month)`
-- Removed dead tables: `audit_logs`, `correction_requests`
-- Added foreign keys: `station_id REFERENCES stations(id)`
-
-### Build & CI
-- Pinned Tauri versions (Rust crate 2.11.3, npm @tauri-apps/api 2.11.1)
-- Removed `lazy_static` dependency (unused)
-- Removed `features = ["test"]` from tauri in Cargo.toml
-- Added `[profile.release]` with LTO, strip, codegen-units=1, panic=abort
-- Created `.github/workflows/ci.yml` with cargo check, cargo test, cargo clippy, npm lint, npm build
-- Added `.nvmrc` (Node 20) and `rust-toolchain.toml` (stable + rustfmt + clippy)
-
-### Cleanup
-- Moved legacy Python backend to `miscelaneos/backend_python/`
-- Removed `axios` dependency and `axiosConfig.js` (dead code — frontend uses Tauri IPC)
-- Removed sensitive files from git tracking (arca_local.db, *.log, *.bak, observation data)
-- Fixed `.gitignore` (split concatenated patterns, added missing entries)
-- Added `LICENSE` (CC BY-NC-SA-4.0)
-- Added `CONTRIBUTING.md`
-- Added this `CHANGELOG.md`
-
-### Frontend
-- Centralized role normalization in `shared/utils/auth.js` (`normalizeRole`, `hasRole`, `normalizeRoles`)
-- Fixed role type bug (string vs object) across 6 components (DashboardPage, AdminPage, SummaryPage, AuditObservationPage, App.jsx)
+### Removed
+- Telegram notification hooks and `TELEGRAM_BOT_TOKEN` setting
+- Dead Prefect `@task` wrappers (flow-level retries are what actually executes)
 
 ## [2.0.0] - 2026-01-30
 
