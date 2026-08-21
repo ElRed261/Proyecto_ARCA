@@ -5,6 +5,7 @@ use super::json_pipeline::{
     analyze_files, export_to_excel, list_summary_history, load_summary, save_summary,
     MonthlySummaryDoc, SummaryIndexEntry,
 };
+use crate::json_handler::utils::validate_inputs;
 
 fn get_monthly_summary_dir(app: &AppHandle) -> Result<PathBuf, String> {
     let docs_dir = app
@@ -123,6 +124,8 @@ pub async fn ms_load_station_month(
     year: u32,
     month: u32,
 ) -> Result<MonthlySummaryDoc, String> {
+    // ponytail: fecha dummy — year/month ya son u32; valida solo el station_code
+    validate_inputs(&station_code, "2026-05-28")?;
     let synop_base_dir = crate::infrastructure::storage::arca_base_dir(
         &app,
         crate::infrastructure::storage::SYNOP_MODULE,
@@ -186,6 +189,8 @@ pub async fn ms_load_station_month_with_corrections(
     year: u32,
     month: u32,
 ) -> Result<MonthlySummaryDoc, String> {
+    // ponytail: fecha dummy — year/month ya son u32; valida solo el station_code
+    validate_inputs(&station_code, "2026-05-28")?;
     let base = crate::infrastructure::storage::arca_base_dir(
         &app,
         crate::infrastructure::storage::SYNOP_MODULE,
