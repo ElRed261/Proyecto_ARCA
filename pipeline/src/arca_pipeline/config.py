@@ -20,9 +20,9 @@ class Settings(BaseSettings):
 
     google_credentials_path: str = ""
     drive_folder_id: str = ""
+    source_dir: str = ""
     database_url: str = "postgresql+psycopg2://arca:arca@localhost:5432/arca"
     run_interval_hours: int = 6
-    telegram_bot_token: str = ""
 
 
 settings = Settings()

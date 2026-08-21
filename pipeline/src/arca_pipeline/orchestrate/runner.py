@@ -1,8 +1,8 @@
 """Top-level orchestration flow.
 
 What it does: runs one full pipeline pass in order:
-    poll Drive -> download new files -> transform -> validate -> load silver
-    -> build gold KPIs -> notify.
+    poll source (local tree or Drive) -> download new files -> transform
+    -> validate -> load silver -> build gold KPIs.
 What it produces: a run-status dict used for observability (last_run.json).
 What it consumes: every pipeline layer above plus config.
 What it must NOT import: any UI/desktop code.
@@ -63,7 +63,7 @@ except Exception:  # noqa: BLE001  # pragma: no cover # ponytail: fallback when 
 
     settings = _DummySettings()  # type: ignore
 
-from arca_pipeline.ingest import control, drive
+from arca_pipeline.ingest import control, drive, local_source
 from arca_pipeline.load.gold import build_monthly_kpis
 from arca_pipeline.load.silver import upsert_observations
 from arca_pipeline.transform.excel_to_json import parse_excel
@@ -183,7 +183,19 @@ def _run_pipeline_impl(
             logger.info("no drive service injected and no credentials — listing will be skipped if not mocked")
 
     files: list[dict] = []
-    if svc is not None and folder_id:
+    # local source mode: ingest from a filesystem tree, no Drive connection
+    source_root = Path(settings.source_dir) if settings.source_dir else None
+    if source_root is not None:
+        if not source_root.is_dir():
+            logger.warning("source_dir %s is not a directory — no files to ingest", source_root)
+        else:
+            try:
+                files = local_source.list_new_files(source_root, known)
+                logger.info("listed %s files from local source %s", len(files), source_root)
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("local list_new_files failed: %s", exc)
+                files = []
+    elif svc is not None and folder_id:
         try:
             files = drive.list_new_files(svc, folder_id, known)
             logger.info("listed %s files from Drive folder %s", len(files), folder_id)
@@ -231,7 +243,10 @@ def _run_pipeline_impl(
 
         # download with retry
         try:
-            dest: Path = _retry_call(drive.download_atomic, svc, file_id, raw_p)
+            if source_root is not None:
+                dest: Path = _retry_call(local_source.download_atomic, source_root, file_id, raw_p)
+            else:
+                dest: Path = _retry_call(drive.download_atomic, svc, file_id, raw_p)
         except Exception as exc:  # noqa: BLE001
             logger.warning("download failed for %s (%s): %s", name, file_id, exc)
             files_rejected += 1
