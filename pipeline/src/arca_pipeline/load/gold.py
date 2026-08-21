@@ -23,7 +23,8 @@ from sqlalchemy import (
     func,
     select,
 )
-from sqlalchemy.dialects.sqlite import insert
+from sqlalchemy.dialects.postgresql import insert as postgresql_insert
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.engine import Engine
 
 from arca_pipeline.load.silver import silver_observations
@@ -83,6 +84,9 @@ def build_monthly_kpis(engine: Engine, station_code: str, year: int, month: int)
             "days_with_data": int(row.days_with_data or 0),
             "created_at": datetime.now(UTC).isoformat(),
         }
+        # ponytail: dialect-aware upsert — default deployment is postgres, tests use sqlite;
+        # both dialect inserts expose identical on_conflict_do_update API
+        insert = sqlite_insert if engine.dialect.name == "sqlite" else postgresql_insert
         stmt = insert(gold_kpis_mensuales).values(values)
         stmt = stmt.on_conflict_do_update(
             index_elements=["station_code", "year", "month"],

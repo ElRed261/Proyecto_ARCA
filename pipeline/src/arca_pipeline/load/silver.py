@@ -18,7 +18,8 @@ UPSERT contract (table defined in migrations/, same unique constraint):
 
 import pandas as pd
 from sqlalchemy import Column, Float, MetaData, PrimaryKeyConstraint, Table, Text
-from sqlalchemy.dialects.sqlite import insert
+from sqlalchemy.dialects.postgresql import insert as postgresql_insert
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.engine import Engine
 
 KEY_COLUMNS = ("station_code", "fecha", "hora", "source_sha256")
@@ -73,6 +74,9 @@ def upsert_observations(engine: Engine, df: pd.DataFrame) -> int:
         return 0
     payload = [c.name for c in silver_observations.columns if c.name not in KEY_COLUMNS]
     records = df.where(pd.notna(df), None).to_dict("records")
+    # ponytail: dialect-aware upsert — default deployment is postgres, tests use sqlite;
+    # both dialect inserts expose identical on_conflict_do_update API
+    insert = sqlite_insert if engine.dialect.name == "sqlite" else postgresql_insert
     stmt = insert(silver_observations).values(records)
     stmt = stmt.on_conflict_do_update(
         index_elements=list(KEY_COLUMNS),
