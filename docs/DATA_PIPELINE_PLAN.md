@@ -5,7 +5,7 @@
 > de ingeniería de datos (Medallion Architecture, Airflow Best Practices,
 > data quality y modelado dimensional) y define el plan de ejecución.
 
-> **Estado al 2026-08-19 — rama `arca-pipeline`**: pipeline implementado en `pipeline/` (ver §3). 35 tests aprobados, `ruff check` sin incidencias, venv en `/tmp/opencode/pipeline-venv`. Fases 0–6 completadas (ver §4). API consultable con 5 endpoints (ver §2).
+> **Estado al 2026-08-21 — rama `arca-pipeline`**: pipeline implementado en `pipeline/` (ver §3). Suite Python verde (30 tests) tras remediación del Judgment Day; `ruff check` sin incidencias; backend Rust 21 tests verdes (cargo check/test/clippy). Fases 0–7 completadas (ver §4). API consultable con 5 endpoints (ver §2).
 
 ---
 
@@ -127,10 +127,10 @@ Verificación: `ls pipeline/src/arca_pipeline/api/` existe y contiene `main.py`.
 | **4. Carga (warehouse)** | ✅ completada | PostgreSQL + Alembic `0001` (stations, silver_observations, gold_kpis_mensuales); UPSERT `(station_code, fecha, hora, source_sha256)` + gold | SELECT de control; **rerun no duplica**; `test_load.py` | Medallion + idempotencia por contenido (G1, G3, G4) |
 | **5. Orquestación** | ✅ parcial (MVP) | Prefect con fallback sin dependencia (`orchestrate/runner.py`): poll→transform→validate→load; retries con backoff exponencial, `last_run.json` (`data/state/`), alerta por umbral | Corrida automática; fallo de red reintenta (3 intentos); estado visible; `test_orchestrate.py` | Observabilidad (G5, G8) |
 | **6. Consulta/UI** | ✅ completada | FastAPI (`api/main.py`) en localhost + endpoints `/health`, `/state`, `/stations/{code}/observations`, `/stations/{code}/kpis`, `/rejected`; reverse proxy con auth pendiente | Consulta por estación/fecha/variable responde; `test_api.py` | Warehouse consultable sin exponer a internet |
-| **7. Tests + docs** | 🔄 en curso | Unit/integration con fixtures reales + test de idempotencia en CI; README de arquitectura | `pytest` 35 passed; rerun sin duplicados; docs de cada capa (este plan + `pipeline/README.md`) | G6 + documentación de portafolio |
+| **7. Tests + docs** | ✅ completada | Unit/integration con fixtures reales + test de idempotencia en CI; README de arquitectura con evidencias (formato `last_run.json` + verificación de rerun sin duplicados) | `pytest` verde; rerun sin duplicados (`test_load.py::test_upsert_idempotent_rerun`); CI triple: `.github/workflows/ci.yml` (frontend+cargo) y `pipeline.yml` (ruff+pytest); docs en este plan + `pipeline/README.md` | G6 + documentación de portafolio |
 
 > **Leyenda**: ✅ completada y verificada en `pipeline/tests` · 🔄 parcial / en curso.
-> **Evidencia 2026-08-19**: `35 passed, 4 warnings` · `ruff check` All checks passed · venv `/tmp/opencode/pipeline-venv` · rama `arca-pipeline`.
+> **Evidencia 2026-08-21**: suite Python verde tras remediación JD (9 hallazgos corregidos: dialect-aware upsert, reintento de archivos fallidos, FK por conexión, path traversal, CSPRNG tokens, resolución determinista de estaciones, guard de fecha, hora CLI 24, fail-loud engine, wrappers muertos eliminados) · `ruff check` limpio · rama `arca-pipeline`.
 
 ---
 

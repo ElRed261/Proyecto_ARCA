@@ -45,7 +45,7 @@ docker compose -f docker/docker-compose.yml up -d     # Postgres local
 cp .env.template .env                                # completar credenciales
 uv venv && uv pip install -e ".[dev]"                # o: python -m venv .venv && pip install -e ".[dev]"
 alembic upgrade head                                 # aplicar migraciones (requiere alembic.ini)
-python -m arca_pipeline.orchestrate.runner           # una corrida del pipeline (stub por ahora)
+python -m arca_pipeline.orchestrate.runner           # una corrida del pipeline
 ```
 
 ## Cómo testear
@@ -65,3 +65,32 @@ ruff check .
 - **Secrets**: todo en variables de entorno / `.env` (`.env` no se versiona). Nunca en código.
 - **Migraciones versionadas**: los cambios de schema pasan por Alembic.
 - **Observabilidad**: cada corrida escribe `last_run.json` (archivos, rechazados, duración).
+
+## Evidencia
+
+**Estado de una corrida** — formato de `data/state/last_run.json`:
+
+```json
+{
+  "started_at": "2026-08-21T13:00:02+00:00",
+  "finished_at": "2026-08-21T13:00:44+00:00",
+  "duration_s": 41.7,
+  "files_ingested": 3,
+  "files_rejected": 1,
+  "rows_loaded": 288,
+  "rejected": 1
+}
+```
+
+**Idempotencia (rerun sin duplicados)** — verificado por `tests/test_load.py::test_upsert_idempotent_rerun`
+y reproducible contra una base real:
+
+```bash
+python -m arca_pipeline.orchestrate.runner          # corrida 1: ingesta y carga
+python -m arca_pipeline.orchestrate.runner          # corrida 2: files_ingested=0, rows_loaded=0
+psql ... -c "SELECT count(*), count(DISTINCT (station_code, fecha, hora, source_sha256))
+             FROM silver_observations;"             # counts iguales => sin duplicados
+```
+
+La segunda corrida reporta `files_ingested: 0` porque el checksum de cada archivo ya está
+registrado; un archivo cuyo contenido cambie (nuevo sha256) sí se reprocesa.
