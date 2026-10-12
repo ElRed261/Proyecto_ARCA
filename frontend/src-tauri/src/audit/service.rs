@@ -1,5 +1,7 @@
 use crate::infrastructure::error::AppError;
-use crate::infrastructure::storage::{offline_base_dir, atomic_write, station_dir, SYNOP_MODULE};
+use crate::infrastructure::storage::{
+    atomic_write, normalize_station_code, offline_base_dir, station_dir, SYNOP_MODULE,
+};
 use crate::json_handler::synoptic::get_observation_core;
 use crate::ports::AuditRepository;
 use crate::audit::{AuditObservationData, ErrorMark};
@@ -218,6 +220,8 @@ pub fn export_corrected_json(
 ) -> Result<String, AppError> {
     crate::json_handler::utils::validate_inputs(station_id, fecha)
         .map_err(AppError::Validation)?;
+    // Normalización FS: la DB conserva su código canónico, las rutas siempre minúsculas
+    let station_fs = normalize_station_code(station_id);
 
     let parts: Vec<&str> = fecha.split('-').collect();
     if parts.len() != 3 {
@@ -229,8 +233,8 @@ pub fn export_corrected_json(
     let filename_date = format!("{}{}{}", day, month, year);
 
     let base_dir = offline_base_dir(app_handle, SYNOP_MODULE).map_err(AppError::Internal)?;
-    let dir_path = station_dir(&base_dir, station_id, year, month);
-    let filename = format!("{}{}.json", station_id, filename_date);
+    let dir_path = station_dir(&base_dir, &station_fs, year, month);
+    let filename = format!("{}{}.json", station_fs, filename_date);
     let original_filepath = dir_path.join(&filename);
 
     if !original_filepath.exists() {

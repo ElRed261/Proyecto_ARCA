@@ -1,5 +1,5 @@
 use crate::infrastructure::error::AppError;
-use crate::infrastructure::storage::{offline_base_dir, SYNOP_MODULE};
+use crate::infrastructure::storage::{normalize_station_code, offline_base_dir, SYNOP_MODULE};
 use crate::ports::AuditRepository;
 use crate::audit::{StationInfo, DayInfo, ErrorMark, Correction, AuditObservationData, ErrorReportRow, PersonSummaryRow};
 use crate::audit::service;
@@ -34,7 +34,7 @@ pub fn audit_browse_stations(pool: tauri::State<'_, crate::db::DbPool>, app_hand
 #[tauri::command]
 pub fn audit_browse_years(app_handle: AppHandle, station: String) -> Result<Vec<String>, AppError> {
     let mut station_dir = offline_base_dir(&app_handle, SYNOP_MODULE).map_err(AppError::Internal)?;
-    station_dir.push(&station);
+    station_dir.push(normalize_station_code(&station));
 
     if !station_dir.exists() {
         return Ok(Vec::new());
@@ -62,7 +62,7 @@ pub fn audit_browse_months(
     year: String,
 ) -> Result<Vec<String>, AppError> {
     let mut year_dir = offline_base_dir(&app_handle, SYNOP_MODULE).map_err(AppError::Internal)?;
-    year_dir.push(&station);
+    year_dir.push(normalize_station_code(&station));
     year_dir.push(&year);
 
     if !year_dir.exists() {
@@ -112,7 +112,7 @@ pub fn audit_browse_days(
     month: String,
 ) -> Result<Vec<DayInfo>, AppError> {
     let mut month_dir = offline_base_dir(&app_handle, SYNOP_MODULE).map_err(AppError::Internal)?;
-    month_dir.push(&station);
+    month_dir.push(normalize_station_code(&station));
     month_dir.push(&year);
     month_dir.push(&month);
 

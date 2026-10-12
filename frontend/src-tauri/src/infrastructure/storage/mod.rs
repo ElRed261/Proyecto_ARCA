@@ -12,9 +12,16 @@ use tauri::{AppHandle, Manager};
 /// via `SYNOP_MODULE` to avoid stringly-typed drift (`"synoptic"`, `"Resumen_Mensual_Synop"`).
 pub const SYNOP_MODULE: &str = "synop";
 
+/// P1.5 — Normalización de código de estación: todo lo que toca folder/archivo
+/// pasa por aquí (los FS de Windows/macOS son case-insensitive; sin esto, un
+/// código guardado como 'MiEstacion' colisionaría con 'miestacion').
+pub fn normalize_station_code(code: &str) -> String {
+    code.trim().to_ascii_lowercase()
+}
+
 /// Pure path join: base/{station}/{year}/{month} — no I/O.
 pub fn station_dir(base: &Path, station: &str, year: &str, month: &str) -> PathBuf {
-    base.join(station).join(year).join(month)
+    base.join(normalize_station_code(station)).join(year).join(month)
 }
 
 /// Ensure base/{year}/{month} exists.
@@ -33,7 +40,7 @@ pub fn ensure_station_dir(
     year: &str,
     month: &str,
 ) -> Result<PathBuf, String> {
-    let path = station_dir(base, station_code, year, month);
+    let path = station_dir(base, &normalize_station_code(station_code), year, month);
     fs::create_dir_all(&path).map_err(|e| format!("Error creando directorios: {}", e))?;
     Ok(path)
 }

@@ -5,7 +5,8 @@ use std::path::Path;
 use tauri::AppHandle;
 
 use crate::infrastructure::storage::{
-    atomic_write, create_backup, ensure_arca_dirs_with_station, offline_base_dir, SYNOP_MODULE,
+    atomic_write, create_backup, ensure_arca_dirs_with_station, normalize_station_code,
+    offline_base_dir, SYNOP_MODULE,
 };
 use crate::json_handler::utils::{format_date_for_filename, parse_date_parts, validate_inputs};
 use crate::modules::synoptic::calculations::{
@@ -25,7 +26,7 @@ pub fn save_observation_json(
     cli5074: Option<Value>,
 ) -> Result<HashMap<String, String>, String> {
     let base_dir = offline_base_dir(&app_handle, SYNOP_MODULE).map_err(|e| e.to_string())?;
-    let station = station_code.clone();
+    let station = normalize_station_code(&station_code);
     save_observation_json_core(
         &base_dir,
         station_code,
@@ -53,6 +54,7 @@ pub fn save_observation_json_core(
     backup: impl FnOnce(&Path) -> Option<String>,
 ) -> Result<HashMap<String, String>, String> {
     validate_inputs(&station_code, &fecha)?;
+    let station_code = normalize_station_code(&station_code);
     let (year, month) = parse_date_parts(&fecha)?;
 
     let dir_path = ensure_arca_dirs_with_station(base_dir, &station_code, &year, &month)?;
@@ -199,6 +201,7 @@ pub fn get_observation_core(
     fecha: String,
 ) -> Result<Value, String> {
     validate_inputs(&station_code, &fecha)?;
+    let station_code = normalize_station_code(&station_code);
     let (year, month) = parse_date_parts(&fecha)?;
     let fecha_formatted = format_date_for_filename(&fecha);
     let filename = format!("{}{}.json", station_code, fecha_formatted);
@@ -386,7 +389,7 @@ pub fn get_station_date_range(
 ) -> Result<HashMap<String, Value>, String> {
     validate_inputs(&station_code, "2026-05-28")?;
     let base_dir = offline_base_dir(&app_handle, SYNOP_MODULE).map_err(|e| e.to_string())?;
-    let station_dir = base_dir.join(&station_code);
+    let station_dir = base_dir.join(normalize_station_code(&station_code));
 
     let mut dates = Vec::new();
     if station_dir.exists() {

@@ -1,5 +1,8 @@
 use crate::infrastructure::error::AppError;
-use crate::infrastructure::storage::{atomic_write, ensure_arca_dirs_with_station, offline_base_dir, SYNOP_MODULE};
+use crate::infrastructure::storage::{
+    atomic_write, ensure_arca_dirs_with_station, normalize_station_code, offline_base_dir,
+    SYNOP_MODULE,
+};
 use crate::json_handler::utils::{format_date_for_filename, validate_inputs};
 use crate::modules::synoptic::calculations::{calc_car, calc_dif, calc_tiempo_presente, format_dif, get_visibilidad_from_irixhv};
 use serde_json::Value;
@@ -16,6 +19,7 @@ fn save_cli_generic(
     data: Value,
 ) -> Result<String, AppError> {
     validate_inputs(station_id, date).map_err(AppError::Validation)?;
+    let station_id = normalize_station_code(station_id);
     let parts: Vec<&str> = date.split('-').collect();
     if parts.len() != 3 {
         return Err(AppError::Validation("La fecha debe tener formato YYYY-MM-DD".to_string()));
@@ -23,7 +27,7 @@ fn save_cli_generic(
     let year = parts[0];
     let month = parts[1];
 
-    let target_dir = ensure_arca_dirs_with_station(base_dir, station_id, year, month)
+    let target_dir = ensure_arca_dirs_with_station(base_dir, &station_id, year, month)
         .map_err(|e| AppError::Io(std::io::Error::other(e)))?;
 
     let fecha_formatted = format_date_for_filename(date);
@@ -65,6 +69,7 @@ fn load_cli_generic(
     cli_key: &str,
 ) -> Result<Value, AppError> {
     validate_inputs(station_id, date).map_err(AppError::Validation)?;
+    let station_id = normalize_station_code(station_id);
     let parts: Vec<&str> = date.split('-').collect();
     if parts.len() != 3 {
         return Err(AppError::Validation("Formato de fecha inválido".to_string()));
@@ -72,7 +77,10 @@ fn load_cli_generic(
     let year = parts[0];
     let month = parts[1];
 
-    let file_path = base_dir.join(station_id).join(year).join(month)
+    let file_path = base_dir
+        .join(&station_id)
+        .join(year)
+        .join(month)
         .join(format!("{}{}.json", station_id, format_date_for_filename(date)));
 
     if !file_path.exists() {
