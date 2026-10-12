@@ -1,4 +1,3 @@
-/* global vi, describe, it, expect */
 import { describe, it, expect } from 'vitest';
 import {
     bindDraft,

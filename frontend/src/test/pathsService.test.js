@@ -1,4 +1,3 @@
-/* global vi, describe, test, expect, beforeEach */
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 
 // mock del módulo core de Tauri ANTES de importar el service

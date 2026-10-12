@@ -1,4 +1,3 @@
-/* global vi, describe, test, expect, beforeEach */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';

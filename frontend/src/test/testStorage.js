@@ -1,4 +1,3 @@
-/* global describe */
 
 /**
  * Asegura un localStorage operable en cualquier entorno de test (jsdom o node).
