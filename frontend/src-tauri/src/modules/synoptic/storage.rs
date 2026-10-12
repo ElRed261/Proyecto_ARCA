@@ -53,7 +53,7 @@ pub fn save_observation_json_core(
     backup: impl FnOnce(&Path) -> Option<String>,
 ) -> Result<HashMap<String, String>, String> {
     validate_inputs(&station_code, &fecha)?;
-    let (year, month) = parse_date_parts(&fecha);
+    let (year, month) = parse_date_parts(&fecha)?;
 
     let dir_path = ensure_arca_dirs_with_station(base_dir, &station_code, &year, &month)?;
 
@@ -199,7 +199,7 @@ pub fn get_observation_core(
     fecha: String,
 ) -> Result<Value, String> {
     validate_inputs(&station_code, &fecha)?;
-    let (year, month) = parse_date_parts(&fecha);
+    let (year, month) = parse_date_parts(&fecha)?;
     let fecha_formatted = format_date_for_filename(&fecha);
     let filename = format!("{}{}.json", station_code, fecha_formatted);
 
