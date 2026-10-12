@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-10-12
+
+### Added
+- Configurable save paths (P1): central `PathProfile` (offline root / online Drive Desktop folder / backups age / summaries dir) persisted in `app_config`, admin-gated `set_path_config`, real `probe_path` writes test; resolution chain `ARCA_BASE_DIR > profile > Documents/ARCA` wired into every reader and writer
+- Dual-destination sync engine (P3): offline-first saves copy to the online folder when available; failures enqueue into `sync_pending` with honest backoff (`2^attempts` minutes, capped 60); manual force retry (`Reintentar ahora`); `get_sync_status` aggregate; sha256 dedupe avoids re-sending identical content; success marks stale pending rows synced
+- Robust save pipeline (P2): per-file exclusive locks (stale-lock theft), fsync atomic writes (temp + sync_all + rename), `schema_version: 1` injected at every document root, structured save errors `{stage, path, detail}`, backup retention with sha256 dedupe + age pruning + byte cap
+- Admin Settings page replacing the maintenance stub: path cards with directory picker and inline probe errors, sync panel (pending/synced counts, last 5 errors, force retry) for every authenticated user, one-shot idempotent legacy month-dir migration command
+- Observer safeguards: synoptic draft autosaved on every change bound to (station, fecha) with metadata validation, `beforeunload` guard, structured save errors surfaced in toasts, day change keeps the active hour and no longer shows a native `window.confirm`
+- SYNOP group validation (server-side): meteo_*/extra_* fields capped at 5 chars, digits and `/` only
+- One-command dev launcher `./run.sh` with environment prerequisite checks
+
+### Changed
+- `audit_browse_months` is a pure read now (legacy Spanish month dirs shown numerically, never renamed during listing)
+- Station codes normalized to lowercase on every filesystem key (Windows/macOS case-collision safety)
+- Invalid dates hard-fail in save/read paths (no more silent 2025/12 fallback); calendar-true validation incl. leap February
+- Windows Documents fallback fixed (data no longer escapes to `C:\Users\X\ARCA`); `Resumen_Mensual` under the unified resolution chain
+- README rewritten without emojis, with committed colored Lucide SVG icons; documented sync/pipeline/settings
+
+### Security
+- Same-second backup-name collision fixed (backups used to silently overwrite each other; now millisecond timestamps + duplicate-path guard)
+
 ## [2.1.0] - 2026-08-21
 
 ### Added
