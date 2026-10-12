@@ -73,6 +73,13 @@ pub fn offline_base_dir(app_handle: &AppHandle, modulo: &str) -> Result<PathBuf,
     ))
 }
 
+/// root base (sin capa {modulo}) — usada por el glue de sync dual.
+pub fn default_documents_root_public(app_handle: &AppHandle) -> PathBuf {
+    // Documents/ARCA — el nivel base sobre el que vive {modulo};
+    // default_documents_root ya lo compone.
+    default_documents_root(app_handle)
+}
+
 /// default documents root con los mismos fallbacks históricos de `arca_base_dir`.
 fn default_documents_root(app_handle: &AppHandle) -> PathBuf {
     use tauri::Manager;

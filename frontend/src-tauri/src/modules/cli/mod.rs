@@ -108,7 +108,20 @@ pub fn save_cli3074_json(
 ) -> Result<String, AppError> {
     let base_dir = offline_base_dir(&app_handle, SYNOP_MODULE).map_err(|e| e.to_string())?;
     let path = save_cli_generic(&base_dir, &station_id, &date, "cli3074", data)?;
-    Ok(format!("Guardado en: {}", path))
+    let emit = crate::infrastructure::storage::sync_queue::emit_dual_after_save(
+        &app_handle,
+        SYNOP_MODULE,
+        &station_id,
+        &date,
+    );
+    let online_state = if emit.saved_online {
+        "enviado".to_string()
+    } else if !emit.configured {
+        "sin raíz online configurada".to_string()
+    } else {
+        format!("pendiente de sincronización: {}", emit.error.unwrap_or_default())
+    };
+    Ok(format!("Guardado en: {} · online: {}", path, online_state))
 }
 
 #[tauri::command]

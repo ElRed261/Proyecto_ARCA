@@ -61,7 +61,9 @@ pub fn run() {
             app_config::set_app_config,
             app_config::get_assigned_station,
             infrastructure::storage::paths_config::get_path_config,
-            infrastructure::storage::paths_config::set_path_config
+            infrastructure::storage::paths_config::set_path_config,
+            infrastructure::storage::sync_queue::retry_pending_sync,
+            infrastructure::storage::sync_queue::get_sync_status
         ])
         .setup(|app| {
             let pool = db::init_db(app.handle())

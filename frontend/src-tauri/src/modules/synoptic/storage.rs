@@ -28,17 +28,32 @@ pub fn save_observation_json(
 ) -> Result<HashMap<String, String>, String> {
     let base_dir = offline_base_dir(&app_handle, SYNOP_MODULE).map_err(|e| e.to_string())?;
     let station = normalize_station_code(&station_code);
+    let app_handle_bk = app_handle.clone();
     save_observation_json_core(
         &base_dir,
-        station_code,
-        fecha,
+        station_code.clone(),
+        fecha.clone(),
         observations,
         observer_name,
         cli3074,
         cli4074,
         cli5074,
-        move |filepath| create_backup(filepath, &station, &app_handle),
+        move |filepath| create_backup(filepath, &station, &app_handle_bk),
     )
+    .map(|mut res| {
+        // P3: emisión dual posterior al save (offline ya OK, online best-effort)
+        let emit = crate::infrastructure::storage::sync_queue::emit_dual_after_save(
+            &app_handle,
+            SYNOP_MODULE,
+            &station_code,
+            &fecha,
+        );
+        res.insert("online_saved".to_string(), emit.saved_online.to_string());
+        if let Some(e) = emit.error {
+            res.insert("online_error".to_string(), e);
+        }
+        res
+    })
 }
 
 // pub para tests de integración

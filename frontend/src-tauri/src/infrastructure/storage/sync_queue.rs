@@ -246,3 +246,213 @@ fn emit_copy(source: &std::path::Path, target: &std::path::Path) -> Result<bool,
     .map_err(|e| format!("error escribiendo {:?}: {}", target, e))?;
     Ok(true)
 }
+
+/// P3.2 — resultado del emisión dual tras un save exitoso.
+#[derive(Debug, Serialize)]
+pub struct OnlineEmit {
+    pub configured: bool,
+    pub saved_online: bool,
+    pub error: Option<String>,
+}
+
+/// Núcleo testeable: si `online_root` está configurado, copia el archivo
+/// offline (que DEBE existir tras un save exitoso) a la raíz online. En
+/// fallo encola en `conn`. Sin online_root configurado → no-op honesto.
+#[allow(clippy::too_many_arguments)]
+pub fn emit_after_save_core(
+    conn: &Connection,
+    offline_root: Option<&std::path::Path>,
+    online_root: Option<&std::path::Path>,
+    module: &str,
+    station_code: &str,
+    year: &str,
+    month: &str,
+    filename: &str,
+) -> OnlineEmit {
+    let Some(online) = online_root else {
+        return OnlineEmit { configured: false, saved_online: false, error: None };
+    };
+    let offline_root = offline_root.unwrap_or_else(|| std::path::Path::new(""));
+    let relative_path = format!("{}/{}/{}/{}/{}", module, station_code, year, month, filename);
+    let source = offline_root.join(&relative_path);
+    let target = online.join(&relative_path);
+
+    match emit_copy(&source, &target) {
+        Ok(_wrote) => {
+            // éxito: cualquier fila pendiente de ESTE archivo queda sincronizada
+            let now_ms = chrono::Utc::now().timestamp_millis();
+            let _ = conn.execute(
+                "UPDATE sync_pending SET synced_at=CURRENT_TIMESTAMP, attempts=0, last_error=NULL,
+                 last_attempt_ms=? WHERE module=? AND station_code=? AND relative_path=? AND synced_at IS NULL",
+                params![now_ms, module, station_code, relative_path],
+            );
+            OnlineEmit { configured: true, saved_online: true, error: None }
+        }
+        Err(e) => {
+            let enqueued = enqueue_pending(
+                conn,
+                &SyncRow {
+                    module: module.to_string(),
+                    station_code: station_code.to_string(),
+                    relative_path: relative_path.clone(),
+                    source_path: source.to_string_lossy().to_string(),
+                },
+            );
+            OnlineEmit {
+                configured: true,
+                saved_online: false,
+                error: Some(match enqueued {
+                    Ok(()) => e,
+                    Err(qe) => format!("{} (además falló el enqueue: {})", e, qe),
+                }),
+            }
+        }
+    }
+}
+
+/// P3.2 — pegamento Tauri: resuelve roots (env > PathProfile > default con la
+/// MISMA cadena de P1.2, sin la capa {modulo}, que viaja en relative_path),
+/// y emite dual tras un save offline exitoso. Jamás bloquea el save.
+pub fn emit_dual_after_save(
+    app_handle: &tauri::AppHandle,
+    module: &str,
+    station_code: &str,
+    fecha: &str,
+) -> OnlineEmit {
+    use crate::db::get_db_path;
+
+    let db_path = get_db_path(app_handle);
+    let conn = match Connection::open(&db_path) {
+        Ok(c) => c,
+        Err(e) => {
+            return OnlineEmit {
+                configured: false,
+                saved_online: false,
+                error: Some(format!("sin acceso a la DB de sync: {}", e)),
+            };
+        }
+    };
+
+    // modo test / override env: sin dual (aislamiento de tests)
+    if std::env::var("ARCA_BASE_DIR").is_ok() {
+        return OnlineEmit { configured: false, saved_online: false, error: None };
+    }
+
+    let profile = crate::infrastructure::storage::paths_config::get_path_config_db(&conn)
+        .unwrap_or_default();
+
+    let default_base =
+        crate::infrastructure::storage::paths_config::default_documents_root_public(app_handle);
+    let offline_root = match &profile {
+        Some(p) if !p.offline_root.is_empty() => std::path::PathBuf::from(&p.offline_root),
+        _ => default_base,
+    };
+    let online_root: Option<std::path::PathBuf> = profile
+        .as_ref()
+        .and_then(|p| p.online_root.as_ref())
+        .filter(|s| !s.is_empty())
+        .map(std::path::PathBuf::from);
+
+    let station_norm = crate::infrastructure::storage::normalize_station_code(station_code);
+    let year_month = crate::json_handler::utils::parse_date_parts(fecha)
+        .map_err(|e| format!("fecha inválida para sync dual: {}", e));
+    let (year, month) = match year_month {
+        Ok(v) => v,
+        Err(e) => {
+            return OnlineEmit {
+                configured: online_root.is_some(),
+                saved_online: false,
+                error: Some(e),
+            };
+        }
+    };
+    let filename = format!(
+        "{}{}.json",
+        station_norm,
+        crate::json_handler::utils::format_date_for_filename(fecha)
+    );
+
+    emit_after_save_core(
+        &conn,
+        Some(offline_root.as_path()),
+        online_root.as_deref(),
+        module,
+        &station_norm,
+        &year,
+        &month,
+        &filename,
+    )
+}
+
+/// Comando: reintentar pendientes. admin/encargado. force=true = botón manual.
+#[tauri::command]
+pub fn retry_pending_sync(
+    app_handle: tauri::AppHandle,
+    store: tauri::State<'_, crate::modules::auth::SessionStore>,
+    token: String,
+    force: bool,
+) -> Result<SyncOutcome, String> {
+    crate::modules::auth::require_role(&store, &token, &["admin", "encargado"])
+        .map_err(|e| e.to_string())?;
+
+    let profile = paths_config_lookup(&app_handle)?;
+    let (offline_root, online_root) = match profile {
+        (Some(p), _) if !p.offline_root.is_empty() => (
+            Some(crate::infrastructure::storage::paths_config::offline_base_dir(
+                &app_handle,
+                "",
+            )?),
+            p.online_root
+                .as_ref()
+                .filter(|s| !s.is_empty())
+                .map(std::path::PathBuf::from),
+        ),
+        (None, docs) => (docs.map(base_of), None),
+        _ => (None, None),
+    };
+    let offline_root = offline_root.unwrap_or_else(|| std::path::PathBuf::from(""));
+
+    let conn = Connection::open(crate::db::get_db_path(&app_handle)).map_err(|e| e.to_string())?;
+    let Some(online) = online_root else {
+        return Ok(SyncOutcome { attempted: 0, uploaded: 0, marked_synced: 0, last_error: None });
+    };
+    retry_pending_sync_core(
+        &conn,
+        offline_root.to_string_lossy().as_ref(),
+        online.to_string_lossy().as_ref(),
+        force,
+    )
+}
+
+type ProfileDoc = (Option<crate::infrastructure::storage::paths_config::PathProfile>,
+                  Option<std::path::PathBuf>);
+
+fn paths_config_lookup(
+    app_handle: &tauri::AppHandle,
+) -> Result<ProfileDoc, String> {
+    let conn = Connection::open(crate::db::get_db_path(app_handle)).map_err(|e| e.to_string())?;
+    let profile = crate::infrastructure::storage::paths_config::get_path_config_db(&conn)
+        .unwrap_or_default();
+    let docs = if let Ok(env_base) = std::env::var("ARCA_BASE_DIR") {
+        Some(std::path::PathBuf::from(env_base))
+    } else {
+        Some(crate::infrastructure::storage::paths_config::default_documents_root_public(app_handle))
+    };
+    Ok((profile, docs))
+}
+
+fn base_of(p: std::path::PathBuf) -> std::path::PathBuf {
+    p
+}
+
+/// Comando: status del panel de sincronización. Cualquier usuario autenticado.
+#[tauri::command]
+pub fn get_sync_status(
+    app_handle: tauri::AppHandle,
+    store: tauri::State<'_, crate::modules::auth::SessionStore>,
+    token: String,
+) -> Result<SyncStatus, String> {
+    store.validate_session(&token).map_err(|e| e.to_string())?;
+    let conn = Connection::open(crate::db::get_db_path(&app_handle)).map_err(|e| e.to_string())?;
+    get_sync_status_core(&conn)
+}
