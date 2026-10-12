@@ -282,3 +282,46 @@ pub fn set_path_config(
     let conn = Connection::open(get_db_path(&app_handle)).map_err(|e| e.to_string())?;
     set_path_config_checked(&store, &token, &conn, &profile)
 }
+
+/// P4.1 — probe real de una ruta destino: comprueba que sea dir (o lo cree),
+/// puede escribir un archivo de prueba, leerlo y borrarlo. Sin esto, el admin
+/// podría guardar una ruta que la app nunca va a poder usar.
+///
+/// Comando admin: prueba real de una ruta propuesta en la UI.
+#[command]
+pub fn probe_path(
+    store: tauri::State<'_, SessionStore>,
+    token: String,
+    path: String,
+) -> Result<serde_json::Value, String> {
+    require_role(&store, &token, &["admin"]).map_err(|e| e.to_string())?;
+    let probe = std::path::PathBuf::from(&path);
+    match probe_path_path(probe.as_path()) {
+        Ok(()) => Ok(serde_json::json!({ "writable": true, "error": null })),
+        Err(e) => Ok(serde_json::json!({ "writable": false, "error": e })),
+    }
+}
+
+pub fn probe_path_path(path: &std::path::Path) -> Result<(), String> {
+    use std::fs;
+
+    if path.file_name().is_none() {
+        return Err("ruta inválida: debe apuntar a un directorio (no a la raíz del sistema)".to_string());
+    }
+    fs::create_dir_all(path)
+        .map_err(|e| format!("no se pudo crear el directorio '{}': {}", path.display(), e))?;
+    if !path.is_dir() {
+        return Err(format!("'{}' existe pero no es un directorio", path.display()));
+    }
+
+    // escribir, leer, borrar
+    let probe_file = path.join(format!(".arca_probe_{}", std::process::id()));
+    fs::write(&probe_file, "ok").map_err(|e| format!("no se puede escribir en '{}': {}", path.display(), e))?;
+    let content = fs::read_to_string(&probe_file)
+        .map_err(|e| format!("no se puede leer la prueba en '{}': {}", path.display(), e))?;
+    let _ = fs::remove_file(&probe_file);
+    if content != "ok" {
+        return Err(format!("probe raro en '{}': contenido inesperado", path.display()));
+    }
+    Ok(())
+}

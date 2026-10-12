@@ -33,7 +33,6 @@ pub fn run() {
             audit::commands::audit_browse_stations,
             audit::commands::audit_browse_years,
             audit::commands::audit_browse_months,
-            audit::commands::audit_migrate_legacy_months,
             audit::commands::audit_browse_days,
             audit::commands::audit_load_observation,
             audit::commands::audit_mark_error,
@@ -62,8 +61,10 @@ pub fn run() {
             app_config::get_assigned_station,
             infrastructure::storage::paths_config::get_path_config,
             infrastructure::storage::paths_config::set_path_config,
+            infrastructure::storage::paths_config::probe_path,
             infrastructure::storage::sync_queue::retry_pending_sync,
-            infrastructure::storage::sync_queue::get_sync_status
+            infrastructure::storage::sync_queue::get_sync_status,
+            audit::commands::audit_migrate_legacy_months
         ])
         .setup(|app| {
             let pool = db::init_db(app.handle())

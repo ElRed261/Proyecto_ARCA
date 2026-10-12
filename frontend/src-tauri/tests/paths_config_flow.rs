@@ -1,8 +1,8 @@
 mod helpers;
 
 use app_lib::infrastructure::storage::paths_config::{
-    get_path_config_db, resolve_offline_root, set_path_config_checked, validate_profile,
-    PathProfile,
+    get_path_config_db, probe_path_path, resolve_offline_root, set_path_config_checked,
+    validate_profile, PathProfile,
 };
 use helpers::{create_test_pool, TestUser};
 
@@ -180,4 +180,35 @@ fn validate_profile_rejecta_ruta_relativa() {
         "el error debe explicar que se requiere ruta absoluta, fue: {}",
         err
     );
+}
+
+// ---- P4: probe_path — prueba real de escritura/borrado en la ruta ----
+
+#[test]
+fn probe_path_ok_en_carpeta_de_temp() {
+    let dir = std::env::temp_dir().join(format!("arca_probe_ok_{}", std::process::id()));
+    std::fs::create_dir_all(&dir).expect("mkdirs");
+
+    probe_path_path(&dir).expect("una carpeta de temp debe ser escribible");
+}
+
+#[test]
+fn probe_path_falla_sobre_un_archivo() {
+    let root = std::env::temp_dir().join(format!("arca_probe_bad_{}", std::process::id()));
+    std::fs::create_dir_all(&root).expect("mkdirs");
+    let blocker = root.join("ocupado");
+    std::fs::write(&blocker, "x").expect("blocker");
+
+    let err = probe_path_path(&blocker).expect_err("un archivo no es un dir escribible");
+    assert!(err.contains("directorio") || err.contains("escrib"), "fue: {}", err);
+}
+
+#[test]
+fn probe_path_en_path_raro_letras() {
+    // un dir dentro de otro que no existe todavía debe poder probarse (crea)
+    let deep = std::env::temp_dir()
+        .join(format!("arca_probe_deep_{}", std::process::id()))
+        .join("a")
+        .join("b");
+    probe_path_path(&deep).expect("probe debe poder crear dirs anidados");
 }
