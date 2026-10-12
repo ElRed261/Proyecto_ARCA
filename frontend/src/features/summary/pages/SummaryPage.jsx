@@ -374,13 +374,7 @@ const SummaryPage = () => {
             {/* Header section */}
             <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center gap-4">
-                    <button
-                        onClick={() => navigate('/dashboard')}
-                        className="w-10 h-10 rounded-full bg-white/80 border border-slate-200/80 backdrop-blur-sm shadow-sm transition-all hover:bg-purple-50/80 hover:scale-110 flex items-center justify-center text-purple-600 focus:outline-none focus:ring-0 outline-none cursor-pointer"
-                        title="Volver al Dashboard"
-                    >
-                        <ArrowLeft className="w-5 h-5" />
-                    </button>
+                    <BackButton to="/dashboard" label="Volver al Dashboard" accent="#a855f7" />
                     <div>
                         <h1 className="text-3xl font-bold tracking-tight text-slate-900">Resumen Mensual SYNOP</h1>
                         <p className="text-slate-500 mt-1">Generación y visualización de resúmenes climáticos</p>

@@ -836,7 +836,7 @@ newObservations[hora] = {
     <div className={`min-h-screen p-6 transition-colors duration-1000 bg-gradient-to-br ${currentTheme.bgGradient}`}>
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-6">
-          <BackButton to="/dashboard" label="Volver al Dashboard" />
+          <BackButton accent="#3b82f6" to="/dashboard" label="Volver al Dashboard" />
         </div>
 
         <h1 className={`text-2xl font-bold mb-6 transition-colors duration-500 ${currentTheme.textColor}`}>

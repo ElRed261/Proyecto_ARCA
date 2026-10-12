@@ -253,14 +253,14 @@ const canEdit = hasRole(userRoles, ['admin']);
 
     return (
         <div className="min-h-screen bg-gray-50">
-            <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+            <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center gap-4">
+                <BackButton accent="#0d9488" to="/dashboard" label="Volver al Panel" />
                 <div>
                     <h1 className="text-lg font-bold text-gray-900">Configuración</h1>
                     <p className="text-xs text-gray-500">
                         Rutas de guardado de la instancia y estado de sincronización
                     </p>
                 </div>
-                <BackButton to="/dashboard" label="Volver al Panel" />
             </header>
 
             <main className="max-w-3xl mx-auto px-4 py-6 space-y-8">

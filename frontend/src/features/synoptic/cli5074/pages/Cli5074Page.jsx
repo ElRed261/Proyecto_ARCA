@@ -343,7 +343,7 @@ const Cli5074Page = () => {
 
       {/* Header Info */}
       <div className="px-6 py-4 flex items-center gap-4 z-10 w-full max-w-full">
-        <BackButton
+        <BackButton accent="#f43f5e"
                 onBack={() => navigate('/synoptic', { state: { stationId: selectedStation, date } })}
                 label="Volver a Observaciones"
             />

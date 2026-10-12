@@ -133,7 +133,7 @@ const AuditReportPage = () => {
             {/* Cabecera — Ocultar en Impresión */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 print:hidden">
                 <div className="flex items-center gap-4">
-                    <BackButton to="/audit" label="Volver a Auditoría" />
+                    <BackButton accent="#f97316" to="/audit" label="Volver a Auditoría" />
                     <div>
                         <h1 className="text-2xl font-black text-slate-900">
                             Reporte de Inconsistencias

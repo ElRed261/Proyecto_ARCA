@@ -10,28 +10,36 @@ vi.mock('react-router-dom', async () => {
 
 import BackButton from '../shared/components/BackButton';
 
-describe('BackButton — botón de volver consistente (icono + texto + a11y)', () => {
-    it('siempre muestra el texto "Volver" junto a la flecha (no flecha sola)', () => {
-        render(
-            <MemoryRouter>
-                <BackButton to="/dashboard" />
-            </MemoryRouter>
-        );
-        expect(screen.getByText(/volver/i)).toBeTruthy();
-    });
-
-    it('tiene aria-label accesible y target táctil de 44px', () => {
+describe('BackButton — icono solo, color del módulo, esquina superior izquierda', () => {
+    it('NO renderiza texto: solo icono de flecha con aria-label', () => {
         render(
             <MemoryRouter>
                 <BackButton to="/dashboard" label="Volver al Panel" />
             </MemoryRouter>
         );
+        expect(screen.queryByText(/volver/i)).toBeNull();
         const btn = screen.getByRole('button');
         expect(btn.getAttribute('aria-label')).toBe('Volver al Panel');
-        const style = getComputedStyle(btn) || btn.currentStyle;
-        // min-height 44px vía clase tailwind (min-h-[44px])
-        expect(btn.className).toContain('min-h-[44px]');
-        void style;
+    });
+
+    it('usa el color principal del módulo (accent)', () => {
+        render(
+            <MemoryRouter>
+                <BackButton to="/dashboard" accent="#f97316" />
+            </MemoryRouter>
+        );
+        const btn = screen.getByRole('button');
+        expect(btn.style.color).toBe('rgb(249, 115, 22)');
+        expect(btn.style.borderColor).toContain('249, 115, 22');
+    });
+
+    it('target táctil de 44px', () => {
+        render(
+            <MemoryRouter>
+                <BackButton to="/dashboard" />
+            </MemoryRouter>
+        );
+        expect(screen.getByRole('button').className).toContain('min-h-[44px]');
     });
 
     it('navega a la ruta `to` al hacer click', () => {

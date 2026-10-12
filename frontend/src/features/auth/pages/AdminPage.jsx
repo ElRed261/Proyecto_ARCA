@@ -121,7 +121,8 @@ const AdminPage = ({ onBack, addLog }) => {
         <div className="min-h-screen bg-gray-50 p-8 pb-64">
             <div className="max-w-6xl mx-auto">
                 {/* Header */}
-                <div className="flex justify-between items-center mb-8">
+                <div className="flex items-center gap-4 mb-8">
+                    <BackButton accent="#64748b" onBack={onBack} label="Volver al Dashboard" />
                     <div>
                         <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
                             <ShieldAlert className="text-blue-600" size={32} />
@@ -129,7 +130,6 @@ const AdminPage = ({ onBack, addLog }) => {
                         </h1>
                         <p className="text-gray-500 mt-1">Gestión de Usuarios y Permisos del Sistema</p>
                     </div>
-                    <BackButton onBack={onBack} label="Volver al Dashboard" />
                 </div>
 
                 {/* Tabla de Usuarios */}

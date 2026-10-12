@@ -377,7 +377,7 @@ const AuditObservationPage = () => {
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                 <div className="flex items-center gap-4">
-                    <BackButton to="/audit" label="Volver al Selector" />
+                    <BackButton accent="#f97316" to="/audit" label="Volver al Selector" />
                     <div>
                         <div className="flex items-center gap-2 flex-wrap">
                             <span className="bg-orange-600 text-white font-bold text-xs px-2.5 py-1 rounded-md uppercase">Estación {stationName || station}</span>

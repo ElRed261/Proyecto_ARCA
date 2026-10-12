@@ -16,6 +16,7 @@ const Cli4074Page = lazy(() => import('./features/synoptic/cli4074/pages/Cli4074
 const Cli5074Page = lazy(() => import('./features/synoptic/cli5074/pages/Cli5074Page'));
 import { normalizeRoles, hasRole } from './shared/utils/auth';
 import { authService } from './features/auth/api/authService';
+import Logo from './shared/components/Logo';
 import RouteErrorBoundary from './shared/components/RouteErrorBoundary';
 
 const ProtectedRoute = ({ user, children }) => {
@@ -38,6 +39,9 @@ const RoleRoute = ({ user, roles, children }) => {
 
 function App() {
   const [user, setUser] = useState(null);
+  // splash hasta que la sesión se valide — evita que ProtectedRoute rebata
+  // cualquier deep-link ('/#/audit', '/#/summary', …) al '/' durante la carrera
+  const [restoring, setRestoring] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -46,6 +50,7 @@ function App() {
   };
 
   useEffect(() => {
+    let alive = true;
     const restoreSession = async () => {
       const token = localStorage.getItem('token');
       const email = localStorage.getItem('user_email');
@@ -71,7 +76,12 @@ function App() {
         }
       }
     };
-    restoreSession();
+    restoreSession().finally(() => {
+      if (alive) setRestoring(false);
+    });
+    return () => {
+      alive = false;
+    };
   }, []);
 
   const handleLoginSuccess = (userData) => {
@@ -91,6 +101,12 @@ function App() {
     <div className="relative min-h-screen bg-gray-100 font-sans text-gray-800">
       <Toaster position="top-right" />
       <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><span className="text-gray-500">Cargando...</span></div>}>
+        {restoring ? (
+          <div className="flex flex-col items-center justify-center min-h-screen gap-3" role="status" aria-live="polite">
+            <Logo variant="medium" />
+            <span className="text-gray-500 text-sm">Restaurando sesión…</span>
+          </div>
+        ) : (
         <Routes>
         {/* Login */}
         <Route path="/" element={
@@ -214,7 +230,8 @@ function App() {
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+        </Routes>
+        )}
       </Suspense>
     </div>
   );

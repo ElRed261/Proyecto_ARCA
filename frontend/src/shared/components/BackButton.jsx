@@ -3,20 +3,22 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 
 /**
- * BackButton — botón de volver CONSISTENTE para toda la app.
+ * BackButton — botón de volver CONSISTENTE: de la app.
  *
- * Regla de diseño (skill ui-ux-pro-max, prioridad 1/2/9):
- * - Navegación predecible: mismo componente, misma posición, mismo look en
- *   todas las páginas (no más flecha sola vs texto solo vs ← literal).
- * - Accesible: aria-label explícito siempre (icono + texto).
- * - Target táctil ≥44px.
+ * Reglas (decisión del autor + skill ui-ux-pro-max):
+ * - SIEMPRE en la esquina superior izquierda de la página.
+ * - Icono de flecha SOLO (sin texto): la flecha es universal.
+ * - Toma el color principal del módulo (`accent`): Synoptic azul,
+ *   correcciones naranja, resumen violeta, configuración teal, etc.
+ * - aria-label/tag accesible, target táctil ≥44px.
  *
  * Props:
  *  - to: ruta destino (usa navigate). Requerido si no hay onClick.
- *  - onBack: alternativa con lógica propia de la página (ej: ir 1 nivel atrás).
+ *  - onBack: alternativa con lógica propia de la página.
  *  - label: texto del aria-label/title (default 'Volver').
+ *  - accent: hex del color principal del módulo.
  */
-const BackButton = ({ to, onBack, label = 'Volver' }) => {
+const BackButton = ({ to, onBack, label = 'Volver', accent = '#64748b' }) => {
     const navigate = useNavigate();
     const handleClick = () => {
         if (onBack) onBack();
@@ -29,12 +31,12 @@ const BackButton = ({ to, onBack, label = 'Volver' }) => {
             onClick={handleClick}
             aria-label={label}
             title={label}
-            className="min-h-[44px] min-w-[44px] px-3 py-2 rounded-full bg-white border border-slate-200 shadow-sm transition-all
-                       hover:bg-slate-50 hover:shadow-md cursor-pointer flex items-center justify-center gap-1.5
-                       text-slate-600 hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 font-medium text-sm"
+            style={{ color: accent, borderColor: `${accent}55` }}
+            className="min-h-[44px] min-w-[44px] w-11 h-11 rounded-full bg-white border shadow-sm transition-all
+                       hover:shadow-md cursor-pointer flex items-center justify-center
+                       focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
         >
             <ArrowLeft className="w-5 h-5" />
-            <span className="hidden sm:inline">Volver</span>
         </button>
     );
 };

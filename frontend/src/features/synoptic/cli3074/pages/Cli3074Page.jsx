@@ -429,7 +429,7 @@ const calcCAR = (presEst, p3) => {
         <div className="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-sky-600/10 to-transparent pointer-events-none"></div>
         
         <div className="px-6 py-4 flex items-center gap-4 z-10 w-full max-w-full">
-            <BackButton
+            <BackButton accent="#0ea5e9"
                 onBack={() => navigate('/synoptic', { state: { stationId: selectedStation, date } })}
                 label="Volver a Observaciones"
             />

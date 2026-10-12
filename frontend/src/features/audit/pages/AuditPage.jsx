@@ -109,7 +109,7 @@ const AuditPage = () => {
             {/* Header del Módulo */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                 <div className="flex items-center gap-4">
-                    <BackButton
+                    <BackButton accent="#f97316"
                         onBack={() => {
                             if (step > 1) {
                                 setStep(step - 1);
