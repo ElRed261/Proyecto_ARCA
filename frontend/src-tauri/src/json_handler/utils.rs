@@ -1,7 +1,7 @@
 // ponytail: single owner is infrastructure::storage; re-export for backward compat
 pub use crate::infrastructure::storage::{
-    arca_base_dir, atomic_write, create_backup, ensure_arca_dirs,
-    ensure_arca_dirs_with_station, ensure_station_dir, get_arca_base_dir, get_backups_dir,
+    atomic_write, create_backup, ensure_arca_dirs,
+    ensure_arca_dirs_with_station, ensure_station_dir, get_backups_dir,
     get_base_data_dir, station_dir, SYNOP_MODULE,
 };
 

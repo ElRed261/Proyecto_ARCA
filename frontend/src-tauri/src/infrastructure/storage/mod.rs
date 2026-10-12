@@ -1,5 +1,7 @@
 pub mod paths_config;
 
+pub use paths_config::offline_base_dir;
+
 use std::fs;
 use std::path::{Path, PathBuf};
 use tauri::{AppHandle, Manager};
@@ -9,38 +11,6 @@ use tauri::{AppHandle, Manager};
 /// `modulo` is always `"synop"` for synoptic observations; the constant is exposed
 /// via `SYNOP_MODULE` to avoid stringly-typed drift (`"synoptic"`, `"Resumen_Mensual_Synop"`).
 pub const SYNOP_MODULE: &str = "synop";
-
-/// Documents/ARCA/{modulo} with ARCA_BASE_DIR env override for integration tests.
-pub fn arca_base_dir(app_handle: &AppHandle, modulo: &str) -> PathBuf {
-    if let Ok(test_base) = std::env::var("ARCA_BASE_DIR") {
-        return PathBuf::from(test_base).join(modulo);
-    }
-    let mut path = app_handle.path().document_dir().unwrap_or_else(|_| {
-        let mut fallback = PathBuf::from(".");
-        #[cfg(target_os = "windows")]
-        {
-            if let Ok(home) = std::env::var("USERPROFILE") {
-                fallback = PathBuf::from(home);
-            }
-        }
-        #[cfg(any(target_os = "macos", target_os = "linux"))]
-        {
-            if let Ok(home) = std::env::var("HOME") {
-                fallback = PathBuf::from(home);
-                fallback.push("Documents");
-            }
-        }
-        fallback
-    });
-    path.push("ARCA");
-    path.push(modulo);
-    path
-}
-
-/// Backward-compat alias (Fase 1 call sites used `get_arca_base_dir`).
-pub fn get_arca_base_dir(app_handle: &AppHandle, modulo: &str) -> PathBuf {
-    arca_base_dir(app_handle, modulo)
-}
 
 /// Pure path join: base/{station}/{year}/{month} — no I/O.
 pub fn station_dir(base: &Path, station: &str, year: &str, month: &str) -> PathBuf {

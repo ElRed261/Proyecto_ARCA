@@ -5,7 +5,7 @@ use std::path::Path;
 use tauri::AppHandle;
 
 use crate::infrastructure::storage::{
-    atomic_write, create_backup, ensure_arca_dirs_with_station, get_arca_base_dir, SYNOP_MODULE,
+    atomic_write, create_backup, ensure_arca_dirs_with_station, offline_base_dir, SYNOP_MODULE,
 };
 use crate::json_handler::utils::{format_date_for_filename, parse_date_parts, validate_inputs};
 use crate::modules::synoptic::calculations::{
@@ -24,7 +24,7 @@ pub fn save_observation_json(
     cli4074: Option<Value>,
     cli5074: Option<Value>,
 ) -> Result<HashMap<String, String>, String> {
-    let base_dir = get_arca_base_dir(&app_handle, SYNOP_MODULE);
+    let base_dir = offline_base_dir(&app_handle, SYNOP_MODULE).map_err(|e| e.to_string())?;
     let station = station_code.clone();
     save_observation_json_core(
         &base_dir,
@@ -188,7 +188,7 @@ pub fn get_observation(
     station_code: String,
     fecha: String,
 ) -> Result<Value, String> {
-    let base_dir = get_arca_base_dir(&app_handle, SYNOP_MODULE);
+    let base_dir = offline_base_dir(&app_handle, SYNOP_MODULE).map_err(|e| e.to_string())?;
     get_observation_core(&base_dir, station_code, fecha)
 }
 
@@ -385,7 +385,7 @@ pub fn get_station_date_range(
     station_code: String,
 ) -> Result<HashMap<String, Value>, String> {
     validate_inputs(&station_code, "2026-05-28")?;
-    let base_dir = get_arca_base_dir(&app_handle, SYNOP_MODULE);
+    let base_dir = offline_base_dir(&app_handle, SYNOP_MODULE).map_err(|e| e.to_string())?;
     let station_dir = base_dir.join(&station_code);
 
     let mut dates = Vec::new();

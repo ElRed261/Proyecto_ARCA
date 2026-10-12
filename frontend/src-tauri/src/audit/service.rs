@@ -1,5 +1,5 @@
 use crate::infrastructure::error::AppError;
-use crate::infrastructure::storage::{arca_base_dir, atomic_write, station_dir, SYNOP_MODULE};
+use crate::infrastructure::storage::{offline_base_dir, atomic_write, station_dir, SYNOP_MODULE};
 use crate::json_handler::synoptic::get_observation_core;
 use crate::ports::AuditRepository;
 use crate::audit::{AuditObservationData, ErrorMark};
@@ -63,7 +63,7 @@ pub fn load_observation_with_audit(
     station: &str,
     date: &str,
 ) -> Result<AuditObservationData, AppError> {
-    let base_dir = arca_base_dir(app_handle, SYNOP_MODULE);
+    let base_dir = offline_base_dir(app_handle, SYNOP_MODULE).map_err(AppError::Internal)?;
     load_observation_with_audit_core(pool, &base_dir, station, date)
 }
 
@@ -228,7 +228,7 @@ pub fn export_corrected_json(
     let day = parts[2];
     let filename_date = format!("{}{}{}", day, month, year);
 
-    let base_dir = arca_base_dir(app_handle, SYNOP_MODULE);
+    let base_dir = offline_base_dir(app_handle, SYNOP_MODULE).map_err(AppError::Internal)?;
     let dir_path = station_dir(&base_dir, station_id, year, month);
     let filename = format!("{}{}.json", station_id, filename_date);
     let original_filepath = dir_path.join(&filename);

@@ -126,10 +126,11 @@ pub async fn ms_load_station_month(
 ) -> Result<MonthlySummaryDoc, String> {
     // ponytail: fecha dummy — year/month ya son u32; valida solo el station_code
     validate_inputs(&station_code, "2026-05-28")?;
-    let synop_base_dir = crate::infrastructure::storage::arca_base_dir(
+    let synop_base_dir = crate::infrastructure::storage::offline_base_dir(
         &app,
         crate::infrastructure::storage::SYNOP_MODULE,
-    );
+    )
+    .map_err(|e| e.to_string())?;
     let summary_dir = get_monthly_summary_dir(&app)?;
 
     ms_load_station_month_core(&synop_base_dir, &summary_dir, &station_code, year, month)
@@ -191,10 +192,11 @@ pub async fn ms_load_station_month_with_corrections(
 ) -> Result<MonthlySummaryDoc, String> {
     // ponytail: fecha dummy — year/month ya son u32; valida solo el station_code
     validate_inputs(&station_code, "2026-05-28")?;
-    let base = crate::infrastructure::storage::arca_base_dir(
+    let base = crate::infrastructure::storage::offline_base_dir(
         &app,
         crate::infrastructure::storage::SYNOP_MODULE,
-    );
+    )
+    .map_err(|e| e.to_string())?;
     let month_str = format!("{:02}", month);
     let year_str = year.to_string();
     let synop_dir = crate::infrastructure::storage::station_dir(&base, &station_code, &year_str, &month_str);

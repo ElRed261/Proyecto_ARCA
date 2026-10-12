@@ -13,7 +13,94 @@ use crate::db::get_db_path;
 use crate::modules::auth::{require_role, SessionStore};
 use rusqlite::{params, Connection, OptionalExtension};
 use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 use tauri::{command, AppHandle};
+
+/// Nombre de la env var de override para tests/instalaciones avanzadas.
+pub const ENV_BASE_DIR: &str = "ARCA_BASE_DIR";
+
+/// P1.2 — Cadena de resolución de la raíz offline (pura, testeable sin Tauri):
+/// 1. `env_base` (ARCA_BASE_DIR — tests e instalaciones avanzadas) GANA siempre.
+/// 2. `profile_offline_root` no vacía (configurado por el admin en la UI).
+/// 3. `default_root` (Documents/ARCA).
+///
+/// Siempre se conserva la capa `{modulo}` dentro de la raíz.
+pub fn resolve_offline_root(
+    env_base: Option<&str>,
+    profile_offline_root: Option<&str>,
+    default_root: &str,
+    modulo: &str,
+) -> PathBuf {
+    if let Some(env) = env_base {
+        if !env.is_empty() {
+            return PathBuf::from(env).join(modulo);
+        }
+    }
+    if let Some(profile_root) = profile_offline_root {
+        if !profile_root.is_empty() {
+            return PathBuf::from(profile_root).join(modulo);
+        }
+    }
+    PathBuf::from(default_root).join(modulo)
+}
+
+/// Wrapper Tauri: resuelve la raíz offline real para un app handle.
+/// Devuelve Err (fallo ruidoso) siPathProfile está corrupto o la DB es ilegible:
+/// NO se cae silenciosamente al default — escribir en el lugar equivocado
+/// equivale a perder datos.
+pub fn offline_base_dir(app_handle: &AppHandle, modulo: &str) -> Result<PathBuf, String> {
+    if let Ok(env_base) = std::env::var(ENV_BASE_DIR) {
+        return Ok(resolve_offline_root(
+            Some(&env_base),
+            None,
+            "",
+            modulo,
+        ));
+    }
+
+    let profile = {
+        let conn = Connection::open(get_db_path(app_handle))
+            .map_err(|e| format!("Error abriendo DB de configuración de rutas: {}", e))?;
+        get_path_config_db(&conn)?
+    };
+
+    let default_root = default_documents_root(app_handle);
+    Ok(resolve_offline_root(
+        None,
+        profile.as_ref().map(|p| p.offline_root.as_str()),
+        &default_root.to_string_lossy(),
+        modulo,
+    ))
+}
+
+/// default documents root con los mismos fallbacks históricos de `arca_base_dir`.
+fn default_documents_root(app_handle: &AppHandle) -> PathBuf {
+    use tauri::Manager;
+    let mut path = app_handle
+        .path()
+        .document_dir()
+        .unwrap_or_else(|_| {
+            let mut fallback = PathBuf::from(".");
+            #[cfg(target_os = "windows")]
+            {
+                if let Ok(home) = std::env::var("USERPROFILE") {
+                    fallback = PathBuf::from(home);
+                    // P1.3: los fallbacks de Windows también deben respetar Documents
+                    fallback.push("Documents");
+                }
+            }
+            #[cfg(any(target_os = "macos", target_os = "linux"))]
+            {
+                if let Ok(home) = std::env::var("HOME") {
+                    fallback = PathBuf::from(home);
+                    fallback.push("Documents");
+                }
+            }
+            fallback
+        });
+    path.push("ARCA");
+    path
+}
 
 /// Clave KV donde vive el PathProfile serializado.
 const KEY: &str = "path_config";

@@ -1,5 +1,5 @@
 use crate::infrastructure::error::AppError;
-use crate::infrastructure::storage::{atomic_write, ensure_arca_dirs_with_station, get_arca_base_dir, SYNOP_MODULE};
+use crate::infrastructure::storage::{atomic_write, ensure_arca_dirs_with_station, offline_base_dir, SYNOP_MODULE};
 use crate::json_handler::utils::{format_date_for_filename, validate_inputs};
 use crate::modules::synoptic::calculations::{calc_car, calc_dif, calc_tiempo_presente, format_dif, get_visibilidad_from_irixhv};
 use serde_json::Value;
@@ -100,7 +100,7 @@ pub fn save_cli3074_json(
     date: String,
     data: Value,
 ) -> Result<String, AppError> {
-    let base_dir = get_arca_base_dir(&app_handle, SYNOP_MODULE);
+    let base_dir = offline_base_dir(&app_handle, SYNOP_MODULE).map_err(|e| e.to_string())?;
     let path = save_cli_generic(&base_dir, &station_id, &date, "cli3074", data)?;
     Ok(format!("Guardado en: {}", path))
 }
@@ -111,7 +111,7 @@ pub fn load_cli3074_json(
     station_id: String,
     date: String,
 ) -> Result<Value, AppError> {
-    let base_dir = get_arca_base_dir(&app_handle, SYNOP_MODULE);
+    let base_dir = offline_base_dir(&app_handle, SYNOP_MODULE).map_err(|e| e.to_string())?;
     load_cli3074_json_core(&base_dir, &station_id, &date)
 }
 
@@ -217,7 +217,7 @@ pub fn save_cli4074_json(
     date: String,
     data: Value,
 ) -> Result<HashMap<String, String>, AppError> {
-    let base_dir = get_arca_base_dir(&app_handle, SYNOP_MODULE);
+    let base_dir = offline_base_dir(&app_handle, SYNOP_MODULE).map_err(|e| e.to_string())?;
     let path = save_cli_generic(&base_dir, &station_id, &date, "cli4074", data)?;
     let mut result = HashMap::new();
     result.insert("status".to_string(), "saved".to_string());
@@ -231,7 +231,7 @@ pub fn load_cli4074_json(
     station_id: String,
     date: String,
 ) -> Result<Value, AppError> {
-    let base_dir = get_arca_base_dir(&app_handle, SYNOP_MODULE);
+    let base_dir = offline_base_dir(&app_handle, SYNOP_MODULE).map_err(|e| e.to_string())?;
     load_cli4074_json_core(&base_dir, &station_id, &date)
 }
 
@@ -251,7 +251,7 @@ pub fn save_cli5074_json(
     date: String,
     data: Value,
 ) -> Result<HashMap<String, String>, AppError> {
-    let base_dir = get_arca_base_dir(&app_handle, SYNOP_MODULE);
+    let base_dir = offline_base_dir(&app_handle, SYNOP_MODULE).map_err(|e| e.to_string())?;
     let path = save_cli_generic(&base_dir, &station_id, &date, "cli5074", data)?;
     let mut result = HashMap::new();
     result.insert("status".to_string(), "saved".to_string());
@@ -265,7 +265,7 @@ pub fn load_cli5074_json(
     station_id: String,
     date: String,
 ) -> Result<Value, AppError> {
-    let base_dir = get_arca_base_dir(&app_handle, SYNOP_MODULE);
+    let base_dir = offline_base_dir(&app_handle, SYNOP_MODULE).map_err(|e| e.to_string())?;
     load_cli5074_json_core(&base_dir, &station_id, &date)
 }
 

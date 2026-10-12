@@ -1,7 +1,8 @@
 mod helpers;
 
 use app_lib::infrastructure::storage::paths_config::{
-    get_path_config_db, set_path_config_checked, validate_profile, PathProfile,
+    get_path_config_db, resolve_offline_root, set_path_config_checked, validate_profile,
+    PathProfile,
 };
 use helpers::{create_test_pool, TestUser};
 
@@ -122,6 +123,45 @@ fn validate_profile_rejects_same_offline_and_online() {
         "el error debe explicar el conflicto online/offline, fue: {}",
         err
     );
+}
+
+// ---- P1.2: cadena de resolución env > perfil > default ----
+
+#[test]
+fn resolucion_env_gana_sobre_perfil() {
+    let got = resolve_offline_root(
+        Some("/tmp/prio_env"),
+        Some("/tmp/prio_perfil"),
+        "/tmp/prio_default",
+        "synop",
+    );
+    assert_eq!(got, std::path::PathBuf::from("/tmp/prio_env/synop"),
+        "ARCA_BASE_DIR (env de tests) debe tener prioridad sobre el perfil");
+}
+
+#[test]
+fn resolucion_perfil_gana_sobre_default() {
+    let got = resolve_offline_root(
+        None,
+        Some("/mnt/DatosARCA"),
+        "/home/usuario/Documents",
+        "synop",
+    );
+    assert_eq!(got, std::path::PathBuf::from("/mnt/DatosARCA/synop"),
+        "el perfil configurado debe tener prioridad sobre Documents/ARCA");
+}
+
+#[test]
+fn resolucion_default_cuando_nada_configurado() {
+    let got = resolve_offline_root(None, None, "/home/usuario/Documents", "synop");
+    assert_eq!(got, std::path::PathBuf::from("/home/usuario/Documents/synop"));
+}
+
+#[test]
+fn resolucion_con_vacios_recae_a_default() {
+    // perfil con offline_root vacío (= sin configurar) no debe bloquear el default
+    let got = resolve_offline_root(None, Some(""), "/home/usuario/Documents", "synop");
+    assert_eq!(got, std::path::PathBuf::from("/home/usuario/Documents/synop"));
 }
 
 #[test]
