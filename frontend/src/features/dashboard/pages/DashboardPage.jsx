@@ -13,25 +13,28 @@ const DashboardPage = ({ user, onLogout, onNavigate }) => {
         {
             id: 'synoptic',
             title: 'Observación Sinóptica',
-  description: 'Monitoreo en tiempo real y logs del sistema (CLI).',
+  description: 'Observaciones por hora con grupos SYNOP y planillas.',
   icon: Activity,
   color: 'bg-blue-500 text-blue-600',
+  accent: '#3b82f6',
   status: 'active'
 },
 {
   id: 'summary',
   title: 'Resumen Mensual',
-  description: 'Reportes financieros y operativos mensuales.',
+  description: 'KPIs mensuales con gráficos y exportación.',
   icon: Calendar,
   color: 'bg-purple-500 text-purple-600',
+  accent: '#a855f7',
   status: 'active'
 },
         {
             id: 'audit',
             title: 'Correcciones y Auditoría',
-            description: 'Registro de cambios y solicitudes de corrección.',
+            description: 'Errores marcados y correcciones justificadas por estación.',
             icon: ShieldCheck,
             color: 'bg-orange-500 text-orange-600',
+            accent: '#f97316',
             status: 'active'
         },
         {
@@ -40,14 +43,16 @@ const DashboardPage = ({ user, onLogout, onNavigate }) => {
             description: 'Gestión de usuarios, roles y permisos.',
             icon: Settings,
             color: 'bg-gray-600 text-gray-700',
+            accent: '#64748b',
             status: 'active'
         },
         {
             id: 'maintenance',
             title: 'Configuración & Sync',
-            description: 'Rutas de guardado, carpeta Drive online y estado de sincronización.',
+            description: 'Rutas de guardado, bloqueo de estación y estado de sincronización.',
             icon: Settings,
             color: 'bg-teal-600 text-teal-700',
+            accent: '#0d9488',
             status: 'active'
         },
     ];

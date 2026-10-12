@@ -3,8 +3,11 @@ import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { Save, ClipboardCheck, RefreshCw, HardDrive, Cloud, Database, FolderOpen } from 'lucide-react';
 import { open as openDialog } from '@tauri-apps/plugin-dialog';
+import { invoke } from '@tauri-apps/api/core';
+import { Save as SaveIcon, Lock, AlertTriangle } from 'lucide-react';
 
 import { pathsService } from '../api/pathsService';
+import BackButton from '../../../shared/components/BackButton';
 import { hasRole, normalizeRoles } from '../../../shared/utils/auth';
 
 const EMPTY_PROFILE = {
@@ -81,6 +84,9 @@ const MaintenancePage = () => {
     const [saveState, setSaveState] = useState(null); // 'ok' | 'error: msg'
     const [sync, setSync] = useState(null);
     const [syncBusy, setSyncBusy] = useState(false);
+    const [stationsMap, setStationsMap] = useState({});
+    const [assignedStation, setAssignedStation] = useState('');
+    const [savingStation, setSavingStation] = useState(false);
     const [userRoles] = useState(() => {
         try {
             return normalizeRoles(JSON.parse(localStorage.getItem('user_roles')));
@@ -88,6 +94,34 @@ const MaintenancePage = () => {
             return [];
         }
     });
+const canEdit = hasRole(userRoles, ['admin']);
+
+    const loadStationLock = useCallback(async () => {
+        try {
+            const stationsData = await invoke('get_stations');
+            setStationsMap(stationsData || {});
+            const current = await invoke('get_assigned_station');
+            if (current) setAssignedStation(current);
+        } catch (e) {
+            toast.error('No se pudo cargar la configuración de estación');
+            console.error(e);
+        }
+    }, []);
+
+    const handleApplyLock = async (e) => {
+        e.preventDefault();
+        try {
+            setSavingStation(true);
+            await invoke('set_app_config', { key: 'assigned_station', value: assignedStation });
+            toast.success(assignedStation
+                ? `Estación bloqueada: ${assignedStation}`
+                : 'Bloqueo retirado: instancia libre');
+        } catch (err) {
+            toast.error(`Error al guardar el bloqueo: ${String(err)}`);
+        } finally {
+            setSavingStation(false);
+        }
+    };
 
     const loadSync = useCallback(async () => {
         try {
@@ -112,11 +146,12 @@ const MaintenancePage = () => {
                 if (alive) setLoading(false);
             }
             loadSync();
+            loadStationLock();
         })();
         return () => {
             alive = false;
         };
-    }, [loadSync]);
+    }, [loadSync, loadStationLock]);
 
     const setField = (field, transform = (v) => (v === '' ? null : v)) => (value) =>
         setProfile((p) => ({ ...p, [field]: field === 'offline_root' ? value : transform(value) }));
@@ -209,7 +244,6 @@ const MaintenancePage = () => {
         }
     };
 
-    const canEdit = hasRole(userRoles, ['admin']);
 
     if (loading) {
         return (
@@ -228,12 +262,7 @@ const MaintenancePage = () => {
                         Rutas de guardado de la instancia y estado de sincronización
                     </p>
                 </div>
-                <button
-                    onClick={() => navigate('/dashboard')}
-                    className="text-sm px-3 py-2 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-700"
-                >
-                    Volver al Panel
-                </button>
+                <BackButton to="/dashboard" label="Volver al Panel" />
             </header>
 
             <main className="max-w-3xl mx-auto px-4 py-6 space-y-8">
@@ -313,7 +342,52 @@ const MaintenancePage = () => {
                     )}
                 </section>
 
+                {/* ---- Bloqueo de estación por instancia (solo admin) ---- */}
+                {canEdit && (
+                    <section>
+                        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                            <div className="flex items-center gap-2 mb-2">
+                                <Lock className="w-4 h-4 text-blue-600" />
+                                <h3 className="text-sm font-semibold text-gray-800">Bloqueo de estación por instancia</h3>
+                            </div>
+                            <p className="text-xs text-gray-500 mb-3 flex items-start gap-1">
+                                <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0 text-amber-500" />
+                                Define la estación de esta instalación: los observadores solo podrán
+                                cargar datos para ella en el módulo sinóptico.
+                            </p>
+                            <form onSubmit={handleApplyLock} className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-end">
+                                <select
+                                    value={assignedStation}
+                                    onChange={(e) => setAssignedStation(e.target.value)}
+                                    className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                                    <option value="">Seleccionar estación (sin bloqueo / libre)…</option>
+                                    {Object.entries(stationsMap)
+                                        .sort(([, a], [, b]) => a.name.localeCompare(b.name))
+                                        .map(([code, info]) => (
+                                            <option key={code} value={code}>
+                                                {info.name} ({code})
+                                            </option>
+                                        ))}
+                                </select>
+                                <button
+                                    type="submit"
+                                    disabled={savingStation}
+                                    className="flex items-center justify-center gap-1.5 text-xs px-3 py-2.5 rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 font-medium"
+                                >
+                                    <SaveIcon className="w-3 h-3" />
+                                    {savingStation ? 'Guardando…' : 'Aplicar bloqueo'}
+                                </button>
+                            </form>
+                            <p className="mt-2 text-xs text-gray-400">
+                                Toma efecto en el Módulo Sinóptico (recargar la ventana la aplica).
+                            </p>
+                        </div>
+                    </section>
+                )}
+
                 {/* ---- Panel de sincronización (todos los usuarios) ---- */}
+
                 <section>
                     <h2 className="text-sm font-bold text-gray-800 uppercase tracking-wide mb-3">
                         Sincronización

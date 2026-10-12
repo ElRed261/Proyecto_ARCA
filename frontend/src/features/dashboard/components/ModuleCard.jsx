@@ -1,14 +1,34 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ArrowRight } from 'lucide-react';
 
-// eslint-disable-next-line no-unused-vars
-const ModuleCard = ({ title, description, icon: Icon, color, onClick, status = 'active' }) => {
+/*
+ * ModuleCard — mosaico del Dashboard.
+ * · accent: hex del módulo (Synoptic azul, correcciones naranja, resumen
+ *   violeta, config teal, admin pizarra). Al hover, la tarjeta BRILLA con
+ *   el color de su propio módulo (glow) y el borde se tiñe — coherencia
+ *   visual color↔destino (skill ui-ux-pro-max: states & variants).
+ */
+const ModuleCard = ({ title, description, icon: Icon, color = 'bg-blue-500 text-blue-600', accent = '#3b82f6', onClick, status = 'active' }) => {
     const isDisabled = status === 'disabled';
+    const [hovered, setHovered] = useState(false);
+
+    const glowStyle = isDisabled
+        ? undefined
+        : hovered
+          ? {
+                borderColor: `${accent}66`,
+                boxShadow: `0 12px 40px -8px ${accent}59, 0 0 0 1px ${accent}33, 0 4px 16px ${accent}26`,
+            }
+          : undefined;
 
     return (
         <button
             onClick={onClick}
             disabled={isDisabled}
+            onMouseEnter={() => setHovered(true)}
+            onMouseLeave={() => setHovered(false)}
+            aria-label={`Abrir módulo: ${title}`}
+            style={glowStyle}
             className={`
                 text-left w-full relative overflow-hidden rounded-2xl p-6 border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-500 transition-all duration-500
                 ${isDisabled

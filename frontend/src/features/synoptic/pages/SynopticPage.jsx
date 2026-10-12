@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { invoke } from '@tauri-apps/api/core';
 import { ArrowLeft, Save, Upload, ArrowRight, Sun, Moon, FileText, Cloud, Clock, Sunrise, Sunset } from 'lucide-react';
+import BackButton from '../../../shared/components/BackButton';
 import { isAdmin } from '../../../shared/utils/auth';
 import { hourThemes, meteoHeaders, meteoPlaceholders, styles } from '../config/synopticConfig';
 import { AAXX, CONST_333, CONST_555, HOURS, EVEN_HOURS, ODD_HOURS, normalizePressure, sanitizeSynopGroup } from '../utils/synopticUtils';
@@ -835,13 +836,7 @@ newObservations[hora] = {
     <div className={`min-h-screen p-6 transition-colors duration-1000 bg-gradient-to-br ${currentTheme.bgGradient}`}>
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-6">
-          <button
-            onClick={() => navigate('/dashboard')}
-            className={`w-10 h-10 rounded-full backdrop-blur-md bg-white/10 border border-white/20 shadow-lg transition-all hover:bg-white/20 hover:scale-110 flex items-center justify-center ${currentTheme.textColor}`}
-            title="Volver al Dashboard"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
+          <BackButton to="/dashboard" label="Volver al Dashboard" />
         </div>
 
         <h1 className={`text-2xl font-bold mb-6 transition-colors duration-500 ${currentTheme.textColor}`}>

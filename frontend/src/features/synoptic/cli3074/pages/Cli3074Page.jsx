@@ -27,6 +27,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { invoke } from '@tauri-apps/api/core';
 import { toast } from 'react-hot-toast';
 import { ArrowLeft, Save } from 'lucide-react';
+import BackButton from '../../../../shared/components/BackButton';
 import StationHeader from '../../../../shared/components/StationHeader';
 import { spreadsheetStyles } from '../../config/synopticConfig';
 
@@ -428,19 +429,10 @@ const calcCAR = (presEst, p3) => {
         <div className="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-sky-600/10 to-transparent pointer-events-none"></div>
         
         <div className="px-6 py-4 flex items-center gap-4 z-10 w-full max-w-full">
-            <button
-                onClick={() => {
-                    if (location.state?.fromAudit) {
-                        navigate(`/audit/observation/${selectedStation}/${date}`);
-                    } else {
-                        navigate('/synoptic', { state: { stationId: selectedStation, date } });
-                    }
-                }}
-                className="w-10 h-10 rounded-full border border-slate-200 bg-white flex items-center justify-center text-slate-500 hover:text-sky-600 hover:bg-sky-50 hover:border-sky-200 hover:scale-105 shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-sky-500"
-                title="Volver a Observaciones"
-            >
-                <ArrowLeft className="w-5 h-5" />
-            </button>
+            <BackButton
+                onBack={() => navigate('/synoptic', { state: { stationId: selectedStation, date } })}
+                label="Volver a Observaciones"
+            />
             
             <h1 className="text-2xl font-bold text-slate-800 tracking-tight">CLI 3074 - OBSERVACIONES DE SUPERFICIE</h1>
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { invoke } from '@tauri-apps/api/core';
 import { authService } from '../api/authService';
 import { Users, Edit, Key, Trash2, CheckCircle, XCircle, ShieldAlert, Landmark, Save, UserPlus } from 'lucide-react';
+import BackButton from '../../../shared/components/BackButton';
 import toast from 'react-hot-toast';
 import { StationAdminTable } from '../components/StationAdminTable';
 import { normalizeRole } from '../../../shared/utils/auth';
@@ -14,9 +14,6 @@ const AdminPage = ({ onBack, addLog }) => {
     const [showPasswordModal, setShowPasswordModal] = useState(false);
 
     // Station locking states
-    const [stations, setStations] = useState({});
-    const [assignedStation, setAssignedStation] = useState('');
-    const [savingStation, setSavingStation] = useState(false);
 
     const [showCreateModal, setShowCreateModal] = useState(false);
 
@@ -31,18 +28,9 @@ const AdminPage = ({ onBack, addLog }) => {
     }, []);
 
     const fetchStationsAndConfig = async () => {
-        try {
-            const stationsData = await invoke('get_stations');
-            setStations(stationsData);
-            
-            const assigned = await invoke('get_assigned_station');
-            if (assigned) {
-                setAssignedStation(assigned);
-            }
-        } catch (error) {
-            console.error('Error al cargar estaciones/configuración:', error);
-            toast.error('Error al inicializar configuraciones del sistema');
-        }
+        // El listado de estaciones vive en <StationAdminTable>; el bloqueo de
+        // estación se movió a Configuración (features/maintenance).
+        // Hook conservado para no romper el contrato del componente hija.
     };
 
     const fetchUsers = async () => {
@@ -128,20 +116,6 @@ const AdminPage = ({ onBack, addLog }) => {
         }
     };
 
-    const handleSaveStation = async (e) => {
-        e.preventDefault();
-        try {
-            setSavingStation(true);
-            await invoke('set_app_config', { key: 'assigned_station', value: assignedStation });
-            toast.success(assignedStation ? 'Estación bloqueada correctamente' : 'Configuración de estación guardada');
-            addLog(`Estación asignada actualizada a: ${assignedStation || 'Ninguna (desbloqueada)'}`, 'info');
-        } catch (error) {
-            console.error(error);
-            toast.error('Error al guardar la estación asignada');
-        } finally {
-            setSavingStation(false);
-        }
-    };
 
     return (
         <div className="min-h-screen bg-gray-50 p-8 pb-64">
@@ -155,12 +129,7 @@ const AdminPage = ({ onBack, addLog }) => {
                         </h1>
                         <p className="text-gray-500 mt-1">Gestión de Usuarios y Permisos del Sistema</p>
                     </div>
-                    <button
-                        onClick={onBack}
-                        className="px-6 py-2 bg-gradient-to-r from-gray-800 to-gray-900 text-white rounded-lg hover:from-gray-700 hover:to-gray-800 transition shadow-lg flex items-center gap-2 font-medium"
-                    >
-                        <span>←</span> Volver al Dashboard
-                    </button>
+                    <BackButton onBack={onBack} label="Volver al Dashboard" />
                 </div>
 
                 {/* Tabla de Usuarios */}
@@ -255,51 +224,6 @@ const AdminPage = ({ onBack, addLog }) => {
                     </div>
                 </div>
 
-                {/* Bloqueo de Estación del Sistema */}
-                <div className="mt-8 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                    <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2 mb-2">
-                        <Landmark className="text-blue-600" size={24} />
-                        Bloqueo de Estación por Instalación
-                    </h2>
-                    <p className="text-sm text-gray-500 mb-4">
-                        Define la estación meteorológica en la que se está ejecutando esta instancia del sistema. 
-                        Al configurarla, los observadores solo podrán cargar y registrar datos para esta estación 
-                        en el módulo sinóptico.
-                    </p>
-
-                    <form onSubmit={handleSaveStation} className="flex flex-col md:flex-row gap-4 items-end max-w-xl">
-                        <div className="flex-1 w-full">
-                            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
-                                Estación Meteorológica
-                            </label>
-                            <select
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                                value={assignedStation}
-                                onChange={(e) => setAssignedStation(e.target.value)}
-                            >
-                                <option value="">Seleccionar Estación (Sin bloqueo / Libre)...</option>
-                                {Object.entries(stations)
-                                    .sort(([, a], [, b]) => a.name.localeCompare(b.name))
-                                    .map(([code, info]) => (
-                                        <option key={code} value={code}>
-                                            {info.name} ({code})
-                                        </option>
-                                    ))}
-                            </select>
-                            <p className="text-xs text-gray-400 mt-2">
-                                * Requiere reiniciar la aplicación para que tome efecto en el Módulo Sinóptico.
-                            </p>
-                        </div>
-                        <button
-                            type="submit"
-                            disabled={savingStation}
-                            className="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition shadow-md flex items-center gap-2 whitespace-nowrap disabled:opacity-50"
-                        >
-                            <Save size={18} />
-                            {savingStation ? 'Guardando...' : 'Aplicar Bloqueo'}
-                        </button>
-                    </form>
-                </div>
 
                 {/* Tabla de Estaciones CRUD */}
                 <StationAdminTable 

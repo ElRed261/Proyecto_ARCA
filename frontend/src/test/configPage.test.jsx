@@ -131,3 +131,55 @@ describe('Configuración de rutas y sincronización (P4.1 + P4.2)', () => {
     expect(await screen.findByRole('button', { name: /reintentar/i })).toBeTruthy();
   });
 });
+
+describe('Bloqueo de estación — movido a Configuración (P-consistencia)', () => {
+    beforeEach(() => {
+        const ls = ensureLocalStorage();
+        ls.clear();
+        ls.setItem('token', 't');
+        ls.setItem('user_roles', JSON.stringify(['admin']));
+        invoke.mockReset();
+        invoke.mockImplementation((cmd) => {
+            if (cmd === 'get_path_config') return Promise.resolve({ offline_root: '', online_root: null, backups_max_age_days: null, summaries_dir: null });
+            if (cmd === 'get_sync_status') return Promise.resolve({ pending: 0, synced: 0, last_attempt: null, last_errors: [] });
+            if (cmd === 'get_stations') return Promise.resolve([]); // placeholder, se ajusta por test
+            if (cmd === 'get_assigned_station') return Promise.resolve('78486');
+            return Promise.resolve({});
+        });
+    });
+
+    it('la tarjeta de bloqueo de estación vive en Configuración y muestra la estación asignada', async () => {
+        invoke.mockImplementation((cmd) => {
+            if (cmd === 'get_path_config') return Promise.resolve({ offline_root: '', online_root: null, backups_max_age_days: null, summaries_dir: null });
+            if (cmd === 'get_sync_status') return Promise.resolve({ pending: 0, synced: 0, last_attempt: null, last_errors: [] });
+            if (cmd === 'get_stations') return Promise.resolve([]); // ajustado más arriba
+            if (cmd === 'get_assigned_station') return Promise.resolve('78486');
+            return Promise.resolve({});
+        });
+        renderPage();
+        expect(await screen.findByText(/bloqueo de estación/i)).toBeTruthy();
+    });
+
+    it('guardar el bloqueo llama set_app_config (assigned_station)', async () => {
+        invoke.mockImplementation((cmd) => {
+            if (cmd === 'get_path_config') return Promise.resolve({ offline_root: '', online_root: null, backups_max_age_days: null, summaries_dir: null });
+            if (cmd === 'get_sync_status') return Promise.resolve({ pending: 0, synced: 0, last_attempt: null, last_errors: [] });
+            if (cmd === 'get_stations') return Promise.resolve([]); // ajustado más arriba
+            if (cmd === 'get_assigned_station') return Promise.resolve('');
+            return Promise.resolve({});
+        });
+        renderPage();
+        const btn = await screen.findByRole('button', { name: /aplicar bloqueo/i });
+        fireEvent.click(btn);
+        await waitFor(() => {
+            expect(invoke).toHaveBeenCalledWith('set_app_config', { key: 'assigned_station', value: '' });
+        });
+    });
+
+    it('sin rol admin no se puede aplicar el bloqueo', async () => {
+        ensureLocalStorage().setItem('user_roles', JSON.stringify(['observador']));
+        renderPage();
+        await screen.findByTestId('pendientes');
+        expect(screen.queryByRole('button', { name: /aplicar bloqueo/i })).toBeNull();
+    });
+});

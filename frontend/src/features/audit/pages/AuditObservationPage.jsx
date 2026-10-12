@@ -6,6 +6,7 @@ import {
     User, Calendar, HelpCircle, Save, X, Edit3, Trash2,
     BookOpen, ExternalLink, Radio
 } from 'lucide-react';
+import BackButton from '../../../shared/components/BackButton';
 import { toast } from 'react-hot-toast';
 import { normalizeRoles, hasRole } from '../../../shared/utils/auth';
 
@@ -376,13 +377,7 @@ const AuditObservationPage = () => {
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                 <div className="flex items-center gap-4">
-                    <button
-                        onClick={() => navigate('/audit')}
-                        className="w-10 h-10 rounded-full bg-white border border-slate-200 shadow-sm transition-all hover:bg-orange-50 hover:scale-110 flex items-center justify-center text-slate-600 cursor-pointer"
-                        title="Volver al Selector"
-                    >
-                        <ArrowLeft className="w-5 h-5" />
-                    </button>
+                    <BackButton to="/audit" label="Volver al Selector" />
                     <div>
                         <div className="flex items-center gap-2 flex-wrap">
                             <span className="bg-orange-600 text-white font-bold text-xs px-2.5 py-1 rounded-md uppercase">Estación {stationName || station}</span>

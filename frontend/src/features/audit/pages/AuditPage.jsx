@@ -5,6 +5,7 @@ import {
     ArrowLeft, Radio, Calendar, CalendarDays, FileText, 
     CheckCircle, AlertTriangle, ChevronRight, Clock, User 
 } from 'lucide-react';
+import BackButton from '../../../shared/components/BackButton';
 
 const AuditPage = () => {
     const navigate = useNavigate();
@@ -108,19 +109,16 @@ const AuditPage = () => {
             {/* Header del Módulo */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                 <div className="flex items-center gap-4">
-                    <button
-                        onClick={() => {
+                    <BackButton
+                        onBack={() => {
                             if (step > 1) {
                                 setStep(step - 1);
                             } else {
                                 navigate('/dashboard');
                             }
                         }}
-                        className="w-10 h-10 rounded-full bg-white border border-orange-200 shadow-sm transition-all hover:bg-orange-50 hover:scale-110 flex items-center justify-center text-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-200 cursor-pointer"
-                        title={step > 1 ? "Volver al nivel anterior" : "Volver al Dashboard"}
-                    >
-                        <ArrowLeft className="w-5 h-5" />
-                    </button>
+                        label={step > 1 ? 'Volver al nivel anterior' : 'Volver al Dashboard'}
+                    />
                     <div>
                         <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
                             Módulo de Auditoría

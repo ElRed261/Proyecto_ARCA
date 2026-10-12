@@ -5,6 +5,7 @@ import {
     ArrowLeft, Printer, Search, FileText, AlertTriangle, 
     CheckCircle, Calendar, Edit3, Save, Radio
 } from 'lucide-react';
+import BackButton from '../../../shared/components/BackButton';
 import { toast } from 'react-hot-toast';
 
 // Claves de campos legibles
@@ -132,13 +133,7 @@ const AuditReportPage = () => {
             {/* Cabecera — Ocultar en Impresión */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 print:hidden">
                 <div className="flex items-center gap-4">
-                    <button
-                        onClick={() => navigate('/audit')}
-                        className="w-10 h-10 rounded-full bg-white border border-slate-200 shadow-sm transition-all hover:bg-orange-50 hover:scale-110 flex items-center justify-center text-slate-600 cursor-pointer"
-                        title="Volver a Auditoría"
-                    >
-                        <ArrowLeft className="w-5 h-5" />
-                    </button>
+                    <BackButton to="/audit" label="Volver a Auditoría" />
                     <div>
                         <h1 className="text-2xl font-black text-slate-900">
                             Reporte de Inconsistencias
