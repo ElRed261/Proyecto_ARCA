@@ -4,9 +4,10 @@ use std::fs;
 use std::path::Path;
 use tauri::AppHandle;
 
+use crate::infrastructure::storage::write_guard::merge_json_file;
 use crate::infrastructure::storage::{
-    atomic_write, create_backup, ensure_arca_dirs_with_station, normalize_station_code,
-    offline_base_dir, SYNOP_MODULE,
+    create_backup, ensure_arca_dirs_with_station, normalize_station_code, offline_base_dir,
+    SYNOP_MODULE,
 };
 use crate::json_handler::utils::{format_date_for_filename, parse_date_parts, validate_inputs};
 use crate::modules::synoptic::calculations::{
@@ -65,115 +66,50 @@ pub fn save_observation_json_core(
 
     let backup_path = backup(&filepath).unwrap_or_default();
 
-    let mut root_map = if filepath.exists() {
-        let existing_data = fs::read_to_string(&filepath).map_err(|e| e.to_string())?;
-        let val: Value = serde_json::from_str(&existing_data).map_err(|e| e.to_string())?;
-        val.as_object().cloned().unwrap_or_else(serde_json::Map::new)
-    } else {
-        serde_json::Map::new()
-    };
+    let horas_map = build_horas_map(&observations, &observer_name);
 
-    let mut meta = serde_json::Map::new();
-    meta.insert("estacion".to_string(), Value::String(station_code.clone()));
-    meta.insert("fecha".to_string(), Value::String(fecha_formatted.clone()));
-    if let Some(ref name) = observer_name {
-        meta.insert("observador".to_string(), Value::String(name.clone()));
-    }
-    meta.insert(
-        "ultima_actualizacion".to_string(),
-        Value::String(chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string()),
-    );
-    root_map.insert("meta".to_string(), Value::Object(meta));
+    // P2: write bajo lock; preserva claves cli existentes; schema_version inyectada
+    merge_json_file(&filepath, move |root| {
+        let root = root
+            .as_object_mut()
+            .ok_or_else(|| "el documento de guardado debe ser un objeto".to_string())?;
+        let mut meta = root
+            .get("meta")
+            .and_then(|m| m.as_object())
+            .cloned()
+            .unwrap_or_default();
+        meta.insert("estacion".to_string(), Value::String(station_code.clone()));
+        meta.insert("fecha".to_string(), Value::String(fecha_formatted.clone()));
+        if let Some(ref name) = observer_name {
+            meta.insert("observador".to_string(), Value::String(name.clone()));
+        }
+        meta.insert(
+            "ultima_actualizacion".to_string(),
+            Value::String(chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string()),
+        );
+        root.insert("meta".to_string(), Value::Object(meta));
 
-    let mut horas_map = serde_json::Map::new();
+        root.insert("horas".to_string(), Value::Object(horas_map));
 
-    if let Some(horas_obj) = observations.as_object() {
-        for (hora_key, hora_data) in horas_obj {
-            if let Some(hora_data_obj) = hora_data.as_object() {
-                let mut hora_structure = serde_json::Map::new();
-
-                let mut datos = serde_json::Map::new();
-                if let Some(v) = hora_data_obj.get("ts") { datos.insert("ts".to_string(), v.clone()); }
-                if let Some(v) = hora_data_obj.get("th") { datos.insert("th".to_string(), v.clone()); }
-                if let Some(v) = hora_data_obj.get("pres_est") { datos.insert("pres_est".to_string(), v.clone()); }
-                if let Some(v) = hora_data_obj.get("p3") { datos.insert("p3".to_string(), v.clone()); }
-                if let Some(v) = hora_data_obj.get("p24") { datos.insert("p24".to_string(), v.clone()); }
-                if let Some(v) = hora_data_obj.get("viento_dir") { datos.insert("viento_dir".to_string(), v.clone()); }
-                if let Some(v) = hora_data_obj.get("viento_vel") { datos.insert("viento_vel".to_string(), v.clone()); }
-                if let Some(v) = hora_data_obj.get("visibilidad") { datos.insert("visibilidad".to_string(), v.clone()); }
-                if let Some(v) = hora_data_obj.get("t_max") { datos.insert("Tmax".to_string(), v.clone()); }
-                if let Some(v) = hora_data_obj.get("t_min") { datos.insert("Tmin".to_string(), v.clone()); }
-                if let Some(v) = hora_data_obj.get("ll") { datos.insert("LL".to_string(), v.clone()); }
-                if let Some(v) = hora_data_obj.get("t_max_24h") { datos.insert("Tmax_24h".to_string(), v.clone()); }
-                if let Some(v) = hora_data_obj.get("t_min_24h") { datos.insert("Tmin_24h".to_string(), v.clone()); }
-                if let Some(v) = hora_data_obj.get("ll_24h") { datos.insert("LL_24h".to_string(), v.clone()); }
-                if let Some(v) = hora_data_obj.get("correc_alt") { datos.insert("correc_alt".to_string(), v.clone()); }
-
-                let mut synop = serde_json::Map::new();
-                for (key, value) in hora_data_obj.iter() {
-                    if key.starts_with("meteo_") || key.starts_with("extra_") {
-                        let synop_name = to_synop_name(key);
-                        synop.insert(synop_name, value.clone());
-                    }
-                }
-
-                if !synop.is_empty() { hora_structure.insert("synop".to_string(), Value::Object(synop)); }
-                if !datos.is_empty() { hora_structure.insert("datos".to_string(), Value::Object(datos)); }
-
-                let mut calculado = serde_json::Map::new();
-                if let Some(v) = hora_data_obj.get("pres_nmm") {
-                    if !v.is_null() && !v.as_str().unwrap_or("").is_empty() { calculado.insert("pres_nmm".to_string(), v.clone()); }
-                }
-                if let Some(v) = hora_data_obj.get("punto_rocio") {
-                    if !v.is_null() && !v.as_str().unwrap_or("").is_empty() { calculado.insert("pr".to_string(), v.clone()); }
-                }
-                if let Some(v) = hora_data_obj.get("tension_vapor") {
-                    if !v.is_null() && !v.as_str().unwrap_or("").is_empty() { calculado.insert("tv".to_string(), v.clone()); }
-                }
-                if let Some(v) = hora_data_obj.get("humedad_relativa") {
-                    if !v.is_null() && !v.as_str().unwrap_or("").is_empty() { calculado.insert("hr".to_string(), v.clone()); }
-                }
-                if let Some(v) = hora_data_obj.get("diferencia") {
-                    if !v.is_null() && !v.as_str().unwrap_or("").is_empty() { calculado.insert("dif".to_string(), v.clone()); }
-                }
-                if !calculado.is_empty() { hora_structure.insert("calculado".to_string(), Value::Object(calculado)); }
-
-                let hora_observer = hora_data_obj
-                    .get("nombre_observador")
-                    .and_then(|v| v.as_str())
-                    .map(|s| s.to_string())
-                    .filter(|s| !s.trim().is_empty())
-                    .or_else(|| observer_name.clone());
-
-                if let Some(name) = hora_observer {
-                    hora_structure.insert("observador".to_string(), Value::String(name));
-                }
-
-                horas_map.insert(hora_key.clone(), Value::Object(hora_structure));
+        if let Some(c3074) = cli3074 {
+            if !c3074.is_null() {
+                root.insert("cli3074".to_string(), c3074);
             }
         }
-    }
-
-    root_map.insert("horas".to_string(), Value::Object(horas_map));
-
-    if let Some(c3074) = cli3074 {
-        if !c3074.is_null() {
-            root_map.insert("cli3074".to_string(), c3074);
+        if let Some(c4074) = cli4074 {
+            if !c4074.is_null() {
+                root.insert("cli4074".to_string(), c4074);
+            }
         }
-    }
-    if let Some(c4074) = cli4074 {
-        if !c4074.is_null() {
-            root_map.insert("cli4074".to_string(), c4074);
+        if let Some(c5074) = cli5074 {
+            if !c5074.is_null() {
+                root.insert("cli5074".to_string(), c5074);
+            }
         }
-    }
-    if let Some(c5074) = cli5074 {
-        if !c5074.is_null() {
-            root_map.insert("cli5074".to_string(), c5074);
-        }
-    }
+        Ok(())
+    })
+    .map_err(|e| e.to_string())?;
 
-    let data_str = serde_json::to_string_pretty(&root_map).map_err(|e| e.to_string())?;
-    atomic_write(&filepath, &data_str).map_err(|e| e.to_string())?;
 
     let mut res = HashMap::new();
     res.insert("success".to_string(), "true".to_string());
@@ -182,6 +118,83 @@ pub fn save_observation_json_core(
     res.insert("backup_path".to_string(), backup_path);
 
     Ok(res)
+}
+
+/// Construye el mapa de horas desde el payload del frontend (puro;
+/// reemplaza TODO el bloque 'horas' del documento, igual que antes).
+fn build_horas_map(
+    observations: &Value,
+    observer_name: &Option<String>,
+) -> serde_json::Map<String, Value> {
+    let mut horas_map = serde_json::Map::new();
+
+        if let Some(horas_obj) = observations.as_object() {
+            for (hora_key, hora_data) in horas_obj {
+                if let Some(hora_data_obj) = hora_data.as_object() {
+                    let mut hora_structure = serde_json::Map::new();
+
+                    let mut datos = serde_json::Map::new();
+                    if let Some(v) = hora_data_obj.get("ts") { datos.insert("ts".to_string(), v.clone()); }
+                    if let Some(v) = hora_data_obj.get("th") { datos.insert("th".to_string(), v.clone()); }
+                    if let Some(v) = hora_data_obj.get("pres_est") { datos.insert("pres_est".to_string(), v.clone()); }
+                    if let Some(v) = hora_data_obj.get("p3") { datos.insert("p3".to_string(), v.clone()); }
+                    if let Some(v) = hora_data_obj.get("p24") { datos.insert("p24".to_string(), v.clone()); }
+                    if let Some(v) = hora_data_obj.get("viento_dir") { datos.insert("viento_dir".to_string(), v.clone()); }
+                    if let Some(v) = hora_data_obj.get("viento_vel") { datos.insert("viento_vel".to_string(), v.clone()); }
+                    if let Some(v) = hora_data_obj.get("visibilidad") { datos.insert("visibilidad".to_string(), v.clone()); }
+                    if let Some(v) = hora_data_obj.get("t_max") { datos.insert("Tmax".to_string(), v.clone()); }
+                    if let Some(v) = hora_data_obj.get("t_min") { datos.insert("Tmin".to_string(), v.clone()); }
+                    if let Some(v) = hora_data_obj.get("ll") { datos.insert("LL".to_string(), v.clone()); }
+                    if let Some(v) = hora_data_obj.get("t_max_24h") { datos.insert("Tmax_24h".to_string(), v.clone()); }
+                    if let Some(v) = hora_data_obj.get("t_min_24h") { datos.insert("Tmin_24h".to_string(), v.clone()); }
+                    if let Some(v) = hora_data_obj.get("ll_24h") { datos.insert("LL_24h".to_string(), v.clone()); }
+                    if let Some(v) = hora_data_obj.get("correc_alt") { datos.insert("correc_alt".to_string(), v.clone()); }
+
+                    let mut synop = serde_json::Map::new();
+                    for (key, value) in hora_data_obj.iter() {
+                        if key.starts_with("meteo_") || key.starts_with("extra_") {
+                            let synop_name = to_synop_name(key);
+                            synop.insert(synop_name, value.clone());
+                        }
+                    }
+
+                    if !synop.is_empty() { hora_structure.insert("synop".to_string(), Value::Object(synop)); }
+                    if !datos.is_empty() { hora_structure.insert("datos".to_string(), Value::Object(datos)); }
+
+                    let mut calculado = serde_json::Map::new();
+                    if let Some(v) = hora_data_obj.get("pres_nmm") {
+                        if !v.is_null() && !v.as_str().unwrap_or("").is_empty() { calculado.insert("pres_nmm".to_string(), v.clone()); }
+                    }
+                    if let Some(v) = hora_data_obj.get("punto_rocio") {
+                        if !v.is_null() && !v.as_str().unwrap_or("").is_empty() { calculado.insert("pr".to_string(), v.clone()); }
+                    }
+                    if let Some(v) = hora_data_obj.get("tension_vapor") {
+                        if !v.is_null() && !v.as_str().unwrap_or("").is_empty() { calculado.insert("tv".to_string(), v.clone()); }
+                    }
+                    if let Some(v) = hora_data_obj.get("humedad_relativa") {
+                        if !v.is_null() && !v.as_str().unwrap_or("").is_empty() { calculado.insert("hr".to_string(), v.clone()); }
+                    }
+                    if let Some(v) = hora_data_obj.get("diferencia") {
+                        if !v.is_null() && !v.as_str().unwrap_or("").is_empty() { calculado.insert("dif".to_string(), v.clone()); }
+                    }
+                    if !calculado.is_empty() { hora_structure.insert("calculado".to_string(), Value::Object(calculado)); }
+
+                    let hora_observer = hora_data_obj
+                        .get("nombre_observador")
+                        .and_then(|v| v.as_str())
+                        .map(|s| s.to_string())
+                        .filter(|s| !s.trim().is_empty())
+                        .or_else(|| observer_name.clone());
+
+                    if let Some(name) = hora_observer {
+                        hora_structure.insert("observador".to_string(), Value::String(name));
+                    }
+
+                    horas_map.insert(hora_key.clone(), Value::Object(hora_structure));
+                }
+            }
+        }
+    horas_map
 }
 
 #[tauri::command]

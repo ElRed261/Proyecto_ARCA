@@ -1,7 +1,7 @@
 use crate::infrastructure::error::AppError;
+use crate::infrastructure::storage::write_guard::merge_json_file;
 use crate::infrastructure::storage::{
-    atomic_write, ensure_arca_dirs_with_station, normalize_station_code, offline_base_dir,
-    SYNOP_MODULE,
+    ensure_arca_dirs_with_station, normalize_station_code, offline_base_dir, SYNOP_MODULE,
 };
 use crate::json_handler::utils::{format_date_for_filename, validate_inputs};
 use crate::modules::synoptic::calculations::{calc_car, calc_dif, calc_tiempo_presente, format_dif, get_visibilidad_from_irixhv};
@@ -34,30 +34,28 @@ fn save_cli_generic(
     let file_name = format!("{}{}.json", station_id, fecha_formatted);
     let file_path = target_dir.join(file_name);
 
-    let mut root_map = if file_path.exists() {
-        let existing_data = fs::read_to_string(&file_path)?;
-        let val: Value = serde_json::from_str(&existing_data).map_err(|e| AppError::Internal(e.to_string()))?;
-        val.as_object().cloned().unwrap_or_else(serde_json::Map::new)
-    } else {
-        let mut map = serde_json::Map::new();
-        let mut meta = serde_json::Map::new();
-        meta.insert("estacion".to_string(), Value::String(station_id.to_string()));
-        meta.insert("fecha".to_string(), Value::String(fecha_formatted.clone()));
-        map.insert("meta".to_string(), Value::Object(meta));
-        map
-    };
+    // P2: write bajo lock; preserva las demás claves cli del día
+    merge_json_file(&file_path, move |root| {
+        let root = root
+            .as_object_mut()
+            .ok_or_else(|| "el documento cli debe ser un objeto".to_string())?;
+        if root.get("meta").is_none() {
+            let mut meta = serde_json::Map::new();
+            meta.insert("estacion".to_string(), Value::String(station_id.to_string()));
+            meta.insert("fecha".to_string(), Value::String(fecha_formatted.clone()));
+            root.insert("meta".to_string(), Value::Object(meta));
+        }
+        if let Some(meta) = root.get_mut("meta").and_then(|m| m.as_object_mut()) {
+            meta.insert(
+                "ultima_actualizacion".to_string(),
+                Value::String(chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string()),
+            );
+        }
+        root.insert(cli_key.to_string(), data);
+        Ok(())
+    })
+    .map_err(AppError::Internal)?;
 
-    if let Some(meta) = root_map.get_mut("meta").and_then(|m| m.as_object_mut()) {
-        meta.insert(
-            "ultima_actualizacion".to_string(),
-            Value::String(chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string()),
-        );
-    }
-
-    root_map.insert(cli_key.to_string(), data);
-
-    let json_string = serde_json::to_string_pretty(&root_map).map_err(|e| AppError::Internal(e.to_string()))?;
-    atomic_write(&file_path, &json_string)?;
 
     Ok(file_path.to_string_lossy().to_string())
 }
