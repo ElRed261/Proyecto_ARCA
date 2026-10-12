@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
-import { useNavigate } from 'react-router-dom';
 import { Save, ClipboardCheck, RefreshCw, HardDrive, Cloud, Database, FolderOpen } from 'lucide-react';
 import { open as openDialog } from '@tauri-apps/plugin-dialog';
 import { invoke } from '@tauri-apps/api/core';
@@ -76,7 +75,6 @@ const PathCard = ({ title, hint, value, onChange, onProbe, onExplore, disabled, 
  * cola de sincronización offline-first. Admin edita; sync visible a todos.
  */
 const MaintenancePage = () => {
-    const navigate = useNavigate();
 
     const [loading, setLoading] = useState(true);
     const [profile, setProfile] = useState(EMPTY_PROFILE);

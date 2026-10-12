@@ -8,6 +8,7 @@ import { ResponsiveContainer, LineChart, Line, BarChart, Bar, AreaChart, Area, X
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import { normalizeRoles, hasRole } from '../../../shared/utils/auth';
+import BackButton from '../../../shared/components/BackButton';
 
 
 const SummaryPage = () => {

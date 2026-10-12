@@ -60,10 +60,10 @@ export const meteoHeaders = {
     3: ["Ir iX H VV", "N dd ff", "1sn T T T", "2sn Td Td Td", "4 P P P P", "5 a P P P", "7 ww W1 W2"],
     5: ["8Nh CL CM CH", "333", "0CS DL DM DH", "1sn Tx Tx Tx", "2sn Tn Tn Tn", "3E j j j", "5 EEEjE"],
     7: ["5n Fn Fn Fn", "56DL DM DH", "58/59 P24P24P24", "6 RRR tr", "7R24R24R24R24", "8NsChs hs", "8NsChs hs"],
-    9: ["8NsChs hs", "8NsChs hs", "9sp sp sp sp", "9sp sp sp sp", "9sp sp sp sp", "9sp sp sp sp", "9sp sp sp sp"],
-    11: ["9sp sp sp sp", "9sp sp sp sp", "9sp sp sp sp", "9sp sp sp sp", "9sp sp sp sp", "9sp sp sp sp", "9sp sp sp sp"],
-    13: ["9sp sp sp sp", "9sp sp sp sp", "9sp sp sp sp", "9sp sp sp sp", "9sp sp sp sp", "9sp sp sp sp", "9sp sp sp sp"],
-    15: ["9sp sp sp sp", "9sp sp sp sp", "9sp sp sp sp", "9sp sp sp sp", "9sp sp sp sp", "555", "29 UUU"]
+    9: ["8NsChs hs (1)", "8NsChs hs (2)", "9Sp SpSpSp (est. 1)", "9Sp SpSpSp (est. 2)", "9Sp SpSpSp (est. 3)", "9Sp SpSpSp (est. 4)", "9Sp SpSpSp (est. 5)"],
+    11: ["9Sp SpSpSp (est. 6)", "9Sp SpSpSp (est. 7)", "9Sp SpSpSp (est. 8)", "9Sp SpSpSp (est. 9)", "9Sp SpSpSp (est. 10)", "9Sp SpSpSp (est. 11)", "9Sp SpSpSp (est. 12)"],
+    13: ["9Sp SpSpSp (est. 13)", "9Sp SpSpSp (est. 14)", "9Sp SpSpSp (est. 15)", "9Sp SpSpSp (est. 16)", "9Sp SpSpSp (est. 17)", "9Sp SpSpSp (est. 18)", "9Sp SpSpSp (est. 19)"],
+    15: ["9Sp SpSpSp (est. 20)", "9Sp SpSpSp (est. 21)", "9Sp SpSpSp (est. 22)", "9Sp SpSpSp (est. 23)", "9Sp SpSpSp (est. 24)", "555", "29 UUU"]
 };
 
 // Placeholders de la tabla meteorológica
@@ -72,10 +72,10 @@ export const meteoPlaceholders = {
     4: ["", "", "10", "20", "4", "5", "7"],
     6: ["8", "333", "0", "10", "20", "3///", ""],
     8: ["", "56", "5", "6", "7", "8", "8"],
-    10: ["8", "8", "9", "9", "9", "9", "9"],
-    12: ["9", "9", "9", "9", "9", "9", "9"],
-    14: ["9", "9", "9", "9", "9", "9", "9"],
-    16: ["9", "9", "9", "9", "9", "555", "29"]
+    10: ["8...", "8...", "9Sp…", "9Sp…", "9Sp…", "9Sp…", "9Sp…"],
+    12: ["9Sp…", "9Sp…", "9Sp…", "9Sp…", "9Sp…", "9Sp…", "9Sp…"],
+    14: ["9Sp…", "9Sp…", "9Sp…", "9Sp…", "9Sp…", "9Sp…", "9Sp…"],
+    16: ["9Sp…", "9Sp…", "9Sp…", "9Sp…", "9Sp…", "555", "29"]
 };
 
 // Estilos CSS reutilizables

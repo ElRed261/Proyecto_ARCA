@@ -16,12 +16,14 @@ const Cli4074Page = lazy(() => import('./features/synoptic/cli4074/pages/Cli4074
 const Cli5074Page = lazy(() => import('./features/synoptic/cli5074/pages/Cli5074Page'));
 import { normalizeRoles, hasRole } from './shared/utils/auth';
 import { authService } from './features/auth/api/authService';
+import RouteErrorBoundary from './shared/components/RouteErrorBoundary';
 
 const ProtectedRoute = ({ user, children }) => {
   if (!user) {
     return <Navigate to="/" replace />;
   }
-  return children;
+  // Un crash de render se confina a la sección — el resto del app sigue vivo
+  return <RouteErrorBoundary>{children}</RouteErrorBoundary>;
 };
 
 const RoleRoute = ({ user, roles, children }) => {
@@ -31,7 +33,7 @@ const RoleRoute = ({ user, roles, children }) => {
   if (!hasRole(user.roles, roles)) {
     return <Navigate to="/dashboard" replace />;
   }
-  return children;
+  return <RouteErrorBoundary>{children}</RouteErrorBoundary>;
 };
 
 function App() {
@@ -127,6 +129,7 @@ function App() {
         <Route path="/synoptic" element={
           <ProtectedRoute user={user}>
             <SynopticPage />
+          
           </ProtectedRoute>
         } />
 
@@ -137,6 +140,7 @@ function App() {
               <div className="max-w-7xl mx-auto pt-6 px-4 sm:px-6 lg:px-8">
 
                 <SummaryPage />
+          
               </div>
             </div>
           </ProtectedRoute>
@@ -148,6 +152,7 @@ function App() {
             <div className="min-h-screen bg-gray-50 pb-20">
               <div className="max-w-7xl mx-auto pt-6 px-4 sm:px-6 lg:px-8">
                 <AuditPage />
+          
               </div>
             </div>
           </RoleRoute>
@@ -158,6 +163,7 @@ function App() {
             <div className="min-h-screen bg-gray-50 pb-20">
               <div className="max-w-7xl mx-auto pt-6 px-4 sm:px-6 lg:px-8">
                 <AuditObservationPage />
+          
               </div>
             </div>
           </RoleRoute>
@@ -168,6 +174,7 @@ function App() {
             <div className="min-h-screen bg-gray-50 pb-20">
               <div className="max-w-7xl mx-auto pt-6 px-4 sm:px-6 lg:px-8">
                 <AuditReportPage />
+          
               </div>
             </div>
           </RoleRoute>
@@ -177,6 +184,7 @@ function App() {
         <Route path="/maintenance" element={
           <ProtectedRoute user={user}>
             <MaintenancePage />
+          
           </ProtectedRoute>
         } />
 
@@ -184,6 +192,7 @@ function App() {
         <Route path="/cli3074" element={
           <ProtectedRoute user={user}>
             <Cli3074Page />
+          
           </ProtectedRoute>
         } />
 
@@ -191,6 +200,7 @@ function App() {
         <Route path="/cli4074" element={
           <ProtectedRoute user={user}>
             <Cli4074Page />
+          
           </ProtectedRoute>
         } />
 
@@ -198,6 +208,7 @@ function App() {
         <Route path="/cli5074" element={
           <ProtectedRoute user={user}>
             <Cli5074Page />
+          
           </ProtectedRoute>
         } />
 

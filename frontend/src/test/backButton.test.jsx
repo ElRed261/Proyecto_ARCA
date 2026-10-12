@@ -1,8 +1,6 @@
-/* eslint-disable no-import-assign, no-toggle */
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter, useNavigate } from 'react-router-dom';
-import { createRef } from 'react';
 
 // mock de useNavigate sin tocar el router real
 vi.mock('react-router-dom', async () => {

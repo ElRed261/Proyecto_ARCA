@@ -517,7 +517,7 @@ const calcCAR = (presEst, p3) => {
                         <th colSpan="3" className={`${thClass} bg-sky-800/80`}>PRESIÓN (hPa)</th>
                         <th colSpan="2" className={`${thClass} bg-blue-800/80`}>3 H. TEND</th>
                         <th colSpan="2" className={`${thClass} bg-indigo-800/80`}>TEMPERATURA<br/><span className="text-[10px] font-normal text-indigo-200">TERMÓMETROS</span></th>
-                        <th colSpan="3" className={`${thClass} bg-violet-800/80`}>HUMEDAD</th>
+                        <th colSpan="3" className={thClass}>HUMEDAD</th>
                         <th colSpan="2" className={`${thClass} bg-fuchsia-800/80`}>VIENTO</th>
                         <th rowSpan="2" className={`${thClass} min-w-[70px]`}>VISIBILIDAD<br/>(km)</th>
                         <th colSpan={1 + fenomenosList.length} className={`${thClass} bg-slate-700`}>FENÓMENOS</th>
@@ -543,10 +543,10 @@ const calcCAR = (presEst, p3) => {
                         <th className={`${subThClass} whitespace-normal min-w-[60px] text-[10px]`}>TIEMPO PRES.</th>
                         {fenomenosList.map(f => (
                            <th key={f.key} 
-                               className={`${subThClass} min-w-[20px] max-w-[25px] cursor-help`}
+                               className={`${subThClass} min-w-[28px] max-w-[30px] cursor-help`}
                                title={f.label}
                            >
-                               <div className="w-full flex items-center justify-center -rotate-90 text-[9px] tracking-tighter uppercase overflow-hidden h-[40px] leading-none">
+                               <div className="w-full flex items-center justify-center -rotate-90 text-[10px] tracking-tight uppercase overflow-hidden h-[40px] leading-none">
                                    {f.abbr}
                                </div>
                            </th>

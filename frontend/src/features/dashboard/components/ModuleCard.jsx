@@ -8,6 +8,7 @@ import { ArrowRight } from 'lucide-react';
  *   el color de su propio módulo (glow) y el borde se tiñe — coherencia
  *   visual color↔destino (skill ui-ux-pro-max: states & variants).
  */
+// eslint-disable-next-line no-unused-vars
 const ModuleCard = ({ title, description, icon: Icon, color = 'bg-blue-500 text-blue-600', accent = '#3b82f6', onClick, status = 'active' }) => {
     const isDisabled = status === 'disabled';
     const [hovered, setHovered] = useState(false);
@@ -39,11 +40,12 @@ const ModuleCard = ({ title, description, icon: Icon, color = 'bg-blue-500 text-
         >
             {/* Fondo decorativo con gradiente difuminado blur */}
             {!isDisabled && (
-                <div className={`absolute -top-6 -right-6 w-32 h-32 rounded-full filter blur-xl opacity-20 bg-current transition-all duration-500 group-hover:scale-125 group-hover:opacity-30 ${color.split(' ')[0]}`}></div>
+                <div className="absolute -top-6 -right-6 w-32 h-32 rounded-full filter blur-xl opacity-40 transition-all duration-500 group-hover:scale-125 group-hover:opacity-70" style={{ background: `radial-gradient(circle, ${accent}66 0%, ${accent}00 70%)` }}></div>
             )}
 
             <div className="flex items-start justify-between mb-4">
-                <div className={`p-3 rounded-xl transition-all duration-500 ${isDisabled ? 'bg-slate-200' : `${color} bg-opacity-10 text-slate-700 group-hover:text-white group-hover:bg-opacity-100 group-hover:scale-110 shadow-sm`}`}>
+                <div className={`p-3 rounded-xl transition-all duration-500 ${isDisabled ? 'bg-slate-200' : `${color} bg-opacity-10 text-slate-700 group-hover:text-white group-hover:scale-110 shadow-sm`}
+                                    style={{ background: accent }}`}>
                     <Icon size={28} className={isDisabled ? 'text-slate-400' : 'transition-transform duration-500'} />
                 </div>
                 {status === 'beta' && (
