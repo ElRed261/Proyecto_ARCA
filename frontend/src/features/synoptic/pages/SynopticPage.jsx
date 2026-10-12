@@ -4,7 +4,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { ArrowLeft, Save, Upload, ArrowRight, Sun, Moon, FileText, Cloud, Clock, Sunrise, Sunset } from 'lucide-react';
 import { isAdmin } from '../../../shared/utils/auth';
 import { hourThemes, meteoHeaders, meteoPlaceholders, styles } from '../config/synopticConfig';
-import { AAXX, CONST_333, CONST_555, HOURS, EVEN_HOURS, ODD_HOURS, normalizePressure } from '../utils/synopticUtils';
+import { AAXX, CONST_333, CONST_555, HOURS, EVEN_HOURS, ODD_HOURS, normalizePressure, sanitizeSynopGroup } from '../utils/synopticUtils';
 import { bindDraft, isDraftValidFor, DRAFT_KEY } from '../utils/synopticDraft';
 import { toast } from 'react-hot-toast';
 
@@ -246,7 +246,12 @@ const SynopticPage = () => {
     return () => clearTimeout(timeoutId);
   }, [activeHour, JSON.stringify(currentCalcInput), performCalculations, isLoading]);
 
-  const handleChange = (key, value) => {
+  const handleChange = (key, rawValue) => {
+    // Grupos SYNOP: máximo 5 caracteres, solo dígitos y "/" (ausencia)
+    const value =
+      key.startsWith('meteo_') || key.startsWith('extra_')
+        ? sanitizeSynopGroup(rawValue)
+        : rawValue;
     // Regla de exclusión mutua: 0CS DL DM DH vs 56 DL DM DH
     // Si se usa meteo_6_2 (0CS), limpiar meteo_8_1 (56)
     // Si se usa meteo_8_1 (56), limpiar meteo_6_2 (0CS)
@@ -939,6 +944,7 @@ newObservations[hora] = {
                         className={results.include_weather ? inputClass : `${inputClass} opacity-50`}
                         placeholder="7"
                         value={getValue('meteo_4_6')}
+                        maxLength={5}
                         onChange={(e) => handleChange('meteo_4_6', e.target.value)}
                         onKeyDown={handleKeyDown}
                         disabled={!results.include_weather}
@@ -961,6 +967,7 @@ newObservations[hora] = {
               className={has56DLDM ? `${inputClass} opacity-50 bg-gray-200` : inputClass} 
               placeholder="0" 
               value={getValue('meteo_6_2')} 
+              maxLength={5}
               onChange={(e) => handleChange('meteo_6_2', e.target.value)} 
               onKeyDown={handleKeyDown} 
               disabled={has56DLDM}
@@ -971,6 +978,7 @@ newObservations[hora] = {
               className={isEvenHour ? inputClass : `${inputClass} opacity-50 bg-gray-200`}
               placeholder="10"
               value={getValue('meteo_6_3')}
+              maxLength={5}
               onChange={(e) => handleChange('meteo_6_3', e.target.value)}
               onKeyDown={handleKeyDown}
               disabled={!isEvenHour}
@@ -981,6 +989,7 @@ newObservations[hora] = {
               className={isEvenHour ? inputClass : `${inputClass} opacity-50 bg-gray-200`}
               placeholder="20"
               value={getValue('meteo_6_4')}
+              maxLength={5}
               onChange={(e) => handleChange('meteo_6_4', e.target.value)}
               onKeyDown={handleKeyDown}
               disabled={!isEvenHour}
@@ -1015,6 +1024,7 @@ newObservations[hora] = {
               className={disable56 ? `${inputClass} opacity-50 bg-gray-200` : inputClass} 
               placeholder="56" 
               value={getValue('meteo_8_1')} 
+              maxLength={5}
               onChange={(e) => handleChange('meteo_8_1', e.target.value)} 
               onKeyDown={handleKeyDown} 
               disabled={disable56}
@@ -1031,6 +1041,7 @@ newObservations[hora] = {
                         className={results.include_precipitation ? inputClass : `${inputClass} opacity-50`}
                         placeholder="6"
                         value={getValue('meteo_8_3')}
+                        maxLength={5}
                         onChange={(e) => handleChange('meteo_8_3', e.target.value)}
                         onKeyDown={handleKeyDown}
                         disabled={!results.include_precipitation}
@@ -1279,6 +1290,7 @@ newObservations[hora] = {
                     className={`${inputClass} !w-full`}
                     placeholder="8..."
                     value={getValue('extra_8ns_1')}
+                    maxLength={5}
                     onChange={(e) => handleChange('extra_8ns_1', e.target.value)}
                     onKeyDown={handleKeyDown}
                     title="Ns=nubosidad, C=tipo, hshs=altura"
@@ -1290,6 +1302,7 @@ newObservations[hora] = {
                     className={`${inputClass} !w-full`}
                     placeholder="8..."
                     value={getValue('extra_8ns_2')}
+                    maxLength={5}
                     onChange={(e) => handleChange('extra_8ns_2', e.target.value)}
                     onKeyDown={handleKeyDown}
                     title="Ns=nubosidad, C=tipo, hshs=altura"

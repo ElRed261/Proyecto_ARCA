@@ -71,6 +71,8 @@ pub fn save_observation_json_core(
 ) -> Result<HashMap<String, String>, String> {
     validate_inputs(&station_code, &fecha)
         .map_err(|e| SaveErr::new("validate", None, e).to_json_string())?;
+    validar_grupos_synop(&observations)
+        .map_err(|e| SaveErr::new("validate", None, e).to_json_string())?;
     let station_code = normalize_station_code(&station_code);
     let (year, month) = parse_date_parts(&fecha)
         .map_err(|e| SaveErr::new("validate", None, e).to_json_string())?;
@@ -456,4 +458,45 @@ pub fn get_station_date_range(
     res.insert("oldest_date".to_string(), oldest);
     res.insert("newest_date".to_string(), newest);
     Ok(res)
+}
+
+/// Valida los grupos SYNOP (campos met_* / extra_* de cada hora):
+/// máximo 5 caracteres, solo dígitos y "/" (ausencia de datos).
+/// Fallo con el nombre del campo primero que incumple — nada se escribe.
+/// (Es la garantía del lado servidor: el maxlength del HTML es sugerencia,
+/// no contrato.)
+fn validar_grupos_synop(observations: &Value) -> Result<(), String> {
+    let Some(horas) = observations.as_object() else {
+        return Ok(()); // sin horas que validar
+    };
+    for (hora_key, hora_data) in horas {
+        let Some(campo_map) = hora_data.as_object() else {
+            continue;
+        };
+        for (campo, valor) in campo_map {
+            let es_grupo = campo.starts_with("meteo_") || campo.starts_with("extra_");
+            if !es_grupo {
+                continue;
+            }
+            let Some(s) = valor.as_str() else {
+                continue; // null u otros tipos: la lógica de merge ya los tolera
+            };
+            if s.chars().count() > 5 {
+                return Err(format!(
+                    "el grupo '{}' en hora {} excede 5 caracteres ({}). \
+                     Ejemplos válidos: 32466, 120//, /////
+                     ",
+                    campo, hora_key, s
+                ));
+            }
+            if let Some(bad_pos) = s.chars().position(|c| !(c.is_ascii_digit() || c == '/')) {
+                return Err(format!(
+                    "el grupo '{}' en hora {} contiene un carácter inválido en la \
+                     posición {} (solo dígitos y '/')",
+                    campo, hora_key, bad_pos + 1
+                ));
+            }
+        }
+    }
+    Ok(())
 }

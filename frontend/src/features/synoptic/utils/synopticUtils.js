@@ -127,3 +127,15 @@ export const safeValue = (val) => {
     if (val === undefined || val === null) return '';
     return String(val);
 };
+
+/**
+ * Sanitizador de grupos SYNOP ( Campo met_* / extra_*):
+ * - máximo 5 caracteres (todo grupo OMM FM 12 es de 5)
+ * - solo dígitos y "/" (ausencia de datos)
+ */
+export const sanitizeSynopGroup = (value) => {
+    if (value === null || value === undefined) return '';
+    return String(value)
+        .replace(/[^0-9/]/g, '')
+        .slice(0, 5);
+};
