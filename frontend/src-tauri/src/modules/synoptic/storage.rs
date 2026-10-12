@@ -4,7 +4,7 @@ use std::fs;
 use std::path::Path;
 use tauri::AppHandle;
 
-use crate::infrastructure::storage::write_guard::merge_json_file;
+use crate::infrastructure::storage::write_guard::{merge_json_file, SaveErr};
 use crate::infrastructure::storage::{
     create_backup, ensure_arca_dirs_with_station, normalize_station_code, offline_base_dir,
     SYNOP_MODULE,
@@ -54,11 +54,15 @@ pub fn save_observation_json_core(
     cli5074: Option<Value>,
     backup: impl FnOnce(&Path) -> Option<String>,
 ) -> Result<HashMap<String, String>, String> {
-    validate_inputs(&station_code, &fecha)?;
+    validate_inputs(&station_code, &fecha)
+        .map_err(|e| SaveErr::new("validate", None, e).to_json_string())?;
     let station_code = normalize_station_code(&station_code);
-    let (year, month) = parse_date_parts(&fecha)?;
+    let (year, month) = parse_date_parts(&fecha)
+        .map_err(|e| SaveErr::new("validate", None, e).to_json_string())?;
 
-    let dir_path = ensure_arca_dirs_with_station(base_dir, &station_code, &year, &month)?;
+    let esperado_dir = crate::infrastructure::storage::station_dir(base_dir, &station_code, &year, &month);
+    let dir_path = ensure_arca_dirs_with_station(base_dir, &station_code, &year, &month)
+        .map_err(|e| SaveErr::new("dirs", Some(&esperado_dir), e).to_json_string())?;
 
     let fecha_formatted = format_date_for_filename(&fecha);
     let filename = format!("{}{}.json", station_code, fecha_formatted);
@@ -108,7 +112,7 @@ pub fn save_observation_json_core(
         }
         Ok(())
     })
-    .map_err(|e| e.to_string())?;
+    .map_err(|e| e.to_json_string())?;
 
 
     let mut res = HashMap::new();

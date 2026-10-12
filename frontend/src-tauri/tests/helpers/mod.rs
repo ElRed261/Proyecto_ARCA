@@ -94,3 +94,36 @@ pub fn create_user_and_login(pool: &DbPool) -> TestUser {
     let email = format!("user_{}@arca.test", unique_suffix());
     TestUser::create(pool, &email, "Clave123!", "admin")
 }
+/// FECHA_OK: fecha válida estándar para tests de flujo de guardado.
+pub const FECHA_OK: &str = "2026-08-15";
+
+/// Variante con retorno del dir temporal (para tests que deben leer el disco aparte).
+pub fn with_arca_dir_returning(f: impl FnOnce(&Path) -> PathBuf) -> PathBuf {
+    let dir = temp_base_dir();
+    std::env::set_var("ARCA_BASE_DIR", &dir);
+    let res = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| f(&dir)));
+    std::env::remove_var("ARCA_BASE_DIR");
+    match res {
+        Ok(v) => v,
+        Err(panic) => std::panic::resume_unwind(panic),
+    }
+}
+
+/// Crea un archivo de observación CORRUPTO en el layout real:
+/// {base}/synop/{station}/{year}/{month}/{station}{DDMMYYYY}.json
+/// y devuelve (base, filepath).
+pub fn with_obs_target_corrupt(fecha: &str) -> (PathBuf, PathBuf) {
+    use std::fs;
+    let base = temp_base_dir();
+    let parts: Vec<&str> = fecha.split('-').collect();
+    let filename = format!("78451{}{}{}.json", parts[2], parts[1], parts[0]);
+    let file = base
+        .join("synop")
+        .join("78451")
+        .join(parts[0])
+        .join(parts[1])
+        .join(&filename);
+    fs::create_dir_all(file.parent().expect("hay parent")).expect("mkdirs");
+    fs::write(&file, "{Esto no es JSON válido").expect("escribir corrupto");
+    (base, file)
+}

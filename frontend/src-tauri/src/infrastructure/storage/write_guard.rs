@@ -15,6 +15,38 @@ use std::time::{Duration, Instant};
 /// inyecta a nivel raíz; los lectores pueden migrar versiones viejas después.
 pub const SCHEMA_VERSION: i64 = 1;
 
+/// P2.5 — error de guardado estructurado: {stage, path, detail}.
+/// stage ∈ {lock, read, logic, write, validate, dirs}; siempre serializable a JSON.
+#[derive(Debug, serde::Serialize)]
+pub struct SaveErr {
+    pub stage: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub path: Option<String>,
+    pub detail: String,
+}
+
+impl std::fmt::Display for SaveErr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.to_json_string())
+    }
+}
+
+impl SaveErr {
+    pub fn new(stage: &str, path: Option<&Path>, detail: impl std::fmt::Display) -> Self {
+        Self {
+            stage: stage.to_string(),
+            path: path.map(|p| p.to_string_lossy().to_string()),
+            detail: detail.to_string(),
+        }
+    }
+
+    pub fn to_json_string(&self) -> String {
+        serde_json::to_string(self).unwrap_or_else(|_| {
+            format!("{{\"stage\":\"{}\",\"detail\":\"{}\"}}", self.stage, self.detail)
+        })
+    }
+}
+
 const LOCK_POLL: Duration = Duration::from_millis(5);
 const LOCK_STALE_DEFAULT: Duration = Duration::from_secs(30);
 
@@ -140,20 +172,23 @@ fn lockfile_for(target: &Path) -> PathBuf {
 ///
 /// `mutate` recibe el documento completo (objeto nuevo si el archivo no existe)
 /// y devuelve Err para abortar sin escribir nada.
-pub fn merge_json_file<F>(target: &Path, mutate: F) -> Result<serde_json::Value, String>
+pub fn merge_json_file<F>(target: &Path, mutate: F) -> Result<serde_json::Value, SaveErr>
 where
     F: FnOnce(&mut serde_json::Value) -> Result<(), String>,
 {
-    let _lock = FileLock::acquire_default(target)?;
+    let _lock = FileLock::acquire_default(target)
+        .map_err(|e| SaveErr::new("lock", Some(target), e))?;
 
     let mut doc: serde_json::Value = if target.exists() {
-        let raw = fs::read_to_string(target).map_err(|e| format!("error leyendo {:?}: {}", target, e))?;
-        serde_json::from_str(&raw).map_err(|e| format!("JSON corrupto en {:?}: {}", target, e))?
+        let raw = fs::read_to_string(target)
+            .map_err(|e| SaveErr::new("read", Some(target), e))?;
+        serde_json::from_str(&raw)
+            .map_err(|e| SaveErr::new("read", Some(target), format!("JSON corrupto: {}", e)))?
     } else {
         serde_json::json!({})
     };
 
-    mutate(&mut doc)?;
+    mutate(&mut doc).map_err(|e| SaveErr::new("logic", Some(target), e))?;
 
     // P2.3: toda escritura inyecta schema_version a nivel raíz
     if let Some(obj) = doc.as_object_mut() {
@@ -163,8 +198,9 @@ where
         );
     }
 
-    let pretty = serde_json::to_string_pretty(&doc).map_err(|e| e.to_string())?;
-    atomic_write_sync(target, &pretty).map_err(|e| format!("error escribiendo {:?}: {}", target, e))?;
+    let pretty = serde_json::to_string_pretty(&doc)
+        .map_err(|e| SaveErr::new("write", Some(target), e))?;
+    atomic_write_sync(target, &pretty).map_err(|e| SaveErr::new("write", Some(target), e))?;
 
     Ok(doc)
 }
@@ -281,7 +317,9 @@ mod write_guard_tests {
 
         let err = merge_json_file(&target, |_doc| Err("regla de negocio violada".to_string()))
             .expect_err("el abort debe propagarse");
-        assert!(err.contains("regla"), "fue: {}", err);
+        let err_json = err.to_json_string();
+        assert!(err_json.contains("regla"), "fue: {}", err_json);
+        assert_eq!(err.stage, "logic", "el abort de la regla debe marcar stage logic");
 
         let raw = fs::read_to_string(&target).unwrap();
         assert!(raw.contains("previo"), "el archivo debe quedar intacto tras abort");

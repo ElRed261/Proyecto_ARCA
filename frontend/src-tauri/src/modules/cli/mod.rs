@@ -54,7 +54,7 @@ fn save_cli_generic(
         root.insert(cli_key.to_string(), data);
         Ok(())
     })
-    .map_err(AppError::Internal)?;
+    .map_err(|e| AppError::Internal(e.to_json_string()))?;
 
 
     Ok(file_path.to_string_lossy().to_string())
