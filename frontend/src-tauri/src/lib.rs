@@ -33,6 +33,7 @@ pub fn run() {
             audit::commands::audit_browse_stations,
             audit::commands::audit_browse_years,
             audit::commands::audit_browse_months,
+            audit::commands::audit_migrate_legacy_months,
             audit::commands::audit_browse_days,
             audit::commands::audit_load_observation,
             audit::commands::audit_mark_error,

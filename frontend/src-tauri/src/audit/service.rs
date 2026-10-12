@@ -59,6 +59,110 @@ pub fn map_frontend_to_json_calculado_field(campo: &str) -> Option<&'static str>
     }
 }
 
+/// P1.6 — Listing de meses como PURE lectura: los meses legacy en español
+/// se traducen a su número para el output, pero jamás se renombra nada aquí.
+pub fn months_core(
+    base_dir: &Path,
+    station: &str,
+    year: &str,
+) -> Result<Vec<String>, AppError> {
+    let year_dir = base_dir
+        .join(normalize_station_code(station))
+        .join(year);
+
+    let mut months = Vec::new();
+    if year_dir.exists() {
+        if let Ok(entries) = fs::read_dir(&year_dir) {
+            for entry in entries.flatten() {
+                if entry.file_type().map(|t| t.is_dir()).unwrap_or(false) {
+                    let name = entry.file_name().to_string_lossy().to_string();
+                    if name.len() == 2 && name.chars().all(|c| c.is_ascii_digit()) {
+                        months.push(name);
+                    } else if let Some(num) = month_name_to_num(&name) {
+                        months.push(num.to_string());
+                    }
+                }
+            }
+        }
+    }
+    months.sort();
+    months.dedup();
+    Ok(months)
+}
+
+/// Estadísticas de la migración one-shot.
+#[derive(Debug, Clone, Copy, serde::Serialize)]
+pub struct MigrationStats {
+    pub renamed_dirs: u32,
+    pub moved_files: u32,
+}
+
+/// P1.6 — Migración one-shot Dir Español→Num:
+/// - idempotente: un segundo run no toca nada
+/// - sin colisiones: si ya existe el num dir, mueve SOLO los archivos que no chocan
+pub fn migrate_legacy_month_dirs_core(base_dir: &Path) -> Result<MigrationStats, AppError> {
+    let mut renamed = 0u32;
+    let mut moved = 0u32;
+
+    if !base_dir.exists() {
+        return Ok(MigrationStats { renamed_dirs: 0, moved_files: 0 });
+    }
+
+    // station dirs (ya normalizados a minúsculas por P1.5)
+    for station_entry in fs::read_dir(base_dir).map_err(AppError::Io)? {
+        let station_entry = station_entry.map_err(AppError::Io)?;
+        if !station_entry.file_type().map(|t| t.is_dir()).unwrap_or(false) {
+            continue;
+        }
+        // year dirs
+        for year_entry in fs::read_dir(station_entry.path()).map_err(AppError::Io)? {
+            let year_entry = year_entry.map_err(AppError::Io)?;
+            if !year_entry.file_type().map(|t| t.is_dir()).unwrap_or(false) {
+                continue;
+            }
+            // month dirs legacy
+            for month_entry in fs::read_dir(year_entry.path()).map_err(AppError::Io)? {
+                let month_entry = month_entry.map_err(AppError::Io)?;
+                if !month_entry.file_type().map(|t| t.is_dir()).unwrap_or(false) {
+                    continue;
+                }
+                let legacy_name = month_entry.file_name().to_string_lossy().to_string();
+                let Some(num) = month_name_to_num(&legacy_name) else { continue };
+
+                let old_path = month_entry.path();
+                let new_path = year_entry.path().join(num);
+
+                if !new_path.exists() {
+                    fs::rename(&old_path, &new_path).map_err(AppError::Io)?;
+                    renamed += 1;
+                } else {
+                    // merge: mover solo los archivos que no chocan por nombre
+                    for f in fs::read_dir(&old_path).map_err(AppError::Io)? {
+                        let f = f.map_err(AppError::Io)?;
+                        let f_old = f.path();
+                        if !f_old.is_file() {
+                            continue;
+                        }
+                        let Some(fname) = f_old.file_name() else { continue };
+                        let f_new = new_path.join(fname);
+                        if f_new.exists() {
+                            continue; // no pisa contenido nuevo
+                        }
+                        fs::rename(&f_old, &f_new).map_err(AppError::Io)?;
+                        moved += 1;
+                    }
+                    // solo borra si quedó vacía (no destructivo)
+                    if fs::read_dir(&old_path).map(|mut d| d.next().is_none()).unwrap_or(false) {
+                        fs::remove_dir(&old_path).map_err(AppError::Io)?;
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(MigrationStats { renamed_dirs: renamed, moved_files: moved })
+}
+
 pub fn load_observation_with_audit(
     pool: &crate::db::DbPool,
     app_handle: &AppHandle,

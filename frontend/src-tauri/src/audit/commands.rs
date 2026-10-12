@@ -1,5 +1,7 @@
 use crate::infrastructure::error::AppError;
 use crate::infrastructure::storage::{normalize_station_code, offline_base_dir, SYNOP_MODULE};
+use crate::modules::auth::{require_role, SessionStore};
+use tauri::State;
 use crate::ports::AuditRepository;
 use crate::audit::{StationInfo, DayInfo, ErrorMark, Correction, AuditObservationData, ErrorReportRow, PersonSummaryRow};
 use crate::audit::service;
@@ -61,46 +63,10 @@ pub fn audit_browse_months(
     station: String,
     year: String,
 ) -> Result<Vec<String>, AppError> {
-    let mut year_dir = offline_base_dir(&app_handle, SYNOP_MODULE).map_err(AppError::Internal)?;
-    year_dir.push(normalize_station_code(&station));
-    year_dir.push(&year);
-
-    if !year_dir.exists() {
-        return Ok(Vec::new());
-    }
-
-    let mut months = Vec::new();
-    if let Ok(entries) = fs::read_dir(&year_dir) {
-        for entry in entries.flatten() {
-            if entry.file_type().map(|t| t.is_dir()).unwrap_or(false) {
-                let name = entry.file_name().to_string_lossy().to_string();
-                if name.len() == 2 && name.chars().all(|c| c.is_ascii_digit()) {
-                    months.push(name);
-                } else if let Some(num) = service::month_name_to_num(&name) {
-                    let old_path = entry.path();
-                    let new_path = year_dir.join(num);
-                    if !new_path.exists() {
-                        let _ = fs::rename(&old_path, &new_path);
-                        months.push(num.to_string());
-                    } else {
-                        if let Ok(files) = fs::read_dir(&old_path) {
-                            for f in files.flatten() {
-                                let f_old = f.path();
-                                if let Some(fname) = f_old.file_name() {
-                                    let f_new = new_path.join(fname);
-                                    let _ = fs::rename(&f_old, &f_new);
-                                }
-                            }
-                        }
-                        let _ = fs::remove_dir(&old_path);
-                    }
-                }
-            }
-        }
-    }
-    months.sort();
-    months.dedup();
-    Ok(months)
+    let base_dir = offline_base_dir(&app_handle, SYNOP_MODULE).map_err(AppError::Internal)?;
+    // P1.6: lectura pura — los meses legacy se muestran por su número, sin renombrar.
+    // La migración real es el comando one-shot `audit_migrate_legacy_months`.
+    service::months_core(&base_dir, &normalize_station_code(&station), &year)
 }
 
 #[tauri::command]
@@ -388,4 +354,17 @@ pub fn audit_get_person_summary(
 ) -> Result<Vec<PersonSummaryRow>, AppError> {
     let repo = crate::adapters::sqlite_audit_repository::SqliteAuditRepository::new(pool.inner().clone());
     repo.get_person_summary(station_id, year, month)
+}
+
+/// P1.6 — Migración one-shot de directorios de meses legacy (español → numérico).
+/// Idempotente: correr de nuevo no hace nada. Solo admin.
+#[tauri::command]
+pub fn audit_migrate_legacy_months(
+    app_handle: AppHandle,
+    session_store: State<'_, SessionStore>,
+    token: String,
+) -> Result<service::MigrationStats, AppError> {
+    require_role(&session_store, &token, &["admin"])?;
+    let base_dir = offline_base_dir(&app_handle, SYNOP_MODULE).map_err(AppError::Internal)?;
+    service::migrate_legacy_month_dirs_core(&base_dir)
 }
