@@ -5,6 +5,7 @@ import { ArrowLeft, Save, Upload, ArrowRight, Sun, Moon, FileText, Cloud, Clock,
 import { isAdmin } from '../../../shared/utils/auth';
 import { hourThemes, meteoHeaders, meteoPlaceholders, styles } from '../config/synopticConfig';
 import { AAXX, CONST_333, CONST_555, HOURS, EVEN_HOURS, ODD_HOURS, normalizePressure } from '../utils/synopticUtils';
+import { bindDraft, isDraftValidFor, DRAFT_KEY } from '../utils/synopticDraft';
 import { toast } from 'react-hot-toast';
 
 // =============================================================================
@@ -30,11 +31,17 @@ const SynopticPage = () => {
   // =========================================================================
   // SESSION STORAGE DRAFT — Persistir estado al navegar a sub-módulos
   // =========================================================================
-  const DRAFT_KEY = 'synoptic_draft';
-
   const saveDraft = () => {
     try {
-      const draft = { observations: observationsRef.current, activeHour: activeHourRef.current, resultsPerHour: resultsPerHourRef.current };
+      const draft = bindDraft(
+        {
+          observations: observationsRef.current,
+          activeHour: activeHourRef.current,
+          resultsPerHour: resultsPerHourRef.current,
+        },
+        getValueRef.current ? getValueRef.current('station_id') : null,
+        getValueRef.current ? getValueRef.current('fecha') : null
+      );
       sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
     } catch (e) { console.warn('Error guardando draft:', e); }
   };
@@ -52,14 +59,15 @@ const SynopticPage = () => {
   // Estado inicial: tomar del draft o crear vacío
   const savedDraft = loadDraft();
 
+  const draftUsable = !!(savedDraft?.station && savedDraft?.fecha);
   const [observations, setObservations] = useState(
-    savedDraft?.observations || hours.reduce((acc, hour) => ({ ...acc, [hour]: {} }), {})
+    draftUsable ? savedDraft.observations : hours.reduce((acc, hour) => ({ ...acc, [hour]: {} }), {})
   );
 
   // Hora activa por defecto: tomar de la navegación, del draft o valor por defecto
-  const [activeHour, setActiveHour] = useState(location.state?.activeHour || savedDraft?.activeHour || '06Z');
+  const [activeHour, setActiveHour] = useState(draftUsable ? (location.state?.activeHour || savedDraft.activeHour || '06Z') : '06Z');
   const [results, setResults] = useState({});
-  const [resultsPerHour, setResultsPerHour] = useState(savedDraft?.resultsPerHour || {});
+  const [resultsPerHour, setResultsPerHour] = useState(draftUsable ? savedDraft.resultsPerHour : {});
   const [errorMessage, setErrorMessage] = useState('');
   const [stations, setStations] = useState({});
   // eslint-disable-next-line no-unused-vars
@@ -75,6 +83,44 @@ const SynopticPage = () => {
   React.useEffect(() => { observationsRef.current = observations; }, [observations]);
   React.useEffect(() => { activeHourRef.current = activeHour; }, [activeHour]);
   React.useEffect(() => { resultsPerHourRef.current = resultsPerHour; }, [resultsPerHour]);
+  // P4.4: autoguardado del draft en cada cambio (como los CLIs ya hacían)
+  React.useEffect(() => {
+    const id = setTimeout(() => {
+      try {
+        const st = getValueRef.current ? getValueRef.current('station_id') : null;
+        const f = getValueRef.current ? getValueRef.current('fecha') : null;
+        if (!st || !f) return;
+        const draft = bindDraft(
+          {
+            observations: observationsRef.current,
+            activeHour: activeHourRef.current,
+            resultsPerHour: resultsPerHourRef.current,
+          },
+          st,
+          f
+        );
+        sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+      } catch (e) {
+        console.warn('Error autosave draft:', e);
+      }
+    }, 500);
+    return () => clearTimeout(id);
+  }, [observations, activeHour, resultsPerHour]);
+
+  // P4.4: aviso del navegador si el usuario cierra con datos sin guardar
+  React.useEffect(() => {
+    const handler = (e) => {
+      e.preventDefault();
+      e.returnValue = '';
+      return '';
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, []);
+
+  const getValueRef = React.useRef(null);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  React.useEffect(() => { getValueRef.current = getValue; }, [observations, activeHour]);
 
   // Si restauramos draft, quitar flag isLoading después de montar
   React.useEffect(() => {
@@ -315,6 +361,12 @@ const SynopticPage = () => {
       });
 
       if (response.success) {
+        // P4.3: feedback honesto del estado online del save dual
+        if (response.online_saved === true) {
+          toast.success('Observación guardada · enviada a la raíz online ✓');
+        } else if (response.online_error) {
+          toast.error(`Guardado offline ✓ · online pendiente: ${response.online_error}`);
+        }
         // Mostrar confirmación con fecha formateada
         const fecha = getValue('fecha');
         const fechaFormatted = fecha ? (() => {
@@ -333,7 +385,15 @@ const SynopticPage = () => {
       }
     } catch (error) {
       console.error('Error al guardar:', error);
-      toast.error('Error al guardar la observación');
+      // P4.3: el backend devuelve {stage, path, detail} — mostrarlo real
+      let detail = null;
+      try {
+        const parsed = typeof error === 'string' ? JSON.parse(error) : null;
+        if (parsed && parsed.stage) {
+          detail = `etapa ${parsed.stage}${parsed.path ? ` (${parsed.path})` : ''}: ${parsed.detail}`;
+        }
+      } catch { /* no era JSON estructurado */ }
+      toast.error(`Error al guardar la observación${detail ? ` — ${detail}` : ''}`);
     }
   };
 
@@ -359,14 +419,6 @@ const SynopticPage = () => {
       return;
     }
 
-    // CONFIRMACIÓN: Preguntar antes de navegar
-    const directionText = direction === 1 ? 'siguiente' : 'anterior';
-    const confirmed = window.confirm(
-      `¿Desea ir al día ${directionText}?\n\nEl día actual será guardado automáticamente.`
-    );
-    if (!confirmed) {
-      return;
-    }
 
     // VALIDACIÓN 1: Si vamos hacia ATRÁS, verificar que no sea la fecha más antigua
     if (direction === -1) {
@@ -449,7 +501,18 @@ const SynopticPage = () => {
         });
 
         setObservations(newObservations);
-        setActiveHour('06Z'); // Reset a 06Z como default al cambiar de día
+        // P4.4: draft viejo de otra estación/fecha no resucita datos cargados
+        try {
+          const raw = sessionStorage.getItem(DRAFT_KEY);
+          if (raw) {
+            const persisted = JSON.parse(raw);
+            if (!isDraftValidFor(persisted, currentStation, targetDate)) {
+              sessionStorage.removeItem(DRAFT_KEY);
+            }
+          }
+        } catch { /* draft corrupto: se ignora */ }
+        // P4.5: conservar la hora activa del observador al cambiar de día
+        setActiveHour((h) => h);
         setTimeout(() => setIsLoading(false), 100);
         console.log(`📂 Cargado día existente: ${targetDate}`);
       }
@@ -477,7 +540,8 @@ const SynopticPage = () => {
       }
     }
 
-    setActiveHour('06Z');
+    // P4.5: mantener la hora activa entre días (no resetear a 06Z)
+    setActiveHour((h) => h);
     setResults({});
   };
 

@@ -42,6 +42,14 @@ const DashboardPage = ({ user, onLogout, onNavigate }) => {
             color: 'bg-gray-600 text-gray-700',
             status: 'active'
         },
+        {
+            id: 'maintenance',
+            title: 'Configuración & Sync',
+            description: 'Rutas de guardado, carpeta Drive online y estado de sincronización.',
+            icon: Settings,
+            color: 'bg-teal-600 text-teal-700',
+            status: 'active'
+        },
     ];
 
     // Filtrar módulos según rol
