@@ -58,7 +58,9 @@ pub fn run() {
             monthly_summary::commands::ms_export_excel,
             monthly_summary::commands::ms_delete_summary,
             app_config::set_app_config,
-            app_config::get_assigned_station
+            app_config::get_assigned_station,
+            infrastructure::storage::paths_config::get_path_config,
+            infrastructure::storage::paths_config::set_path_config
         ])
         .setup(|app| {
             let pool = db::init_db(app.handle())

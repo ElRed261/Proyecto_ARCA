@@ -1,3 +1,5 @@
+pub mod paths_config;
+
 use std::fs;
 use std::path::{Path, PathBuf};
 use tauri::{AppHandle, Manager};
