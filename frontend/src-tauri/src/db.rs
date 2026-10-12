@@ -118,6 +118,8 @@ pub fn get_migrations() -> Migrations<'static> {
                 ON error_marks(station_id, fecha, hora, campo);
             "#
         ),
+        // P3: cola offline-first de sincronización dual-destination.
+        M::up(crate::infrastructure::storage::sync_queue::MIGATION_SQL),
     ])
 }
 

@@ -1,4 +1,5 @@
 pub mod paths_config;
+pub mod sync_queue;
 pub mod write_guard;
 
 pub use paths_config::offline_base_dir;
