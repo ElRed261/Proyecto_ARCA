@@ -69,8 +69,13 @@ const Sidebar = ({ user, onLogout, collapsed, onToggle }) => {
                 className="flex items-center gap-2.5 px-4 h-16 border-b border-slate-100 cursor-pointer"
                 aria-label="ARCA — ir al inicio"
             >
-                <span className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center font-extrabold text-lg flex-none">
-                    A
+                <span className="flex-none leading-none" aria-hidden="true">
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="#2563EB" />
+                        <path d="M2 17L12 22L22 17" stroke="#2563EB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        <path d="M2 12L12 17L22 12" stroke="#60A5FA" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        <path d="M12 22V12" stroke="#2563EB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
                 </span>
                 {!collapsed && (
                     <span className="hidden lg:block text-left leading-none">

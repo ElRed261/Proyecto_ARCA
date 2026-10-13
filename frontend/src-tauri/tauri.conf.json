@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Proyecto ARCA - Sistema Meteorológico",
+        "title": "Proyecto ARCA - OMS (Observations Management System)",
         "width": 1400,
         "height": 900,
         "minWidth": 1200,

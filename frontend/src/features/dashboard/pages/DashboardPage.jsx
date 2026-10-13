@@ -1,85 +1,157 @@
-import React from 'react';
-import ModuleCard from '../components/ModuleCard';
-import { Activity, Calendar, ShieldCheck, Settings } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { invoke } from '@tauri-apps/api/core';
+import { ArrowRight, CloudOff, CloudCheck, CalendarDays } from 'lucide-react';
 
+const HOURS = ['00Z', '03Z', '06Z', '09Z', '12Z', '15Z', '18Z', '21Z'];
 
-import { hasRole } from '../../../shared/utils/auth';
+const todayLocal = () => {
+    const d = new Date();
+    const p = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+};
 
-const DashboardPage = ({ user, onLogout, onNavigate }) => {
+const hourDone = (h) => {
+    if (!h || typeof h !== 'object') return false;
+    return ['ts', 'th', 'pres_est'].some((k) => h[k] !== undefined && h[k] !== null && String(h[k]).trim() !== '');
+};
 
-    const modules = [
-        {
-            id: 'synoptic',
-            title: 'Observación Sinóptica',
-  description: 'Observaciones por hora con grupos SYNOP y planillas.',
-  icon: Activity,
-  color: 'bg-blue-500 text-blue-600',
-  accent: '#3b82f6',
-  status: 'active'
-},
-{
-  id: 'summary',
-  title: 'Resumen Mensual',
-  description: 'KPIs mensuales con gráficos y exportación.',
-  icon: Calendar,
-  color: 'bg-purple-500 text-purple-600',
-  accent: '#a855f7',
-  status: 'active'
-},
-        {
-            id: 'audit',
-            title: 'Correcciones y Auditoría',
-            description: 'Errores marcados y correcciones justificadas por estación.',
-            icon: ShieldCheck,
-            color: 'bg-orange-500 text-orange-600',
-            accent: '#f97316',
-            status: 'active'
-        },
-        {
-            id: 'admin',
-            title: 'Seguridad & Admin',
-            description: 'Gestión de usuarios, roles y permisos.',
-            icon: Settings,
-            color: 'bg-gray-600 text-gray-700',
-            accent: '#64748b',
-            status: 'active'
-        },
-        {
-            id: 'maintenance',
-            title: 'Configuración & Sync',
-            description: 'Rutas de guardado, bloqueo de estación y estado de sincronización.',
-            icon: Settings,
-            color: 'bg-teal-600 text-teal-700',
-            accent: '#0d9488',
-            status: 'active'
-        },
-    ];
+/**
+ * Inicio — centro de operaciones del día (el rail es la navegación;
+ * aquí no se duplican los módulos: se muestra el ESTADO accionable).
+ */
+const DashboardPage = ({ onNavigate }) => {
+    const [loading, setLoading] = useState(true);
+    const [stations, setStations] = useState({});
+    const [today, setToday] = useState({});
+    const [monthDays, setMonthDays] = useState({});
+    const [sync, setSync] = useState(null);
 
-    // Filtrar módulos según rol
-    const isAdmin = hasRole(user.roles, ['admin', 'administrador']);
+    const fecha = todayLocal();
+    const [year, month] = fecha.split('-').slice(0, 2);
 
-    const visibleModules = modules.filter(mod => {
-        if (mod.id === 'admin') return isAdmin;
-        return true;
-    });
+    const load = useCallback(async () => {
+        setLoading(true);
+        try {
+            const st = (await invoke('get_stations')) || {};
+            setStations(st);
+            const codes = Object.keys(st);
+            const [obs, days, syncStatus] = await Promise.all([
+                Promise.all(
+                    codes.map((code) =>
+                        invoke('get_observation', { stationCode: code, fecha })
+                            .then((o) => [code, o || {}])
+                            .catch(() => [code, {}])
+                    )
+                ).then((pairs) => Object.fromEntries(pairs)),
+                Promise.all(
+                    codes.map((code) =>
+                        invoke('audit_browse_days', { station: code, year, month })
+                            .then((d) => [code, Array.isArray(d) ? d.length : 0])
+                            .catch(() => [code, 0])
+                    )
+                ).then((pairs) => Object.fromEntries(pairs)),
+                invoke('get_sync_status').catch(() => null),
+            ]);
+            setToday(obs);
+            setMonthDays(days);
+            setSync(syncStatus);
+        } catch {
+            setStations({});
+        } finally {
+            setLoading(false);
+        }
+    }, [fecha, year, month]);
+
+    useEffect(() => {
+        load();
+    }, [load]);
+
+    const codes = Object.keys(stations);
+    const pending = sync?.pending ?? 0;
 
     return (
         <div className="min-h-screen bg-gray-50">
-            {/* Contenido Principal (Mosaicos) */}
-            <main className="max-w-7xl mx-auto px-8 py-12 pb-64">
-                <div className="mb-10">
-                    <h2 className="text-3xl font-bold text-gray-900">Panel de Control</h2>
-                    <p className="text-gray-500 mt-2">Seleccione un módulo para comenzar a trabajar.</p>
+            <main className="max-w-6xl mx-auto px-6 lg:px-10 py-8">
+                <div className="mb-6">
+                    <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
+                        {fecha.split('-').reverse().join('/')}
+                    </p>
+                    <h2 className="text-3xl font-bold text-gray-900">Centro de operaciones</h2>
+                    <p className="text-gray-500 mt-1">Estado de hoy por estación. El rail a la izquierda es la navegación.</p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {visibleModules.map((mod) => (
-                        <ModuleCard
-                            key={mod.id}
-                            {...mod}
-                            onClick={() => onNavigate(mod.id)}
-                        />
-                    ))}
+                {loading ? (
+                    <p className="text-sm text-gray-500">Cargando estado del día…</p>
+                ) : codes.length === 0 ? (
+                    <p className="text-sm text-gray-500">Sin estaciones configuradas.</p>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        {codes.map((code) => {
+                            const obs = today[code] || {};
+                            const done = HOURS.filter((h) => hourDone(obs[h])).length;
+                            const name = stations[code]?.name || code;
+                            return (
+                                <div key={code} className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <div>
+                                            <h3 className="text-lg font-bold text-slate-900">{name}</h3>
+                                            <p className="text-xs text-slate-400 font-mono">{code}</p>
+                                        </div>
+                                        <span className={`text-sm font-bold ${done === 8 ? 'text-emerald-600' : 'text-slate-700'}`}>
+                                            {done}/8
+                                        </span>
+                                    </div>
+                                    <div className="flex gap-1.5 mb-3" aria-label={`${done} de 8 horas completadas`}>
+                                        {HOURS.map((h) => (
+                                            <span
+                                                key={h}
+                                                title={`${h}: ${hourDone(obs[h]) ? 'completa' : 'pendiente'}`}
+                                                className={`h-2 flex-1 rounded-full ${hourDone(obs[h]) ? 'bg-blue-500' : 'bg-slate-200'}`}
+                                            />
+                                        ))}
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-xs text-slate-500 flex items-center gap-1">
+                                            <CalendarDays size={14} />
+                                            {(monthDays[code] ?? 0)} días con datos este mes
+                                        </span>
+                                        <button
+                                            type="button"
+                                            onClick={() => onNavigate('synoptic')}
+                                            className="flex items-center gap-1 text-sm font-bold text-blue-600 hover:text-blue-800 cursor-pointer"
+                                        >
+                                            Continuar <ArrowRight size={16} />
+                                        </button>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+
+                <div className="mt-5 bg-white rounded-2xl border border-slate-200 p-5 shadow-sm flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                        {pending > 0 ? (
+                            <CloudOff size={22} className="text-amber-600" />
+                        ) : (
+                            <CloudCheck size={22} className="text-emerald-600" />
+                        )}
+                        <div>
+                            <p className="text-sm font-bold text-slate-900">
+                                {pending > 0 ? `${pending} pendientes de envío` : 'Sincronización al día'}
+                            </p>
+                            <p className="text-xs text-slate-500">
+                                {sync ? `${sync.synced ?? 0} enviadas con éxito` : 'Estado no disponible'}
+                            </p>
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => onNavigate('maintenance')}
+                        className="text-sm font-bold text-teal-700 hover:text-teal-900 cursor-pointer flex items-center gap-1"
+                    >
+                        Ver sincronización <ArrowRight size={16} />
+                    </button>
                 </div>
             </main>
         </div>
