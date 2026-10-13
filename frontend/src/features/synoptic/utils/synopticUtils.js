@@ -139,3 +139,47 @@ export const sanitizeSynopGroup = (value) => {
         .replace(/[^0-9/]/g, '')
         .slice(0, 5);
 };
+
+/**
+ * Claves por hora que NO son datos (no cuentan para el avance).
+ */
+export const HOUR_META_KEYS = ['station_id', 'fecha', 'correc_alt', 'nombre_observador'];
+
+/**
+ * Campos de dato esperados por hora (denominador honesto del avance).
+ * Las pares llevan T_max/T_min y sus grupos; las impares no.
+ */
+const BASE_DATA_KEYS = [
+    'ts', 'th', 'pres_est', 'p3', 'p24', 'viento_dir', 'viento_vel', 'visibilidad', 'll',
+    'meteo_2_1', 'meteo_4_irixhvv', 'meteo_4_1', 'meteo_4_6',
+    'meteo_6_2', 'meteo_8_1', 'extra_8ns_1', 'extra_8ns_2',
+];
+const EVEN_EXTRA_KEYS = ['t_max', 't_min', 't_max_24h', 't_min_24h'];
+
+/**
+ * Avance de una hora: { done, total, ratio }.
+ * Heurística de ORIENTACIÓN (no validación): done = campos con valor real.
+ */
+export function hourCompletion(hourData, hora) {
+    const expected = EVEN_HOURS.includes(hora)
+        ? [...BASE_DATA_KEYS, ...EVEN_EXTRA_KEYS]
+        : BASE_DATA_KEYS;
+    let done = 0;
+    const data = hourData && typeof hourData === 'object' ? hourData : {};
+    for (const key of expected) {
+        const v = data[key];
+        if (v !== undefined && v !== null && String(v).trim() !== '') done += 1;
+    }
+    return { done, total: expected.length, ratio: expected.length ? done / expected.length : 0 };
+}
+
+/**
+ * Del mensaje SaveErr del backend ("el grupo 'X' en hora Y ...") al campo.
+ * Devuelve { field, hour } o null si no hay culpable identificable.
+ */
+export function parseFieldError(message) {
+    if (typeof message !== 'string' || !message) return null;
+    const m = message.match(/el grupo '([A-Za-z0-9_]+)' en hora ([0-9]{2}Z)/);
+    if (!m) return null;
+    return { field: m[1], hour: m[2] };
+}

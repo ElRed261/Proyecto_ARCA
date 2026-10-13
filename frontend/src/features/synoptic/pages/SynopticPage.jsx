@@ -6,6 +6,8 @@ import { isAdmin } from '../../../shared/utils/auth';
 import { hourThemes, meteoHeaders, meteoPlaceholders, styles } from '../config/synopticConfig';
 import { AAXX, CONST_333, CONST_555, HOURS, EVEN_HOURS, ODD_HOURS, normalizePressure, sanitizeSynopGroup } from '../utils/synopticUtils';
 import { bindDraft, isDraftValidFor, DRAFT_KEY } from '../utils/synopticDraft';
+import { hourCompletion, parseFieldError } from '../utils/synopticUtils';
+import SaveConfirmModal from '../components/SaveConfirmModal';
 import { publishHour } from '../../../shared/utils/hourThemeBus';
 import ComboBox from '../../../shared/components/ComboBox';
 import DateField from '../../../shared/components/DateField';
@@ -72,6 +74,8 @@ const SynopticPage = () => {
   const [results, setResults] = useState({});
   const [resultsPerHour, setResultsPerHour] = useState(draftUsable ? savedDraft.resultsPerHour : {});
   const [errorMessage, setErrorMessage] = useState('');
+  const [errorField, setErrorField] = useState(null); // { field, hour }
+  const [saveReview, setSaveReview] = useState(null); // { incomplete, emptyCount }
   const [stations, setStations] = useState({});
   // eslint-disable-next-line no-unused-vars
   const [isCalculating, setIsCalculating] = useState(false);
@@ -250,6 +254,7 @@ const SynopticPage = () => {
   }, [activeHour, JSON.stringify(currentCalcInput), performCalculations, isLoading]);
 
   const handleChange = (key, rawValue) => {
+    if (errorField) setErrorField(null);
     // Grupos SYNOP: máximo 5 caracteres, solo dígitos y "/" (ausencia)
     const value =
       key.startsWith('meteo_') || key.startsWith('extra_')
@@ -306,6 +311,39 @@ const SynopticPage = () => {
     }
   };
 
+  // Enter avanza al siguiente campo dentro de la grilla (Shift+Enter retrocede)
+  const handleGridKeyDown = (e) => {
+    if (e.key !== 'Enter') return;
+    const fields = [...e.currentTarget.querySelectorAll('input:not([disabled]), select:not([disabled])')];
+    const idx = fields.indexOf(document.activeElement);
+    if (idx === -1) return;
+    e.preventDefault();
+    const next = fields[e.shiftKey ? idx - 1 : idx + 1];
+    if (next) next.focus();
+    else e.target.blur();
+  };
+
+  const saveRef = React.useRef(null);
+  React.useEffect(() => {
+    const onGlobalKey = (e) => {
+      const mod = e.ctrlKey || e.metaKey;
+      if (mod && (e.key === 's' || e.key === 'S')) {
+        e.preventDefault();
+        if (saveRef.current) saveRef.current();
+        return;
+      }
+      if (e.altKey && /^[1-8]$/.test(e.key)) {
+        const hora = hours[Number(e.key) - 1];
+        if (hora) {
+          e.preventDefault();
+          handleHourChange(hora);
+        }
+      }
+    };
+    window.addEventListener('keydown', onGlobalKey);
+    return () => window.removeEventListener('keydown', onGlobalKey);
+  }, []);
+
   // Handler para Enter en campos de presión - normaliza y aplica
   const handlePressureKeyDown = (e, key) => {
     if (e.key === 'Enter') {
@@ -314,8 +352,24 @@ const SynopticPage = () => {
     }
   };
 
-  // Guardar observación como JSON
+  // Guardado honesto: pre-chequeo de horas incompletas antes de escribir
   const handleSave = async () => {
+    const partial = [];
+    let empty = 0;
+    for (const hora of hours) {
+      const c = hourCompletion(observations[hora] || {}, hora);
+      if (c.done === 0) empty += 1;
+      else if (c.done < c.total) partial.push({ hora, done: c.done, total: c.total });
+    }
+    if (partial.length > 0) {
+      setSaveReview({ incomplete: partial, emptyCount: empty });
+      return;
+    }
+    await doSave();
+  };
+
+  // Guardar observación como JSON
+  const doSave = async () => {
     try {
       const stationId = getValue('station_id');
       const fecha = getValue('fecha');
@@ -382,6 +436,12 @@ const SynopticPage = () => {
           return `${dd}/${mm}/${yyyy}`;
         })() : '';
 
+        try {
+          const nm = getValue('nombre_observador');
+          if (stationId && nm && nm.trim()) {
+            localStorage.setItem(`arca_observador_${stationId}`, nm.trim());
+          }
+        } catch { /* almacenamiento no disponible */ }
         // Bloquear cambio de estación después de guardar y limpiar drafts
         setIsStationLocked(true);
         clearDraft();
@@ -401,9 +461,22 @@ const SynopticPage = () => {
           detail = `etapa ${parsed.stage}${parsed.path ? ` (${parsed.path})` : ''}: ${parsed.detail}`;
         }
       } catch { /* no era JSON estructurado */ }
-      toast.error(`Error al guardar la observación${detail ? ` — ${detail}` : ''}`);
+      const culprit = parseFieldError(detail || (typeof error === 'string' ? error : ''));
+      if (culprit) {
+        setErrorField(culprit);
+        if (culprit.hour !== activeHourRef.current) {
+          setActiveHour(culprit.hour);
+          toast.error(`Revisá el campo ${culprit.field} en ${culprit.hour}`);
+        } else {
+          toast.error(`Error al guardar la observación — ${detail || error}`);
+        }
+      } else {
+        toast.error(`Error al guardar la observación${detail ? ` — ${detail}` : ''}`);
+      }
     }
   };
+
+  saveRef.current = doSave;
 
   // Helper: verifica si hay datos de temperatura en alguna hora
   const hasTemperatureData = () => {
@@ -528,12 +601,17 @@ const SynopticPage = () => {
       if (typeof error === 'string' && error.includes('no encontrada')) {
         // Solo crear nuevo día si vamos hacia adelante (ya validamos que hay temperatura)
         if (direction === 1) {
+          let rememberedObserver = '';
+          try {
+            rememberedObserver = localStorage.getItem(`arca_observador_${currentStation}`) || '';
+          } catch { /* almacenamiento no disponible */ }
           const newObservations = {};
           hours.forEach(hora => {
             newObservations[hora] = {
               station_id: currentStation,
               fecha: targetDate,
-              correc_alt: correcAlt
+              correc_alt: correcAlt,
+              ...(rememberedObserver ? { nombre_observador: rememberedObserver } : {}),
             };
           });
           setObservations(newObservations);
@@ -817,6 +895,13 @@ newObservations[hora] = {
     reader.readAsText(file);
   };
 
+  // Clase de input con orientación: celdas llenas con tinte, campo con error en rojo
+  const fieldClass = (key) => {
+    const filled = getValue(key) !== '';
+    const isErr = errorField && errorField.field === key && errorField.hour === activeHour;
+    return inputClass + (filled ? ' bg-blue-50/60 border-slate-400 font-medium' : '') + (isErr ? ' border-red-500 ring-2 ring-red-300' : '');
+  };
+
   // Helper para obtener valores de forma segura (siempre retorna string)
   const getValue = (key) => {
     const value = observations[activeHour]?.[key];
@@ -848,11 +933,11 @@ newObservations[hora] = {
           {/* Contenido Principal */}
           <div className="flex-1">
             {/* Tabla Meteorológica */}
-            <div className="bg-white rounded-xl shadow-lg p-5 mb-6 transition-all duration-500">
+            <div className="bg-white rounded-xl shadow-lg p-5 mb-6 transition-all duration-500" onKeyDown={handleGridKeyDown}>
               <div className="grid grid-cols-7 gap-2 mb-3">
                 <div className={primaryHeader} style={{ backgroundColor: currentTheme.accentColor }}>Observador</div>
                 <div className="col-span-6">
-                  <input className={inputClass} placeholder="Nombre del Observador..." value={getValue('nombre_observador')} onChange={(e) => handleChange('nombre_observador', e.target.value)} />
+                  <input className={fieldClass('nombre_observador')} placeholder="Nombre del Observador..." value={getValue('nombre_observador')} onChange={(e) => handleChange('nombre_observador', e.target.value)} />
                 </div>
               </div>
 
@@ -875,7 +960,7 @@ newObservations[hora] = {
                       {/* AAXX - Constante */}
                       <input className={constantClass} value={AAXX} readOnly title="Constante AAXX" />
                       {/* YYGG Iw */}
-                      <input className={inputClass} placeholder="" value={getValue('meteo_2_1')} onChange={(e) => handleChange('meteo_2_1', e.target.value)} />
+                      <input className={fieldClass('meteo_2_1')} placeholder="" value={getValue('meteo_2_1')} onChange={(e) => handleChange('meteo_2_1', e.target.value)} />
                       {/* IIiii - Selector de estación (bloqueado si está asignado o después de guardar) */}
                       <ComboBox
                         options={Object.keys(stations).map((id) => ({ value: id, label: stations[id]?.name ? `${stations[id].name} (${id})` : id }))}
@@ -916,7 +1001,7 @@ newObservations[hora] = {
                     <div key={row} className="grid grid-cols-7 gap-2 mb-3">
                       {/* Ir iX H VV - Campo único que extrae Ir e Ix automáticamente */}
                       <input
-                        className={inputClass}
+                        className={fieldClass('correc_alt')}
                         placeholder="Ir iX H VV"
                         value={getValue('meteo_4_irixhvv')}
                         onChange={(e) => handleIrIxChange(e.target.value)}
@@ -924,7 +1009,7 @@ newObservations[hora] = {
                         title="Ir:precipitación, iX:tiempo, H:nubes, VV:visibilidad"
                       />
                       {/* N dd ff */}
-                      <input className={inputClass} placeholder="" value={getValue('meteo_4_1')} onChange={(e) => handleChange('meteo_4_1', e.target.value)} onKeyDown={handleKeyDown} title="N:nubosidad, dd:dirección, ff:velocidad viento" />
+                      <input className={fieldClass('meteo_4_1')} placeholder="" value={getValue('meteo_4_1')} onChange={(e) => handleChange('meteo_4_1', e.target.value)} onKeyDown={handleKeyDown} title="N:nubosidad, dd:dirección, ff:velocidad viento" />
                       {/* 1sn T T T - Auto-generado */}
                       <input className={readonlyClass} value={results.grupo_1sn_ttt || ''} readOnly title="1snTTT: temperatura seca" />
                       {/* 2sn Td Td Td - Auto-generado */}
@@ -954,7 +1039,7 @@ newObservations[hora] = {
         
         return (
           <div key={row} className="grid grid-cols-7 gap-2 mb-3">
-            <input className={inputClass} placeholder="8" value={getValue('meteo_6_0')} onChange={(e) => handleChange('meteo_6_0', e.target.value)} onKeyDown={handleKeyDown} title="8NhCLCMCH: nubes" />
+            <input className={fieldClass('meteo_6_0')} placeholder="8" value={getValue('meteo_6_0')} onChange={(e) => handleChange('meteo_6_0', e.target.value)} onKeyDown={handleKeyDown} title="8NhCLCMCH: nubes" />
             <input className={constantClass} value={CONST_333} readOnly title="Sección 333" />
             {/* 0CS DL DM DH - Deshabilitado si 56 DL DM DH tiene valor */}
             <input 
@@ -969,7 +1054,7 @@ newObservations[hora] = {
             />
             {/* 1snTxTxTx - Solo habilitado en horas pares */}
             <input
-              className={isEvenHour ? inputClass : `${inputClass} opacity-50 bg-gray-200`}
+              className={isEvenHour ? fieldClass('correc_alt') : `${inputClass} opacity-50 bg-gray-200`}
               placeholder="10"
               value={getValue('meteo_6_3')}
               maxLength={5}
@@ -980,7 +1065,7 @@ newObservations[hora] = {
             />
             {/* 2snTnTnTn - Solo habilitado en horas pares */}
             <input
-              className={isEvenHour ? inputClass : `${inputClass} opacity-50 bg-gray-200`}
+              className={isEvenHour ? fieldClass('meteo_6_4') : `${inputClass} opacity-50 bg-gray-200`}
               placeholder="20"
               value={getValue('meteo_6_4')}
               maxLength={5}
@@ -989,8 +1074,8 @@ newObservations[hora] = {
               disabled={!isEvenHour}
               title={isEvenHour ? "2snTnTnTn: temperatura mínima" : "Solo en horas pares (00Z, 06Z, 12Z, 18Z)"}
             />
-            <input className={inputClass} placeholder="3///" value={getValue('meteo_6_5')} onChange={(e) => handleChange('meteo_6_5', e.target.value)} onKeyDown={handleKeyDown} title="3Ejjj: estado del suelo" />
-            <input className={inputClass} placeholder="" value={getValue('meteo_6_6')} onChange={(e) => handleChange('meteo_6_6', e.target.value)} onKeyDown={handleKeyDown} title="5EEEjE: evaporación" />
+            <input className={fieldClass('meteo_6_5')} placeholder="3///" value={getValue('meteo_6_5')} onChange={(e) => handleChange('meteo_6_5', e.target.value)} onKeyDown={handleKeyDown} title="3Ejjj: estado del suelo" />
+            <input className={fieldClass('meteo_6_6')} placeholder="" value={getValue('meteo_6_6')} onChange={(e) => handleChange('meteo_6_6', e.target.value)} onKeyDown={handleKeyDown} title="5EEEjE: evaporación" />
           </div>
         );
       }
@@ -1012,7 +1097,7 @@ newObservations[hora] = {
         
         return (
           <div key={row} className="grid grid-cols-7 gap-2 mb-3">
-            <input className={inputClass} placeholder="" value={getValue('meteo_8_0')} onChange={(e) => handleChange('meteo_8_0', e.target.value)} onKeyDown={handleKeyDown} title="5nFnFnFn: insolación" />
+            <input className={fieldClass('meteo_8_0')} placeholder="" value={getValue('meteo_8_0')} onChange={(e) => handleChange('meteo_8_0', e.target.value)} onKeyDown={handleKeyDown} title="5nFnFnFn: insolación" />
             {/* 56 DL DM DH - Deshabilitado si 0CS DL DM DH tiene valor o si está fuera de temporada ciclónica */}
             <input 
               className={disable56 ? `${inputClass} opacity-50 bg-gray-200` : inputClass} 
@@ -1041,9 +1126,9 @@ newObservations[hora] = {
                         disabled={!results.include_precipitation}
                         title={results.include_precipitation ? "6RRRtr: precipitación" : "Omitido (Ir=3,4)"}
                       />
-                      <input className={inputClass} placeholder="7" value={getValue('meteo_8_4')} onChange={(e) => handleChange('meteo_8_4', e.target.value)} onKeyDown={handleKeyDown} title="7R24R24R24R24: precipitación 24h" />
-                      <input className={inputClass} placeholder="8" value={getValue('meteo_8_5')} onChange={(e) => handleChange('meteo_8_5', e.target.value)} onKeyDown={handleKeyDown} title="8NsChshs: nube adicional" />
-                      <input className={inputClass} placeholder="8" value={getValue('meteo_8_6')} onChange={(e) => handleChange('meteo_8_6', e.target.value)} onKeyDown={handleKeyDown} title="8NsChshs: nube adicional" />
+                      <input className={fieldClass('meteo_8_4')} placeholder="7" value={getValue('meteo_8_4')} onChange={(e) => handleChange('meteo_8_4', e.target.value)} onKeyDown={handleKeyDown} title="7R24R24R24R24: precipitación 24h" />
+                      <input className={fieldClass('meteo_8_5')} placeholder="8" value={getValue('meteo_8_5')} onChange={(e) => handleChange('meteo_8_5', e.target.value)} onKeyDown={handleKeyDown} title="8NsChshs: nube adicional" />
+                      <input className={fieldClass('meteo_8_6')} placeholder="8" value={getValue('meteo_8_6')} onChange={(e) => handleChange('meteo_8_6', e.target.value)} onKeyDown={handleKeyDown} title="8NsChshs: nube adicional" />
                     </div>
                   );
                 }
@@ -1051,11 +1136,11 @@ newObservations[hora] = {
                 if (row === 16) {
                   return (
                     <div key={row} className="grid grid-cols-7 gap-2 mb-3">
-                      <input className={inputClass} placeholder="9" value={getValue('meteo_16_0')} onChange={(e) => handleChange('meteo_16_0', e.target.value)} />
-                      <input className={inputClass} placeholder="9" value={getValue('meteo_16_1')} onChange={(e) => handleChange('meteo_16_1', e.target.value)} />
-                      <input className={inputClass} placeholder="9" value={getValue('meteo_16_2')} onChange={(e) => handleChange('meteo_16_2', e.target.value)} />
-                      <input className={inputClass} placeholder="9" value={getValue('meteo_16_3')} onChange={(e) => handleChange('meteo_16_3', e.target.value)} />
-                      <input className={inputClass} placeholder="9" value={getValue('meteo_16_4')} onChange={(e) => handleChange('meteo_16_4', e.target.value)} />
+                      <input className={fieldClass('meteo_16_0')} placeholder="9" value={getValue('meteo_16_0')} onChange={(e) => handleChange('meteo_16_0', e.target.value)} />
+                      <input className={fieldClass('meteo_16_1')} placeholder="9" value={getValue('meteo_16_1')} onChange={(e) => handleChange('meteo_16_1', e.target.value)} />
+                      <input className={fieldClass('meteo_16_2')} placeholder="9" value={getValue('meteo_16_2')} onChange={(e) => handleChange('meteo_16_2', e.target.value)} />
+                      <input className={fieldClass('meteo_16_3')} placeholder="9" value={getValue('meteo_16_3')} onChange={(e) => handleChange('meteo_16_3', e.target.value)} />
+                      <input className={fieldClass('meteo_16_4')} placeholder="9" value={getValue('meteo_16_4')} onChange={(e) => handleChange('meteo_16_4', e.target.value)} />
                       {/* 555 - Sección 5 Constante */}
                       <input className={constantClass} value={CONST_555} readOnly title="Sección 555 - Constante" />
                       {/* 29UUU - Humedad relativa auto-generado */}
@@ -1067,7 +1152,7 @@ newObservations[hora] = {
                   return (<div key={row} className="grid grid-cols-7 gap-2 mb-1">{headers.map((h, i) => (<div key={i} className={tableHeader}>{h}</div>))}</div>);
                 }
                 if (!isHeader && placeholders.length > 0) {
-                  return (<div key={row} className="grid grid-cols-7 gap-2 mb-3">{placeholders.map((p, i) => (<input key={i} className={inputClass} placeholder={p} value={getValue(`meteo_${row}_${i}`)} onChange={(e) => handleChange(`meteo_${row}_${i}`, e.target.value)} />))}</div>);
+                  return (<div key={row} className="grid grid-cols-7 gap-2 mb-3">{placeholders.map((p, i) => (<input key={i} className={fieldClass('ts')} placeholder={p} value={getValue(`meteo_${row}_${i}`)} onChange={(e) => handleChange(`meteo_${row}_${i}`, e.target.value)} />))}</div>);
                 }
                 return null;
               })}
@@ -1086,7 +1171,7 @@ newObservations[hora] = {
 
               <div className="grid grid-cols-7 gap-2 mb-1">
                 <div className={tableHeader}>Ts.</div>
-                <input className={inputClass} placeholder="°C" value={getValue('ts')} onChange={(e) => handleChange('ts', e.target.value)} />
+                <input className={fieldClass('ts')} placeholder="°C" value={getValue('ts')} onChange={(e) => handleChange('ts', e.target.value)} />
                 <div className={tableHeader}>Let. Barom.</div>
                 <div className={tableHeader}>P 3</div>
                 <div className={tableHeader}>P 24</div>
@@ -1097,9 +1182,9 @@ newObservations[hora] = {
               <div className="grid grid-cols-7 gap-2 mb-1">
                 <div className={tableHeader}>Pr.</div>
                 <input className={readonlyClass} value={results.punto_rocio || ''} readOnly title="Punto de rocío calculado" placeholder="°C" />
-                <input className={inputClass} placeholder="Lectura..." value={getValue('let_barom')} onChange={(e) => handleChange('let_barom', e.target.value)} onKeyDown={handleKeyDown} title="Lectura barométrica sin corregir" />
+                <input className={fieldClass('let_barom')} placeholder="Lectura..." value={getValue('let_barom')} onChange={(e) => handleChange('let_barom', e.target.value)} onKeyDown={handleKeyDown} title="Lectura barométrica sin corregir" />
                 <input
-                  className={inputClass}
+                  className={fieldClass('p3')}
                   placeholder="hPa"
                   value={getValue('p3')}
                   onChange={(e) => handleChange('p3', e.target.value)}
@@ -1108,7 +1193,7 @@ newObservations[hora] = {
                   title="Presión hace 3 horas"
                 />
                 <input
-                  className={inputClass}
+                  className={fieldClass('p24')}
                   placeholder="hPa"
                   value={getValue('p24')}
                   onChange={(e) => handleChange('p24', e.target.value)}
@@ -1116,13 +1201,13 @@ newObservations[hora] = {
                   onKeyDown={(e) => handlePressureKeyDown(e, 'p24')}
                   title="Presión hace 24 horas"
                 />
-                <input className={isEvenHour ? inputClass : `${inputClass} opacity-50 bg-gray-200`} placeholder="°C" value={getValue('t_max')} onChange={(e) => handleChange('t_max', e.target.value)} onKeyDown={handleKeyDown} disabled={!isEvenHour} title={isEvenHour ? "Temperatura máxima" : "Solo en horas pares"} />
-                <input className={isEvenHour ? inputClass : `${inputClass} opacity-50 bg-gray-200`} placeholder="°C" value={getValue('t_max_24h')} onChange={(e) => handleChange('t_max_24h', e.target.value)} onKeyDown={handleKeyDown} disabled={!isEvenHour} title={isEvenHour ? "Temperatura máxima 24h" : "Solo en horas pares"} />
+                <input className={isEvenHour ? fieldClass('t_max') : `${inputClass} opacity-50 bg-gray-200`} placeholder="°C" value={getValue('t_max')} onChange={(e) => handleChange('t_max', e.target.value)} onKeyDown={handleKeyDown} disabled={!isEvenHour} title={isEvenHour ? "Temperatura máxima" : "Solo en horas pares"} />
+                <input className={isEvenHour ? fieldClass('t_max_24h') : `${inputClass} opacity-50 bg-gray-200`} placeholder="°C" value={getValue('t_max_24h')} onChange={(e) => handleChange('t_max_24h', e.target.value)} onKeyDown={handleKeyDown} disabled={!isEvenHour} title={isEvenHour ? "Temperatura máxima 24h" : "Solo en horas pares"} />
               </div>
 
               <div className="grid grid-cols-7 gap-2 mb-1">
                 <div className={tableHeader}>Th.</div>
-                <input className={inputClass} placeholder="°C" value={getValue('th')} onChange={(e) => handleChange('th', e.target.value)} onKeyDown={handleKeyDown} title="Temperatura húmeda" />
+                <input className={fieldClass('th')} placeholder="°C" value={getValue('th')} onChange={(e) => handleChange('th', e.target.value)} onKeyDown={handleKeyDown} title="Temperatura húmeda" />
                 <div className={tableHeader}>Correc. Temp.</div>
                 <div className={tableHeader}>Let.</div>
                 <div className={tableHeader}>Let.</div>
@@ -1133,11 +1218,11 @@ newObservations[hora] = {
               <div className="grid grid-cols-7 gap-2 mb-1">
                 <div className={tableHeader}>Tv.</div>
                 <input className={readonlyClass} value={results.tension_vapor || ''} readOnly title="Tensión de vapor calculada" placeholder="hPa" />
-                <input className={inputClass} placeholder="0.0" value={getValue('correc_temp')} onChange={(e) => handleChange('correc_temp', e.target.value)} onKeyDown={handleKeyDown} title="Corrección por temperatura" />
+                <input className={fieldClass('correc_temp')} placeholder="0.0" value={getValue('correc_temp')} onChange={(e) => handleChange('correc_temp', e.target.value)} onKeyDown={handleKeyDown} title="Corrección por temperatura" />
                 <input className={readonlyClass} value={results.p3_let || ''} readOnly title="Lectura P3 = Pres.Est." placeholder="hPa" />
                 <input className={readonlyClass} value={results.p24_let || ''} readOnly title="Lectura P24 = Pres.Est." placeholder="hPa" />
-                <input className={isEvenHour ? inputClass : `${inputClass} opacity-50 bg-gray-200`} placeholder="°C" value={getValue('t_min')} onChange={(e) => handleChange('t_min', e.target.value)} onKeyDown={handleKeyDown} disabled={!isEvenHour} title={isEvenHour ? "Temperatura mínima" : "Solo en horas pares"} />
-                <input className={isEvenHour ? inputClass : `${inputClass} opacity-50 bg-gray-200`} placeholder="°C" value={getValue('t_min_24h')} onChange={(e) => handleChange('t_min_24h', e.target.value)} onKeyDown={handleKeyDown} disabled={!isEvenHour} title={isEvenHour ? "Temperatura mínima 24h" : "Solo en horas pares"} />
+                <input className={isEvenHour ? fieldClass('t_min') : `${inputClass} opacity-50 bg-gray-200`} placeholder="°C" value={getValue('t_min')} onChange={(e) => handleChange('t_min', e.target.value)} onKeyDown={handleKeyDown} disabled={!isEvenHour} title={isEvenHour ? "Temperatura mínima" : "Solo en horas pares"} />
+                <input className={isEvenHour ? fieldClass('t_min_24h') : `${inputClass} opacity-50 bg-gray-200`} placeholder="°C" value={getValue('t_min_24h')} onChange={(e) => handleChange('t_min_24h', e.target.value)} onKeyDown={handleKeyDown} disabled={!isEvenHour} title={isEvenHour ? "Temperatura mínima 24h" : "Solo en horas pares"} />
               </div>
 
               <div className="grid grid-cols-7 gap-2 mb-1">
@@ -1154,7 +1239,7 @@ newObservations[hora] = {
                 <div className={tableHeader}>Hr.</div>
                 <input className={readonlyClass} value={results.humedad_relativa ? `${results.humedad_relativa}%` : ''} readOnly title="Humedad relativa calculada" placeholder="%" />
                 <input
-                  className={inputClass}
+                  className={fieldClass('pres_est')}
                   placeholder="hPa"
                   value={getValue('pres_est')}
                   onChange={(e) => handleChange('pres_est', e.target.value)}
@@ -1164,8 +1249,8 @@ newObservations[hora] = {
                 />
                 <input className={readonlyClass} value={results.p3_dif || ''} readOnly title="Diferencia Pres.Est - P3" placeholder="hPa" />
                 <input className={readonlyClass} value={results.p24_dif || ''} readOnly title="Diferencia Pres.Est - P24" placeholder="hPa" />
-                <input className={inputClass} placeholder="mm" value={getValue('ll')} onChange={(e) => handleChange('ll', e.target.value)} onKeyDown={handleKeyDown} title="Precipitación (mm)" />
-                <input className={inputClass} placeholder="mm" value={getValue('ll_24h')} onChange={(e) => handleChange('ll_24h', e.target.value)} onKeyDown={handleKeyDown} title="Precipitación 24h (mm)" />
+                <input className={fieldClass('ll')} placeholder="mm" value={getValue('ll')} onChange={(e) => handleChange('ll', e.target.value)} onKeyDown={handleKeyDown} title="Precipitación (mm)" />
+                <input className={fieldClass('ll_24h')} placeholder="mm" value={getValue('ll_24h')} onChange={(e) => handleChange('ll_24h', e.target.value)} onKeyDown={handleKeyDown} title="Precipitación 24h (mm)" />
               </div>
 
               <div className="grid grid-cols-7 gap-2 mb-1">
@@ -1192,6 +1277,16 @@ newObservations[hora] = {
 
               {/* Mensaje de error */}
               {errorMessage && <p className={errorClass}>{errorMessage}</p>}
+              <SaveConfirmModal
+                open={!!saveReview}
+                incomplete={saveReview?.incomplete || []}
+                emptyCount={saveReview?.emptyCount || 0}
+                onConfirm={() => {
+                  setSaveReview(null);
+                  doSave();
+                }}
+                onCancel={() => setSaveReview(null)}
+              />
             </div>
           </div>
 
@@ -1200,9 +1295,26 @@ newObservations[hora] = {
             
             {/* Tarjeta 1: Horas de Observación */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-4 transition-all duration-300 hover:shadow-md">
-              <h2 className="text-xs font-bold mb-3 text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+              <h2 className="text-xs font-bold mb-1.5 text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                 <Clock className="w-3.5 h-3.5" /> Horas de Observación
               </h2>
+              {(() => {
+                const c = hourCompletion(observations[activeHour] || {}, activeHour);
+                return (
+                  <div className="mb-3" aria-live="polite">
+                    <div className="flex items-center justify-between text-[11px] font-semibold text-slate-500 mb-1">
+                      <span>{activeHour}</span>
+                      <span>{c.done}/{c.total}</span>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-300 ${c.ratio >= 0.8 ? 'bg-emerald-500' : c.done > 0 ? 'bg-amber-400' : 'bg-slate-200'}`}
+                        style={{ width: `${Math.round(c.ratio * 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })()}
               <div className="grid grid-cols-2 gap-2">
                 {hours.map(hora => {
                   let icon;
@@ -1216,10 +1328,13 @@ newObservations[hora] = {
                     icon = <Moon className={`w-3.5 h-3.5 ${activeHour === hora ? 'text-white' : 'text-indigo-400'}`} />;
                   }
 
+                  const comp = hourCompletion(observations[hora] || {}, hora);
+                  const dotColor = comp.ratio >= 0.8 ? 'bg-emerald-500' : comp.done > 0 ? 'bg-amber-400' : 'bg-slate-300';
                   return (
                     <button
                       key={hora}
                       onClick={() => handleHourChange(hora)}
+                      title={`${hora}: ${comp.done}/${comp.total} campos`}
                       className={`py-2 px-2.5 rounded-lg font-bold text-xs transition-all duration-300 cursor-pointer flex items-center justify-center gap-1.5 border border-transparent shadow-sm ${activeHour === hora
                         ? 'text-white shadow-md scale-105'
                         : 'bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900 hover:scale-105 hover:border-slate-300 hover:shadow'
@@ -1228,6 +1343,7 @@ newObservations[hora] = {
                     >
                       {icon}
                       <span>{hora}</span>
+                      <span className={`w-1.5 h-1.5 rounded-full flex-none ${dotColor}`} aria-hidden="true" />
                     </button>
                   );
                 })}
