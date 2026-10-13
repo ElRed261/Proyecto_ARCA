@@ -45,40 +45,40 @@ const FIELD_LABELS = {
     "meteo_8_1": "56 DL DM DH",
     "meteo_8_3": "6 RRR tr",
     "meteo_8_4": "7 R24 R24 R24 R24",
-    "meteo_8_5": "8NsChs hs (1)",
-    "meteo_8_6": "8NsChs hs (2)",
-    "extra_8ns_1": "8NsChs hs (3)",
-    "extra_8ns_2": "8NsChs hs (4)",
+    "meteo_8_5": "8NsChs hs",
+    "meteo_8_6": "8NsChs hs",
+    "extra_8ns_1": "8NsChs hs",
+    "extra_8ns_2": "8NsChs hs",
     // Grupo 10
-    "meteo_10_0": "8NsChs hs (5)",
-    "meteo_10_1": "8NsChs hs (6)",
-    "meteo_10_2": "9sp sp sp sp (1)",
-    "meteo_10_3": "9sp sp sp sp (2)",
-    "meteo_10_4": "9sp sp sp sp (3)",
-    "meteo_10_5": "9sp sp sp sp (4)",
-    "meteo_10_6": "9sp sp sp sp (5)",
+    "meteo_10_0": "8NsChs hs",
+    "meteo_10_1": "8NsChs hs",
+    "meteo_10_2": "9sp sp sp sp",
+    "meteo_10_3": "9sp sp sp sp",
+    "meteo_10_4": "9sp sp sp sp",
+    "meteo_10_5": "9sp sp sp sp",
+    "meteo_10_6": "9sp sp sp sp",
     // Grupo 12
-    "meteo_12_0": "9sp sp sp sp (6)",
-    "meteo_12_1": "9sp sp sp sp (7)",
-    "meteo_12_2": "9sp sp sp sp (8)",
-    "meteo_12_3": "9sp sp sp sp (9)",
-    "meteo_12_4": "9sp sp sp sp (10)",
-    "meteo_12_5": "9sp sp sp sp (11)",
-    "meteo_12_6": "9sp sp sp sp (12)",
+    "meteo_12_0": "9sp sp sp sp",
+    "meteo_12_1": "9sp sp sp sp",
+    "meteo_12_2": "9sp sp sp sp",
+    "meteo_12_3": "9sp sp sp sp",
+    "meteo_12_4": "9sp sp sp sp",
+    "meteo_12_5": "9sp sp sp sp",
+    "meteo_12_6": "9sp sp sp sp",
     // Grupo 14
-    "meteo_14_0": "9sp sp sp sp (13)",
-    "meteo_14_1": "9sp sp sp sp (14)",
-    "meteo_14_2": "9sp sp sp sp (15)",
-    "meteo_14_3": "9sp sp sp sp (16)",
-    "meteo_14_4": "9sp sp sp sp (17)",
-    "meteo_14_5": "9sp sp sp sp (18)",
-    "meteo_14_6": "9sp sp sp sp (19)",
+    "meteo_14_0": "9sp sp sp sp",
+    "meteo_14_1": "9sp sp sp sp",
+    "meteo_14_2": "9sp sp sp sp",
+    "meteo_14_3": "9sp sp sp sp",
+    "meteo_14_4": "9sp sp sp sp",
+    "meteo_14_5": "9sp sp sp sp",
+    "meteo_14_6": "9sp sp sp sp",
     // Grupo 16
-    "meteo_16_0": "9sp sp sp sp (20)",
-    "meteo_16_1": "9sp sp sp sp (21)",
-    "meteo_16_2": "9sp sp sp sp (22)",
-    "meteo_16_3": "9sp sp sp sp (23)",
-    "meteo_16_4": "9sp sp sp sp (24)",
+    "meteo_16_0": "9sp sp sp sp",
+    "meteo_16_1": "9sp sp sp sp",
+    "meteo_16_2": "9sp sp sp sp",
+    "meteo_16_3": "9sp sp sp sp",
+    "meteo_16_4": "9sp sp sp sp",
     
     // Instrumentales / Cálculos
     "ts": "Temperatura Seca (Ts)",
@@ -534,16 +534,16 @@ const AuditObservationPage = () => {
                                 {renderDataField("56 DL DM DH", "meteo_8_1", "56DLDMDH")}
                                 {renderDataField("6 RRR tr", "meteo_8_3", "6RRRtr")}
                                 {renderDataField("7 R24 R24 R24 R24", "meteo_8_4", "7R24R24R24R24")}
-                                {renderDataField("8NsChs hs (1)", "meteo_8_5", "8NsChshs")}
-                                {renderDataField("8NsChs hs (2)", "meteo_8_6", "8NsChshs")}
+                                {renderDataField("8NsChs hs", "meteo_8_5", "8NsChshs")}
+                                {renderDataField("8NsChs hs", "meteo_8_6", "8NsChshs")}
                             </div>
 
                             {/* Nubes adicionales (Extras) */}
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-slate-50 p-3 rounded-xl border border-slate-100">
-                                {renderDataField("8NsChs hs (3)", "extra_8ns_1", "8NsChshs")}
-                                {renderDataField("8NsChs hs (4)", "extra_8ns_2", "8NsChshs")}
-                                {renderDataField("8NsChs hs (5)", "meteo_10_0", "8NsChshs")}
-                                {renderDataField("8NsChs hs (6)", "meteo_10_1", "8NsChshs")}
+                                {renderDataField("8NsChs hs", "extra_8ns_1", "8NsChshs")}
+                                {renderDataField("8NsChs hs", "extra_8ns_2", "8NsChshs")}
+                                {renderDataField("8NsChs hs", "meteo_10_0", "8NsChshs")}
+                                {renderDataField("8NsChs hs", "meteo_10_1", "8NsChshs")}
                             </div>
 
                             {/* Grupos 9sp */}

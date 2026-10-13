@@ -7,6 +7,7 @@ import { isAdmin } from '../../../shared/utils/auth';
 import { hourThemes, meteoHeaders, meteoPlaceholders, styles } from '../config/synopticConfig';
 import { AAXX, CONST_333, CONST_555, HOURS, EVEN_HOURS, ODD_HOURS, normalizePressure, sanitizeSynopGroup } from '../utils/synopticUtils';
 import { bindDraft, isDraftValidFor, DRAFT_KEY } from '../utils/synopticDraft';
+import DateField from '../../../shared/components/DateField';
 import { toast } from 'react-hot-toast';
 
 // =============================================================================
@@ -830,7 +831,7 @@ newObservations[hora] = {
 
   // Estilos dinámicos desestructurados de config
   const { tableHeader, inputClass, readonlyClass, constantClass, errorClass } = styles;
-  const primaryHeader = `text-white font-bold text-sm px-3 py-2 rounded-lg text-center transition-colors duration-500`;
+  const primaryHeader = `text-white font-bold text-sm px-3 py-2 rounded-lg text-center transition-colors duration-500 min-h-[3.25rem] flex items-center justify-center`;
 
   return (
     <div className={`min-h-screen p-6 transition-colors duration-1000 bg-gradient-to-br ${currentTheme.bgGradient}`}>
@@ -894,7 +895,12 @@ newObservations[hora] = {
                       </select>
                       {/* Fecha */}
                       <div className="col-span-4">
-                        <input type="date" className={inputClass} value={getValue('fecha')} onChange={(e) => handleChange('fecha', e.target.value)} />
+                        <DateField
+                            value={getValue('fecha')}
+                            onChange={(iso) => handleChange('fecha', iso)}
+                            className={inputClass}
+                            ariaLabel="Fecha de observación (DD/MM/AAAA)"
+                        />
                       </div>
                     </div>
                   );

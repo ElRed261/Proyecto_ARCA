@@ -90,7 +90,7 @@ export const StationAdminTable = ({ addLog, fetchStationsAndConfig }) => {
                 <h2 className="text-xl font-bold text-gray-800">Directorio de Estaciones</h2>
                 <button
                     onClick={openCreate}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2 text-sm font-medium"
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center gap-2 text-sm font-medium"
                 >
                     <Plus size={16} /> Nueva Estación
                 </button>

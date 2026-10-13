@@ -1,5 +1,6 @@
 import React from 'react';
 import { Lock } from 'lucide-react';
+import DateField from './DateField';
 
 const themeClasses = {
   sky: {
@@ -71,12 +72,12 @@ const StationHeader = ({
             Fecha:
             {isLocked && <Lock className="w-3.5 h-3.5 text-slate-400" title="Información protegida en este módulo" />}
           </label>
-          <input 
-            type="date"
+          <DateField
             value={date}
-            onChange={(e) => setDate(e.target.value)}
-            disabled={isLocked}
+            onChange={(iso) => setDate(iso)}
             className={`bg-slate-50 border border-slate-300 text-slate-800 text-sm rounded-md px-3 py-1.5 focus:ring-2 ${theme.ring} focus:outline-none transition-all duration-200 ${isLocked ? 'cursor-not-allowed bg-slate-100/90 text-slate-500 border-slate-200' : ''}`}
+            disabled={isLocked}
+            ariaLabel="Fecha (DD/MM/AAAA)"
           />
         </div>
       </div>

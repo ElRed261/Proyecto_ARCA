@@ -53,12 +53,16 @@ const AuthPage = ({ addLog, onLoginSuccess }) => {
 
             <div className="bg-white/85 backdrop-blur-xl p-8 rounded-2xl shadow-[0_24px_60px_-15px_rgba(0,0,0,0.25)] w-full max-w-md border border-white/40 relative z-10">
 
-                {/* Cabecera */}
+                {/* Cabecera: lockup centrado — icono, marca, tagline, acceso */}
                 <div className="text-center mb-8 flex flex-col items-center">
-                    <div className="mb-4 transform scale-150">
-                        <Logo variant="full" />
-                    </div>
-                    <p className="text-slate-500 text-sm mt-2">Acceso al OMS — Observations Management System</p>
+                    <Logo variant="simple" className="w-12 h-12" />
+                    <h1 className="mt-3 text-2xl font-extrabold tracking-tight text-slate-900">
+                        Proyecto ARCA
+                    </h1>
+                    <p className="text-[0.7rem] font-semibold tracking-[0.18em] uppercase text-slate-500 leading-none mt-1">
+                        Observations Management System
+                    </p>
+                    <p className="text-slate-500 text-sm mt-3">Acceso al sistema</p>
                 </div>
 
                 {/* Mensaje de Error */}

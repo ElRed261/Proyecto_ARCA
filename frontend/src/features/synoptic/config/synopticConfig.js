@@ -60,10 +60,10 @@ export const meteoHeaders = {
     3: ["Ir iX H VV", "N dd ff", "1sn T T T", "2sn Td Td Td", "4 P P P P", "5 a P P P", "7 ww W1 W2"],
     5: ["8Nh CL CM CH", "333", "0CS DL DM DH", "1sn Tx Tx Tx", "2sn Tn Tn Tn", "3E j j j", "5 EEEjE"],
     7: ["5n Fn Fn Fn", "56DL DM DH", "58/59 P24P24P24", "6 RRR tr", "7R24R24R24R24", "8NsChs hs", "8NsChs hs"],
-    9: ["8NsChs hs (1)", "8NsChs hs (2)", "9Sp SpSpSp (est. 1)", "9Sp SpSpSp (est. 2)", "9Sp SpSpSp (est. 3)", "9Sp SpSpSp (est. 4)", "9Sp SpSpSp (est. 5)"],
-    11: ["9Sp SpSpSp (est. 6)", "9Sp SpSpSp (est. 7)", "9Sp SpSpSp (est. 8)", "9Sp SpSpSp (est. 9)", "9Sp SpSpSp (est. 10)", "9Sp SpSpSp (est. 11)", "9Sp SpSpSp (est. 12)"],
-    13: ["9Sp SpSpSp (est. 13)", "9Sp SpSpSp (est. 14)", "9Sp SpSpSp (est. 15)", "9Sp SpSpSp (est. 16)", "9Sp SpSpSp (est. 17)", "9Sp SpSpSp (est. 18)", "9Sp SpSpSp (est. 19)"],
-    15: ["9Sp SpSpSp (est. 20)", "9Sp SpSpSp (est. 21)", "9Sp SpSpSp (est. 22)", "9Sp SpSpSp (est. 23)", "9Sp SpSpSp (est. 24)", "555", "29 UUU"]
+    9: ["8NsChs hs", "8NsChs hs", "9Sp SpSpSp", "9Sp SpSpSp", "9Sp SpSpSp", "9Sp SpSpSp", "9Sp SpSpSp"],
+    11: ["9Sp SpSpSp", "9Sp SpSpSp", "9Sp SpSpSp", "9Sp SpSpSp", "9Sp SpSpSp", "9Sp SpSpSp", "9Sp SpSpSp"],
+    13: ["9Sp SpSpSp", "9Sp SpSpSp", "9Sp SpSpSp", "9Sp SpSpSp", "9Sp SpSpSp", "9Sp SpSpSp", "9Sp SpSpSp"],
+    15: ["9Sp SpSpSp", "9Sp SpSpSp", "9Sp SpSpSp", "9Sp SpSpSp", "9Sp SpSpSp", "555", "29 UUU"]
 };
 
 // Placeholders de la tabla meteorológica
@@ -81,8 +81,8 @@ export const meteoPlaceholders = {
 // Estilos CSS reutilizables
 export const styles = {
     tableHeader: "bg-slate-600 text-white font-semibold text-xs px-2 py-2 text-center",
-    inputClass: "bg-white border border-slate-300 text-slate-800 text-sm px-2 py-2 rounded w-full focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-center",
-    readonlyClass: "bg-white border border-slate-300 text-blue-600 font-bold text-sm px-2 py-2 rounded w-full text-center",
+    inputClass: "bg-white border border-slate-300 text-slate-800 text-sm px-2 py-2 rounded w-full focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-center placeholder:text-slate-400",
+    readonlyClass: "bg-white border border-slate-300 text-blue-600 font-bold text-sm px-2 py-2 rounded w-full text-center placeholder:text-slate-400",
     constantClass: "bg-slate-200 border border-slate-400 text-slate-700 font-bold text-sm px-2 py-2 rounded w-full text-center",
     errorClass: "text-red-500 text-sm mt-2 text-center"
 };

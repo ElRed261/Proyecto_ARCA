@@ -274,7 +274,7 @@ const canEdit = hasRole(userRoles, ['admin']);
                             <button
                                 type="button"
                                 onClick={handleSave}
-                                className="flex items-center gap-1 text-xs px-3 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700"
+                                className="flex items-center gap-1 text-xs px-3 py-2 rounded-md bg-teal-600 text-white hover:bg-teal-700"
                             >
                                 <Save className="w-3 h-3" />
                                 Guardar configuración
@@ -371,7 +371,7 @@ const canEdit = hasRole(userRoles, ['admin']);
                                 <button
                                     type="submit"
                                     disabled={savingStation}
-                                    className="flex items-center justify-center gap-1.5 text-xs px-3 py-2.5 rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 font-medium"
+                                    className="flex items-center justify-center gap-1.5 text-xs px-3 py-2.5 rounded-md bg-teal-600 text-white hover:bg-teal-700 disabled:opacity-50 font-medium"
                                 >
                                     <SaveIcon className="w-3 h-3" />
                                     {savingStation ? 'Guardando…' : 'Aplicar bloqueo'}
