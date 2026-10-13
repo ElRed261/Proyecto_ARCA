@@ -7,6 +7,7 @@ import { Save as SaveIcon, Lock, AlertTriangle } from 'lucide-react';
 
 import { pathsService } from '../api/pathsService';
 import BackButton from '../../../shared/components/BackButton';
+import ComboBox from '../../../shared/components/ComboBox';
 import { hasRole, normalizeRoles } from '../../../shared/utils/auth';
 
 const EMPTY_PROFILE = {
@@ -354,20 +355,18 @@ const canEdit = hasRole(userRoles, ['admin']);
                                 cargar datos para ella en el módulo sinóptico.
                             </p>
                             <form onSubmit={handleApplyLock} className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-end">
-                                <select
+<ComboBox
+                                    options={[{ code: '', name: 'Seleccionar estación (sin bloqueo / libre)…' }].concat(
+                                        Object.entries(stationsMap)
+                                            .sort(([, a], [, b]) => a.name.localeCompare(b.name))
+                                            .map(([code, info]) => ({ value: code, label: `${info.name} (${code})` }))
+                                    )}
                                     value={assignedStation}
-                                    onChange={(e) => setAssignedStation(e.target.value)}
-                                    className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                >
-                                    <option value="">Seleccionar estación (sin bloqueo / libre)…</option>
-                                    {Object.entries(stationsMap)
-                                        .sort(([, a], [, b]) => a.name.localeCompare(b.name))
-                                        .map(([code, info]) => (
-                                            <option key={code} value={code}>
-                                                {info.name} ({code})
-                                            </option>
-                                        ))}
-                                </select>
+                                    onChange={setAssignedStation}
+                                    placeholder="Seleccionar estación (sin bloqueo / libre)…"
+                                    searchable
+                                    ariaLabel="Estación de la instancia"
+                                />
                                 <button
                                     type="submit"
                                     disabled={savingStation}

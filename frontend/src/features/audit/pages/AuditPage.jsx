@@ -184,7 +184,7 @@ const AuditPage = () => {
             </div>
 
             {/* Contenido Principal */}
-            <div className="bg-slate-50 border border-slate-200/50 rounded-2xl p-6 min-h-[400px] shadow-inner relative">
+            <div className="bg-slate-50 border border-slate-200/50 rounded-2xl p-6 min-h-[55vh] shadow-inner relative">
                 {loading ? (
                     <div className="absolute inset-0 flex items-center justify-center bg-slate-50/80 rounded-2xl">
                         <div className="flex flex-col items-center gap-3">

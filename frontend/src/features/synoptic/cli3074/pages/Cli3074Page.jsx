@@ -41,41 +41,9 @@ const synopRows = {
   "18Z": 14, "21Z": 17, "00Z": 20, "03Z": 23
 };
 
-const decimalFields3074 = [
-    'pres_est', 'pres_nmm', 'pres_alti', 'tend_dif',
-    'temp_seco', 'temp_humedo', 'hum_ptor', 'hum_tvap',
-    'viento_vel', 'visibilidad'
-];
-
-const enforceOneDecimal = (val, field) => {
-    if (val === undefined || val === null || val === '') return '';
-    
-    // La humedad relativa debe ser siempre un entero (redondeado hacia arriba)
-    if (field === 'hum_hr') {
-        const num = parseFloat(val);
-        if (!isNaN(num)) {
-            return Math.ceil(num).toString();
-        }
-        return val;
-    }
-
-    if (decimalFields3074.includes(field)) {
-        if (typeof val === 'number') val = val.toString();
-        if (typeof val === 'string' && val.trim() !== '') {
-            const parts = val.split('.');
-            if (parts.length > 1 && parts[1].length > 1) {
-                const num = parseFloat(val);
-                if (!isNaN(num)) {
-                    const rounded = num >= 0 
-                        ? Math.ceil(num * 10) / 10 
-                        : Math.floor(num * 10) / 10;
-                    return rounded.toFixed(1);
-                }
-            }
-        }
-    }
-    return val;
-};
+// Lógica de formato/actualización: fuente única en ./utils/rowUpdate (testeada).
+// La página solo orquesta estado + backend.
+import { enforceOneDecimal, applyCliFieldUpdate } from '../utils/rowUpdate';
 
 const Cli3074Page = () => {
   const navigate = useNavigate();
@@ -293,18 +261,9 @@ const Cli3074Page = () => {
 
 // Real-time Calculation Trigger
 const updateRowField = async (rowNum, fieldPath, value) => {
-  const formattedValue = enforceOneDecimal(value, fieldPath);
-  
   setRows(prev => {
-    const newRows = { ...prev };
-
-    // Handle nested phenomenos object
-    if (fieldPath.startsWith('fenomenos.')) {
-      const subField = fieldPath.split('.')[1];
-      newRows[rowNum] = { ...newRows[rowNum], fenomenos: { ...newRows[rowNum].fenomenos, [subField]: formattedValue } };
-    } else {
-      newRows[rowNum] = { ...newRows[rowNum], [fieldPath]: formattedValue };
-    }
+    // asignación vía helper puro (booleanos sin formateo, hermanos preservados)
+    const newRows = applyCliFieldUpdate(prev, rowNum, fieldPath, value);
 
     // Calcular DIF y CAR automáticamente cuando cambian pres_est o p3
     if (fieldPath === 'pres_est' || fieldPath === 'p3') {
@@ -509,8 +468,15 @@ const calcCAR = (presEst, p3) => {
         />
 
 {/* SPREADSHEET TIER CONTAINER */}
-        <div className="mx-6 flex-1 z-10 bg-white rounded-lg shadow-[0px_4px_20px_rgba(0,0,0,0.1)] border border-slate-300 overflow-x-auto overflow-y-auto mb-6 max-h-[70vh] custom-scrollbar">
-            <table className="w-full text-center border-collapse">
+        <div className="mx-6 flex-1 z-10 bg-white rounded-lg shadow-[0px_4px_20px_rgba(0,0,0,0.1)] border border-slate-300 overflow-x-clip overflow-y-auto mb-6 max-h-[70vh] custom-scrollbar">
+            <table className="w-full table-fixed text-center border-collapse">
+                <colgroup>
+                    <col style={{ width: '52px' }} />
+                    <col span={12} />
+                    <col style={{ width: '92px' }} />
+                    <col style={{ width: '60px' }} />
+                    <col span={10} style={{ width: '28px' }} />
+                </colgroup>
                 <thead className="sticky top-0 z-20 shadow-sm bg-slate-900">
                     <tr>
                         <th rowSpan="2" className={`${thClass} min-w-[50px]`}>HORA<br/>LOCAL</th>
@@ -540,7 +506,7 @@ const calcCAR = (presEst, p3) => {
                         <th className={subThClass}>DIR (16-P)</th>
                         <th className={subThClass}>VEL (m/s)</th>
 
-                        <th className={`${subThClass} whitespace-normal min-w-[60px] text-[10px]`}>TIEMPO PRES.</th>
+                        <th className={`${subThClass} whitespace-normal min-w-[52px] text-[10px]`} title="Tiempo presente">T. PRES.</th>
                         {fenomenosList.map(f => (
                            <th key={f.key} 
                                className={`${subThClass} min-w-[28px] max-w-[30px] cursor-help`}
@@ -563,7 +529,7 @@ const calcCAR = (presEst, p3) => {
                         const trClass = isMainHour ? 'bg-sky-50 shadow-[inset_0_1px_2px_rgba(0,0,0,0.05)] font-medium' : 'bg-white hover:bg-slate-50';
                         const inputStyle = `${spreadsheetStyles.input.sky} ${isMainHour ? "font-semibold text-slate-900" : ""}`;
                         const readonlyStyle = `w-full text-center bg-transparent border-none text-sky-700 font-bold font-mono text-[13px] ${isMainHour ? "text-sky-800" : ""}`;
-                        const chkStyle = "w-[14px] h-[14px] text-sky-600 bg-white border-slate-400 rounded focus:ring-sky-500 cursor-pointer shadow-sm";
+                        const chkStyle = "w-5 h-5 text-sky-600 bg-white border-slate-400 rounded focus:ring-sky-500 cursor-pointer shadow-sm";
                         const tdBorder = spreadsheetStyles.tdBorder;
 
                         return (
@@ -591,10 +557,10 @@ const calcCAR = (presEst, p3) => {
                                 
                                 <td className={tdBorder}><input className={inputStyle} value={row.fenomenos.tiempo_presente} onChange={e => updateRowField(i, 'fenomenos.tiempo_presente', e.target.value)} /></td>
                                 {fenomenosList.map(f => (
-                                    <td key={f.key} className={tdBorder}>
-                                        <div className="flex items-center justify-center w-full h-full">
-                                           <input type="checkbox" className={chkStyle} checked={row.fenomenos[f.key]} onChange={e => updateRowField(i, `fenomenos.${f.key}`, e.target.checked)} />
-                                        </div>
+                                    <td key={f.key} className={tdBorder} title={f.label}>
+                                        <label className="flex items-center justify-center w-full h-full min-h-[30px] cursor-pointer">
+                                           <input type="checkbox" className={chkStyle} checked={!!row.fenomenos?.[f.key]} onChange={e => updateRowField(i, `fenomenos.${f.key}`, e.target.checked)} aria-label={f.label} />
+                                        </label>
                                     </td>
                                 ))}
                             </tr>

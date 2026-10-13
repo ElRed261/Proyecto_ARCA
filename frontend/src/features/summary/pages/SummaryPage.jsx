@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { open as openDialog, save as saveDialog, ask } from '@tauri-apps/plugin-dialog';
 import { FileSpreadsheet, FileJson, Download, Plus, Clock, FileWarning, Loader2, ArrowRight, Trash2, BarChart3, Sun, Cloud, Wind, Droplets, Thermometer, Gauge, ArrowLeft } from 'lucide-react';
+import ComboBox from '../../../shared/components/ComboBox';
 import toast from 'react-hot-toast';
 import { ResponsiveContainer, LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import html2canvas from 'html2canvas';
@@ -438,53 +439,36 @@ const SummaryPage = () => {
                             <div className="flex flex-wrap gap-4 items-end">
                                 <div className="flex-1 min-w-[200px]">
                                     <label className="block text-xs font-semibold text-slate-500 mb-1.5">Estación Meteorológica</label>
-                                    <select
+                                    <ComboBox
+                                        options={Object.entries(stations).map(([id, info]) => ({ value: id, label: info.name ? `${info.name} (${id})` : `Estación ${id}` }))}
                                         value={selectedStation}
-                                        onChange={(e) => setSelectedStation(e.target.value)}
-                                        className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all font-medium text-slate-700"
-                                    >
-                                        <option value="">Seleccionar...</option>
-                                        {Object.entries(stations).map(([id, info]) => (
-                                            <option key={id} value={id}>
-                                                {info.name || `Estación ${id}`}
-                                            </option>
-                                        ))}
-                                    </select>
+                                        onChange={setSelectedStation}
+                                        placeholder="Seleccionar..."
+                                        searchable
+                                        ariaLabel="Estación meteorológica"
+                                    />
                                 </div>
                                 
                                 <div className="w-[150px]">
                                     <label className="block text-xs font-semibold text-slate-500 mb-1.5">Mes</label>
-                                    <select
-                                        value={selectedMonth}
-                                        onChange={(e) => setSelectedMonth(e.target.value)}
-                                        className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all font-medium text-slate-700"
-                                    >
-                                        <option value="1">Enero</option>
-                                        <option value="2">Febrero</option>
-                                        <option value="3">Marzo</option>
-                                        <option value="4">Abril</option>
-                                        <option value="5">Mayo</option>
-                                        <option value="6">Junio</option>
-                                        <option value="7">Julio</option>
-                                        <option value="8">Agosto</option>
-                                        <option value="9">Septiembre</option>
-                                        <option value="10">Octubre</option>
-                                        <option value="11">Noviembre</option>
-                                        <option value="12">Diciembre</option>
-                                    </select>
+                                    <ComboBox
+                                        options={[[('1', 'Enero'), ('2', 'Febrero'), ('3', 'Marzo'), ('4', 'Abril'), ('5', 'Mayo'), ('6', 'Junio'), ('7', 'Julio'), ('8', 'Agosto'), ('9', 'Septiembre'), ('10', 'Octubre'), ('11', 'Noviembre'), ('12', 'Diciembre')]].map(([v, l]) => ({ value: v, label: l }))}
+                                        value={String(selectedMonth)}
+                                        onChange={setSelectedMonth}
+                                        placeholder="Mes"
+                                        ariaLabel="Mes"
+                                    />
                                 </div>
                                 
                                 <div className="w-[120px]">
                                     <label className="block text-xs font-semibold text-slate-500 mb-1.5">Año</label>
-                                    <select
-                                        value={selectedYear}
-                                        onChange={(e) => setSelectedYear(e.target.value)}
-                                        className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all font-medium text-slate-700"
-                                    >
-                                        {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(year => (
-                                            <option key={year} value={year}>{year}</option>
-                                        ))}
-                                    </select>
+                                    <ComboBox
+                                        options={Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map((year) => ({ value: String(year), label: String(year) }))}
+                                        value={String(selectedYear)}
+                                        onChange={setSelectedYear}
+                                        placeholder="Año"
+                                        ariaLabel="Año"
+                                    />
                                 </div>
 
                                 {canSeeCorrections && (
@@ -892,7 +876,7 @@ const SummaryPage = () => {
                             </div>
 
                             {/* Chart box */}
-                            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex-1 min-h-[380px] flex flex-col">
+                            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex-1 min-h-[55vh] flex flex-col">
                                 <h3 className="text-sm font-bold text-slate-800 mb-4 uppercase tracking-wider">
                                     Gráfico de {chartGroup === 'temp' ? 'Temperatura (°C)' : 
                                                chartGroup === 'pressure' ? 'Presión Atmosférica (hPa)' : 
@@ -902,7 +886,7 @@ const SummaryPage = () => {
                                                'Nubosidad Total (Octas)'}
                                 </h3>
                                 
-                                <div className="w-full flex-1 min-h-[300px]">
+                                <div className="w-full flex-1 min-h-[45vh]">
                                     <ResponsiveContainer width="100%" height={300}>
                                         {chartGroup === 'temp' ? (
                                             <AreaChart data={chartData}>

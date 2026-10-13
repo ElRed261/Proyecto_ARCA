@@ -1,6 +1,7 @@
 import React from 'react';
 import { Lock } from 'lucide-react';
 import DateField from './DateField';
+import ComboBox from './ComboBox';
 
 const themeClasses = {
   sky: {
@@ -37,17 +38,16 @@ const StationHeader = ({
             Estación:
             {isLocked && <Lock className="w-3.5 h-3.5 text-slate-400" title="Información protegida en este módulo" />}
           </label>
-          <select 
-            value={selectedStation} 
-            onChange={(e) => setSelectedStation(e.target.value)}
+<ComboBox
+            options={Object.entries(stations).map(([id, info]) => ({ value: id, label: `${info.name} (${id})` }))}
+            value={selectedStation}
+            onChange={setSelectedStation}
             disabled={isLocked}
-            className={`bg-slate-50 border border-slate-300 text-slate-800 text-sm rounded-md px-3 py-1.5 focus:ring-2 ${theme.ring} focus:outline-none transition-all duration-200 ${isLocked ? 'cursor-not-allowed bg-slate-100/90 text-slate-500 border-slate-200' : ''}`}
-          >
-            <option value="">Seleccione Estación</option>
-            {Object.entries(stations).map(([id, info]) => (
-              <option key={id} value={id}>{info.name} ({id})</option>
-            ))}
-          </select>
+            placeholder="Seleccione Estación"
+            searchable
+            ariaLabel="Estación"
+            className="min-w-[220px]"
+          />
         </div>
 
         {stInfo && (

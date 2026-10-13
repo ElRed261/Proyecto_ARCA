@@ -7,6 +7,7 @@ import { isAdmin } from '../../../shared/utils/auth';
 import { hourThemes, meteoHeaders, meteoPlaceholders, styles } from '../config/synopticConfig';
 import { AAXX, CONST_333, CONST_555, HOURS, EVEN_HOURS, ODD_HOURS, normalizePressure, sanitizeSynopGroup } from '../utils/synopticUtils';
 import { bindDraft, isDraftValidFor, DRAFT_KEY } from '../utils/synopticDraft';
+import ComboBox from '../../../shared/components/ComboBox';
 import DateField from '../../../shared/components/DateField';
 import { toast } from 'react-hot-toast';
 
@@ -877,22 +878,15 @@ newObservations[hora] = {
                       {/* YYGG Iw */}
                       <input className={inputClass} placeholder="" value={getValue('meteo_2_1')} onChange={(e) => handleChange('meteo_2_1', e.target.value)} />
                       {/* IIiii - Selector de estación (bloqueado si está asignado o después de guardar) */}
-                      <select
-                        className={`${inputClass} ${(isStationLocked || assignedStation) ? 'bg-gray-300 cursor-not-allowed opacity-75' : ''}`}
+                      <ComboBox
+                        options={Object.keys(stations).map((id) => ({ value: id, label: stations[id]?.name ? `${stations[id].name} (${id})` : id }))}
                         value={getValue('station_id')}
-                        onChange={(e) => handleStationChange(e.target.value)}
+                        onChange={handleStationChange}
                         disabled={isStationLocked || !!assignedStation}
-                        title={assignedStation
-                          ? `🔒 Estación asignada permanentemente: ${stations[assignedStation]?.name || assignedStation}`
-                          : (isStationLocked
-                            ? '🔒 Estación bloqueada (ya se guardó una observación)'
-                            : (stations[getValue('station_id')]?.name || 'Seleccionar estación'))}
-                      >
-                        <option value="">Seleccionar...</option>
-                        {Object.keys(stations).map((id) => (
-                          <option key={id} value={id}>{id}</option>
-                        ))}
-                      </select>
+                        placeholder="Seleccionar..."
+                        searchable
+                        ariaLabel="Estación (IIiii)"
+                      />
                       {/* Fecha */}
                       <div className="col-span-4">
                         <DateField
