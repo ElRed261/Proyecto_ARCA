@@ -18,6 +18,7 @@ import { normalizeRoles, hasRole } from './shared/utils/auth';
 import { authService } from './features/auth/api/authService';
 import Logo from './shared/components/Logo';
 import RouteErrorBoundary from './shared/components/RouteErrorBoundary';
+import Sidebar from './shared/components/Sidebar';
 
 const ProtectedRoute = ({ user, children }) => {
   if (!user) {
@@ -26,6 +27,15 @@ const ProtectedRoute = ({ user, children }) => {
   // Un crash de render se confina a la sección — el resto del app sigue vivo
   return <RouteErrorBoundary>{children}</RouteErrorBoundary>;
 };
+
+const Shell = ({ user, onLogout, railCollapsed, onToggleRail, children }) => (
+  <div className="min-h-screen bg-gray-50">
+    <Sidebar user={user} onLogout={onLogout} collapsed={railCollapsed} onToggle={onToggleRail} />
+    <div className={`min-w-0 transition-all duration-300 ml-[76px] ${railCollapsed ? '' : 'lg:ml-[232px]'}`}>
+      {children}
+    </div>
+  </div>
+);
 
 const RoleRoute = ({ user, roles, children }) => {
   if (!user) {
@@ -42,6 +52,21 @@ function App() {
   // splash hasta que la sesión se valide — evita que ProtectedRoute rebata
   // cualquier deep-link ('/#/audit', '/#/summary', …) al '/' durante la carrera
   const [restoring, setRestoring] = useState(true);
+  const [railCollapsed, setRailCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem('arca_rail_collapsed') === '1';
+    } catch {
+      return false;
+    }
+  });
+  const toggleRail = () => {
+    setRailCollapsed((c) => {
+      try {
+        localStorage.setItem('arca_rail_collapsed', c ? '0' : '1');
+      } catch { /* almacenamiento no disponible */ }
+      return !c;
+    });
+  };
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -123,28 +148,34 @@ function App() {
         {/* Dashboard */}
         <Route path="/dashboard" element={
           <ProtectedRoute user={user}>
+            <Shell user={user} onLogout={handleLogout} railCollapsed={railCollapsed} onToggleRail={toggleRail}>
             <DashboardPage
               user={user}
               onLogout={handleLogout}
               onNavigate={(path) => navigate(`/${path}`)}
             />
+          </Shell>
           </ProtectedRoute>
         } />
 
         {/* Admin */}
         <Route path="/admin" element={
           <RoleRoute user={user} roles={['admin']}>
+            <Shell user={user} onLogout={handleLogout} railCollapsed={railCollapsed} onToggleRail={toggleRail}>
             <AdminPage
               onBack={() => navigate('/dashboard')}
               addLog={addLog}
             />
+          </Shell>
           </RoleRoute>
         } />
 
         {/* Synoptic Module */}
         <Route path="/synoptic" element={
           <ProtectedRoute user={user}>
+            <Shell user={user} onLogout={handleLogout} railCollapsed={railCollapsed} onToggleRail={toggleRail}>
             <SynopticPage />
+          </Shell>
           
           </ProtectedRoute>
         } />
@@ -155,7 +186,9 @@ function App() {
             <div className="min-h-screen bg-gray-50 pb-20">
               <div className="max-w-7xl mx-auto pt-6 px-4 sm:px-6 lg:px-8">
 
-                <SummaryPage />
+                <Shell user={user} onLogout={handleLogout} railCollapsed={railCollapsed} onToggleRail={toggleRail}>
+            <SummaryPage />
+          </Shell>
           
               </div>
             </div>
@@ -167,7 +200,9 @@ function App() {
           <RoleRoute user={user} roles={['admin', 'control_calidad']}>
             <div className="min-h-screen bg-gray-50 pb-20">
               <div className="max-w-7xl mx-auto pt-6 px-4 sm:px-6 lg:px-8">
-                <AuditPage />
+                <Shell user={user} onLogout={handleLogout} railCollapsed={railCollapsed} onToggleRail={toggleRail}>
+            <AuditPage />
+          </Shell>
           
               </div>
             </div>
@@ -178,7 +213,9 @@ function App() {
           <RoleRoute user={user} roles={['admin', 'control_calidad']}>
             <div className="min-h-screen bg-gray-50 pb-20">
               <div className="max-w-7xl mx-auto pt-6 px-4 sm:px-6 lg:px-8">
-                <AuditObservationPage />
+                <Shell user={user} onLogout={handleLogout} railCollapsed={railCollapsed} onToggleRail={toggleRail}>
+            <AuditObservationPage />
+          </Shell>
           
               </div>
             </div>
@@ -189,7 +226,9 @@ function App() {
           <RoleRoute user={user} roles={['admin', 'control_calidad']}>
             <div className="min-h-screen bg-gray-50 pb-20">
               <div className="max-w-7xl mx-auto pt-6 px-4 sm:px-6 lg:px-8">
-                <AuditReportPage />
+                <Shell user={user} onLogout={handleLogout} railCollapsed={railCollapsed} onToggleRail={toggleRail}>
+          <AuditReportPage />
+          </Shell>
           
               </div>
             </div>
@@ -199,7 +238,9 @@ function App() {
         {/* Maintenance Module (4074, 5074) */}
         <Route path="/maintenance" element={
           <ProtectedRoute user={user}>
+            <Shell user={user} onLogout={handleLogout} railCollapsed={railCollapsed} onToggleRail={toggleRail}>
             <MaintenancePage />
+          </Shell>
           
           </ProtectedRoute>
         } />
@@ -207,7 +248,9 @@ function App() {
         {/* CLI 3074 Module */}
         <Route path="/cli3074" element={
           <ProtectedRoute user={user}>
+            <Shell user={user} onLogout={handleLogout} railCollapsed={railCollapsed} onToggleRail={toggleRail}>
             <Cli3074Page />
+          </Shell>
           
           </ProtectedRoute>
         } />
@@ -215,7 +258,9 @@ function App() {
         {/* CLI 4074 Module - Nubosidad y Temperatura */}
         <Route path="/cli4074" element={
           <ProtectedRoute user={user}>
+            <Shell user={user} onLogout={handleLogout} railCollapsed={railCollapsed} onToggleRail={toggleRail}>
             <Cli4074Page />
+          </Shell>
           
           </ProtectedRoute>
         } />
@@ -223,7 +268,9 @@ function App() {
         {/* CLI 5074 Module - Fenomenos Significativos */}
         <Route path="/cli5074" element={
           <ProtectedRoute user={user}>
+            <Shell user={user} onLogout={handleLogout} railCollapsed={railCollapsed} onToggleRail={toggleRail}>
             <Cli5074Page />
+          </Shell>
           
           </ProtectedRoute>
         } />

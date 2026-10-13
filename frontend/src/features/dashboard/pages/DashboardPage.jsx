@@ -2,9 +2,7 @@ import React from 'react';
 import ModuleCard from '../components/ModuleCard';
 import { Activity, Calendar, ShieldCheck, Settings } from 'lucide-react';
 
-import UserMenu from '../../../shared/components/UserMenu';
 
-import Logo from '../../../shared/components/Logo';
 import { hasRole } from '../../../shared/utils/auth';
 
 const DashboardPage = ({ user, onLogout, onNavigate }) => {
@@ -67,17 +65,6 @@ const DashboardPage = ({ user, onLogout, onNavigate }) => {
 
     return (
         <div className="min-h-screen bg-gray-50">
-            {/* Barra Superior */}
-            <nav className="bg-white/80 backdrop-blur-md shadow-sm border-b border-gray-200 px-8 py-4 flex justify-between items-center sticky top-0 z-30">
-                <div className="flex items-center gap-3">
-                    <Logo variant="medium" />
-                    <div className="h-6 w-px bg-gray-300 mx-2"></div>
-                    <p className="text-xs text-gray-400 font-mono mt-1">v2.2.0 OMS</p>
-                </div>
-
-                <UserMenu user={user} onLogout={onLogout} />
-            </nav>
-
             {/* Contenido Principal (Mosaicos) */}
             <main className="max-w-7xl mx-auto px-8 py-12 pb-64">
                 <div className="mb-10">
