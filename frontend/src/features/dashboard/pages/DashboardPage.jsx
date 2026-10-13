@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import { ArrowRight, CloudOff, CloudCheck, CalendarDays } from 'lucide-react';
+import { ArrowRight, CloudOff, CloudCheck, CalendarDays, Lock } from 'lucide-react';
+import { hasRole } from '../../../shared/utils/auth';
 
 const HOURS = ['00Z', '03Z', '06Z', '09Z', '12Z', '15Z', '18Z', '21Z'];
 
@@ -19,12 +20,13 @@ const hourDone = (h) => {
  * Inicio — centro de operaciones del día (el rail es la navegación;
  * aquí no se duplican los módulos: se muestra el ESTADO accionable).
  */
-const DashboardPage = ({ onNavigate }) => {
+const DashboardPage = ({ user, onNavigate }) => {
     const [loading, setLoading] = useState(true);
     const [stations, setStations] = useState({});
     const [today, setToday] = useState({});
     const [monthDays, setMonthDays] = useState({});
     const [sync, setSync] = useState(null);
+    const [assigned, setAssigned] = useState('');
 
     const fecha = todayLocal();
     const [year, month] = fecha.split('-').slice(0, 2);
@@ -34,6 +36,12 @@ const DashboardPage = ({ onNavigate }) => {
         try {
             const st = (await invoke('get_stations')) || {};
             setStations(st);
+            try {
+                const lock = await invoke('get_assigned_station');
+                if (lock) setAssigned(lock);
+            } catch {
+                setAssigned('');
+            }
             const codes = Object.keys(st);
             const [obs, days, syncStatus] = await Promise.all([
                 Promise.all(
@@ -66,7 +74,13 @@ const DashboardPage = ({ onNavigate }) => {
         load();
     }, [load]);
 
-    const codes = Object.keys(stations);
+    // Alcance por rol + bloqueo de instancia (misma regla que el Sinóptico):
+    // la instancia bloqueada limita a observador/encargado a SU estación;
+    // admin y control_calidad ven todo el país.
+    const privileged = hasRole(user?.roles, ['admin', 'administrador', 'control_calidad']);
+    const allCodes = Object.keys(stations);
+    const codes = assigned && !privileged ? allCodes.filter((c) => c === assigned) : allCodes;
+    const lockedName = assigned ? stations[assigned]?.name || assigned : '';
     const pending = sync?.pending ?? 0;
 
     return (
@@ -78,6 +92,18 @@ const DashboardPage = ({ onNavigate }) => {
                     </p>
                     <h2 className="text-3xl font-bold text-gray-900">Centro de operaciones</h2>
                     <p className="text-gray-500 mt-1">Estado de hoy por estación. El rail a la izquierda es la navegación.</p>
+                    {assigned && privileged && (
+                        <p className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-3 py-1">
+                            <Lock size={12} />
+                            Instancia bloqueada a {lockedName} ({assigned})
+                        </p>
+                    )}
+                    {assigned && !privileged && stations[assigned] && (
+                        <p className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 bg-slate-100 border border-slate-200 rounded-full px-3 py-1">
+                            <Lock size={12} />
+                            Tu estación: {stations[assigned].name}
+                        </p>
+                    )}
                 </div>
 
                 {loading ? (
