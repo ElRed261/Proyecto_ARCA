@@ -100,27 +100,25 @@ describe('Sidebar — rail híbrido del OMS', () => {
     });
 });
 
-describe('Sidebar — fondo completo por hora en /synoptic', () => {
-    it('en /synoptic el rail toma el degradado de la hora (no blanco)', async () => {
-        const { publishHour } = await import('../shared/utils/hourThemeBus');
-        publishHour('12Z');
+describe('Sidebar — rail siempre blanco, raya fina de accent', () => {
+    it('en /synoptic el rail SIGUE blanco (sin degradados)', () => {
         const { container } = render(
             <MemoryRouter initialEntries={['/synoptic']}>
                 <Sidebar user={admin} onLogout={() => {}} collapsed={false} onToggle={() => {}} />
             </MemoryRouter>
         );
         const aside = container.querySelector('aside');
-        expect(aside.style.background).toContain('linear-gradient');
-        expect(aside.style.background).toContain('#1e40af');
+        expect(aside.style.background).not.toContain('linear-gradient');
+        expect(aside.className).toContain('bg-white');
     });
 
-    it('fuera de /synoptic el rail sigue blanco', () => {
+    it('el indicador de activo es una raya fina (border-l-2)', () => {
         const { container } = render(
-            <MemoryRouter initialEntries={['/dashboard']}>
+            <MemoryRouter initialEntries={['/audit']}>
                 <Sidebar user={admin} onLogout={() => {}} collapsed={false} onToggle={() => {}} />
             </MemoryRouter>
         );
-        const aside = container.querySelector('aside');
-        expect(aside.style.background).not.toContain('linear-gradient');
+        expect(container.innerHTML).toContain('border-l-2');
+        expect(container.innerHTML).not.toContain('border-l-4');
     });
 });

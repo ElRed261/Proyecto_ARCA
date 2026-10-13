@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import {
     LayoutDashboard,
     Activity,
@@ -15,7 +15,6 @@ import {
 } from 'lucide-react';
 import { pathsService } from '../../features/maintenance/api/pathsService';
 import { hasRole } from '../utils/auth';
-import { subscribeHour, getCurrentHour } from '../utils/hourThemeBus';
 
 const MODULES = [
     { id: 'home', to: '/dashboard', label: 'Inicio', icon: LayoutDashboard, accent: '#3b82f6', roles: null },
@@ -36,40 +35,14 @@ const MODULES = [
  */
 const Sidebar = ({ user, onLogout, collapsed, onToggle }) => {
     const navigate = useNavigate();
-    const location = useLocation();
     const [sync, setSync] = useState(null);
-    const [hour, setHour] = useState(() => getCurrentHour());
-
-    useEffect(() => {
-        const unsub = subscribeHour(setHour);
-        return unsub;
-    }, []);
-
-    // En el sinóptico, el rail TOMA el fondo de la hora (no un tinte):
-    // mismo degradado del formulario, con variante oscura de textos.
-    const HOUR_GRADIENTS = {
-        '06Z': ['#020617', '#172554'],
-        '09Z': ['#172554', '#1e3a8a'],
-        '12Z': ['#1e40af', '#2563eb'],
-        '15Z': ['#2563eb', '#3b82f6'],
-        '18Z': ['#2563eb', '#60a5fa'],
-        '21Z': ['#1d4ed8', '#2563eb'],
-        '00Z': ['#1e3a8a', '#1e40af'],
-        '03Z': ['#0f172a', '#172554'],
-    };
-    const onSynoptic = location.pathname === '/synoptic';
-    const gradient = onSynoptic ? HOUR_GRADIENTS[hour] : null;
-    const dk = !!gradient;
-    const railStyle = gradient
-        ? { background: `linear-gradient(180deg, ${gradient[0]} 0%, ${gradient[1]} 100%)` }
-        : undefined;
 
     useEffect(() => {
         let alive = true;
         pathsService
             .getSyncStatus()
-            .then((s) => {
-                if (alive) setSync(s);
+            .then((st) => {
+                if (alive) setSync(st);
             })
             .catch(() => {
                 if (alive) setSync(null);
@@ -84,8 +57,7 @@ const Sidebar = ({ user, onLogout, collapsed, onToggle }) => {
 
     return (
         <aside
-            style={railStyle}
-            className={`fixed left-0 top-0 h-screen z-40 border-r flex flex-col transition-all duration-300 ${dk ? 'border-white/10' : 'bg-white border-slate-200'} ${
+            className={`fixed left-0 top-0 h-screen z-40 bg-white border-r border-slate-200 flex flex-col transition-all duration-300 ${
                 collapsed ? 'w-[76px]' : 'w-[76px] lg:w-[232px]'
             }`}
             aria-label="Navegación principal del OMS"
@@ -94,7 +66,7 @@ const Sidebar = ({ user, onLogout, collapsed, onToggle }) => {
             <button
                 type="button"
                 onClick={() => navigate('/dashboard')}
-                className={`flex items-center gap-2.5 px-4 h-16 border-b cursor-pointer ${dk ? 'border-white/10' : 'border-slate-100'}`}
+                className="flex items-center gap-2.5 px-4 h-16 border-b border-slate-100 cursor-pointer"
                 aria-label="ARCA — ir al inicio"
             >
                 <span className="flex-none leading-none" aria-hidden="true">
@@ -107,8 +79,8 @@ const Sidebar = ({ user, onLogout, collapsed, onToggle }) => {
                 </span>
                 {!collapsed && (
                     <span className="hidden lg:block text-left leading-none">
-                        <span className={`block font-extrabold text-[15px] ${dk ? 'text-white' : 'text-slate-900'}`}>ARCA</span>
-                        <span className={`block text-[10px] font-mono mt-0.5 ${dk ? 'text-slate-300' : 'text-slate-400'}`}>v2.2.0 OMS</span>
+                        <span className="block font-extrabold text-slate-900 text-[15px]">ARCA</span>
+                        <span className="block text-[10px] font-mono text-slate-400 mt-0.5">v2.2.0 OMS</span>
                     </span>
                 )}
             </button>
@@ -124,14 +96,10 @@ const Sidebar = ({ user, onLogout, collapsed, onToggle }) => {
                             aria-label={m.label}
                             title={collapsed ? m.label : undefined}
                             className={({ isActive }) =>
-                                `group flex items-center gap-3 rounded-xl px-3 min-h-[44px] transition-all duration-150 border-l-4 ${
+                                `group flex items-center gap-3 rounded-xl pl-2.5 pr-3 min-h-[44px] transition-all duration-150 border-l-2 ${
                                     isActive
-                                        ? dk
-                                            ? 'bg-white/15 font-semibold text-white'
-                                            : 'bg-slate-100 font-semibold text-slate-900'
-                                        : dk
-                                          ? 'border-transparent text-slate-300 hover:bg-white/10 hover:text-white font-medium'
-                                          : 'border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-800 font-medium'
+                                        ? 'bg-slate-100 font-semibold text-slate-900'
+                                        : 'border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-800 font-medium'
                                 } ${collapsed ? 'justify-center px-0' : ''}`
                             }
                             style={({ isActive }) =>
@@ -168,15 +136,7 @@ const Sidebar = ({ user, onLogout, collapsed, onToggle }) => {
                     title={pending > 0 ? `${pending} observaciones pendientes de envío` : 'Todo sincronizado'}
                     className={`mx-2.5 mb-2 rounded-xl px-3 min-h-[44px] flex items-center gap-2 text-xs font-semibold transition-colors cursor-pointer ${
                         collapsed ? 'justify-center' : ''
-                    } ${
-                        pending > 0
-                            ? dk
-                                ? 'bg-white/10 text-amber-200 hover:bg-white/15'
-                                : 'bg-amber-50 text-amber-700 hover:bg-amber-100'
-                            : dk
-                              ? 'bg-white/10 text-emerald-200 hover:bg-white/15'
-                              : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-                    }`}
+                    } ${pending > 0 ? 'bg-amber-50 text-amber-700 hover:bg-amber-100' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'}`}
                 >
                     {pending > 0 ? <CloudOff size={16} /> : <CloudCheck size={16} />}
                     {!collapsed && (
@@ -188,7 +148,7 @@ const Sidebar = ({ user, onLogout, collapsed, onToggle }) => {
             )}
 
             {/* Usuario + colapsar */}
-            <div className={`border-t p-2.5 space-y-1 ${dk ? 'border-white/10' : 'border-slate-100'}`}>
+            <div className="border-t border-slate-100 p-2.5 space-y-1">
                 <div
                     className={`flex items-center gap-2.5 px-1 ${collapsed ? 'justify-center' : ''}`}
                     title={user?.email || 'Usuario'}
@@ -197,7 +157,7 @@ const Sidebar = ({ user, onLogout, collapsed, onToggle }) => {
                         {(user?.email || 'U').slice(0, 1).toUpperCase()}
                     </span>
                     {!collapsed && (
-                        <span className={`hidden lg:block text-xs truncate flex-1 ${dk ? 'text-slate-300' : 'text-slate-500'}`}>{user?.email}</span>
+                        <span className="hidden lg:block text-xs text-slate-500 truncate flex-1">{user?.email}</span>
                     )}
                 </div>
                 <div className={`flex gap-1 ${collapsed ? 'flex-col items-center' : ''}`}>
@@ -206,9 +166,7 @@ const Sidebar = ({ user, onLogout, collapsed, onToggle }) => {
                         onClick={onLogout}
                         title="Salir de la sesión"
                         aria-label="Salir de la sesión"
-                        className={`flex-1 min-h-[40px] rounded-lg flex items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer ${
-                            dk ? 'text-slate-300 hover:text-red-300 hover:bg-white/10' : 'text-slate-400 hover:text-red-600 hover:bg-red-50'
-                        }`}
+                        className="flex-1 min-h-[40px] rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 flex items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer"
                     >
                         <LogOut size={16} />
                         {!collapsed && <span className="hidden lg:inline">Salir</span>}
@@ -218,9 +176,7 @@ const Sidebar = ({ user, onLogout, collapsed, onToggle }) => {
                         onClick={onToggle}
                         title={collapsed ? 'Expandir menú' : 'Colapsar menú'}
                         aria-label={collapsed ? 'Expandir menú' : 'Colapsar menú'}
-                        className={`hidden lg:flex min-h-[40px] min-w-[40px] rounded-lg items-center justify-center cursor-pointer ${
-                            dk ? 'text-slate-300 hover:text-white hover:bg-white/10' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'
-                        }`}
+                        className="hidden lg:flex min-h-[40px] min-w-[40px] rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 items-center justify-center cursor-pointer"
                     >
                         {collapsed ? <ChevronsRight size={16} /> : <ChevronsLeft size={16} />}
                     </button>
