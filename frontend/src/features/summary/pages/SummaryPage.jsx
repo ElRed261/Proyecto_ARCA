@@ -369,7 +369,7 @@ const SummaryPage = () => {
     );
 
     return (
-        <div className="flex flex-col h-[calc(100vh-8rem)]">
+        <div className="flex flex-col min-h-[calc(100vh-2rem)]">
             {/* Header section */}
             <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center gap-4">
@@ -426,9 +426,9 @@ const SummaryPage = () => {
             </div>
 
             {/* Content section */}
-            <div className="bg-white border border-slate-200 rounded-xl shadow-sm flex-1 overflow-hidden flex flex-col">
+            <div className="bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col">
                 {activeTab === 'history' && (
-                    <div className="p-6 overflow-y-auto flex-1">
+                    <div className="p-6">
                         {/* Auto selector card */}
                         {/* Auto selector card */}
                         <div className="bg-gradient-to-br from-purple-50 via-indigo-50/20 to-purple-50/50 border border-purple-100 rounded-2xl p-6 mb-8 shadow-sm relative overflow-hidden text-slate-800">
@@ -552,7 +552,7 @@ const SummaryPage = () => {
                 )}
 
                 {activeTab === 'table' && currentDoc && (
-                    <div className="flex flex-col h-full overflow-hidden">
+                    <div className="flex flex-col">
                         <div className="p-5 border-b border-slate-200 bg-slate-50 flex justify-between items-center shrink-0">
                             <div>
                                 <h2 className="text-xl font-bold text-slate-850">
@@ -574,7 +574,7 @@ const SummaryPage = () => {
                         </div>
                         
                         {/* Table wrapper with scrolling */}
-                        <div className="flex-1 overflow-auto bg-white relative">
+                        <div className="overflow-x-auto bg-white relative">
                             <table className="min-w-full divide-y divide-slate-200 border-separate border-spacing-0">
                                 <thead>
                                     <tr>
@@ -642,9 +642,9 @@ const SummaryPage = () => {
                 )}
 
                 {activeTab === 'charts' && currentDoc && (
-                    <div className="flex flex-col md:flex-row h-full overflow-hidden">
+                    <div className="flex flex-col md:flex-row gap-4">
                         {/* Chart tabs sidebar */}
-                        <div className="w-full md:w-64 border-r border-slate-200 bg-slate-50 p-4 flex flex-col gap-2 shrink-0 overflow-y-auto">
+                        <div className="w-full md:w-64 border border-slate-200 rounded-xl bg-slate-50 p-4 flex flex-col gap-2 shrink-0 self-start md:sticky md:top-4">
                             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 px-2">Variables</h3>
                             {[
                                 { id: 'temp', label: 'Temperatura', icon: Thermometer },
@@ -684,7 +684,7 @@ const SummaryPage = () => {
                         </div>
 
                         {/* Chart content panel */}
-                        <div className="flex-1 p-6 overflow-y-auto flex flex-col gap-6 bg-slate-50/30">
+                        <div className="flex-1 p-6 flex flex-col gap-6 bg-slate-50/30 rounded-xl border border-slate-200">
                             {/* Summary cards row */}
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                 {chartGroup === 'temp' && (
