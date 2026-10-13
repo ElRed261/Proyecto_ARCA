@@ -32,8 +32,8 @@ const BackButton = ({ to, onBack, label = 'Volver', accent = '#64748b' }) => {
             aria-label={label}
             title={label}
             style={{ color: accent, borderColor: `${accent}55` }}
-            className="min-h-[44px] min-w-[44px] w-11 h-11 rounded-full bg-white border shadow-sm transition-all
-                       hover:shadow-md cursor-pointer flex items-center justify-center
+            className="min-h-[44px] min-w-[44px] w-11 h-11 rounded-full bg-white border shadow-sm transition-colors
+                       hover:border-slate-300 cursor-pointer flex items-center justify-center
                        focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
         >
             <ArrowLeft className="w-5 h-5" />
