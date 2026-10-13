@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { open as openDialog, save as saveDialog, ask } from '@tauri-apps/plugin-dialog';
 import { FileSpreadsheet, FileJson, Download, Plus, Clock, FileWarning, Loader2, ArrowRight, Trash2, BarChart3, Sun, Cloud, Wind, Droplets, Thermometer, Gauge, ArrowLeft } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { ResponsiveContainer, LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import html2canvas from 'html2canvas';
@@ -12,7 +11,6 @@ import BackButton from '../../../shared/components/BackButton';
 
 
 const SummaryPage = () => {
-    const navigate = useNavigate();
     const [history, setHistory] = useState([]);
     const [loading, setLoading] = useState(false);
     const [processing, setProcessing] = useState(false);

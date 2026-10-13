@@ -21,7 +21,8 @@ npm run tauri:dev
 ## Branch Policy
 
 - `main` — stable, production-ready
-- `ERP-Meteorológico` — active development branch
+- `arca-pipeline` — active development branch
+- `legacy-arca` — historical trunk (pre-v2, renamed from `ERP-Meteorológico`)
 - Feature branches: `feat/<name>`, `fix/<name>`, `chore/<name>`
 
 ## Commit Convention

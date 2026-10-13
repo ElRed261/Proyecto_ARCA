@@ -58,7 +58,7 @@ const AuthPage = ({ addLog, onLoginSuccess }) => {
                     <div className="mb-4 transform scale-150">
                         <Logo variant="full" />
                     </div>
-                    <p className="text-slate-500 text-sm mt-2">Acceso al Sistema ERP</p>
+                    <p className="text-slate-500 text-sm mt-2">Acceso al OMS — Observations Management System</p>
                 </div>
 
                 {/* Mensaje de Error */}

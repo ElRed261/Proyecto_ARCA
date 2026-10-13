@@ -35,7 +35,7 @@ const Logo = ({ variant = 'medium', className = '' }) => {
                 </span>
                 {variant === 'full' && (
                     <span className="text-[0.65rem] font-medium tracking-wider uppercase text-gray-500 leading-none">
-                        Enterprise ERP
+                        Observations Management System (OMS)
                     </span>
                 )}
             </div>

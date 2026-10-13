@@ -221,7 +221,7 @@ const AuditReportPage = () => {
                         <div>
                             <span className="text-[10px] font-bold text-orange-600 uppercase tracking-widest block">Proyecto ARCA</span>
                             <h1 className="text-3xl font-black text-slate-900 tracking-tight">Reporte de Auditoría Meteorológica</h1>
-                            <p className="text-xs text-slate-500">Sistema ERP de Consistencia de Datos Climatológicos</p>
+                            <p className="text-xs text-slate-500">ARCA OMS — Control de Consistencia de Datos Climatológicos</p>
                         </div>
                         <div className="text-right text-xs text-slate-400 font-mono">
                             <div>Fecha Impresión: {new Date().toLocaleDateString()}</div>

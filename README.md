@@ -14,10 +14,11 @@
 
 # Proyecto ARCA
 
-> **Arquitectura de Recursos, Cómputo y Administración** — sistema especializado para la
-> gestión de datos meteorológicos e hidrológicos, bajo una arquitectura de **Monolito Modular**
-> con captura, corrección, auditoría y reporte de observaciones de estaciones en modo local y
-> offline, más un pipeline de ingeniería de datos y sincronización offline-first entre estaciones.
+> **OMS — Observations Management System** · Sistema de Gestión de Observaciones Meteorológicas
+>
+> Captura conforme al Manual de la OMM (N° 306), correcciones auditadas y control de calidad,
+> métricas mensuales, sincronización offline-first entre estaciones y central, y pipeline de
+> ingeniería de datos (bronze/silver/gold). Arquitectura de monolito modular.
 
 ---
 

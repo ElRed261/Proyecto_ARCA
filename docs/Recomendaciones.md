@@ -2,7 +2,7 @@
 
 **Fecha:** Junio 2026  
 **Auditores:** Senior Full Stack · Senior Software Architect · Senior Data Architect · Desktop App Specialist  
-**Repo:** `ElRed261/Proyecto_ARCA` · **Branch:** `ERP-Meteorológico`  
+**Repo:** `ElRed261/Proyecto_ARCA` · **Branch:** `arca-pipeline` (histórico: `legacy-arca`)  
 **Stack real:** Tauri v2.10 + React 19 + Rust (activo) + Python FastAPI (muerto)  
 **Alcance:** ~14.200 LOC en 70 archivos
 

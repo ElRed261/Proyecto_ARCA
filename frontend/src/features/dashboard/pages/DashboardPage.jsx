@@ -72,7 +72,7 @@ const DashboardPage = ({ user, onLogout, onNavigate }) => {
                 <div className="flex items-center gap-3">
                     <Logo variant="medium" />
                     <div className="h-6 w-px bg-gray-300 mx-2"></div>
-                    <p className="text-xs text-gray-400 font-mono mt-1">v2.2.0 Enterprise</p>
+                    <p className="text-xs text-gray-400 font-mono mt-1">v2.2.0 OMS</p>
                 </div>
 
                 <UserMenu user={user} onLogout={onLogout} />
