@@ -265,7 +265,8 @@ const canEdit = hasRole(userRoles, ['admin']);
             </header>
 
             <main className="max-w-3xl mx-auto px-4 py-6 space-y-8">
-                {/* ---- Rutas (solo admin puede guardar) ---- */}
+                {/* ---- Rutas: solo admin las ve (observador ni las lista) ---- */}
+                {canEdit && (
                 <section>
                     <div className="flex items-center justify-between mb-3">
                         <h2 className="text-sm font-bold text-gray-800 uppercase tracking-wide">
@@ -340,6 +341,7 @@ const canEdit = hasRole(userRoles, ['admin']);
                         </button>
                     )}
                 </section>
+                )}
 
                 {/* ---- Bloqueo de estación por instancia (solo admin) ---- */}
                 {canEdit && (
@@ -356,7 +358,7 @@ const canEdit = hasRole(userRoles, ['admin']);
                             </p>
                             <form onSubmit={handleApplyLock} className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-end">
 <ComboBox
-                                    options={[{ code: '', name: 'Seleccionar estación (sin bloqueo / libre)…' }].concat(
+                                    options={[{ value: '', label: 'Seleccionar estación (sin bloqueo / libre)…' }].concat(
                                         Object.entries(stationsMap)
                                             .sort(([, a], [, b]) => a.name.localeCompare(b.name))
                                             .map(([code, info]) => ({ value: code, label: `${info.name} (${code})` }))

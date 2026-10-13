@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
     LayoutDashboard,
     Activity,
@@ -15,12 +15,14 @@ import {
 } from 'lucide-react';
 import { pathsService } from '../../features/maintenance/api/pathsService';
 import { hasRole } from '../utils/auth';
+import { subscribeHour, getCurrentHour } from '../utils/hourThemeBus';
+import { hourThemes } from '../../features/synoptic/config/synopticConfig';
 
 const MODULES = [
     { id: 'home', to: '/dashboard', label: 'Inicio', icon: LayoutDashboard, accent: '#3b82f6', roles: null },
     { id: 'synoptic', to: '/synoptic', label: 'Sinóptico', icon: Activity, accent: '#3b82f6', roles: null },
     { id: 'summary', to: '/summary', label: 'Resumen', icon: Calendar, accent: '#a855f7', roles: null },
-    { id: 'audit', to: '/audit', label: 'Auditoría', icon: ShieldCheck, accent: '#f97316', roles: null },
+    { id: 'audit', to: '/audit', label: 'Auditoría', icon: ShieldCheck, accent: '#f97316', roles: ['admin', 'administrador', 'encargado', 'control_calidad'] },
     { id: 'maintenance', to: '/maintenance', label: 'Configuración', icon: Settings, accent: '#0d9488', roles: null },
     { id: 'admin', to: '/admin', label: 'Seguridad', icon: Lock, accent: '#64748b', roles: ['admin', 'administrador'] },
 ];
@@ -35,7 +37,21 @@ const MODULES = [
  */
 const Sidebar = ({ user, onLogout, collapsed, onToggle }) => {
     const navigate = useNavigate();
+    const location = useLocation();
     const [sync, setSync] = useState(null);
+    const [hour, setHour] = useState(() => getCurrentHour());
+
+    useEffect(() => {
+        const unsub = subscribeHour(setHour);
+        return unsub;
+    }, []);
+
+    // En el sinóptico, el rail respira con la hora: mismo accent del fondo
+    const onSynoptic = location.pathname === '/synoptic';
+    const theme = onSynoptic ? hourThemes[hour] : null;
+    const railStyle = theme
+        ? { background: `linear-gradient(180deg, ${theme.accentColor}26 0%, #ffffff 55%)` }
+        : undefined;
 
     useEffect(() => {
         let alive = true;
@@ -57,6 +73,7 @@ const Sidebar = ({ user, onLogout, collapsed, onToggle }) => {
 
     return (
         <aside
+            style={railStyle}
             className={`fixed left-0 top-0 h-screen z-40 bg-white border-r border-slate-200 flex flex-col transition-all duration-300 ${
                 collapsed ? 'w-[76px]' : 'w-[76px] lg:w-[232px]'
             }`}

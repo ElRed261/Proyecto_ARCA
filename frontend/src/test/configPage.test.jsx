@@ -121,14 +121,17 @@ describe('Configuración de rutas y sincronización (P4.1 + P4.2)', () => {
     });
   });
 
-  it('sin rol admin los campos quedan deshabilitados y no guarda', async () => {
+  it('sin rol admin la sección de rutas NI SE LISTA (solo sync visible)', async () => {
     ensureLocalStorage().setItem('user_roles', JSON.stringify(['observador']));
     renderPage();
-    const offlineInput = await screen.findByDisplayValue('/datos/ARCA');
-    expect(offlineInput).toBeDisabled();
+    await screen.findByRole('button', { name: /reintentar/i });
+    expect(screen.queryByText('Raíz offline (local)')).toBeNull();
+    expect(screen.queryByText('Raíz online (Drive Desktop)')).toBeNull();
+    expect(screen.queryByText(/bloqueo de estación/i)).toBeNull();
     expect(screen.queryByRole('button', { name: /guardar configuración/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /aplicar bloqueo/i })).toBeNull();
     // el panel de sync sigue visible para cualquier usuario autenticado
-    expect(await screen.findByRole('button', { name: /reintentar/i })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /reintentar/i })).toBeTruthy();
   });
 });
 

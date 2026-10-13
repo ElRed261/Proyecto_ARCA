@@ -2,11 +2,11 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { invoke } from '@tauri-apps/api/core';
 import { ArrowLeft, Save, Upload, ArrowRight, Sun, Moon, FileText, Cloud, Clock, Sunrise, Sunset } from 'lucide-react';
-import BackButton from '../../../shared/components/BackButton';
 import { isAdmin } from '../../../shared/utils/auth';
 import { hourThemes, meteoHeaders, meteoPlaceholders, styles } from '../config/synopticConfig';
 import { AAXX, CONST_333, CONST_555, HOURS, EVEN_HOURS, ODD_HOURS, normalizePressure, sanitizeSynopGroup } from '../utils/synopticUtils';
 import { bindDraft, isDraftValidFor, DRAFT_KEY } from '../utils/synopticDraft';
+import { publishHour } from '../../../shared/utils/hourThemeBus';
 import ComboBox from '../../../shared/components/ComboBox';
 import DateField from '../../../shared/components/DateField';
 import { toast } from 'react-hot-toast';
@@ -84,7 +84,7 @@ const SynopticPage = () => {
   const activeHourRef = React.useRef(activeHour);
   const resultsPerHourRef = React.useRef(resultsPerHour);
   React.useEffect(() => { observationsRef.current = observations; }, [observations]);
-  React.useEffect(() => { activeHourRef.current = activeHour; }, [activeHour]);
+  React.useEffect(() => { activeHourRef.current = activeHour; publishHour(activeHour); }, [activeHour]);
   React.useEffect(() => { resultsPerHourRef.current = resultsPerHour; }, [resultsPerHour]);
   // P4.4: autoguardado del draft en cada cambio (como los CLIs ya hacían)
   React.useEffect(() => {
@@ -838,7 +838,6 @@ newObservations[hora] = {
     <div className={`min-h-screen p-6 transition-colors duration-1000 bg-gradient-to-br ${currentTheme.bgGradient}`}>
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-6">
-          <BackButton accent="#3b82f6" to="/dashboard" label="Volver al Dashboard" />
         </div>
 
         <h1 className={`text-2xl font-bold mb-6 transition-colors duration-500 ${currentTheme.textColor}`}>
