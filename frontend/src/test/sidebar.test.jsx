@@ -99,3 +99,28 @@ describe('Sidebar — rail híbrido del OMS', () => {
         expect(onLogout).toHaveBeenCalledTimes(1);
     });
 });
+
+describe('Sidebar — fondo completo por hora en /synoptic', () => {
+    it('en /synoptic el rail toma el degradado de la hora (no blanco)', async () => {
+        const { publishHour } = await import('../shared/utils/hourThemeBus');
+        publishHour('12Z');
+        const { container } = render(
+            <MemoryRouter initialEntries={['/synoptic']}>
+                <Sidebar user={admin} onLogout={() => {}} collapsed={false} onToggle={() => {}} />
+            </MemoryRouter>
+        );
+        const aside = container.querySelector('aside');
+        expect(aside.style.background).toContain('linear-gradient');
+        expect(aside.style.background).toContain('#1e40af');
+    });
+
+    it('fuera de /synoptic el rail sigue blanco', () => {
+        const { container } = render(
+            <MemoryRouter initialEntries={['/dashboard']}>
+                <Sidebar user={admin} onLogout={() => {}} collapsed={false} onToggle={() => {}} />
+            </MemoryRouter>
+        );
+        const aside = container.querySelector('aside');
+        expect(aside.style.background).not.toContain('linear-gradient');
+    });
+});
