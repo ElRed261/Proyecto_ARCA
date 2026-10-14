@@ -64,6 +64,12 @@ def list_users(conn: sqlite3.Connection, *, include_inactive: bool = False) -> l
     return [_from_row(row) for row in conn.execute(sql)]
 
 
+def count_users(conn: sqlite3.Connection) -> int:
+    """Total users, used by auth.seed_admin to detect a first-run database."""
+    row = conn.execute("SELECT COUNT(*) FROM users").fetchone()
+    return int(row[0])
+
+
 def set_user_active(conn: sqlite3.Connection, user_id: int, active: bool) -> None:
     conn.execute("UPDATE users SET is_active = ? WHERE id = ?", (1 if active else 0, user_id))
     conn.commit()
