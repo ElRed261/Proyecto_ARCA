@@ -1,0 +1,127 @@
+{
+  "fase": "F4",
+  "semantics": "save_hour per hora through oms_core.services.synoptic (row + verbatim doc, one transaction each)",
+  "diffs": [],
+  "explained": [
+    {
+      "kind": "derived_legacy_empty",
+      "file": "OLD/miscelaneos/backend_python/app/modules/synoptic/data/78485/2025/12/7848508122025.json",
+      "hora": "06Z",
+      "key": "tension_vapor",
+      "ours": "26.3",
+      "explanation": "legacy 'tv' empty: stored derived is a fresh recalc, no legacy value to diff"
+    },
+    {
+      "kind": "derived_legacy_empty",
+      "file": "OLD/miscelaneos/backend_python/app/modules/synoptic/data/78485/2025/12/7848508122025.json",
+      "hora": "06Z",
+      "key": "humedad_relativa",
+      "ours": "93",
+      "explanation": "legacy 'hr' empty: stored derived is a fresh recalc, no legacy value to diff"
+    },
+    {
+      "kind": "derived_legacy_empty",
+      "file": "OLD/miscelaneos/backend_python/app/modules/synoptic/data/78485/2025/12/7848508122025.json",
+      "hora": "06Z",
+      "key": "punto_rocio",
+      "ours": "21.9",
+      "explanation": "legacy 'pr' empty: stored derived is a fresh recalc, no legacy value to diff"
+    },
+    {
+      "kind": "derived_legacy_empty",
+      "file": "OLD/miscelaneos/backend_python/app/modules/synoptic/data/78485/2025/12/7848508122025.json",
+      "hora": "06Z",
+      "key": "diferencia",
+      "ours": "0.9",
+      "explanation": "legacy 'dif' empty: stored derived is a fresh recalc, no legacy value to diff"
+    },
+    {
+      "kind": "derived_legacy_empty",
+      "file": "OLD/miscelaneos/backend_python/app/modules/synoptic/data/78485/2025/12/7848508122025.json",
+      "hora": "06Z",
+      "key": "pres_nmm",
+      "ours": "1027.3",
+      "explanation": "legacy 'pres_nmm' empty: stored derived is a fresh recalc, no legacy value to diff"
+    },
+    {
+      "kind": "derived_legacy_empty",
+      "file": "OLD/miscelaneos/backend_python/app/modules/synoptic/data/78486/2025/12/7848608122025.json",
+      "hora": "06Z",
+      "key": "tension_vapor",
+      "ours": "26.3",
+      "explanation": "legacy 'tv' empty: stored derived is a fresh recalc, no legacy value to diff"
+    },
+    {
+      "kind": "derived_legacy_empty",
+      "file": "OLD/miscelaneos/backend_python/app/modules/synoptic/data/78486/2025/12/7848608122025.json",
+      "hora": "06Z",
+      "key": "humedad_relativa",
+      "ours": "93",
+      "explanation": "legacy 'hr' empty: stored derived is a fresh recalc, no legacy value to diff"
+    },
+    {
+      "kind": "derived_legacy_empty",
+      "file": "OLD/miscelaneos/backend_python/app/modules/synoptic/data/78486/2025/12/7848608122025.json",
+      "hora": "06Z",
+      "key": "punto_rocio",
+      "ours": "21.9",
+      "explanation": "legacy 'pr' empty: stored derived is a fresh recalc, no legacy value to diff"
+    },
+    {
+      "kind": "derived_legacy_empty",
+      "file": "OLD/miscelaneos/backend_python/app/modules/synoptic/data/78486/2025/12/7848608122025.json",
+      "hora": "06Z",
+      "key": "diferencia",
+      "ours": "0.9",
+      "explanation": "legacy 'dif' empty: stored derived is a fresh recalc, no legacy value to diff"
+    },
+    {
+      "kind": "derived_legacy_empty",
+      "file": "OLD/miscelaneos/backend_python/app/modules/synoptic/data/78486/2025/12/7848608122025.json",
+      "hora": "06Z",
+      "key": "pres_nmm",
+      "ours": "1026.9",
+      "explanation": "legacy 'pres_nmm' empty: stored derived is a fresh recalc, no legacy value to diff"
+    }
+  ],
+  "totals": {
+    "group_mismatches": 0,
+    "datos_mismatches": 0,
+    "derived_mismatches": 0,
+    "unresolved": 0,
+    "explained": 10
+  },
+  "ok": true,
+  "sources": [
+    {
+      "file": "OLD/miscelaneos/backend_python/app/modules/synoptic/data/78485/2025/12/7848508122025.json",
+      "station": "78485",
+      "fecha_iso": "2025-12-08",
+      "station_ch_from_seed": 2.0,
+      "horas": 8,
+      "saved_hours": 8,
+      "group_mismatches": [],
+      "datos_mismatches": [],
+      "derived_compared": 0,
+      "derived_mismatches": [],
+      "rows_expected": 8,
+      "rows_written": 8,
+      "pres_nmm_written_hours": 1
+    },
+    {
+      "file": "OLD/miscelaneos/backend_python/app/modules/synoptic/data/78486/2025/12/7848608122025.json",
+      "station": "78486",
+      "fecha_iso": "2025-12-08",
+      "station_ch_from_seed": 1.6,
+      "horas": 8,
+      "saved_hours": 8,
+      "group_mismatches": [],
+      "datos_mismatches": [],
+      "derived_compared": 0,
+      "derived_mismatches": [],
+      "rows_expected": 8,
+      "rows_written": 8,
+      "pres_nmm_written_hours": 1
+    }
+  ]
+}

@@ -1,0 +1,408 @@
+"""F4 — pytest-qt UI tests for the synoptic page (the queen screen).
+
+QT_QPA_PLATFORM=offscreen is forced in tests/conftest.py; nothing here opens
+a window on the display. Covers: hour selector with completion dots and
+tooltips, even/odd field enablement, group cap validator, guilty-field
+highlight + hour auto-switch on a structured save error, pre-save review,
+draft guard on closeEvent, observer prefill, keyboard shortcuts and the
+full fill→validate→save→DB flow.
+"""
+
+import json
+import warnings
+
+import pytest
+
+pytest.importorskip("PySide6", reason="PySide6 not installed in this interpreter")
+
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QDialog
+
+from oms_core.db.repositories import observations as observations_repo
+from oms_core.db.repositories import summaries as summaries_repo
+from oms_core.services import synoptic as synoptic_service
+from oms_ui.pages import synoptic as synoptic_ui
+from oms_ui.pages.synoptic import DraftGuardDialog, SynopticPage
+
+STATION = "78485"
+FECHA = "2025-12-08"
+
+
+def _stub_dialog_class(decision):
+    """A non-blocking stand-in for SaveReviewDialog/DraftGuardDialog."""
+
+    class _Stub(QDialog):
+        last_instance = None
+
+        def __init__(self, payload, parent=None):
+            super().__init__(parent)
+            self.review = payload
+            _Stub.last_instance = self
+
+        def exec(self):
+            return decision
+
+    return _Stub
+
+
+@pytest.fixture()
+def page(qtbot, fresh_db, tmp_path):
+    """A page whose closeEvent guard never opens a (real, modal) dialog: the
+    default stub silently discards, so any dirty widget left behind still
+    closes cleanly during pytest-qt teardown."""
+    widget = SynopticPage(fresh_db, config_dir=tmp_path)
+    qtbot.addWidget(widget)
+    widget._draft_guard_class = _stub_dialog_class(DraftGuardDialog.DISCARD)
+    widget.set_station(STATION)
+    widget.set_date(FECHA)
+    return widget
+
+
+@pytest.fixture()
+def db(tmp_path):
+    from oms_core.db.connection import connect
+    from oms_core.db.migrations import migrate
+
+    conn = connect(tmp_path / "ui2.db")
+    migrate(conn)
+    return conn
+
+
+def _filled_hour(page, hora, **overrides):
+    """A COMPLETE (21/21) hour: no review dialog on save, honest KPIs."""
+    data = {
+        "ts": "23.2", "th": "22.3", "pres_est": "1025.3", "p3": "1022.3",
+        "p24": "1024.1", "viento_dir": "180", "viento_vel": "12",
+        "visibilidad": "55", "ll": "0.0", "meteo_2_1": "08030",
+        "meteo_4_irixhvv": "32566", "meteo_4_1": "50102", "meteo_4_6": "72221",
+        "meteo_6_2": "06000", "meteo_8_1": "11222", "extra_8ns_1": "81819",
+        "extra_8ns_2": "85180",
+        "t_max": "25.1", "t_min": "18.3", "t_max_24h": "26.0", "t_min_24h": "17.9",
+    }
+    data.update(overrides)
+    for key, value in data.items():
+        page.observations[hora][key] = value
+
+
+# ---------------------------------------------------------------- hour selector
+
+
+def test_hour_selector_8_buttons_with_completion_tooltips(page):
+    assert list(page.hour_buttons) == list(synoptic_service.HOURS)
+    page.observations["06Z"]["ts"] = "23.2"
+    page.observations["06Z"]["th"] = "22.3"
+    page.observations["06Z"]["t_max"] = "25.0"
+    page.refresh_progress()
+    assert page.hour_buttons["06Z"].toolTip() == "06Z: 3/21 campos"
+    assert page.hour_buttons["09Z"].toolTip() == "09Z: 0/17 campos"
+    # empty hours dim (dot class), filled hours light up
+    assert page.hour_buttons["09Z"].property("fill") == "empty"
+    assert page.hour_buttons["06Z"].property("fill") == "part"
+
+
+def test_active_hour_progress_bar(page):
+    assert page.active_hour == "06Z"
+    page.field("ts").setText("23.2")
+    assert page.progress.maximum() == 21
+    assert page.progress.value() == 1
+    assert "1/21" in page.progress_label.text()
+    page.select_hour("09Z")
+    assert page.progress.maximum() == 17  # odd hours have the honest denominator
+
+
+def test_alt_digits_switch_the_active_hour(page):
+    for index, hora in enumerate(synoptic_service.HOURS, start=1):
+        page._on_alt_hour(index)  # the Alt+n handler body
+        assert page.active_hour == hora
+
+
+# ---------------------------------------------------------------- field model
+
+
+def test_even_only_fields_enabled_on_even_hours_only(page):
+    page.select_hour("06Z")
+    assert page.field("t_max").isEnabled()
+    assert page.field("t_min_24h").isEnabled()
+    page.select_hour("09Z")
+    assert not page.field("t_max").isEnabled()
+    assert not page.field("t_min_24h").isEnabled()
+    # base grid never disables for parity hours
+    assert page.field("ts").isEnabled() and page.field("meteo_4_1").isEnabled()
+
+
+def test_group_fields_capped_to_five_characters(qtbot, page):
+    group_field = page.field("meteo_4_6")
+    assert group_field.maxLength() == 5
+    assert group_field.validator() is not None
+    group_field.setText("123456")
+    assert group_field.text() == "12345"  # the server cap, enforced at the widget
+
+    # typing a non-group field is not capped
+    assert page.field("ts").maxLength() != 5
+
+
+def test_group_validator_blocks_letters_while_typing(qtbot, page):
+    field = page.field("meteo_4_1")
+    field.setFocus()
+    qtbot.keyClicks(field, "12ab")
+    assert field.text() == "12"  # only digits and '/' allowed (sanitizeSynopGroup)
+    field.clear()
+    qtbot.keyClicks(field, "34//")
+    assert field.text() == "34//"
+
+
+def test_fenomenos_exclusion_6_2_vs_8_1(page):
+    page.field("meteo_6_2").setText("06000")
+    assert page.field("meteo_8_1").text() == ""  # mutual exclusion preserved
+    page.field("meteo_6_2").setText("")
+    page.field("meteo_8_1").setText("56304")
+    assert page.field("meteo_6_2").text() == ""
+
+
+# ---------------------------------------------------------------- save flow
+
+
+def test_full_flow_save_writes_row_and_diario_document(page, fresh_db, monkeypatch):
+    # ll and 56DL DM DH legitimately stay empty: the review must list it (19/21)
+    _filled_hour(page, "06Z", ll="", meteo_8_1="")
+    monkeypatch.setattr(synoptic_ui, "SaveReviewDialog", _stub_dialog_class(QDialog.Accepted))
+    page.observer_edit.setText("Andry emiliano")
+    page.save_clicked()
+
+    # the honest review listed the one hour missing ll/56DL (19/21) and the
+    # seven fully empty hours
+    review = synoptic_ui.SaveReviewDialog.last_instance.review
+    assert review["partial"] == [{"hora": "06Z", "done": 19, "total": 21}]
+    assert review["empty_count"] == 7
+
+    rows = observations_repo.get_day(fresh_db, STATION, FECHA)
+    assert len(rows) == 8  # all synoptic hours land, legacy parity
+    hour_row = next(row for row in rows if row.hora == "06Z")
+    assert hour_row.p_est == pytest.approx(1025.3)
+    assert hour_row.observador == "Andry emiliano"
+    doc = json.loads(summaries_repo.get_summary_doc(fresh_db, STATION, 2025, 12, "diario", day=8))
+    assert doc["horas"]["06Z"]["datos"]["pres_est"] == "1025.3"
+    assert doc["horas"]["06Z"]["synop"]["IrIXHVV"] == "32566"
+    assert "Observación guardada" in page.status_label.text()
+    # observer remembered per station (synopticUtils/arca_observador_*)
+    assert synoptic_service.observer_for(fresh_db, STATION) == "Andry emiliano"
+
+
+def test_save_without_station_or_fecha_gives_inline_error(qtbot, db, tmp_path):
+    widget = SynopticPage(db, config_dir=tmp_path)
+    qtbot.addWidget(widget)
+    widget.save_clicked()
+    assert widget.error_label.text() != ""
+    assert observations_repo.count(db) == 0
+
+
+def test_guilty_field_highlight_and_automatic_hour_switch(qtbot, page, monkeypatch):
+    _filled_hour(page, "06Z")
+    active = {"current": "06Z"}
+
+    def failing_save(conn, station, fecha, hora, data, observer=None):
+        raise synoptic_service.SaveError(
+            "el grupo 'meteo_4_6' en hora 09Z excede 5 caracteres (123456).",
+            field="meteo_4_6",
+            hour="09Z",
+        )
+
+    monkeypatch.setattr(synoptic_service, "save_hour", failing_save)
+    page.save_clicked()
+
+    # hour auto-switched to the guilty hour + red highlight on the guilty field
+    assert page.active_hour == "09Z"
+    guilty = page.field("meteo_4_6")
+    assert guilty.property("error") is True
+    assert page.field("ts").property("error") is None
+    assert "meteo_4_6" in page.error_label.text() and "09Z" in page.error_label.text()
+    _ = active
+
+
+def test_save_resets_error_highlight_between_attempts(page):
+    page.field("meteo_4_6").setProperty("error", True)
+    page.clear_error_state()
+    assert page.field("meteo_4_6").property("error") is None
+
+
+# ---------------------------------------------------------------- review
+
+
+def test_review_dialog_lists_partials_before_saving(qtbot, page, monkeypatch):
+    page.observations["06Z"]["ts"] = "23.2"  # partial even hour: 1/21
+    stub = _stub_dialog_class(QDialog.Accepted)
+    monkeypatch.setattr(synoptic_ui, "SaveReviewDialog", stub)
+
+    page.save_clicked()
+
+    review = stub.last_instance.review
+    assert review["partial"] == [{"hora": "06Z", "done": 1, "total": 21}]
+    assert review["empty_count"] == 7
+    assert observations_repo.count(page._conn) > 0  # confirmed -> save proceeds
+
+
+def test_review_cancel_blocks_the_save(qtbot, page, monkeypatch):
+    page.observations["06Z"]["ts"] = "23.2"
+    stub = _stub_dialog_class(QDialog.Rejected)
+    monkeypatch.setattr(synoptic_ui, "SaveReviewDialog", stub)
+    page.save_clicked()
+    assert observations_repo.count(page._conn) == 0
+
+
+def test_complete_day_does_not_open_the_review_dialog(qtbot, page, monkeypatch):
+    _filled_hour(page, "06Z")
+    guard = {"opened": False}
+
+    class _Boobytrap:
+        def __init__(self, *args, **kwargs):
+            guard["opened"] = True
+
+        def exec(self):
+            return QDialog.Accepted
+
+    monkeypatch.setattr(synoptic_ui, "SaveReviewDialog", _Boobytrap)
+    page.save_clicked()
+    assert guard["opened"] is False
+    assert observations_repo.count(page._conn) > 0
+
+
+# ---------------------------------------------------------------- drafts
+
+
+def test_observer_prefill_remember(qtbot, fresh_db, tmp_path):
+    synoptic_service.remember_observer(fresh_db, STATION, "Ana Durán")
+    fresh = SynopticPage(fresh_db, config_dir=tmp_path)
+    qtbot.addWidget(fresh)
+    fresh.set_station(STATION)  # selecting the station prefills the observer
+    assert fresh.observer_edit.text() == "Ana Durán"
+
+
+def test_observer_empty_station_has_no_prefill(qtbot, fresh_db, tmp_path):
+    fresh = SynopticPage(fresh_db, config_dir=tmp_path)
+    qtbot.addWidget(fresh)
+    assert fresh.observer_edit.text() == ""
+
+
+def test_close_event_offers_draft_save(qtbot, page, monkeypatch, tmp_path):
+    page.show()
+    page.field("ts").setText("23.2")  # dirty draft state
+    assert synoptic_service.load_draft(tmp_path, STATION, FECHA) is None
+
+    monkeypatch.setattr(page, "_draft_guard_class", _stub_dialog_class(DraftGuardDialog.SAVE_DRAFT))
+    page.close()
+    # draft saved and the window actually closed
+    draft = synoptic_service.load_draft(tmp_path, STATION, FECHA)
+    assert draft is not None
+    assert draft["observations"]["06Z"]["ts"] == "23.2"
+    assert draft["active_hour"] == "06Z"
+
+
+def test_close_event_cancel_keeps_open(qtbot, page, monkeypatch, tmp_path):
+    page.show()
+    page.field("ts").setText("23.2")
+
+    monkeypatch.setattr(page, "_draft_guard_class", _stub_dialog_class(DraftGuardDialog.CANCEL))
+    assert page.close() is False  # close rejected
+    assert synoptic_service.load_draft(tmp_path, STATION, FECHA) is None
+    # teardown hygiene: leave the page clean so pytest-qt's teardown close
+    # cannot reopen the guard dialog offscreen
+    page._dirty = False
+
+
+def test_close_event_without_changes_closes_silently(qtbot, page, tmp_path):
+    page.show()
+    assert page.close() is True  # nothing dirty: no dialog, no draft
+    assert synoptic_service.load_draft(tmp_path, STATION, FECHA) is None
+
+
+# ---------------------------------------------------------------- window helper
+
+
+def test_build_synoptic_window_constructs_with_sample_data_without_showing(qtbot, fresh_db, tmp_path):
+    window = synoptic_ui.build_synoptic_window(
+        fresh_db, station=STATION, fecha=FECHA, config_dir=str(tmp_path / "cfg")
+    )
+    qtbot.addWidget(window)
+    assert window.windowTitle().startswith("Observación Sinóptica")
+    assert not window.isVisible()
+    page = window.page
+    assert page.station_combo.currentText() != ""  # station selector preloaded
+    # sample data present in the model (screenshot provider fills the rest)
+    assert page.observations["06Z"].get("ts") == "23.2"
+    assert page.active_hour == "06Z"
+
+
+def test_draft_from_same_station_fecha_restores_in_the_window(qtbot, fresh_db, tmp_path):
+    draft = synoptic_service.bind_draft({"09Z": {"ts": "21.4"}}, "09Z", {}, STATION, FECHA)
+    synoptic_service.save_draft(tmp_path, draft)
+    window = synoptic_ui.build_synoptic_window(
+        fresh_db, station=STATION, fecha=FECHA, config_dir=str(tmp_path)
+    )
+    qtbot.addWidget(window)
+    page = window.page
+    assert page.active_hour == "09Z"  # the draft wins over the sample hour
+    assert page.hour_value("09Z", "ts") == "21.4"
+    assert page.hour_value("06Z", "ts") == ""
+
+
+# ---------------------------------------------------------------- keyboard
+
+
+def _focus_window(qtbot, page):
+    """Offscreen keystroke plumbing: the page must own the active window for
+    its Qt.WindowShortcut shortcuts to receive keys."""
+    from PySide6.QtWidgets import QApplication
+
+    page.show()
+    page.setFocus()
+    page.window().activateWindow()
+    if QApplication.activeWindow() is not page.window():  # offscreen fallback
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            QApplication.setActiveWindow(page)
+    qtbot.waitActive(page)
+
+
+def test_shortcut_bindings_and_keyboard_ctrl_s_save(qtbot, page, monkeypatch):
+    sequences = {s.key().toString() for s in page._shortcuts}
+    assert "Ctrl+S" in sequences
+    for index in range(1, 9):
+        assert f"Alt+{index}" in sequences
+
+    calls = {"saved": False}
+
+    def fake_save(conn, station, fecha, hora, data, observer=None):
+        calls["saved"] = True
+
+    monkeypatch.setattr(synoptic_service, "save_hour", fake_save)
+    _filled_hour(page, "06Z")
+    _focus_window(qtbot, page)
+    # a REAL modified Ctrl+S keystroke travels the shortcut → save
+    qtbot.keyClick(page, Qt.Key_S, Qt.KeyboardModifier.ControlModifier)
+    assert calls["saved"] is True
+
+
+def test_alt_key_shortcut_switches_hour(qtbot, page):
+    _focus_window(qtbot, page)
+    qtbot.keyClick(page, Qt.Key_3, Qt.KeyboardModifier.AltModifier)
+    assert page.active_hour == "12Z"  # Alt+N selects the Nth button (oracle order)
+
+
+def test_manual_1sn_2sn_slots_even_only_and_roundtrip(page, fresh_db, monkeypatch):
+    """Oracle parity: 1snTxTxTx/2snTnTnTn are even-hour manual inputs whose
+    values must survive save→doc as synop.1snTxTxTx/2snTnTnTn."""
+    page.select_hour("06Z")
+    assert page.field("meteo_6_3").isEnabled()
+    assert page.field("meteo_6_4").isEnabled()
+    page.select_hour("09Z")
+    assert not page.field("meteo_6_3").isEnabled()
+    assert not page.field("meteo_6_4").isEnabled()
+
+    page.select_hour("06Z")
+    _filled_hour(page, "06Z", meteo_6_3="10245", meteo_6_4="20183")
+    monkeypatch.setattr(synoptic_ui, "SaveReviewDialog", _stub_dialog_class(QDialog.Accepted))
+    page.save_clicked()
+
+    doc = json.loads(summaries_repo.get_summary_doc(fresh_db, STATION, 2025, 12, "diario", day=8))
+    assert doc["horas"]["06Z"]["synop"]["1snTxTxTx"] == "10245"
+    assert doc["horas"]["06Z"]["synop"]["2snTnTnTn"] == "20183"
