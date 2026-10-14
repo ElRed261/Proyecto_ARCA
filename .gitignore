@@ -37,3 +37,7 @@ frontend/src-tauri/target/
 miscelaneos/base_para_modulos/Resumen_Mensual_Synop/
 !pipeline/tests/fixtures/
 !pipeline/tests/fixtures/*.xlsm
+
+# --- editor swap files ---
+*.swp
+*.kate-swp
