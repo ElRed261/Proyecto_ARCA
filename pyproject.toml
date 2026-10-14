@@ -2,7 +2,7 @@
 name = "neoarca"
 version = "0.1.0"
 description = "OMS — Observations Management System (Neo Arca)"
-requires-python = ">=3.10"
+requires-python = ">=3.13"
 dependencies = []
 
 [build-system]
@@ -22,5 +22,5 @@ ui = ["PySide6"]
 testpaths = ["tests"]
 
 [tool.ruff]
-target-version = "py310"
+target-version = "py313"
 line-length = 100
