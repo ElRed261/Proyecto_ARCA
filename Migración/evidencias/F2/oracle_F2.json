@@ -1,0 +1,1064 @@
+{
+  "tool": "oms_calc.recalculate_derived_fields_json (PyO3 wheel cp314t)",
+  "shape_b": {
+    "shape": "B_EstacionCentral",
+    "files": 64,
+    "z_hours": 512,
+    "hours_with_p_estimators": 450,
+    "pres_nmm_minus_p_est_consistent_with_1_decimal_correc_alt": 450,
+    "mismatches": [],
+    "mismatch_count": 0,
+    "raw_ts_th_stored": false,
+    "note": "raw ts/th/irixhv/7ww/correc_alt are NOT stored in these files, so recalculate_derived_fields_json cannot be fed from stored data alone: no direct diff possible (finding, not failure)."
+  },
+  "shape_a": {
+    "shape": "A_synoptic_drafts",
+    "files": 2,
+    "recomputed_hours": 2,
+    "stored_derived_nonempty_hours": 0,
+    "stored_vs_recomputed_gaps": [
+      {
+        "file": "OLD/miscelaneos/backend_python/app/modules/synoptic/data/78485/2025/12/7848508122025.json",
+        "hora": "06Z",
+        "field": "tension_vapor",
+        "recomputed": "26.3",
+        "stored": ""
+      },
+      {
+        "file": "OLD/miscelaneos/backend_python/app/modules/synoptic/data/78485/2025/12/7848508122025.json",
+        "hora": "06Z",
+        "field": "humedad_relativa",
+        "recomputed": "93",
+        "stored": ""
+      },
+      {
+        "file": "OLD/miscelaneos/backend_python/app/modules/synoptic/data/78485/2025/12/7848508122025.json",
+        "hora": "06Z",
+        "field": "punto_rocio",
+        "recomputed": "21.9",
+        "stored": ""
+      },
+      {
+        "file": "OLD/miscelaneos/backend_python/app/modules/synoptic/data/78485/2025/12/7848508122025.json",
+        "hora": "06Z",
+        "field": "pres_nmm",
+        "recomputed": "1027.3",
+        "stored": ""
+      },
+      {
+        "file": "OLD/miscelaneos/backend_python/app/modules/synoptic/data/78485/2025/12/7848508122025.json",
+        "hora": "06Z",
+        "field": "diferencia",
+        "recomputed": "0.9",
+        "stored": ""
+      },
+      {
+        "file": "OLD/miscelaneos/backend_python/app/modules/synoptic/data/78485/2025/12/7848508122025.json",
+        "hora": "06Z",
+        "field": "tend_dif",
+        "recomputed": "03.0",
+        "stored": ""
+      },
+      {
+        "file": "OLD/miscelaneos/backend_python/app/modules/synoptic/data/78485/2025/12/7848508122025.json",
+        "hora": "06Z",
+        "field": "tend_dif",
+        "recomputed": "03.0",
+        "stored": ""
+      },
+      {
+        "file": "OLD/miscelaneos/backend_python/app/modules/synoptic/data/78486/2025/12/7848608122025.json",
+        "hora": "06Z",
+        "field": "tension_vapor",
+        "recomputed": "26.3",
+        "stored": ""
+      },
+      {
+        "file": "OLD/miscelaneos/backend_python/app/modules/synoptic/data/78486/2025/12/7848608122025.json",
+        "hora": "06Z",
+        "field": "humedad_relativa",
+        "recomputed": "93",
+        "stored": ""
+      },
+      {
+        "file": "OLD/miscelaneos/backend_python/app/modules/synoptic/data/78486/2025/12/7848608122025.json",
+        "hora": "06Z",
+        "field": "punto_rocio",
+        "recomputed": "21.9",
+        "stored": ""
+      },
+      {
+        "file": "OLD/miscelaneos/backend_python/app/modules/synoptic/data/78486/2025/12/7848608122025.json",
+        "hora": "06Z",
+        "field": "pres_nmm",
+        "recomputed": "1026.9",
+        "stored": ""
+      },
+      {
+        "file": "OLD/miscelaneos/backend_python/app/modules/synoptic/data/78486/2025/12/7848608122025.json",
+        "hora": "06Z",
+        "field": "diferencia",
+        "recomputed": "0.9",
+        "stored": ""
+      },
+      {
+        "file": "OLD/miscelaneos/backend_python/app/modules/synoptic/data/78486/2025/12/7848608122025.json",
+        "hora": "06Z",
+        "field": "tend_dif",
+        "recomputed": "03.0",
+        "stored": ""
+      },
+      {
+        "file": "OLD/miscelaneos/backend_python/app/modules/synoptic/data/78486/2025/12/7848608122025.json",
+        "hora": "06Z",
+        "field": "tend_dif",
+        "recomputed": "03.0",
+        "stored": ""
+      }
+    ],
+    "per_file": [
+      {
+        "file": "OLD/miscelaneos/backend_python/app/modules/synoptic/data/78485/2025/12/7848508122025.json",
+        "meta": {
+          "estacion": "78485",
+          "fecha": "08122025",
+          "last_modified": "2025-12-08 12:26:21"
+        },
+        "hours": [
+          {
+            "hora": "06Z",
+            "recomputed": {
+              "tension_vapor": "26.3",
+              "humedad_relativa": "93",
+              "punto_rocio": "21.9",
+              "diferencia": "0.9",
+              "pres_nmm": "1027.3",
+              "tend_dif": "03.0",
+              "tend_car": "3",
+              "visibilidad": "160",
+              "tiempo_presente": ""
+            },
+            "stored": {
+              "tv": "",
+              "hr": "",
+              "pr": "",
+              "pres_nmm": "",
+              "dif": "",
+              "dif_p3": "",
+              "dif_p24": ""
+            }
+          },
+          {
+            "hora": "09Z",
+            "recomputed": {
+              "tension_vapor": "",
+              "humedad_relativa": "",
+              "punto_rocio": "",
+              "diferencia": "",
+              "pres_nmm": "",
+              "tend_dif": "",
+              "tend_car": "",
+              "visibilidad": "",
+              "tiempo_presente": ""
+            },
+            "stored": {
+              "tv": "",
+              "hr": "",
+              "pr": "",
+              "pres_nmm": "",
+              "dif": "",
+              "dif_p3": "",
+              "dif_p24": ""
+            }
+          },
+          {
+            "hora": "12Z",
+            "recomputed": {
+              "tension_vapor": "",
+              "humedad_relativa": "",
+              "punto_rocio": "",
+              "diferencia": "",
+              "pres_nmm": "",
+              "tend_dif": "",
+              "tend_car": "",
+              "visibilidad": "",
+              "tiempo_presente": ""
+            },
+            "stored": {
+              "tv": "",
+              "hr": "",
+              "pr": "",
+              "pres_nmm": "",
+              "dif": "",
+              "dif_p3": "",
+              "dif_p24": ""
+            }
+          },
+          {
+            "hora": "15Z",
+            "recomputed": {
+              "tension_vapor": "",
+              "humedad_relativa": "",
+              "punto_rocio": "",
+              "diferencia": "",
+              "pres_nmm": "",
+              "tend_dif": "",
+              "tend_car": "",
+              "visibilidad": "",
+              "tiempo_presente": ""
+            },
+            "stored": {
+              "tv": "",
+              "hr": "",
+              "pr": "",
+              "pres_nmm": "",
+              "dif": "",
+              "dif_p3": "",
+              "dif_p24": ""
+            }
+          },
+          {
+            "hora": "18Z",
+            "recomputed": {
+              "tension_vapor": "",
+              "humedad_relativa": "",
+              "punto_rocio": "",
+              "diferencia": "",
+              "pres_nmm": "",
+              "tend_dif": "",
+              "tend_car": "",
+              "visibilidad": "",
+              "tiempo_presente": ""
+            },
+            "stored": {
+              "tv": "",
+              "hr": "",
+              "pr": "",
+              "pres_nmm": "",
+              "dif": "",
+              "dif_p3": "",
+              "dif_p24": ""
+            }
+          },
+          {
+            "hora": "21Z",
+            "recomputed": {
+              "tension_vapor": "",
+              "humedad_relativa": "",
+              "punto_rocio": "",
+              "diferencia": "",
+              "pres_nmm": "",
+              "tend_dif": "",
+              "tend_car": "",
+              "visibilidad": "",
+              "tiempo_presente": ""
+            },
+            "stored": {
+              "tv": "",
+              "hr": "",
+              "pr": "",
+              "pres_nmm": "",
+              "dif": "",
+              "dif_p3": "",
+              "dif_p24": ""
+            }
+          },
+          {
+            "hora": "00Z",
+            "recomputed": {
+              "tension_vapor": "",
+              "humedad_relativa": "",
+              "punto_rocio": "",
+              "diferencia": "",
+              "pres_nmm": "",
+              "tend_dif": "",
+              "tend_car": "",
+              "visibilidad": "",
+              "tiempo_presente": ""
+            },
+            "stored": {
+              "tv": "",
+              "hr": "",
+              "pr": "",
+              "pres_nmm": "",
+              "dif": "",
+              "dif_p3": "",
+              "dif_p24": ""
+            }
+          },
+          {
+            "hora": "03Z",
+            "recomputed": {
+              "tension_vapor": "",
+              "humedad_relativa": "",
+              "punto_rocio": "",
+              "diferencia": "",
+              "pres_nmm": "",
+              "tend_dif": "",
+              "tend_car": "",
+              "visibilidad": "",
+              "tiempo_presente": ""
+            },
+            "stored": {
+              "tv": "",
+              "hr": "",
+              "pr": "",
+              "pres_nmm": "",
+              "dif": "",
+              "dif_p3": "",
+              "dif_p24": ""
+            }
+          }
+        ]
+      },
+      {
+        "file": "OLD/miscelaneos/backend_python/app/modules/synoptic/data/78486/2025/12/7848608122025.json",
+        "meta": {
+          "estacion": "78486",
+          "fecha": "08122025",
+          "last_modified": "2025-12-08 12:25:54"
+        },
+        "hours": [
+          {
+            "hora": "06Z",
+            "recomputed": {
+              "tension_vapor": "26.3",
+              "humedad_relativa": "93",
+              "punto_rocio": "21.9",
+              "diferencia": "0.9",
+              "pres_nmm": "1026.9",
+              "tend_dif": "03.0",
+              "tend_car": "3",
+              "visibilidad": "160",
+              "tiempo_presente": ""
+            },
+            "stored": {
+              "tv": "",
+              "hr": "",
+              "pr": "",
+              "pres_nmm": "",
+              "dif": "",
+              "dif_p3": "",
+              "dif_p24": ""
+            }
+          },
+          {
+            "hora": "09Z",
+            "recomputed": {
+              "tension_vapor": "",
+              "humedad_relativa": "",
+              "punto_rocio": "",
+              "diferencia": "",
+              "pres_nmm": "",
+              "tend_dif": "",
+              "tend_car": "",
+              "visibilidad": "",
+              "tiempo_presente": ""
+            },
+            "stored": {
+              "tv": "",
+              "hr": "",
+              "pr": "",
+              "pres_nmm": "",
+              "dif": "",
+              "dif_p3": "",
+              "dif_p24": ""
+            }
+          },
+          {
+            "hora": "12Z",
+            "recomputed": {
+              "tension_vapor": "",
+              "humedad_relativa": "",
+              "punto_rocio": "",
+              "diferencia": "",
+              "pres_nmm": "",
+              "tend_dif": "",
+              "tend_car": "",
+              "visibilidad": "",
+              "tiempo_presente": ""
+            },
+            "stored": {
+              "tv": "",
+              "hr": "",
+              "pr": "",
+              "pres_nmm": "",
+              "dif": "",
+              "dif_p3": "",
+              "dif_p24": ""
+            }
+          },
+          {
+            "hora": "15Z",
+            "recomputed": {
+              "tension_vapor": "",
+              "humedad_relativa": "",
+              "punto_rocio": "",
+              "diferencia": "",
+              "pres_nmm": "",
+              "tend_dif": "",
+              "tend_car": "",
+              "visibilidad": "",
+              "tiempo_presente": ""
+            },
+            "stored": {
+              "tv": "",
+              "hr": "",
+              "pr": "",
+              "pres_nmm": "",
+              "dif": "",
+              "dif_p3": "",
+              "dif_p24": ""
+            }
+          },
+          {
+            "hora": "18Z",
+            "recomputed": {
+              "tension_vapor": "",
+              "humedad_relativa": "",
+              "punto_rocio": "",
+              "diferencia": "",
+              "pres_nmm": "",
+              "tend_dif": "",
+              "tend_car": "",
+              "visibilidad": "",
+              "tiempo_presente": ""
+            },
+            "stored": {
+              "tv": "",
+              "hr": "",
+              "pr": "",
+              "pres_nmm": "",
+              "dif": "",
+              "dif_p3": "",
+              "dif_p24": ""
+            }
+          },
+          {
+            "hora": "21Z",
+            "recomputed": {
+              "tension_vapor": "",
+              "humedad_relativa": "",
+              "punto_rocio": "",
+              "diferencia": "",
+              "pres_nmm": "",
+              "tend_dif": "",
+              "tend_car": "",
+              "visibilidad": "",
+              "tiempo_presente": ""
+            },
+            "stored": {
+              "tv": "",
+              "hr": "",
+              "pr": "",
+              "pres_nmm": "",
+              "dif": "",
+              "dif_p3": "",
+              "dif_p24": ""
+            }
+          },
+          {
+            "hora": "00Z",
+            "recomputed": {
+              "tension_vapor": "",
+              "humedad_relativa": "",
+              "punto_rocio": "",
+              "diferencia": "",
+              "pres_nmm": "",
+              "tend_dif": "",
+              "tend_car": "",
+              "visibilidad": "",
+              "tiempo_presente": ""
+            },
+            "stored": {
+              "tv": "",
+              "hr": "",
+              "pr": "",
+              "pres_nmm": "",
+              "dif": "",
+              "dif_p3": "",
+              "dif_p24": ""
+            }
+          },
+          {
+            "hora": "03Z",
+            "recomputed": {
+              "tension_vapor": "",
+              "humedad_relativa": "",
+              "punto_rocio": "",
+              "diferencia": "",
+              "pres_nmm": "",
+              "tend_dif": "",
+              "tend_car": "",
+              "visibilidad": "",
+              "tiempo_presente": ""
+            },
+            "stored": {
+              "tv": "",
+              "hr": "",
+              "pr": "",
+              "pres_nmm": "",
+              "dif": "",
+              "dif_p3": "",
+              "dif_p24": ""
+            }
+          }
+        ]
+      }
+    ],
+    "note": "all stored calculados slots are empty (drafts saved before any recalculation); recomputed values are non-empty exactly where the hour has ts/th. The diff gap is explained by the store, not by the port."
+  },
+  "shape_c": {
+    "shape": "C_monthly_summaries",
+    "summaries": 3,
+    "cells_compared": 1220,
+    "days_with_data": 61,
+    "mismatch_count": 0,
+    "per_summary": {
+      "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/summaries/resumen_Estacion Central_052025.json": {
+        "estacion": "Estacion Central",
+        "days": 31,
+        "days_without_daily_file": 0,
+        "missing_days": [],
+        "days_compared": 31,
+        "columns": {
+          "Mayor temperatura máxima": {
+            "exact": 30,
+            "diff": 1,
+            "sample": [
+              {
+                "day": "2025-05-07",
+                "stored": NaN,
+                "recomputed": null
+              }
+            ]
+          },
+          "Menor temperatura minima": {
+            "exact": 30,
+            "diff": 1,
+            "sample": [
+              {
+                "day": "2025-05-07",
+                "stored": NaN,
+                "recomputed": null
+              }
+            ]
+          },
+          "Media temperatura": {
+            "exact": 29,
+            "diff": 2,
+            "sample": [
+              {
+                "day": "2025-05-07",
+                "stored": NaN,
+                "recomputed": null
+              },
+              {
+                "day": "2025-05-21",
+                "stored": 29.3,
+                "recomputed": 29.4
+              }
+            ]
+          },
+          "MAxima presión nivel medio del mar": {
+            "exact": 30,
+            "diff": 1,
+            "sample": [
+              {
+                "day": "2025-05-07",
+                "stored": NaN,
+                "recomputed": null
+              }
+            ]
+          },
+          "Minima presión nivel medio del mar": {
+            "exact": 30,
+            "diff": 1,
+            "sample": [
+              {
+                "day": "2025-05-07",
+                "stored": NaN,
+                "recomputed": null
+              }
+            ]
+          },
+          "Media presión nivel medio del mar": {
+            "exact": 30,
+            "diff": 1,
+            "sample": [
+              {
+                "day": "2025-05-07",
+                "stored": NaN,
+                "recomputed": null
+              }
+            ]
+          },
+          "Media presion en la estación": {
+            "exact": 30,
+            "diff": 1,
+            "sample": [
+              {
+                "day": "2025-05-07",
+                "stored": NaN,
+                "recomputed": null
+              }
+            ]
+          },
+          "Lluvia": {
+            "exact": 8,
+            "diff": 23,
+            "sample": [
+              {
+                "day": "2025-05-01",
+                "stored": 7.7,
+                "recomputed": null
+              },
+              {
+                "day": "2025-05-02",
+                "stored": 0.0,
+                "recomputed": 7.7
+              }
+            ]
+          },
+          "Dirección del viento": {
+            "exact": 30,
+            "diff": 1,
+            "sample": [
+              {
+                "day": "2025-05-07",
+                "stored": "VRB",
+                "recomputed": null
+              }
+            ]
+          },
+          "Velocidad media del viento": {
+            "exact": 30,
+            "diff": 1,
+            "sample": [
+              {
+                "day": "2025-05-07",
+                "stored": NaN,
+                "recomputed": null
+              }
+            ]
+          },
+          "Velocidad máxima y direccion": {
+            "exact": 30,
+            "diff": 1,
+            "sample": [
+              {
+                "day": "2025-05-17",
+                "stored": "CALMA 7,2",
+                "recomputed": "NNW 7,2"
+              }
+            ]
+          },
+          "Recorrido del viento": {
+            "exact": 30,
+            "diff": 1,
+            "sample": [
+              {
+                "day": "2025-05-07",
+                "stored": NaN,
+                "recomputed": null
+              }
+            ]
+          },
+          "Nuvocidad dia": {
+            "exact": 5,
+            "diff": 26,
+            "sample": [
+              {
+                "day": "2025-05-01",
+                "stored": 5.5,
+                "recomputed": 4.0
+              },
+              {
+                "day": "2025-05-03",
+                "stored": 5.2,
+                "recomputed": 4.0
+              }
+            ]
+          },
+          "Nuvocidad noche": {
+            "exact": 0,
+            "diff": 31,
+            "sample": [
+              {
+                "day": "2025-05-01",
+                "stored": NaN,
+                "recomputed": 7.0
+              },
+              {
+                "day": "2025-05-02",
+                "stored": NaN,
+                "recomputed": 5.7
+              }
+            ]
+          },
+          "Media de nuvocidad": {
+            "exact": 30,
+            "diff": 1,
+            "sample": [
+              {
+                "day": "2025-05-07",
+                "stored": NaN,
+                "recomputed": null
+              }
+            ]
+          },
+          "Humedad maxima": {
+            "exact": 30,
+            "diff": 1,
+            "sample": [
+              {
+                "day": "2025-05-07",
+                "stored": NaN,
+                "recomputed": null
+              }
+            ]
+          },
+          "Humedad minima": {
+            "exact": 30,
+            "diff": 1,
+            "sample": [
+              {
+                "day": "2025-05-07",
+                "stored": NaN,
+                "recomputed": null
+              }
+            ]
+          },
+          "Humedad media": {
+            "exact": 30,
+            "diff": 1,
+            "sample": [
+              {
+                "day": "2025-05-07",
+                "stored": NaN,
+                "recomputed": null
+              }
+            ]
+          },
+          "Punto de rocio": {
+            "exact": 30,
+            "diff": 1,
+            "sample": [
+              {
+                "day": "2025-05-07",
+                "stored": NaN,
+                "recomputed": null
+              }
+            ]
+          },
+          "Tensión de vapor": {
+            "exact": 30,
+            "diff": 1,
+            "sample": [
+              {
+                "day": "2025-05-07",
+                "stored": NaN,
+                "recomputed": null
+              }
+            ]
+          }
+        }
+      },
+      "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/summaries/resumen_Estacion Central_062025.json": {
+        "estacion": "Estacion Central",
+        "days": 31,
+        "days_without_daily_file": 31,
+        "missing_days": [
+          "2025-06-01",
+          "2025-06-02",
+          "2025-06-03",
+          "2025-06-04",
+          "2025-06-05",
+          "2025-06-06",
+          "2025-06-07",
+          "2025-06-08",
+          "2025-06-09",
+          "2025-06-10",
+          "2025-06-11",
+          "2025-06-12",
+          "2025-06-13",
+          "2025-06-14",
+          "2025-06-15",
+          "2025-06-16",
+          "2025-06-17",
+          "2025-06-18",
+          "2025-06-19",
+          "2025-06-20",
+          "2025-06-21",
+          "2025-06-22",
+          "2025-06-22",
+          "2025-06-23",
+          "2025-06-24",
+          "2025-06-25",
+          "2025-06-26",
+          "2025-06-27",
+          "2025-06-28",
+          "2025-06-29",
+          "2025-06-30"
+        ],
+        "days_compared": 0,
+        "columns": {
+          "Mayor temperatura máxima": {
+            "exact": 0,
+            "diff": 0,
+            "sample": []
+          },
+          "Menor temperatura minima": {
+            "exact": 0,
+            "diff": 0,
+            "sample": []
+          },
+          "Media temperatura": {
+            "exact": 0,
+            "diff": 0,
+            "sample": []
+          },
+          "MAxima presión nivel medio del mar": {
+            "exact": 0,
+            "diff": 0,
+            "sample": []
+          },
+          "Minima presión nivel medio del mar": {
+            "exact": 0,
+            "diff": 0,
+            "sample": []
+          },
+          "Media presión nivel medio del mar": {
+            "exact": 0,
+            "diff": 0,
+            "sample": []
+          },
+          "Media presion en la estación": {
+            "exact": 0,
+            "diff": 0,
+            "sample": []
+          },
+          "Lluvia": {
+            "exact": 0,
+            "diff": 0,
+            "sample": []
+          },
+          "Dirección del viento": {
+            "exact": 0,
+            "diff": 0,
+            "sample": []
+          },
+          "Velocidad media del viento": {
+            "exact": 0,
+            "diff": 0,
+            "sample": []
+          },
+          "Velocidad máxima y direccion": {
+            "exact": 0,
+            "diff": 0,
+            "sample": []
+          },
+          "Recorrido del viento": {
+            "exact": 0,
+            "diff": 0,
+            "sample": []
+          },
+          "Nuvocidad dia": {
+            "exact": 0,
+            "diff": 0,
+            "sample": []
+          },
+          "Nuvocidad noche": {
+            "exact": 0,
+            "diff": 0,
+            "sample": []
+          },
+          "Media de nuvocidad": {
+            "exact": 0,
+            "diff": 0,
+            "sample": []
+          },
+          "Humedad maxima": {
+            "exact": 0,
+            "diff": 0,
+            "sample": []
+          },
+          "Humedad minima": {
+            "exact": 0,
+            "diff": 0,
+            "sample": []
+          },
+          "Humedad media": {
+            "exact": 0,
+            "diff": 0,
+            "sample": []
+          },
+          "Punto de rocio": {
+            "exact": 0,
+            "diff": 0,
+            "sample": []
+          },
+          "Tensión de vapor": {
+            "exact": 0,
+            "diff": 0,
+            "sample": []
+          }
+        }
+      },
+      "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/summaries/resumen_MDJB_062025.json": {
+        "estacion": "MDJB",
+        "days": 30,
+        "days_without_daily_file": 0,
+        "missing_days": [],
+        "days_compared": 30,
+        "columns": {
+          "Mayor temperatura máxima": {
+            "exact": 30,
+            "diff": 0,
+            "sample": []
+          },
+          "Menor temperatura minima": {
+            "exact": 30,
+            "diff": 0,
+            "sample": []
+          },
+          "Media temperatura": {
+            "exact": 30,
+            "diff": 0,
+            "sample": []
+          },
+          "MAxima presión nivel medio del mar": {
+            "exact": 30,
+            "diff": 0,
+            "sample": []
+          },
+          "Minima presión nivel medio del mar": {
+            "exact": 30,
+            "diff": 0,
+            "sample": []
+          },
+          "Media presión nivel medio del mar": {
+            "exact": 30,
+            "diff": 0,
+            "sample": []
+          },
+          "Media presion en la estación": {
+            "exact": 30,
+            "diff": 0,
+            "sample": []
+          },
+          "Lluvia": {
+            "exact": 1,
+            "diff": 29,
+            "sample": [
+              {
+                "day": "2025-06-01",
+                "stored": NaN,
+                "recomputed": null
+              },
+              {
+                "day": "2025-06-02",
+                "stored": NaN,
+                "recomputed": null
+              }
+            ]
+          },
+          "Dirección del viento": {
+            "exact": 30,
+            "diff": 0,
+            "sample": []
+          },
+          "Velocidad media del viento": {
+            "exact": 30,
+            "diff": 0,
+            "sample": []
+          },
+          "Velocidad máxima y direccion": {
+            "exact": 30,
+            "diff": 0,
+            "sample": []
+          },
+          "Recorrido del viento": {
+            "exact": 30,
+            "diff": 0,
+            "sample": []
+          },
+          "Nuvocidad dia": {
+            "exact": 0,
+            "diff": 30,
+            "sample": [
+              {
+                "day": "2025-06-01",
+                "stored": 3.2,
+                "recomputed": 2.7
+              },
+              {
+                "day": "2025-06-02",
+                "stored": 3.6,
+                "recomputed": 3.0
+              }
+            ]
+          },
+          "Nuvocidad noche": {
+            "exact": 0,
+            "diff": 30,
+            "sample": [
+              {
+                "day": "2025-06-01",
+                "stored": NaN,
+                "recomputed": 2.7
+              },
+              {
+                "day": "2025-06-02",
+                "stored": NaN,
+                "recomputed": 3.0
+              }
+            ]
+          },
+          "Media de nuvocidad": {
+            "exact": 0,
+            "diff": 30,
+            "sample": [
+              {
+                "day": "2025-06-01",
+                "stored": 3.2,
+                "recomputed": 2.7
+              },
+              {
+                "day": "2025-06-02",
+                "stored": 3.6,
+                "recomputed": 3.0
+              }
+            ]
+          },
+          "Humedad maxima": {
+            "exact": 30,
+            "diff": 0,
+            "sample": []
+          },
+          "Humedad minima": {
+            "exact": 30,
+            "diff": 0,
+            "sample": []
+          },
+          "Humedad media": {
+            "exact": 30,
+            "diff": 0,
+            "sample": []
+          },
+          "Punto de rocio": {
+            "exact": 30,
+            "diff": 0,
+            "sample": []
+          },
+          "Tensión de vapor": {
+            "exact": 30,
+            "diff": 0,
+            "sample": []
+          }
+        }
+      }
+    },
+    "note": "process_day_data_json recomputation vs stored summary columns, exact float equality; input normalization: corpus NaN tokens -> null (F1 D5 mirror). Structured diffs reported per column with samples."
+  }
+}
