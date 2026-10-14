@@ -1,0 +1,22 @@
+name: neoarca-f0
+
+on:
+  push:
+    branches: [neo-arca]
+  pull_request:
+    branches: [neo-arca]
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: dtolnay/rust-toolchain@stable
+      - run: pip install maturin pytest ruff
+      - run: maturin develop --manifest-path oms_calc/Cargo.toml
+      - run: cargo clippy --manifest-path oms_calc/Cargo.toml -- -D warnings
+      - run: ruff check oms_core oms_ui tests packaging  # OLD/ es legado-oráculo, no se lintea
+      - run: pytest -q

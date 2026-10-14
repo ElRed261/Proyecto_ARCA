@@ -1,0 +1,191 @@
+{
+  "meta": {
+    "estacion": "Estación Central",
+    "fecha": "10052025"
+  },
+  "horarias": [
+    {
+      "hora": "06Z",
+      "datos": {
+        "p_est": 1014.5,
+        "p_nmm": 1016.1,
+        "rocio": 22.0538528069755,
+        "t_vapor": 26.394529419344355,
+        "hr": 77.59641127791602,
+        "v_dir_deg": 360,
+        "v_vel": 1.9
+      }
+    },
+    {
+      "hora": "09Z",
+      "datos": {
+        "p_est": 1014.1,
+        "p_nmm": 1015.7,
+        "rocio": 22.06418767297347,
+        "t_vapor": 26.459357230445235,
+        "hr": 81.56800746958172,
+        "v_dir_deg": 360,
+        "v_vel": 2
+      }
+    },
+    {
+      "hora": "12Z",
+      "datos": {
+        "p_est": 1015.1,
+        "p_nmm": 1016.7,
+        "rocio": 22.97682839631145,
+        "t_vapor": 27.909692844351238,
+        "hr": 77.35493677069886,
+        "v_dir_deg": 0,
+        "v_vel": 0
+      }
+    },
+    {
+      "hora": "15Z",
+      "datos": {
+        "p_est": 1015.4,
+        "p_nmm": 1017,
+        "rocio": 23.918537683310348,
+        "t_vapor": 29.449575012579903,
+        "hr": 70.16851279852531,
+        "v_dir_deg": 0,
+        "v_vel": 0
+      }
+    },
+    {
+      "hora": "18Z",
+      "datos": {
+        "p_est": 1013.6,
+        "p_nmm": 1015.2,
+        "rocio": 24.441557547233497,
+        "t_vapor": 30.33942100262159,
+        "hr": 62.32158562125883,
+        "v_dir_deg": 150,
+        "v_vel": 2.9
+      }
+    },
+    {
+      "hora": "21Z",
+      "datos": {
+        "p_est": 1013,
+        "p_nmm": 1014.6,
+        "rocio": 25.459537609308192,
+        "t_vapor": 32.256046785093815,
+        "hr": 67.77598061064943,
+        "v_dir_deg": 150,
+        "v_vel": 2.8
+      }
+    },
+    {
+      "hora": "00Z",
+      "datos": {
+        "p_est": 1014.4,
+        "p_nmm": 1016,
+        "rocio": 24.538162618608233,
+        "t_vapor": 30.652289361058646,
+        "hr": 77.38117821656331,
+        "v_dir_deg": 120,
+        "v_vel": 2.4
+      }
+    },
+    {
+      "hora": "03Z",
+      "datos": {
+        "p_est": 1016.4,
+        "p_nmm": 1018,
+        "rocio": 24.16382181024833,
+        "t_vapor": 30.04475436187285,
+        "hr": 82.3010478499871,
+        "v_dir_deg": 70,
+        "v_vel": 2.2
+      }
+    },
+    {
+      "hora": "TMAX",
+      "datos": {
+        "tmax": 28.5
+      }
+    },
+    {
+      "hora": "TMIN",
+      "datos": {
+        "tmin": 26.0
+      }
+    },
+    {
+      "hora": "TMAX",
+      "datos": {
+        "tmax": 27.5
+      }
+    },
+    {
+      "hora": "TMIN",
+      "datos": {
+        "tmin": 24.8
+      }
+    },
+    {
+      "hora": "TMAX",
+      "datos": {
+        "tmax": 32.6
+      }
+    },
+    {
+      "hora": "TMIN",
+      "datos": {
+        "tmin": 27.0
+      }
+    },
+    {
+      "hora": "TMAX",
+      "datos": {
+        "tmax": 32.4
+      }
+    },
+    {
+      "hora": "TMIN",
+      "datos": {
+        "tmin": 28.5
+      }
+    },
+    {
+      "hora": "filas_nuvosidad_dia",
+      "datos": {
+        "nub": 2.0
+      }
+    },
+    {
+      "hora": "filas_nuvosidad_dia",
+      "datos": {
+        "nub": 3.0
+      }
+    },
+    {
+      "hora": "filas_nuvosidad_dia",
+      "datos": {
+        "nub": 4.0
+      }
+    },
+    {
+      "hora": "filas_nuvosidad_tarde",
+      "datos": {
+        "nub": 1.0
+      }
+    },
+    {
+      "hora": "filas_nuvosidad_tarde",
+      "datos": {
+        "nub": 4.0
+      }
+    },
+    {
+      "hora": "filas_nuvosidad_tarde",
+      "datos": {
+        "nub": 6.0
+      }
+    }
+  ],
+  "resumen_dia": {
+    "pp": 0.0
+  }
+}
