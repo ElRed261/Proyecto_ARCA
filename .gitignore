@@ -5,6 +5,7 @@ __pycache__/
 venv/
 .venv/
 .venv-gil/
+dev/
 .env
 
 # --- NODE / REACT ---
