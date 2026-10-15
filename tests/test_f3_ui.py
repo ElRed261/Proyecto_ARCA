@@ -80,7 +80,7 @@ def test_login_fallido_error_en_linea_sin_popup(qtbot, db):
         ("admin", ["dashboard", "synoptic", "summary", "audit", "maintenance", "admin"]),
         ("administrador", ["dashboard", "synoptic", "summary", "audit", "maintenance", "admin"]),
         ("control_calidad", ["dashboard", "synoptic", "summary", "audit", "maintenance"]),
-        ("encargado", ["dashboard", "synoptic", "summary", "audit", "maintenance"]),
+        ("encargado", ["dashboard", "synoptic", "summary", "maintenance"]),
         ("observador", ["dashboard", "synoptic", "summary", "maintenance"]),
     ],
 )

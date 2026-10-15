@@ -73,6 +73,11 @@ class MainWindow(QMainWindow):
     def _build_page(self, page_id: str) -> QWidget:
         if page_id == "admin":
             return StationsAdminPage(self._open_conn())
+        if page_id == "audit":
+            from oms_core.services.audit import default_base_dir
+            from oms_ui.pages.audit import AuditPage
+
+            return AuditPage(self._open_conn(), default_base_dir(), role=self.role)
         if page_id == "summary":
             from oms_ui.pages.summary import SummaryPage
 

@@ -8,8 +8,9 @@ from oms_core.services import access
 ROLES = ["admin", "control_calidad", "encargado", "observador"]
 PAGES = ["dashboard", "synoptic", "summary", "audit", "maintenance", "admin"]
 
-# Sidebar.jsx MODULES: audit = [admin, administrador, encargado, control_calidad];
-# admin/seguridad = [admin, administrador]; every other page is roles: null.
+# F6-D1 enforced boundary: audit follows the App.jsx RoleRoute guard
+# (admin + control_calidad only), NOT the wider Sidebar.jsx MODULES list that
+# also admitted encargado. See Migración/evidencias/F6/NOTA.md.
 EXPECTED = {
     "admin": {p: True for p in PAGES},
     "control_calidad": {
@@ -24,7 +25,7 @@ EXPECTED = {
         "dashboard": True,
         "synoptic": True,
         "summary": True,
-        "audit": True,
+        "audit": False,
         "maintenance": True,
         "admin": False,
     },
@@ -42,9 +43,7 @@ EXPECTED = {
 def test_full_permission_matrix_4_roles_x_6_pages():
     for role in ROLES:
         for page in PAGES:
-            assert access.can_access(role, page) is EXPECTED[role][page], (
-                f"{role} x {page}"
-            )
+            assert access.can_access(role, page) is EXPECTED[role][page], f"{role} x {page}"
 
 
 def test_administrador_alias_tiene_los_mismos_accesos_que_admin():
@@ -55,7 +54,7 @@ def test_administrador_alias_tiene_los_mismos_accesos_que_admin():
 
 def test_roles_normalizados_en_mayusculas():
     assert access.can_access("OBSERVADOR", "audit") is False
-    assert access.can_access("ENCARGADO", "audit") is True
+    assert access.can_access("ENCARGADO", "audit") is False  # F6-D1 enforced
 
 
 def test_pagina_desconocida_se_deniega():

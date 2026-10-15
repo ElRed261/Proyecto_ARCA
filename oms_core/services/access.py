@@ -2,8 +2,9 @@
 
 Mirrors the OLD frontend:
 
-- ``shared/components/Sidebar.jsx`` MODULES role filter (audit = admin,
-  administrador, encargado, control_calidad; seguridad/admin = admin,
+- ``shared/components/Sidebar.jsx`` MODULES role filter, EXCEPT audit which
+  follows the stricter App.jsx RoleRoute guard (admin + control_calidad;
+  encargado denied — F6-D1, enforced boundary). Seguridad/admin = admin +
   administrador; every other page is visible to all roles);
 - dashboard scope rule (§9 rule 5): admin/control_calidad see all stations,
   the other roles are locked to their assigned station.
@@ -17,11 +18,17 @@ from oms_core.services.auth import normalize_role
 PAGES = ("dashboard", "synoptic", "summary", "audit", "maintenance", "admin")
 
 #: Roles required per page; ``None`` means visible to every role.
+#:
+#: ``audit`` follows the ENFORCED App.jsx RoleRoute guard
+#: (admin + control_calidad only), NOT the wider Sidebar.jsx MODULES list
+#: that also admitted encargado. See Migración/evidencias/F6/NOTA.md
+#: (F6-D1): keep-deny is the default; opening to encargado needs the
+#: user's explicit call.
 _PAGE_ROLES: dict[str, tuple[str, ...] | None] = {
     "dashboard": None,
     "synoptic": None,
     "summary": None,
-    "audit": ("admin", "encargado", "control_calidad"),
+    "audit": ("admin", "control_calidad"),
     "maintenance": None,
     "admin": ("admin",),
 }

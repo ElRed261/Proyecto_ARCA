@@ -1,0 +1,128 @@
+{
+  "reports": {
+    "seeded": {
+      "marks": 3,
+      "corrections": 2
+    },
+    "expected_report": [
+      {
+        "fecha": "2025-06-11",
+        "hora": "06Z",
+        "campo": "ts",
+        "valor_original": "21.0",
+        "valor_corregido": "21.5",
+        "estado": "pendiente",
+        "marcado_por": "otro@y"
+      },
+      {
+        "fecha": "2025-06-10",
+        "hora": "06Z",
+        "campo": "ts",
+        "valor_original": "20.0",
+        "valor_corregido": "20.5",
+        "estado": "aprobado",
+        "marcado_por": "auditor@x"
+      },
+      {
+        "fecha": "2025-06-10",
+        "hora": "12Z",
+        "campo": "th",
+        "valor_original": null,
+        "valor_corregido": null,
+        "estado": null,
+        "marcado_por": "auditor@x"
+      }
+    ],
+    "actual_report": [
+      {
+        "fecha": "2025-06-11",
+        "hora": "06Z",
+        "campo": "ts",
+        "valor_original": "21.0",
+        "valor_corregido": "21.5",
+        "estado": "pendiente",
+        "marcado_por": "otro@y"
+      },
+      {
+        "fecha": "2025-06-10",
+        "hora": "06Z",
+        "campo": "ts",
+        "valor_original": "20.0",
+        "valor_corregido": "20.5",
+        "estado": "aprobado",
+        "marcado_por": "auditor@x"
+      },
+      {
+        "fecha": "2025-06-10",
+        "hora": "12Z",
+        "campo": "th",
+        "valor_original": null,
+        "valor_corregido": null,
+        "estado": null,
+        "marcado_por": "auditor@x"
+      }
+    ],
+    "expected_person": [
+      {
+        "persona": "auditor@x",
+        "errores_marcados": 2,
+        "correcciones_propuestas": 1,
+        "correcciones_aprobadas": 1
+      },
+      {
+        "persona": "otro@y",
+        "errores_marcados": 1,
+        "correcciones_propuestas": 1,
+        "correcciones_aprobadas": 0
+      }
+    ],
+    "actual_person": [
+      {
+        "persona": "auditor@x",
+        "errores_marcados": 2,
+        "correcciones_propuestas": 1,
+        "correcciones_aprobadas": 1
+      },
+      {
+        "persona": "otro@y",
+        "errores_marcados": 1,
+        "correcciones_propuestas": 1,
+        "correcciones_aprobadas": 0
+      }
+    ],
+    "report_ok": true,
+    "person_ok": true
+  },
+  "migration": {
+    "before": [
+      "st1/2025/mayo/a.json",
+      "st2/2025/05/keep.json",
+      "st2/2025/mayo/extra.json",
+      "st2/2025/mayo/keep.json"
+    ],
+    "stats_first_run": {
+      "renamed_dirs": 1,
+      "moved_files": 1
+    },
+    "after_first_run": [
+      "st1/2025/05/a.json",
+      "st2/2025/05/extra.json",
+      "st2/2025/05/keep.json",
+      "st2/2025/mayo/keep.json"
+    ],
+    "colliding_file_kept_new_content": true,
+    "extra_file_moved": true,
+    "stats_second_run": {
+      "renamed_dirs": 0,
+      "moved_files": 0
+    },
+    "after_second_run": [
+      "st1/2025/05/a.json",
+      "st2/2025/05/extra.json",
+      "st2/2025/05/keep.json",
+      "st2/2025/mayo/keep.json"
+    ],
+    "migration_ok": true
+  },
+  "verdict": "ok"
+}
