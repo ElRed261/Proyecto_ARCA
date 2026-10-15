@@ -266,8 +266,36 @@ Frontera (límite Python↔Rust) · abi3 (una wheel por OS) · WAL (modo transac
 SQLite) · LGPL (licencia Qt que permite código cerrado con enlace dinámico) ·
 QThread (hilo Qt para no congelar UI) · QSS (estilos Qt).
 
+### F7.5 — Endurecimiento de diseño (M5, ANTES de F8)
+
+Enmienda v1.1 (2026-10-15, a pedido del dueño: diseño perfecto antes de
+empaquetar; lo funcional impecable va en F7.5-funcional separada). Cero
+cambios de lógica: solo presentación + shell. Criterio de salida: screenshots
+de aceptación vistos por el dueño (login, shell expandida/colapsada,
+dashboard) + suite verde.
+
+- **Tema versionado** `oms_ui/theme.qss`: paleta (fondo gris, tarjetas
+  blancas, texto pizarra), acentos por módulo (Inicio/Sinóptico azul
+  `#3b82f6`, Resumen violeta `#a855f7`, Auditoría naranja `#f97316`,
+  Configuración teal `#0d9488`, Seguridad gris `#64748b`), estilos base de
+  inputs/botones/tablas/tabs, rojo de error, verde de éxito. Fuente:
+  Jakarta Sans embebida vía `QFontDatabase` si el woff2 existe en `OLD/`,
+  si no sistema sans (documentar cuál quedó).
+- **LoginScreen** a pantalla completa (no diálogo): fondo oscuro, tarjeta
+  centrada con lockup/título/error inline/botón con estado; Enter envía;
+splash "Restaurando sesión…" con restore de token (misma semántica que
+el oráculo: store en memoria, si el token murió se pide login).
+- **AppShell**: rail colapsable 76px ↔ 232px (persistido en `QSettings`),
+  filtrado por rol intacto vía `access.py`, usuario + Salir, `QStatusBar`
+  para mensajes globales. Cero placeholders nuevos; páginas F3–F7 intactas.
+- **Evidencia**: PNGs offscreen (login, shell ±colapsada, dashboard) en
+  `Migración/evidencias/F7.5/` + NOTA. `run_dev.py` actualizado al nuevo flujo.
+- **No-objetivos F7.5-diseño**: ni una línea de `oms_core/`/`oms_calc`,
+  ninguna feature, ningún cambio de comportamiento validado por tests viejos.
+
 ## 15. Log de enmiendas
 
 | Fecha | Versión | Cambio |
 |---|---|---|
 | 2026-10-14 | 1.0 | Creación del plan (rama `neo-arca`). Base: auditoría del proyecto v2.2.0. |
+| 2026-10-15 | 1.1 | F7.5-diseño antes de F8 (diseño perfecto primero, funcional después); F4b absorbida. |

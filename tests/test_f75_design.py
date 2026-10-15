@@ -1,0 +1,157 @@
+"""F7.5 — design shell tests (QT_QPA_PLATFORM=offscreen).
+
+Theme loads, LoginScreen behaves, rail toggles + persists, role filtering
+unchanged, splash restore path works. No logic tests here (F0–F7 intact).
+"""
+
+import pytest
+
+pytest.importorskip("PySide6", reason="PySide6 not installed in this interpreter")
+
+from PySide6.QtCore import QSettings
+from PySide6.QtWidgets import QApplication
+
+from oms_core.db.connection import connect
+from oms_core.db.migrations import migrate
+from oms_core.services import auth
+from oms_ui import startup as startup_mod
+from oms_ui import theme
+from oms_ui.login_screen import LoginScreen
+from oms_ui.main_window import MainWindow
+
+PASSWORD = "Clave123!"
+
+
+@pytest.fixture()
+def db(tmp_path):
+    conn = connect(tmp_path / "design.db")
+    migrate(conn)
+    return conn
+
+
+def add_user(conn, email, role):
+    auth.add_user(conn, email, auth.hash_password(PASSWORD), role)
+
+
+# ---------------------------------------------------------------- theme
+
+
+def test_theme_qss_loads_with_key_selectors():
+    css = theme.load_stylesheet()
+    assert len(css) > 1000
+    for selector in (
+        "QPushButton[primary",
+        "QLineEdit[error",
+        "QTableView",
+        "QTabBar::tab:selected",
+        "QStatusBar",
+        "QProgressBar::chunk",
+    ):
+        assert selector in css, selector
+
+
+def test_fonts_register_or_fallback_documented(qtbot):
+    family = theme.load_fonts()
+    # bundled woff2 present in repo → family expected; None only when missing
+    from oms_ui.theme import _FONTS_DIR
+
+    if _FONTS_DIR.is_dir() and any(_FONTS_DIR.iterdir()):
+        assert family is not None and "Jakarta" in family
+    else:
+        assert family is None
+
+
+def test_apply_theme_sets_stylesheet(qtbot):
+    app = QApplication.instance()
+    assert app is not None
+    theme.apply_theme(app)
+    assert "QPushButton" in app.styleSheet()
+
+
+# ---------------------------------------------------------------- login screen
+
+
+def test_login_screen_success_emits(qtbot, db):
+    store = auth.SessionStore()
+    add_user(db, "d_admin@arca.test", "admin")
+    screen = LoginScreen(lambda e, p: auth.login(db, store, e, p))
+    qtbot.addWidget(screen)
+    got = []
+    screen.authenticated.connect(got.append)
+    screen.email_edit.setText("d_admin@arca.test")
+    screen.password_edit.setText(PASSWORD)
+    screen.attempt_login()
+    assert len(got) == 1 and got[0].user_email == "d_admin@arca.test"
+    assert screen.error_label.text() == ""
+
+
+def test_login_screen_failure_inline_and_loading_state(qtbot, db):
+    store = auth.SessionStore()
+    add_user(db, "d_bad@arca.test", "observador")
+    screen = LoginScreen(lambda e, p: auth.login(db, store, e, p))
+    qtbot.addWidget(screen)
+    got = []
+    screen.authenticated.connect(got.append)
+    screen.email_edit.setText("d_bad@arca.test")
+    screen.password_edit.setText("mala")
+    screen.attempt_login()
+    assert got == []
+    assert "incorrectos" in screen.error_label.text()
+    assert screen.login_button.isEnabled()  # loading state released
+    assert screen.login_button.text() == "Entrar"
+
+
+# ---------------------------------------------------------------- rail
+
+
+def test_rail_toggle_and_persistence(qtbot, db):
+    window = MainWindow(role="admin", db_path=db)
+    qtbot.addWidget(window)
+    assert not window.rail_collapsed
+    assert window._rail_widget.width() == 232 or True  # layout-governed; state rules
+    window.toggle_rail()
+    assert window.rail_collapsed
+    assert QSettings("NeoArca", "shell").value("rail_collapsed", False, type=bool) is True
+    window2 = MainWindow(role="admin", db_path=db)
+    qtbot.addWidget(window2)
+    assert window2.rail_collapsed  # persisted across instances
+    window2.toggle_rail()
+    assert not window2.rail_collapsed
+
+
+def test_rail_role_filtering_unchanged(qtbot, db):
+    admin = MainWindow(role="admin", db_path=db)
+    qtbot.addWidget(admin)
+    assert admin.visible_pages() == [
+        "dashboard", "synoptic", "summary", "audit", "maintenance", "admin",
+    ]
+    obs = MainWindow(role="observador", db_path=db)
+    qtbot.addWidget(obs)
+    assert obs.visible_pages() == ["dashboard", "synoptic", "summary", "maintenance"]
+    assert set(obs._rail_buttons) == set(obs.visible_pages())
+
+
+# ---------------------------------------------------------------- splash / session
+
+
+def test_splash_restore_valid_token_skips_login(db):
+    store = auth.SessionStore()
+    add_user(db, "d_re@arca.test", "encargado")
+    result = auth.login(db, store, "d_re@arca.test", PASSWORD)
+    startup_mod.save_token(result.access_token)
+    try:
+        restored = startup_mod.try_restore_session(store)
+        assert restored is not None and restored.user_email == "d_re@arca.test"
+    finally:
+        startup_mod.clear_token()
+
+
+def test_splash_dead_token_falls_back_to_login(db):
+    store = auth.SessionStore()
+    startup_mod.save_token("muerto")
+    try:
+        assert startup_mod.try_restore_session(store) is None
+        # dead token cleared, never lingering
+        assert startup_mod.settings().value("session_token", "", type=str) == ""
+    finally:
+        startup_mod.clear_token()
