@@ -406,3 +406,133 @@ def test_manual_1sn_2sn_slots_even_only_and_roundtrip(page, fresh_db, monkeypatc
     doc = json.loads(summaries_repo.get_summary_doc(fresh_db, STATION, 2025, 12, "diario", day=8))
     assert doc["horas"]["06Z"]["synop"]["1snTxTxTx"] == "10245"
     assert doc["horas"]["06Z"]["synop"]["2snTnTnTn"] == "20183"
+
+
+def test_new_grid_keys_present_with_placeholders_and_tooltips(page):
+    for key in ("meteo_6_0", "meteo_6_5", "meteo_6_6", "meteo_8_0", "meteo_8_3",
+                "meteo_8_4", "meteo_8_5", "meteo_8_6", "meteo_10_0", "meteo_10_6",
+                "meteo_12_3", "meteo_14_2", "meteo_16_0", "meteo_16_4"):
+        assert key in page.field_widgets, key
+    assert page.field("meteo_6_5").placeholderText() == "3///"
+    assert page.field("meteo_8_4").placeholderText() == "7"
+    assert page.field("meteo_10_0").placeholderText() == "8..."
+    assert page.field("meteo_10_2").placeholderText() == "9Sp…"
+    assert page.field("meteo_8_0").toolTip() == "5nFnFnFn: insolación"
+    assert page.field("meteo_8_4").toolTip() == "7R24R24R24R24: precipitación 24h"
+
+
+def test_ir_ix_derived_from_irixhvv_like_oracle(page):
+    page.select_hour("06Z")
+    page.field("meteo_4_irixhvv").setText("12045")
+    assert page.observations["06Z"]["ir"] == "1"
+    assert page.observations["06Z"]["ix"] == "2"
+
+
+def test_precipitation_gate_follows_ir(page):
+    page.select_hour("06Z")
+    page.field("meteo_4_irixhvv").setText("12045")  # Ir=1 → include
+    assert page.field("meteo_8_3").isEnabled()
+    page.field("meteo_4_irixhvv").setText("32045")  # Ir=3 → omit
+    assert not page.field("meteo_8_3").isEnabled()
+    assert page.field("meteo_8_3").toolTip() == "Omitido (Ir=3,4)"
+    page.field("meteo_4_irixhvv").setText("")  # empty Ir disables (oracle)
+    assert not page.field("meteo_8_3").isEnabled()
+
+
+def test_new_keys_roundtrip_into_synop_doc(page, fresh_db, monkeypatch):
+    from PySide6.QtWidgets import QDialog
+
+    _filled_hour(
+        page, "06Z",
+        meteo_8_4="7", meteo_10_0="8", meteo_16_0="9", meteo_6_5="3///",
+    )
+    monkeypatch.setattr(synoptic_ui, "SaveReviewDialog", _stub_dialog_class(QDialog.Accepted))
+    page.save_clicked()
+    doc = json.loads(summaries_repo.get_summary_doc(fresh_db, STATION, 2025, 12, "diario", day=8))
+    synop_values = list(doc["horas"]["06Z"]["synop"].values())
+    assert "7" in synop_values
+    assert "8" in synop_values
+    assert "9" in synop_values
+    assert "3///" in synop_values
+
+
+def test_hour_arrows_step_and_clamp(page):
+    page.select_hour("06Z")
+    page.next_btn.click()
+    assert page.active_hour == "09Z"
+    page.prev_btn.click()
+    assert page.active_hour == "06Z"
+    last = synoptic_service.HOURS[-1]
+    page.select_hour(last)
+    page.next_btn.click()
+    assert page.active_hour == last
+    page.select_hour(synoptic_service.HOURS[0])
+    page.prev_btn.click()
+    assert page.active_hour == synoptic_service.HOURS[0]
+
+
+def test_cli_buttons_and_dialog_roundtrip(page, fresh_db):
+    from oms_ui.pages.cli_dialog import CliModuleDialog, module_fields
+
+    assert set(module_fields("cli3074")) >= {"pres_est", "temp_seco"}
+    assert "lluvia_6h" in module_fields("cli4074")
+    dialog = CliModuleDialog(fresh_db, STATION, FECHA, "cli3074")
+    assert len(dialog.inputs) == len(module_fields("cli3074"))
+    dialog.inputs["pres_est"].setText("1015.3")
+    dialog.inputs["temp_seco"].setText("23.2")
+    dialog.save()
+    from oms_core.services import cli as cli_service
+
+    stored = cli_service.load_cli(fresh_db, STATION, FECHA, "cli3074")
+    assert stored["pres_est"] == "1015.3"
+
+
+def test_cli_requires_station_and_fecha(qtbot, fresh_db, tmp_path):
+    from oms_ui.pages.synoptic import SynopticPage
+
+    widget = SynopticPage(fresh_db, config_dir=tmp_path)
+    qtbot.addWidget(widget)
+    widget._open_cli("cli3074")
+    assert "estación y fecha" in widget.error_label.text()
+
+
+def test_extra_nubosity_fields_present_and_saved(page, fresh_db, monkeypatch):
+    from PySide6.QtWidgets import QDialog
+
+    assert "extra_8ns_1" in page.field_widgets
+    assert "extra_8ns_2" in page.field_widgets
+    _filled_hour(page, "06Z", extra_8ns_1="81819")
+    monkeypatch.setattr(synoptic_ui, "SaveReviewDialog", _stub_dialog_class(QDialog.Accepted))
+    page.save_clicked()
+    doc = json.loads(summaries_repo.get_summary_doc(fresh_db, STATION, 2025, 12, "diario", day=8))
+    assert "81819" in list(doc["horas"]["06Z"]["synop"].values())
+
+
+def test_cargar_json_populates_hour(page, tmp_path):
+    payload = {
+        "meta": {"estacion": STATION, "fecha": "08122025"},
+        "horarias": [
+            {"hora": "06Z", "datos": {"ts": "24.1", "pres_est": "1016.0"},
+             "observador": "Cargado JSON"},
+        ],
+    }
+    path = tmp_path / "dia.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    page._load_json_file(str(path))
+    assert page.observations["06Z"]["ts"] == "24.1"
+    assert page.observations["06Z"]["nombre_observador"] == "Cargado JSON"
+    assert "1 horas" in page.status_label.text()
+
+
+def test_save_button_is_dark_like_oracle(page):
+    assert page.save_btn.property("dark") is True
+
+
+def test_autos_populate_from_realizar(page):
+    """Readonly SYNOP group cells fill from oms_calc on readout refresh."""
+    _filled_hour(page, "06Z")
+    page._update_readouts()
+    assert page.auto_cells["grupo_1sn_ttt"].text() != ""
+    assert page.auto_cells["grupo_4pppp"].text() != ""
+    assert page.auto_cells["grupo_58_59_p24"].text() != ""
+    assert page.auto_cells["grupo_29uuu"].text() != ""

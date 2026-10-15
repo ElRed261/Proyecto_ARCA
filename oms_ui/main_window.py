@@ -15,6 +15,7 @@ from pathlib import Path
 
 from PySide6.QtCore import QSettings, Signal
 from PySide6.QtWidgets import (
+    QApplication,
     QDialog,
     QHBoxLayout,
     QMainWindow,
@@ -285,3 +286,21 @@ class MainWindow(QMainWindow):
     def status(self, message: str, timeout: int = 5000) -> None:
         """Global status-bar message (toast equivalent)."""
         self.statusBar().showMessage(message, timeout)
+
+    def fit_to_screen(self, fraction: float = 0.92) -> None:
+        """Size to the usable desktop so the titlebar is always visible.
+
+        A hardcoded 1280x800 on <1080p screens pushes the titlebar out of
+        reach (and hides the bottom bar). Never fullscreen: windowed,
+        decorated and fully reachable, whatever the resolution.
+        """
+        screen = QApplication.primaryScreen()
+        if screen is None:
+            return
+        avail = screen.availableGeometry()
+        width = min(int(avail.width() * fraction), 1280)
+        height = min(int(avail.height() * fraction), 800)
+        self.resize(width, height)
+        frame = self.frameGeometry()
+        frame.moveCenter(avail.center())
+        self.move(frame.topLeft())

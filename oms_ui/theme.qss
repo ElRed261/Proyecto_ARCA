@@ -327,3 +327,12 @@ QLabel[tile="gray"] {
     font-weight: 800;
     padding: 10px;
 }
+QPushButton[dark="true"] {
+    background-color: #0f172a;
+    border: 1px solid #0f172a;
+    color: #ffffff;
+    font-weight: bold;
+    border-radius: 8px;
+    padding: 9px 16px;
+}
+QPushButton[dark="true"]:hover { background-color: #1e293b; }

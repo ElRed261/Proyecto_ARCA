@@ -40,6 +40,19 @@ def ensure_dev_user(conn) -> None:
     print(f"[dev] {DEV_EMAIL} / {DEV_PASSWORD}", flush=True)
 
 
+def _center_on_screen(widget) -> None:
+    """Center a window on the usable desktop (titlebar always reachable)."""
+    from PySide6.QtWidgets import QApplication
+
+    screen = QApplication.primaryScreen()
+    if screen is None:
+        return
+    avail = screen.availableGeometry()
+    frame = widget.frameGeometry()
+    frame.moveCenter(avail.center())
+    widget.move(frame.topLeft())
+
+
 def main() -> int:
     DEV_DIR.mkdir(exist_ok=True)
     conn = connect(DB_PATH)
@@ -53,7 +66,8 @@ def main() -> int:
 
     splash = QLabel("Restaurando sesión…")
     splash.setWindowTitle("Neo Arca")
-    splash.resize(1280, 800)
+    splash.setFixedSize(420, 120)
+    _center_on_screen(splash)
     splash.setAlignment(
         __import__("PySide6.QtCore", fromlist=["Qt"]).Qt.AlignmentFlag.AlignCenter
     )
@@ -67,7 +81,7 @@ def main() -> int:
     def open_shell(session) -> None:
         save_token(session.access_token)
         shell = MainWindow(role=session.role, db_path=conn, email=session.user_email)
-        shell.resize(1280, 800)
+        shell.fit_to_screen()
         shell.logout_requested.connect(lambda: (clear_token(), shell.close(), show_login()))
         shell.show()
         state["shell"] = shell
@@ -79,6 +93,7 @@ def main() -> int:
             lambda email, password: auth.login(conn, store, email, password)
         )
         login.authenticated.connect(lambda session: (login.close(), open_shell(session)))
+        _center_on_screen(login)
         login.show()
         state["login"] = login
 

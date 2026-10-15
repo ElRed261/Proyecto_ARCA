@@ -36,6 +36,7 @@ from PySide6.QtWidgets import (
     QListWidget,
     QProgressBar,
     QPushButton,
+    QScrollArea,
     QSpinBox,
     QVBoxLayout,
     QWidget,
@@ -172,6 +173,11 @@ class MaintenancePage(QWidget):
         self.can_edit = access.can_access(role, "admin")
 
         layout = QVBoxLayout(self)
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+        content = QWidget()
+        content_layout = QVBoxLayout(content)
 
         # ---- paths -----------------------------------------------------
         paths_box = QGroupBox("Rutas de guardado")
@@ -220,7 +226,7 @@ class MaintenancePage(QWidget):
             self.save_button = None
         self.save_label = QLabel("")
         paths_layout.addWidget(self.save_label)
-        layout.addWidget(paths_box)
+        content_layout.addWidget(paths_box)
 
         # ---- sync panel (every role) -----------------------------------
         sync_box = QGroupBox("Sincronización")
@@ -245,21 +251,23 @@ class MaintenancePage(QWidget):
         self.sync_status_label = QLabel("")
         self.sync_status_label.setWordWrap(True)
         sync_layout.addWidget(self.sync_status_label)
-        layout.addWidget(sync_box)
+        content_layout.addWidget(sync_box)
 
         # ---- legacy migration (admin only) ------------------------------
         if self.can_edit:
             self.migrate_button = QPushButton("Migrar carpetas de meses legacy (one-shot)")
             self.migrate_button.clicked.connect(self.migrate_legacy)
-            layout.addWidget(self.migrate_button)
+            content_layout.addWidget(self.migrate_button)
             self.migrate_label = QLabel("")
             self.migrate_label.setWordWrap(True)
-            layout.addWidget(self.migrate_label)
+            content_layout.addWidget(self.migrate_label)
         else:
             self.migrate_button = None
             self.migrate_label = None
 
-        layout.addStretch(1)
+        content_layout.addStretch(1)
+        scroll.setWidget(content)
+        layout.addWidget(scroll, 1)
         self._load_profile()
         self.refresh_sync()
 

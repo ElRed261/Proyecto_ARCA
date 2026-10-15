@@ -41,7 +41,6 @@ from PySide6.QtWidgets import (
     QComboBox,
     QDateEdit,
     QDialog,
-    QFormLayout,
     QGridLayout,
     QGroupBox,
     QHBoxLayout,
@@ -87,6 +86,40 @@ _FIELD_LABELS: tuple[tuple[str, str], ...] = (
     ("t_min_24h", "T mín 24h"),
     ("meteo_6_3", "1snTxTxTx"),
     ("meteo_6_4", "2snTnTnTn"),
+    ("meteo_6_0", "8Nh CL CM CH"),
+    ("meteo_6_5", "3E jjj"),
+    ("meteo_6_6", "5 EEEjE"),
+    ("meteo_8_0", "5n Fn Fn Fn"),
+    ("meteo_8_3", "6RRRtr"),
+    ("meteo_8_4", "7R24"),
+    ("meteo_8_5", "8NsChs"),
+    ("meteo_8_6", "8NsChs"),
+    ("meteo_10_0", "8NsChs"),
+    ("meteo_10_1", "8NsChs"),
+    ("meteo_10_2", "9Sp SpSpSp"),
+    ("meteo_10_3", "9Sp SpSpSp"),
+    ("meteo_10_4", "9Sp SpSpSp"),
+    ("meteo_10_5", "9Sp SpSpSp"),
+    ("meteo_10_6", "9Sp SpSpSp"),
+    ("meteo_12_0", "8NsChs"),
+    ("meteo_12_1", "8NsChs"),
+    ("meteo_12_2", "9Sp SpSpSp"),
+    ("meteo_12_3", "9Sp SpSpSp"),
+    ("meteo_12_4", "9Sp SpSpSp"),
+    ("meteo_12_5", "9Sp SpSpSp"),
+    ("meteo_12_6", "9Sp SpSpSp"),
+    ("meteo_14_0", "8NsChs"),
+    ("meteo_14_1", "8NsChs"),
+    ("meteo_14_2", "9Sp SpSpSp"),
+    ("meteo_14_3", "9Sp SpSpSp"),
+    ("meteo_14_4", "9Sp SpSpSp"),
+    ("meteo_14_5", "9Sp SpSpSp"),
+    ("meteo_14_6", "9Sp SpSpSp"),
+    ("meteo_16_0", "9Sp est"),
+    ("meteo_16_1", "9Sp est"),
+    ("meteo_16_2", "9Sp est"),
+    ("meteo_16_3", "9Sp est"),
+    ("meteo_16_4", "9Sp est"),
 )
 
 _EVEN_ONLY_KEYS = (
@@ -95,8 +128,42 @@ _EVEN_ONLY_KEYS = (
 )
 _PRESSURE_KEYS = ("pres_est", "p3", "p24")
 
+#: Placeholders verbatim (meteoPlaceholders rows 2/4/6/8/10/12/14/16).
+_PLACEHOLDERS: dict[str, str] = {
+    "meteo_6_0": "8", "meteo_6_5": "3///",
+    "meteo_8_1": "56", "meteo_8_3": "6", "meteo_8_4": "7",
+    "meteo_8_5": "8", "meteo_8_6": "8",
+    **{f"meteo_{r}_{i}": ("8..." if i < 2 else "9Sp…")
+       for r in (10, 12, 14) for i in range(7)},
+    **{f"meteo_16_{i}": "9Sp…" for i in range(5)},
+    "ts": "°C", "let_barom": "Lectura...", "t_max": "°C",
+    "t_max_24h": "°C", "th": "°C", "correc_temp": "0.0",
+    "pres_est": "hPa", "p3": "hPa", "p24": "hPa",
+    "t_min": "°C", "t_min_24h": "°C", "ll": "mm", "ll_24h": "mm",
+}
+
+#: Tooltips verbatim (oracle title= attributes; rows 10/12/14/16 have none).
+_TOOLTIPS: dict[str, str] = {
+    "meteo_6_0": "8NhCLCMCH: nubes",
+    "meteo_6_5": "3Ejjj: estado del suelo",
+    "meteo_6_6": "5EEEjE: evaporación",
+    "meteo_8_0": "5nFnFnFn: insolación",
+    "meteo_8_4": "7R24R24R24R24: precipitación 24h",
+    "meteo_8_5": "8NsChshs: nube adicional",
+    "meteo_8_6": "8NsChshs: nube adicional",
+    "let_barom": "Lectura barométrica sin corregir",
+    "correc_temp": "Corrección por temperatura",
+    "pres_est": "Presión de la estación",
+    "p3": "Presión hace 3 horas",
+    "p24": "Presión hace 24 horas",
+    "t_max": "Temperatura máxima",
+    "t_min": "Temperatura mínima",
+    "th": "Temperatura húmeda",
+    "ll": "Precipitación (mm)",
+    "ll_24h": "Precipitación 24h (mm)",
+}
+
 #: Derived read-only readouts of the "Cálculos de Estación" block.
-_READOUT_KEYS = ("pres_nmm", "punto_rocio", "tension_vapor", "humedad_relativa", "diferencia")
 
 _GROUP_RE = QRegularExpression(r"[0-9/]{0,5}")
 
@@ -233,6 +300,7 @@ class SynopticPage(QWidget):
         self.hour_buttons: dict[str, QPushButton] = {}
         self.field_widgets: dict[str, QLineEdit] = {}
         self.readouts: dict[str, QLineEdit] = {}
+        self.auto_cells: dict[str, QLineEdit] = {}
 
         self._build_ui()
         self._install_shortcuts()
@@ -241,19 +309,66 @@ class SynopticPage(QWidget):
 
     # ------------------------------------------------------------ building
 
+    def _grid_header(self, grid: QGridLayout, row: int, cells: list) -> None:
+        """Slate header row (oracle tableHeader); cells are (text, span)."""
+        col = 0
+        for text, span in cells:
+            label = QLabel(text)
+            label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            label.setWordWrap(True)
+            label.setStyleSheet(
+                "background-color: #475569; color: white; font-weight: 600;"
+                "font-size: 11px; padding: 6px; border-radius: 4px;"
+            )
+            grid.addWidget(label, row, col, 1, span)
+            col += span
+
+    def _grid_header_text(self, grid: QGridLayout, row: int, texts: list) -> None:
+        """Slate header row from plain labels (one column each)."""
+        self._grid_header(grid, row, [(text, 1) for text in texts])
+
+    def _grid_const(self, grid: QGridLayout, row: int, col: int, text: str) -> None:
+        """Readonly slate constant cell (AAXX/333/555, oracle constantClass)."""
+        cell = QLineEdit(text)
+        cell.setReadOnly(True)
+        cell.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        cell.setStyleSheet(
+            "background-color: #e2e8f0; color: #334155; font-weight: bold;"
+            "border: 1px solid #94a3b8; border-radius: 4px;"
+        )
+        grid.addWidget(cell, row, col)
+
+    def _grid_auto(self, grid: QGridLayout, row: int, col: int, key: str) -> None:
+        """Readonly blue computed cell (oracle readonlyClass groups)."""
+        cell = QLineEdit()
+        cell.setReadOnly(True)
+        cell.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        cell.setStyleSheet(
+            "background-color: #ffffff; color: #1d4ed8; font-weight: bold;"
+            "border: 1px solid #cbd5e1; border-radius: 4px;"
+        )
+        grid.addWidget(cell, row, col)
+        self.auto_cells[key] = cell
+
+    def _grid_field(self, grid: QGridLayout, row: int, col: int, key: str,
+                    colspan: int = 1) -> None:
+        widget = self._make_grid_input(key)
+        grid.addWidget(widget, row, col, 1, colspan)
+
     def _build_ui(self) -> None:
         self.setWindowTitle("Observación Sinóptica")
 
         outer = QHBoxLayout(self)
         left = QVBoxLayout()
 
-        # meta row ---------------------------------------------------------
+        # observer row (full width, oracle row 0) --------------------------
         self.observer_label = QLabel("Observador")
         self.observer_edit = QLineEdit()
         self.observer_edit.setPlaceholderText("Nombre del Observador...")
         self.observer_label.setBuddy(self.observer_edit)
 
-        self.station_label = QLabel("IIiii (estación)")
+        # station/date/alt live in the grid (row 2) and the calc panel;
+        # the widgets stay alive here so setters/tests keep working
         self.station_combo = QComboBox()
         for station in self._stations.values():
             self.station_combo.addItem(f"{station.name} ({station.id})", station.id)
@@ -261,53 +376,145 @@ class SynopticPage(QWidget):
         if self.station_combo.count():
             self.station_combo.setCurrentIndex(-1)
 
-        self.fecha_label = QLabel("Fecha")
         self.fecha_edit = QDateEdit()
         self.fecha_edit.setDisplayFormat("dd/MM/yyyy")
         self.fecha_edit.setCalendarPopup(False)
 
-        self.correc_alt_label = QLabel("Correc. alt (hPa)")
         self.correc_alt_edit = QLineEdit()
         self.correc_alt_edit.setReadOnly(True)
         self.correc_alt_edit.setStyleSheet("background: #f1f5f9; color: #0f172a; font-weight: bold;")
 
         meta_grid = QGridLayout()
         meta_grid.addWidget(self.observer_label, 0, 0)
-        meta_grid.addWidget(self.observer_edit, 0, 1)
-        meta_grid.addWidget(self.station_label, 0, 2)
-        meta_grid.addWidget(self.station_combo, 0, 3)
-        meta_grid.addWidget(self.fecha_label, 1, 0)
-        meta_grid.addWidget(self.fecha_edit, 1, 1)
-        meta_grid.addWidget(self.correc_alt_label, 1, 2)
-        meta_grid.addWidget(self.correc_alt_edit, 1, 3)
+        meta_grid.addWidget(self.observer_edit, 0, 1, 1, 6)
         left.addLayout(meta_grid)
 
-        # data grid --------------------------------------------------------
+        # data grid: OBS grouped rows (header labels + inputs in order) ----
         grid_box = QGroupBox("Grilla meteorológica")
         grid = QGridLayout(grid_box)
-        for index, (key, label) in enumerate(_FIELD_LABELS):
-            row, col = divmod(index, 2)
-            widget = self._make_grid_input(key)
-            grid.addWidget(QLabel(label), row, col * 2)
-            grid.addWidget(widget, row, col * 2 + 1)
+        self._grid_header(grid, 0, [("MiMi MjMj", 1), ("YYGG Iw", 1),
+                                    ("IIiii", 1), ("Fecha", 4)])
+        self._grid_const(grid, 1, 0, "AAXX")
+        self._grid_field(grid, 1, 1, "meteo_2_1")
+        grid.addWidget(self.station_combo, 1, 2)
+        grid.addWidget(self.fecha_edit, 1, 3, 1, 4)
+        self._grid_header(grid, 2, [("Ir iX H VV", 1), ("N dd ff", 1),
+                                    ("1sn T T T", 1), ("2sn Td Td Td", 1),
+                                    ("4 P P P P", 1), ("5 a P P P", 1),
+                                    ("7 ww W1 W2", 1)])
+        self._grid_field(grid, 3, 0, "meteo_4_irixhvv")
+        self._grid_field(grid, 3, 1, "meteo_4_1")
+        self._grid_auto(grid, 3, 2, "grupo_1sn_ttt")
+        self._grid_auto(grid, 3, 3, "grupo_2sn_td")
+        self._grid_auto(grid, 3, 4, "grupo_4pppp")
+        self._grid_auto(grid, 3, 5, "grupo_5appp")
+        self._grid_field(grid, 3, 6, "meteo_4_6")
+        self._grid_header(grid, 4, [("8Nh CL CM CH", 1), ("333", 1),
+                                    ("0CS DL DM DH", 1), ("1sn Tx Tx Tx", 1),
+                                    ("2sn Tn Tn Tn", 1), ("3E j j j", 1),
+                                    ("5 EEEjE", 1)])
+        self._grid_field(grid, 5, 0, "meteo_6_0")
+        self._grid_const(grid, 5, 1, "333")
+        self._grid_field(grid, 5, 2, "meteo_6_2")
+        self._grid_field(grid, 5, 3, "meteo_6_3")
+        self._grid_field(grid, 5, 4, "meteo_6_4")
+        self._grid_field(grid, 5, 5, "meteo_6_5")
+        self._grid_field(grid, 5, 6, "meteo_6_6")
+        self._grid_header(grid, 6, [("5n Fn Fn Fn", 1), ("56DL DM DH", 1),
+                                    ("58/59 P24P24P24", 1), ("6 RRR tr", 1),
+                                    ("7R24R24R24R24", 1), ("8NsChs hs", 1),
+                                    ("8NsChs hs", 1)])
+        self._grid_field(grid, 7, 0, "meteo_8_0")
+        self._grid_field(grid, 7, 1, "meteo_8_1")
+        self._grid_auto(grid, 7, 2, "grupo_58_59_p24")
+        self._grid_field(grid, 7, 3, "meteo_8_3")
+        self._grid_field(grid, 7, 4, "meteo_8_4")
+        self._grid_field(grid, 7, 5, "meteo_8_5")
+        self._grid_field(grid, 7, 6, "meteo_8_6")
+        for pos, row in enumerate((10, 12, 14)):
+            base = 8 + pos * 2
+            self._grid_header(grid, base, [("8NsChs hs", 1), ("8NsChs hs", 1),
+                                           ("9Sp SpSpSp", 1), ("9Sp SpSpSp", 1),
+                                           ("9Sp SpSpSp", 1), ("9Sp SpSpSp", 1),
+                                           ("9Sp SpSpSp", 1)])
+            for col in range(7):
+                self._grid_field(grid, base + 1, col, f"meteo_{row}_{col}")
+        self._grid_header(grid, 14, [("9Sp SpSpSp", 1), ("9Sp SpSpSp", 1),
+                                     ("9Sp SpSpSp", 1), ("9Sp SpSpSp", 1),
+                                     ("9Sp SpSpSp", 1), ("555", 1), ("29 UUU", 1)])
+        for col in range(5):
+            self._grid_field(grid, 15, col, f"meteo_16_{col}")
+        self._grid_const(grid, 15, 5, "555")
+        self._grid_auto(grid, 15, 6, "grupo_29uuu")
         self.grid = grid
         left.addWidget(grid_box, 1)
 
-        # derived readouts -------------------------------------------------
+        # station calc panel: OBS 7-column grid (headers + raw inputs + --
+        # computed readouts). Raw widgets are (re)created here via the same
+        # factory, so validators, gating and blur behavior travel with them.
         calc_box = QGroupBox("Cálculos de Estación")
-        calc_form = QFormLayout(calc_box)
-        for key, label in (
-            ("pres_nmm", "Pres. NMM"),
-            ("punto_rocio", "Punto de rocío"),
-            ("tension_vapor", "Tensión de vapor"),
-            ("humedad_relativa", "Humedad relativa"),
-            ("diferencia", "Diferencia Ts − Th"),
-        ):
-            widget = QLineEdit()
-            widget.setReadOnly(True)
-            widget.setStyleSheet("background: #f1f5f9; color: #1d4ed8; font-weight: bold;")
-            self.readouts[key] = widget
-            calc_form.addRow(QLabel(label), widget)
+        calc = QGridLayout(calc_box)
+
+        def chead(row: int, col: int, text: str, span: int = 1) -> None:
+            label = QLabel(text)
+            label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            label.setStyleSheet(
+                "background-color: #475569; color: white; font-weight: 600;"
+                "padding: 6px; border-radius: 4px;"
+            )
+            calc.addWidget(label, row, col, 1, span)
+
+        def cfield(row: int, col: int, key: str) -> None:
+            calc.addWidget(self._make_grid_input(key), row, col)
+
+        def cro(row: int, col: int, store: dict, key: str) -> None:
+            cell = QLineEdit()
+            cell.setReadOnly(True)
+            cell.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            cell.setStyleSheet(
+                "background-color: #f1f5f9; color: #1d4ed8; font-weight: bold;"
+                "border: 1px solid #cbd5e1; border-radius: 4px;"
+            )
+            calc.addWidget(cell, row, col)
+            store[key] = cell
+
+        chead(0, 0, "Cálculos de Estación", 2)
+        chead(0, 2, "Presión de la Estación")
+        chead(0, 3, "P 3 Horas")
+        chead(0, 4, "P 24 Horas")
+        chead(0, 5, "Máx. / Mín.")
+        chead(0, 6, "Máx. / Mín. (24 H)")
+        self._grid_header_text(calc, 1, ["Ts.", "Let. Barom.", "P 3",
+                                          "P 24", "T Máx.", "T Máx."])
+        cfield(1, 1, "ts")
+        cfield(2, 2, "let_barom")
+        cfield(2, 3, "p3")
+        cfield(2, 4, "p24")
+        cfield(2, 5, "t_max")
+        cfield(2, 6, "t_max_24h")
+        self._grid_header_text(calc, 3, ["Th.", "Correc. Temp.", "Let.",
+                                          "Let.", "T Mín.", "T Mín."])
+        cfield(3, 1, "th")
+        cfield(4, 2, "correc_temp")
+        cro(2, 1, self.readouts, "punto_rocio")
+        cro(4, 3, self.auto_cells, "p3_let")
+        cro(4, 4, self.auto_cells, "p24_let")
+        cfield(4, 5, "t_min")
+        cfield(4, 6, "t_min_24h")
+        self._grid_header_text(calc, 5, ["Tv.", "Pres. Est.", "Dif.",
+                                          "Dif.", "LL", "LL"])
+        cro(5, 1, self.readouts, "tension_vapor")
+        cfield(5, 2, "pres_est")
+        cro(5, 3, self.auto_cells, "p3_dif")
+        cro(5, 4, self.auto_cells, "p24_dif")
+        cfield(5, 5, "ll")
+        cfield(5, 6, "ll_24h")
+        self._grid_header_text(calc, 6, ["Dif.", "Correc. Alt."])
+        cro(6, 1, self.readouts, "diferencia")
+        calc.addWidget(self.correc_alt_edit, 6, 2)
+        self._grid_header_text(calc, 7, ["Hr.", "Pres. NMM"])
+        cro(7, 1, self.readouts, "humedad_relativa")
+        cro(7, 2, self.readouts, "pres_nmm")
         left.addWidget(calc_box)
 
         form_host = QWidget()
@@ -330,6 +537,17 @@ class SynopticPage(QWidget):
             hours_grid.addWidget(button, row, col)
         right.addWidget(hours_box)
 
+        nav_row = QHBoxLayout()
+        self.prev_btn = QPushButton("←")
+        self.prev_btn.setToolTip("Hora anterior")
+        self.prev_btn.clicked.connect(lambda: self._step_hour(-1))
+        self.next_btn = QPushButton("→")
+        self.next_btn.setToolTip("Hora siguiente")
+        self.next_btn.clicked.connect(lambda: self._step_hour(1))
+        nav_row.addWidget(self.prev_btn)
+        nav_row.addWidget(self.next_btn)
+        right.addLayout(nav_row)
+
         self.progress_label = QLabel("0/21 campos")
         self.progress = QProgressBar()
         right.addWidget(self.progress_label)
@@ -342,11 +560,42 @@ class SynopticPage(QWidget):
         self.status_label.setWordWrap(True)
         self.status_label.setStyleSheet("color: #047857; font-weight: bold;")
 
+        cli_box = QGroupBox("MÓDULOS CLI")
+        cli_row = QHBoxLayout(cli_box)
+        for module_key, label in (
+            ("cli3074", "3074"),
+            ("cli4074", "4074"),
+            ("cli5074", "5074"),
+        ):
+            button = QPushButton(label)
+            button.clicked.connect(lambda _=False, m=module_key: self._open_cli(m))
+            cli_row.addWidget(button)
+        right.addWidget(cli_box)
+
+        extra_box = QGroupBox("NUBOSIDAD EXTRA")
+        extra_grid = QGridLayout(extra_box)
+        for row, (key, label) in enumerate((
+            ("extra_8ns_1", "GRUPO EXTRA 1 (8NS)"),
+            ("extra_8ns_2", "GRUPO EXTRA 2 (8NS)"),
+        )):
+            title = QLabel(label)
+            title.setStyleSheet(
+                "font-size: 11px; font-weight: 600; color: #64748b;"
+                "background: transparent;"
+            )
+            extra_grid.addWidget(title, row * 2, 0)
+            extra_grid.addWidget(self._make_grid_input(key), row * 2 + 1, 0)
+        right.addWidget(extra_box)
+
         self.save_btn = QPushButton("Guardar Observación")
+        self.save_btn.setProperty("dark", True)
         self.save_btn.setDefault(True)
         self.save_btn.clicked.connect(self.save_clicked)
+        self.cargar_btn = QPushButton("Cargar JSON")
+        self.cargar_btn.clicked.connect(self._load_json_file)
         save_row = QHBoxLayout()
         save_row.addWidget(self.save_btn)
+        save_row.addWidget(self.cargar_btn)
         right.addWidget(self.error_label)
         right.addWidget(self.status_label)
         right.addLayout(save_row)
@@ -361,11 +610,94 @@ class SynopticPage(QWidget):
         self.fecha_edit.dateChanged.connect(self._on_date_changed)
         self.observer_edit.textChanged.connect(self._on_observer_changed)
 
+    def _step_hour(self, delta: int) -> None:
+        """Prev/next hour buttons (clamped at the ends, no wrap)."""
+        hours = synoptic_service.HOURS
+        try:
+            index = hours.index(self.active_hour)
+        except ValueError:
+            return
+        self.select_hour(hours[min(max(index + delta, 0), len(hours) - 1)])
+
+    def _open_cli(self, module_key: str) -> None:
+        """Open the generic CLI sheet dialog (OBS MÓDULOS CLI card)."""
+        from oms_ui.pages.cli_dialog import CliModuleDialog
+
+        if not self.station_id or not self.fecha_iso:
+            self.clear_error_state()
+            self.error_label.setText(
+                "Elegí estación y fecha antes de abrir el módulo CLI"
+            )
+            return
+        dialog = CliModuleDialog(
+            self._conn, self.station_id, self.fecha_iso, module_key, self
+        )
+        if dialog.exec():
+            try:
+                dialog.save()
+            except Exception as exc:  # noqa: BLE001 - service errors show inline
+                self.error_label.setText(f"Error al guardar {module_key}: {exc}")
+                return
+            self.status_label.setText(f"{module_key} guardado")
+
+    def _load_json_file(self, path: str | None = None) -> None:
+        """Load a diario JSON file into the form (OBS Cargar JSON)."""
+        from PySide6.QtWidgets import QFileDialog
+
+        from oms_core.importer.parse import parse_daily
+
+        if path is None:
+            chosen, _ = QFileDialog.getOpenFileName(
+                self, "Cargar JSON", "", "JSON (*.json)"
+            )
+            if not chosen:
+                return
+            path = chosen
+        try:
+            with open(path, encoding="utf-8") as handle:
+                import json as _json
+
+                payload = _json.load(handle)
+            doc = parse_daily(payload)
+        except Exception as exc:  # noqa: BLE001 - bad files show inline
+            self.error_label.setText(f"JSON inválido: {exc}")
+            return
+        if doc.station:
+            self.set_station(doc.station)
+        if doc.fecha_iso:
+            self.set_date(doc.fecha_iso)
+        count = 0
+        for row in doc.horarias:
+            hora = getattr(row, "hora", "")
+            if hora not in synoptic_service.HOURS:
+                continue
+            datos = getattr(row, "datos", {}) or {}
+            entry = self.observations.setdefault(hora, {})
+            for key, value in datos.items():
+                if value is None:
+                    continue
+                entry[str(key)] = str(value)
+            observer = getattr(row, "observador", "") or ""
+            if observer:
+                entry["nombre_observador"] = str(observer)
+            count += 1
+        self._load_hour_into_fields()
+        self._refresh_hour_mode()
+        self.refresh_progress()
+        self._update_readouts()
+        self.status_label.setText(f"JSON cargado: {count} horas")
+
     def _make_grid_input(self, key: str) -> QLineEdit:
         widget = QLineEdit()
         if key.startswith(synoptic_service.GROUP_PREFIXES):
             widget.setValidator(QRegularExpressionValidator(_GROUP_RE, widget))
             widget.setMaxLength(synoptic_service.GROUP_MAX_LEN)
+        placeholder = _PLACEHOLDERS.get(key)
+        if placeholder:
+            widget.setPlaceholderText(placeholder)
+        tooltip = _TOOLTIPS.get(key)
+        if tooltip:
+            widget.setToolTip(tooltip)
         widget.setProperty("field_key", key)
         widget.textChanged.connect(lambda _text, k=key: self._on_field_changed(k))
         if key in _PRESSURE_KEYS:
@@ -454,6 +786,14 @@ class SynopticPage(QWidget):
     def _on_field_changed(self, key: str) -> None:
         hour_data = self.observations.setdefault(self.active_hour, {})
         hour_data[key] = self.field_widgets[key].text()
+        # Ir/iX digits derived from the combined group (oracle handleIrIxChange,
+        # set-only like the oracle: shortening keeps the stale digit)
+        if key == "meteo_4_irixhvv":
+            value = hour_data.get(key, "")
+            if len(value) >= 1:
+                hour_data["ir"] = value[0]
+            if len(value) >= 2:
+                hour_data["ix"] = value[1]
 
         # clear the guilt of the field the user just touched (oracle
         # handleChange clears errorField on any edit)
@@ -553,6 +893,18 @@ class SynopticPage(QWidget):
                 else "Omitido (iX≠1,4)"
             )
 
+        # 6RRRtr gated by Ir like the oracle (results.include_precipitation):
+        # empty Ir disables, verbatim oracle behavior
+        ir = irixhv[0:1] if len(irixhv) >= 1 else ""
+        precip_ok = bool(ir) and oms_calc.should_include_precipitation(ir)
+        widget_83 = self.field_widgets.get("meteo_8_3")
+        if widget_83 is not None:
+            widget_83.setEnabled(precip_ok)
+            widget_83.setToolTip(
+                "6RRRtr: precipitación" if precip_ok
+                else "Omitido (Ir=3,4)"
+            )
+
         # row 6/8 exclusions + cyclonic-season gate (June–November, oracle)
         fecha = self.fecha_iso or ""
         month = int(fecha[5:7]) if len(fecha) >= 7 else 0
@@ -603,6 +955,42 @@ class SynopticPage(QWidget):
         for key, widget in self.readouts.items():
             widget.blockSignals(True)
             widget.setText(derived.get(key, ""))
+            widget.blockSignals(False)
+        self._update_autos()
+
+    def _update_autos(self) -> None:
+        """Fill the readonly SYNOP group cells (oracle row 4/8/16 autos)."""
+        if not self.auto_cells:
+            return
+        data = self.active_hour_data()
+        station = self._stations.get(self.station_id or "")
+        correction = self.correc_alt_edit.text() or (
+            "" if station is None else str(station.ch)
+        )
+        groups: dict = {}
+        try:
+            request = {
+                "station_id": self.station_id,
+                "correc_alt": data.get("correc_alt") or (correction or None),
+                "ts": data.get("ts") or None,
+                "th": data.get("th") or None,
+                "pres_est": data.get("pres_est") or None,
+                "p3": data.get("p3") or None,
+                "p24": data.get("p24") or None,
+                "ir": data.get("ir") or None,
+                "ix": data.get("ix") or None,
+            }
+            payload = oms_calc.realizar_calculos_json(
+                json.dumps(request), correction or None
+            )
+            loaded = json.loads(payload)
+            if isinstance(loaded, dict):
+                groups = loaded
+        except Exception:  # noqa: BLE001 - autos stay empty on bad input
+            groups = {}
+        for key, widget in self.auto_cells.items():
+            widget.blockSignals(True)
+            widget.setText(groups.get(key, ""))
             widget.blockSignals(False)
 
     def _derive_active(self) -> dict[str, str]:
