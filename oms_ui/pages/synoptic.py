@@ -58,6 +58,7 @@ from PySide6.QtWidgets import (
     QProgressBar,
     QPushButton,
     QScrollArea,
+    QSizePolicy,
     QStyle,
     QToolButton,
     QVBoxLayout,
@@ -615,6 +616,14 @@ class SynopticPage(QWidget):
         self.station_combo = QComboBox()
         for station in self._stations.values():
             self.station_combo.addItem(f"{station.name} ({station.id})", station.id)
+        # the IIiii column must not inflate from its longest item name
+        self.station_combo.setSizeAdjustPolicy(
+            QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon
+        )
+        self.station_combo.setMinimumContentsLength(9)
+        self.station_combo.setSizePolicy(
+            QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed
+        )
         # nothing selected until the user (or an observation) picks a station
         if self.station_combo.count():
             self.station_combo.setCurrentIndex(-1)
@@ -645,16 +654,16 @@ class SynopticPage(QWidget):
         grid = QGridLayout()
         grid.setHorizontalSpacing(8)
         grid.setVerticalSpacing(10)
-        self._grid_header(grid, 0, [("MiMi MjMj", 1), ("YYGG Iw", 1),
+        self._grid_header(grid, 0, [("MiMiMjMj", 1), ("YYGGIw", 1),
                                     ("IIiii", 1), ("Fecha", 4)])
         self._grid_const(grid, 1, 0, "AAXX")
         self._grid_field(grid, 1, 1, "meteo_2_1")
         grid.addWidget(self.station_combo, 1, 2)
         grid.addWidget(self.fecha_edit, 1, 3, 1, 4)
-        self._grid_header(grid, 2, [("Ir iX H VV", 1), ("N dd ff", 1),
-                                    ("1sn T T T", 1), ("2sn Td Td Td", 1),
-                                    ("4 P P P P", 1), ("5 a P P P", 1),
-                                    ("7 ww W1 W2", 1)])
+        self._grid_header(grid, 2, [("IrIXHVV", 1), ("Nddff", 1),
+                                    ("1snTTT", 1), ("2snTdTdTd", 1),
+                                    ("4PPPP", 1), ("5aPPP", 1),
+                                    ("7wwW1W2", 1)])
         self._grid_field(grid, 3, 0, "meteo_4_irixhvv")
         self._grid_field(grid, 3, 1, "meteo_4_1")
         self._grid_auto(grid, 3, 2, "grupo_1sn_ttt")
@@ -662,10 +671,10 @@ class SynopticPage(QWidget):
         self._grid_auto(grid, 3, 4, "grupo_4pppp")
         self._grid_auto(grid, 3, 5, "grupo_5appp")
         self._grid_field(grid, 3, 6, "meteo_4_6")
-        self._grid_header(grid, 4, [("8Nh CL CM CH", 1), ("333", 1),
-                                    ("0CS DL DM DH", 1), ("1sn Tx Tx Tx", 1),
-                                    ("2sn Tn Tn Tn", 1), ("3E j j j", 1),
-                                    ("5 EEEjE", 1)])
+        self._grid_header(grid, 4, [("8NhCLCMCH", 1), ("333", 1),
+                                    ("0CSDLDMDH", 1), ("1snTxTxTx", 1),
+                                    ("2snTnTnTn", 1), ("3Ejjj", 1),
+                                    ("5EEEjE", 1)])
         self._grid_field(grid, 5, 0, "meteo_6_0")
         self._grid_const(grid, 5, 1, "333")
         self._grid_field(grid, 5, 2, "meteo_6_2")
@@ -673,10 +682,10 @@ class SynopticPage(QWidget):
         self._grid_field(grid, 5, 4, "meteo_6_4")
         self._grid_field(grid, 5, 5, "meteo_6_5")
         self._grid_field(grid, 5, 6, "meteo_6_6")
-        self._grid_header(grid, 6, [("5n Fn Fn Fn", 1), ("56DL DM DH", 1),
-                                    ("58/59 P24P24P24", 1), ("6 RRR tr", 1),
-                                    ("7R24R24R24R24", 1), ("8NsChs hs", 1),
-                                    ("8NsChs hs", 1)])
+        self._grid_header(grid, 6, [("5nFnFnFn", 1), ("56DLDMDH", 1),
+                                    ("58/59P24P24P24", 1), ("6RRRtr", 1),
+                                    ("7R24R24R24R24", 1), ("8NsChshs", 1),
+                                    ("8NsChshs", 1)])
         self._grid_field(grid, 7, 0, "meteo_8_0")
         self._grid_field(grid, 7, 1, "meteo_8_1")
         self._grid_auto(grid, 7, 2, "grupo_58_59_p24")
@@ -685,40 +694,54 @@ class SynopticPage(QWidget):
         self._grid_field(grid, 7, 5, "meteo_8_5")
         self._grid_field(grid, 7, 6, "meteo_8_6")
 
-        # est-indexed 8Ns/Sp rows per IMG: "(1)"/"(2)" then (est. 1..24)
+        # est-indexed 8Ns/Sp rows per IMG: 1/2 then est. 1..24 (no parens)
         est = 0
         for base, field_row in ((8, 10), (10, 12), (12, 14)):
             cells: list[tuple[str, int]] = (
-                [("8NsChs hs (1)", 1), ("8NsChs hs (2)", 1)] if base == 8 else []
+                [("8NsChshs 1", 1), ("8NsChshs 2", 1)] if base == 8 else []
             )
             for _ in range(5 if base == 8 else 7):
                 est += 1
-                cells.append((f"9Sp SpSpSp (est. {est})", 1))
+                cells.append((f"9SpSpSpSp est. {est}", 1))
             self._grid_header(grid, base, cells)
             for col in range(7):
                 self._grid_field(grid, base + 1, col, f"meteo_{field_row}_{col}")
         final_cells: list[tuple[str, int]] = []
         for _ in range(5):
             est += 1
-            final_cells.append((f"9Sp SpSpSp (est. {est})", 1))
-        final_cells.extend([("555", 1), ("29 UUU", 1)])
+            final_cells.append((f"9SpSpSpSp est. {est}", 1))
+        final_cells.extend([("555", 1), ("29UUU", 1)])
         self._grid_header(grid, 14, final_cells)
         for col in range(5):
             self._grid_field(grid, 15, col, f"meteo_16_{col}")
         self._grid_const(grid, 15, 5, "555")
         self._grid_auto(grid, 15, 6, "grupo_29uuu")
+        for col in range(7):  # columnas equilibradas; la grilla llena la card
+            grid.setColumnStretch(col, 1)
         obs_l.addLayout(grid, 1)
         self.grid = grid
         left.addWidget(obs_card, 1)
 
-        # calculations card: same 7-column grid, accent primaryHeader chips
+        # calculations card: 7-column checkerboard per IMG 2 — LEFT pair
+        # reads label(cell0)/value(cell1) down its rows; every other column
+        # stacks its slate header on TOP of the fill cell. Explicit (row,
+        # col) cells: no widget ever shares a grid position.
         calc_card = self._card()
         calc_l = QVBoxLayout(calc_card)
-        calc_l.setContentsMargins(20, 16, 20, 20)
+        calc_l.setContentsMargins(16, 14, 16, 16)
         calc = QGridLayout()
-        calc.setHorizontalSpacing(8)
-        calc.setVerticalSpacing(10)
+        calc.setHorizontalSpacing(6)
+        calc.setVerticalSpacing(8)
+        for col in range(7):
+            calc.setColumnStretch(col, 1)
         calc_l.addLayout(calc)
+
+        def clabel(row: int, col: int, text: str) -> None:
+            label = QLabel(text)
+            label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            label.setWordWrap(True)
+            label.setStyleSheet(_HEADER_QSS)
+            calc.addWidget(label, row, col)
 
         def cfield(row: int, col: int, key: str) -> None:
             calc.addWidget(self._make_grid_input(key), row, col)
@@ -738,40 +761,65 @@ class SynopticPage(QWidget):
             calc, 0,
             [("Cálculos de Estación", 2), ("Presión de la Estación", 1),
              ("P 3 Horas", 1), ("P 24 Horas", 1), ("Máx. / Mín.", 1),
-             ("Máx. / Mín. (24 H)", 1)],
+             ("Máx. / Mín. 24 H", 1)],
             accent=HOUR_THEMES.get(self.active_hour, HOUR_THEMES["06Z"])["accent"],
         )
-        self._grid_header_text(calc, 1, ["Ts.", "Let. Barom.", "P 3",
-                                          "P 24", "T Máx.", "T Máx."])
+
+        # left pair (Cálculos de Estación): label left, fill cell right
+        clabel(1, 0, "Ts.")
         cfield(1, 1, "ts")
+        clabel(2, 0, "Pr.")
+        cro(2, 1, self.readouts, "punto_rocio", "°C")
+        clabel(3, 0, "Th.")
+        cfield(3, 1, "th")
+        clabel(4, 0, "Tv.")
+        cro(4, 1, self.readouts, "tension_vapor", "hPa")
+        clabel(5, 0, "Dif.")
+        cro(5, 1, self.readouts, "diferencia", "°C")
+        clabel(6, 0, "Hr.")
+        cro(6, 1, self.readouts, "humedad_relativa", "%")
+
+        # Presión de la Estación column (col2): grease header, data below
+        clabel(1, 2, "Let. Barom.")
         cfield(2, 2, "let_barom")
+        clabel(3, 2, "Correc. Temp.")
+        cfield(4, 2, "correc_temp")
+        clabel(5, 2, "Pres. Est.")
+        cfield(6, 2, "pres_est")
+        clabel(7, 2, "Correc. Alt.")
+        calc.addWidget(self.correc_alt_edit, 8, 2)
+        clabel(9, 2, "Pres. NMM")
+        cro(10, 2, self.readouts, "pres_nmm", "hPa")
+
+        # P 3 Horas column (col3)
+        clabel(1, 3, "P 3")
         cfield(2, 3, "p3")
+        clabel(3, 3, "Let.")
+        cro(4, 3, self.auto_cells, "p3_let", "hPa")
+        clabel(5, 3, "Dif.")
+        cro(6, 3, self.auto_cells, "p3_dif", "hPa")
+
+        # P 24 Horas column (col4)
+        clabel(1, 4, "P 24")
         cfield(2, 4, "p24")
+        clabel(3, 4, "Let.")
+        cro(4, 4, self.auto_cells, "p24_let", "hPa")
+        clabel(5, 4, "Dif.")
+        cro(6, 4, self.auto_cells, "p24_dif", "hPa")
+
+        # Máx. / Mín. (col5) and the 24h twin (col6)
+        clabel(1, 5, "T Máx.")
+        clabel(1, 6, "T Máx. 24 H")
         cfield(2, 5, "t_max")
         cfield(2, 6, "t_max_24h")
-        self._grid_header_text(calc, 3, ["Th.", "Correc. Temp.", "Let.",
-                                          "Let.", "T Mín.", "T Mín."])
-        cfield(3, 1, "th")
-        cfield(4, 2, "correc_temp")
-        cro(2, 1, self.readouts, "punto_rocio", "°C")
-        cro(4, 3, self.auto_cells, "p3_let", "hPa")
-        cro(4, 4, self.auto_cells, "p24_let", "hPa")
+        clabel(3, 5, "T Mín.")
+        clabel(3, 6, "T Mín. 24 H")
         cfield(4, 5, "t_min")
         cfield(4, 6, "t_min_24h")
-        self._grid_header_text(calc, 5, ["Tv.", "Pres. Est.", "Dif.",
-                                          "Dif.", "LL", "LL"])
-        cro(5, 1, self.readouts, "tension_vapor", "hPa")
-        cfield(5, 2, "pres_est")
-        cro(5, 3, self.auto_cells, "p3_dif", "hPa")
-        cro(5, 4, self.auto_cells, "p24_dif", "hPa")
-        cfield(5, 5, "ll")
-        cfield(5, 6, "ll_24h")
-        self._grid_header_text(calc, 6, ["Dif.", "Correc. Alt."])
-        cro(6, 1, self.readouts, "diferencia", "°C")
-        calc.addWidget(self.correc_alt_edit, 6, 2)
-        self._grid_header_text(calc, 7, ["Hr.", "Pres. NMM"])
-        cro(7, 1, self.readouts, "humedad_relativa", "%")
-        cro(7, 2, self.readouts, "pres_nmm", "hPa")
+        clabel(5, 5, "LL")
+        clabel(5, 6, "LL 24 H")
+        cfield(6, 5, "ll")
+        cfield(6, 6, "ll_24h")
         left.addWidget(calc_card)
 
         scroll = QScrollArea()
@@ -783,9 +831,12 @@ class SynopticPage(QWidget):
         scroll.setWidget(left_column)
         content.addWidget(scroll, 1)
 
-        # right column: oracle stacked cards (w-64, gap-4, sticky top-6) ---
+        # right column: stacked cards, deliberately slimmer than the oracle's
+        # 256px to give the form protagonism; scroll-wrapped so no card is
+        # crushed or clipped at 1366x768
         side = QWidget()
-        side.setFixedWidth(264)
+        side.setMinimumWidth(198)
+        side.setMaximumWidth(204)
         side.setStyleSheet("background: transparent;")
         right = QVBoxLayout(side)
         right.setContentsMargins(0, 0, 0, 0)
@@ -794,8 +845,8 @@ class SynopticPage(QWidget):
         # card 1: hours of observation + completion bar + day navigation
         hours_card = self._card()
         hours_l = QVBoxLayout(hours_card)
-        hours_l.setContentsMargins(16, 14, 16, 16)
-        hours_l.setSpacing(10)
+        hours_l.setContentsMargins(12, 10, 12, 12)
+        hours_l.setSpacing(8)
         hours_head = QHBoxLayout()
         hours_head.setSpacing(6)
         clock_icon = QLabel()
@@ -834,7 +885,7 @@ class SynopticPage(QWidget):
             button.setProperty("fill", "empty")
             button.setStyleSheet(HOURBTN_QSS)
             button.setIconSize(QSize(14, 14))
-            button.setMinimumHeight(34)
+            button.setMinimumHeight(30)
             button.setCursor(Qt.CursorShape.PointingHandCursor)
             button.clicked.connect(lambda _=False, h=hora: self.select_hour(h))
             self.hour_buttons[hora] = button
@@ -875,8 +926,8 @@ class SynopticPage(QWidget):
         # card 2: CLI modules with icon-over-number buttons ----------------
         cli_card = self._card()
         cli_l = QVBoxLayout(cli_card)
-        cli_l.setContentsMargins(16, 14, 16, 16)
-        cli_l.setSpacing(10)
+        cli_l.setContentsMargins(12, 10, 12, 12)
+        cli_l.setSpacing(8)
         cli_head = QHBoxLayout()
         cli_head.setSpacing(6)
         file_icon = QLabel()
@@ -912,8 +963,8 @@ class SynopticPage(QWidget):
         # card 3: extra cloud fields ----------------------------------------
         extra_card = self._card()
         extra_l = QVBoxLayout(extra_card)
-        extra_l.setContentsMargins(16, 14, 16, 16)
-        extra_l.setSpacing(8)
+        extra_l.setContentsMargins(12, 10, 12, 12)
+        extra_l.setSpacing(6)
         extra_head = QHBoxLayout()
         extra_head.setSpacing(6)
         cloud_icon = QLabel()
@@ -926,8 +977,8 @@ class SynopticPage(QWidget):
         extra_head.addStretch(1)
         extra_l.addLayout(extra_head)
         for key, label in (
-            ("extra_8ns_1", "GRUPO EXTRA 1 (8NS)"),
-            ("extra_8ns_2", "GRUPO EXTRA 2 (8NS)"),
+            ("extra_8ns_1", "GRUPO EXTRA 1 8NS"),
+            ("extra_8ns_2", "GRUPO EXTRA 2 8NS"),
         ):
             title = QLabel(label)
             title.setProperty("minilabel", True)
@@ -949,8 +1000,8 @@ class SynopticPage(QWidget):
         )
         actions_card = self._card()
         actions_l = QVBoxLayout(actions_card)
-        actions_l.setContentsMargins(12, 12, 12, 12)
-        actions_l.setSpacing(8)
+        actions_l.setContentsMargins(10, 10, 10, 10)
+        actions_l.setSpacing(6)
         self.save_btn = QPushButton("Guardar Observación")
         self.save_btn.setIconSize(QSize(16, 16))
         self.save_btn.setProperty("dark", True)  # contrato Lotes-C se conserva
@@ -973,7 +1024,16 @@ class SynopticPage(QWidget):
         right.addWidget(actions_card)
         right.addStretch(1)
 
-        content.addWidget(side, 0, Qt.AlignmentFlag.AlignTop)
+        side_scroll = QScrollArea()
+        side_scroll.setWidgetResizable(False)
+        side_scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+        side_scroll.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
+        side_scroll.setStyleSheet("QScrollArea { background: transparent; }")
+        side_scroll.viewport().setAutoFillBackground(False)
+        side_scroll.setWidget(side)
+        content.addWidget(side_scroll, 0, Qt.AlignmentFlag.AlignTop)
         # wiring -----------------------------------------------------------
         self.station_combo.currentIndexChanged.connect(self._on_station_changed)
         self.fecha_edit.dateChanged.connect(self._on_date_changed)

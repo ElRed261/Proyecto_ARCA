@@ -194,3 +194,35 @@ def test_login_window_success_and_inline_error(qtbot, db):
     assert len(got) == 1  # no new emission
     assert "incorrectos" in window.error_label.text()
     assert window.login_button.isEnabled()
+
+
+def test_oversize_frame_gets_clamped_after_restore(qtbot, db):
+    """Maximize -> restore regression: a frame bigger than the usable screen
+    (titlebar and bottom bar out of reach) must be refit to the screen."""
+    import time
+
+    QSettings("NeoArca", "shell").remove("rail_collapsed")
+    window = MainWindow(role="admin", db_path=db)
+    qtbot.addWidget(window)
+    window.show()
+    for _ in range(6):
+        QApplication.processEvents()
+    avail = window.screen().availableGeometry()
+    min_hint = window.minimumSizeHint()
+    # a frame outgrowing the screen (as a WM restore can leave it)
+    window.resize(avail.width() + 300, avail.height() + 200)
+    time.sleep(0.25)  # 80ms debounce + settle
+    for _ in range(6):
+        QApplication.processEvents()
+    clamp_width = max(min_hint.width(), int(avail.width() * 0.92))
+    clamp_height = max(min_hint.height(), int(avail.height() * 0.92))
+    assert window.width() <= clamp_width + 1
+    assert window.height() <= clamp_height + 1
+    # a manual resize that fits the screen must NOT be fought
+    fitting = max(min_hint.width(), int(avail.width() * 0.5))
+    window.resize(fitting, max(min_hint.height(), int(avail.height() * 0.6)))
+    time.sleep(0.15)
+    for _ in range(6):
+        QApplication.processEvents()
+    assert window.width() <= clamp_width + 1
+    assert window.height() <= clamp_height + 1

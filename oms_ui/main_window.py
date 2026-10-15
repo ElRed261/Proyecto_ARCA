@@ -1,6 +1,6 @@
 """Main window of Neo Arca — AppShell with collapsible rail (PRD F7.5).
 
-A left rail (76px icon-only <-> 232px with labels, QSettings-persisted)
+A left rail (76px icon-only <-> 200px with labels, QSettings-persisted)
 with the six Sidebar entries filtered by role through
 ``oms_core.services.access`` and a stacked content area. Every entry shows
 its REAL page (dashboard, synoptic, summary, audit wizard + report tabs,
@@ -13,7 +13,7 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
-from PySide6.QtCore import QSettings, Signal
+from PySide6.QtCore import QSettings, QTimer, Signal
 from PySide6.QtWidgets import (
     QApplication,
     QDialog,
@@ -42,7 +42,7 @@ NAV_ENTRIES = (
     ("admin", "Seguridad", "#64748b", "SE"),
 )
 
-_RAIL_EXPANDED_WIDTH = 232
+_RAIL_EXPANDED_WIDTH = 200
 _RAIL_COLLAPSED_WIDTH = 76
 
 
@@ -67,6 +67,15 @@ class MainWindow(QMainWindow):
         self._pages: dict[str, QWidget] = {}  # before rail: selection refresh reads it
         self._settings = QSettings("NeoArca", "shell")
         self._collapsed = self._settings.value("rail_collapsed", False, type=bool)
+
+        # maximize -> restore clamp: WM restore used to leave the frame taller
+        # than the usable screen, pushing the titlebar AND the bottom bar out
+        # of reach. Debounced so it never fights the event-storm of a
+        # maximize/restore transition nor the user's manual resizes.
+        self._fit_timer = QTimer(self)
+        self._fit_timer.setSingleShot(True)
+        self._fit_timer.setInterval(80)
+        self._fit_timer.timeout.connect(self._refit_clamp)
 
         self.stack = QStackedWidget()
 
@@ -288,6 +297,34 @@ class MainWindow(QMainWindow):
     def status(self, message: str, timeout: int = 5000) -> None:
         """Global status-bar message (toast equivalent)."""
         self.statusBar().showMessage(message, timeout)
+
+    def resizeEvent(self, event) -> None:
+        """Watch for a frame that outgrows the usable screen (restore path)."""
+        super().resizeEvent(event)
+        if self.isMaximized() or not self.isVisible():
+            return
+        screen = self.screen()
+        if screen is None:
+            screen = QApplication.primaryScreen()
+        if screen is None:
+            return
+        avail = screen.availableGeometry()
+        frame = self.frameGeometry()
+        if (frame.width() > avail.width() or frame.height() > avail.height()) \
+                and not self._fit_timer.isActive():
+            self._fit_timer.start()
+
+    def _refit_clamp(self) -> None:
+        """Re-apply the screen fit after a maximize/restore transition."""
+        if self.isMaximized() or not self.isVisible():
+            return
+        screen = self.screen() or QApplication.primaryScreen()
+        if screen is None:
+            return
+        avail = screen.availableGeometry()
+        frame = self.frameGeometry()
+        if frame.width() > avail.width() or frame.height() > avail.height():
+            self.fit_to_screen()
 
     def fit_to_screen(self, fraction: float = 0.92) -> None:
         """Size to the usable desktop so the titlebar is always visible.

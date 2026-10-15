@@ -583,17 +583,48 @@ def test_autos_populate_from_realizar(page):
     assert page.auto_cells["grupo_29uuu"].text() != ""
 
 
-def test_est_row_headers_have_oracle_index_suffixes(page):
-    """IMG contract: 8Ns (1)/(2) rows and 9Sp (est. 1..24) headers."""
+def test_est_row_headers_glued_without_parentheses(page):
+    """IMG contract glued: 8NsChshs 1/2 and 9SpSpSpSp est. 1..24, no parens."""
     grid_label = lambda r, c: page.grid.itemAtPosition(r, c).widget().text()
-    assert grid_label(8, 0) == "8NsChs hs (1)"
-    assert grid_label(8, 1) == "8NsChs hs (2)"
-    assert grid_label(8, 2).endswith("(est. 1)")
-    assert grid_label(10, 6).endswith("(est. 12)")
-    assert grid_label(12, 0).endswith("(est. 13)")
-    assert grid_label(14, 4).endswith("(est. 24)")
+    assert grid_label(0, 0) == "MiMiMjMj"
+    assert grid_label(0, 1) == "YYGGIw"
+    assert grid_label(2, 0) == "IrIXHVV"
+    assert grid_label(2, 2) == "1snTTT"
+    assert grid_label(2, 5) == "5aPPP"
+    assert grid_label(4, 6) == "5EEEjE"
+    assert grid_label(6, 2) == "58/59P24P24P24"
+    assert grid_label(8, 0) == "8NsChshs 1"
+    assert grid_label(8, 1) == "8NsChshs 2"
+    assert grid_label(8, 2) == "9SpSpSpSp est. 1"
+    assert grid_label(10, 6) == "9SpSpSpSp est. 12"
+    assert grid_label(12, 0) == "9SpSpSpSp est. 13"
+    assert grid_label(14, 4) == "9SpSpSpSp est. 24"
     assert grid_label(14, 5) == "555"
-    assert grid_label(14, 6) == "29 UUU"
+    assert grid_label(14, 6) == "29UUU"
+
+
+def test_calc_grid_checkerboard_placement(page):
+    """OBS 2: left pair label/input; other columns header stacked on top.
+    Explicit cells: every fill cell sits under its own gray header (col5/6
+    carried the Tmax/Tmin pair the oracle duplicated)."""
+    assert page.field("ts").text() == ""  # fill cell, not a header
+    from PySide6.QtWidgets import QGridLayout, QLabel
+
+    calc_card = page.field("t_max_24h").parentWidget()  # the calc QFrame
+    calc_layout = calc_card.findChild(QGridLayout)
+    assert calc_layout is not None
+    # headers above the fill cells in the 24h columns (they were missing)
+    idx6 = calc_layout.getItemPosition(calc_layout.indexOf(page.field("t_max_24h")))
+    max24_lbl = calc_layout.itemAtPosition(idx6[0] - 1, idx6[1]).widget()
+    assert isinstance(max24_lbl, QLabel) and max24_lbl.text() == "T Máx. 24 H"
+    idx6 = calc_layout.getItemPosition(calc_layout.indexOf(page.field("t_min_24h")))
+    min24_lbl = calc_layout.itemAtPosition(idx6[0] - 1, idx6[1]).widget()
+    assert min24_lbl.text() == "T Mín. 24 H"
+    # left pair: label at col0, fill at col1 (Ts / Pr / ... / Hr)
+    for label, key in (("Ts.", "ts"), ("Th.", "th")):
+        idx = calc_layout.getItemPosition(calc_layout.indexOf(page.field(key)))
+        assert idx[1] == 1  # fill cell on the right of its label
+        assert calc_layout.itemAtPosition(idx[0], 0).widget().text() == label
 
 
 def test_grid_placeholders_match_the_oracle(page):
