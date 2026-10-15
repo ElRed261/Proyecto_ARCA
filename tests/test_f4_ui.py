@@ -593,14 +593,16 @@ def test_est_row_headers_glued_without_parentheses(page):
     assert grid_label(2, 5) == "5aPPP"
     assert grid_label(4, 6) == "5EEEjE"
     assert grid_label(6, 2) == "58/59P24P24P24"
-    assert grid_label(8, 0) == "8NsChshs 1"
-    assert grid_label(8, 1) == "8NsChshs 2"
-    assert grid_label(8, 2) == "9SpSpSpSp est. 1"
-    assert grid_label(10, 6) == "9SpSpSpSp est. 12"
-    assert grid_label(12, 0) == "9SpSpSpSp est. 13"
-    assert grid_label(14, 4) == "9SpSpSpSp est. 24"
+    assert grid_label(8, 0) == "8NsChshs"
+    assert grid_label(8, 1) == "8NsChshs"
+    assert grid_label(8, 2) == "9SpSpSpSp"
+    assert grid_label(10, 6) == "9SpSpSpSp"
+    assert grid_label(12, 0) == "9SpSpSpSp"
+    assert grid_label(14, 4) == "9SpSpSpSp"
     assert grid_label(14, 5) == "555"
     assert grid_label(14, 6) == "29UUU"
+    assert "est" not in grid_label(14, 4)
+    assert grid_label(0, 0) == "MiMiMjMj"  # glued, still intact
 
 
 def test_calc_grid_checkerboard_placement(page):
@@ -671,3 +673,27 @@ def test_sidebar_cards_and_icons_exist(page):
     # back button + title exist on the dark page header
     assert page.back_btn.icon().pixmap(16, 16).isNull() is False
     assert "background-color: #ffffff" in page.observer_edit.styleSheet()
+
+
+def test_sidebar_fits_without_scroll_and_labels_hide_when_empty(qtbot, fresh_db, tmp_path):
+    """Owner round 3: the horas/CLI/extras/acciones column must END at the
+    bottom (no internal scroll) and no dead white rows under Cargar JSON."""
+    from PySide6.QtWidgets import QScrollArea
+
+    widget = SynopticPage(fresh_db, config_dir=tmp_path)
+    qtbot.addWidget(widget)
+    widget.resize(1100, 640)
+    widget.show()
+    from PySide6.QtWidgets import QApplication
+    for _ in range(6):
+        QApplication.processEvents()
+    assert widget.error_label.isVisible() is False
+    widget.status_label.setText("ok")
+    QApplication.processEvents()
+    assert widget.status_label.isVisible() is True
+    widget.status_label.setText("")
+    QApplication.processEvents()
+    assert widget.status_label.isVisible() is False
+    # the only scroll area left is the form's: no side-scroll wrapper
+    scrolls = widget.findChildren(QScrollArea)
+    assert len(scrolls) == 1  # left form column only; sidebar has none

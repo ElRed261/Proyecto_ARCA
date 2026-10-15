@@ -219,7 +219,9 @@ class DashboardPage(QWidget):
         badge_box = QWidget()
         badge_box.setLayout(badge_row)
         layout.addWidget(badge_box)
-        layout.addStretch(1)
+        # NO trailing stretch: the operations-center grid takes the FULL page
+        # height (the 50/50 split with this stretch used to leave the center
+        # panel at half the screen with dead space below — owner report).
 
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)

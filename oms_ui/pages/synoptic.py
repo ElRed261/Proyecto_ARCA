@@ -234,8 +234,8 @@ DAYNAV_FORWARD_QSS = (
 )
 CLI_BTN_QSS = (
     "QToolButton { background-color: #f8fafc; color: #334155;"
-    "border: 1px solid #e2e8f0; border-radius: 12px;"
-    "padding: 8px 4px; font-size: 12px; font-weight: 700; }"
+    "border: 1px solid #e2e8f0; border-radius: 10px;"
+    "padding: 5px 2px; font-size: 11px; font-weight: 700; }"
     "QToolButton:hover { background-color: #fef3c7; border-color: #fde68a; }"
 )
 SECONDARY_BTN_QSS = (
@@ -319,6 +319,20 @@ def _repolish(widget: QWidget) -> None:
     style: QStyle = widget.style()
     style.unpolish(widget)
     style.polish(widget)
+
+
+class _MessageLabel(QLabel):
+    """Status/error line that occupies NO height while empty (the two
+    unused white rows under Cargar JSON, reported by the owner)."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__("", parent)
+        self.setWordWrap(True)
+        self.setVisible(False)  # auto-shows on the first real message
+
+    def setText(self, text: str) -> None:
+        super().setText(text)
+        self.setVisible(bool(text))
 
 
 class SaveReviewDialog(QDialog):
@@ -694,23 +708,19 @@ class SynopticPage(QWidget):
         self._grid_field(grid, 7, 5, "meteo_8_5")
         self._grid_field(grid, 7, 6, "meteo_8_6")
 
-        # est-indexed 8Ns/Sp rows per IMG: 1/2 then est. 1..24 (no parens)
-        est = 0
+        # 8NsChshs/9SpSpSpSp station rows: plain group names only — the
+        # user's spec dropped every per-station numeric label on headers
         for base, field_row in ((8, 10), (10, 12), (12, 14)):
             cells: list[tuple[str, int]] = (
-                [("8NsChshs 1", 1), ("8NsChshs 2", 1)] if base == 8 else []
+                [("8NsChshs", 1)] * 2 if base == 8 else []
             )
-            for _ in range(5 if base == 8 else 7):
-                est += 1
-                cells.append((f"9SpSpSpSp est. {est}", 1))
+            cells.extend([("9SpSpSpSp", 1)] * (5 if base == 8 else 7))
             self._grid_header(grid, base, cells)
             for col in range(7):
                 self._grid_field(grid, base + 1, col, f"meteo_{field_row}_{col}")
-        final_cells: list[tuple[str, int]] = []
-        for _ in range(5):
-            est += 1
-            final_cells.append((f"9SpSpSpSp est. {est}", 1))
-        final_cells.extend([("555", 1), ("29UUU", 1)])
+        final_cells: list[tuple[str, int]] = [
+            ("9SpSpSpSp", 1),
+        ] * 5 + [("555", 1), ("29UUU", 1)]
         self._grid_header(grid, 14, final_cells)
         for col in range(5):
             self._grid_field(grid, 15, col, f"meteo_16_{col}")
@@ -840,13 +850,13 @@ class SynopticPage(QWidget):
         side.setStyleSheet("background: transparent;")
         right = QVBoxLayout(side)
         right.setContentsMargins(0, 0, 0, 0)
-        right.setSpacing(16)
+        right.setSpacing(10)
 
         # card 1: hours of observation + completion bar + day navigation
         hours_card = self._card()
         hours_l = QVBoxLayout(hours_card)
-        hours_l.setContentsMargins(12, 10, 12, 12)
-        hours_l.setSpacing(8)
+        hours_l.setContentsMargins(10, 8, 10, 10)
+        hours_l.setSpacing(6)
         hours_head = QHBoxLayout()
         hours_head.setSpacing(6)
         clock_icon = QLabel()
@@ -871,7 +881,7 @@ class SynopticPage(QWidget):
         hours_l.addLayout(progress_row)
         self.progress = QProgressBar()
         self.progress.setTextVisible(False)
-        self.progress.setFixedHeight(6)
+        self.progress.setFixedHeight(4)
         self.progress.setProperty("fillcls", "empty")
         hours_l.addWidget(self.progress)
 
@@ -885,7 +895,7 @@ class SynopticPage(QWidget):
             button.setProperty("fill", "empty")
             button.setStyleSheet(HOURBTN_QSS)
             button.setIconSize(QSize(14, 14))
-            button.setMinimumHeight(30)
+            button.setMinimumHeight(26)
             button.setCursor(Qt.CursorShape.PointingHandCursor)
             button.clicked.connect(lambda _=False, h=hora: self.select_hour(h))
             self.hour_buttons[hora] = button
@@ -906,7 +916,7 @@ class SynopticPage(QWidget):
         self.prev_btn.setIcon(lucide_icon("arrow-left", "#0369a1", 16))
         self.prev_btn.setIconSize(QSize(16, 16))
         self.prev_btn.setToolTip("Guardar y cargar día anterior")
-        self.prev_btn.setMinimumHeight(36)
+        self.prev_btn.setMinimumHeight(26)
         self.prev_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.prev_btn.clicked.connect(lambda: self.navigate_to_day(-1))
         self.next_btn = QPushButton()
@@ -915,7 +925,7 @@ class SynopticPage(QWidget):
         self.next_btn.setIcon(lucide_icon("arrow-right", "#15803d", 16))
         self.next_btn.setIconSize(QSize(16, 16))
         self.next_btn.setToolTip("Guardar y avanzar al siguiente día")
-        self.next_btn.setMinimumHeight(36)
+        self.next_btn.setMinimumHeight(26)
         self.next_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.next_btn.clicked.connect(lambda: self.navigate_to_day(1))
         nav_row.addWidget(self.prev_btn, 1)
@@ -926,8 +936,8 @@ class SynopticPage(QWidget):
         # card 2: CLI modules with icon-over-number buttons ----------------
         cli_card = self._card()
         cli_l = QVBoxLayout(cli_card)
-        cli_l.setContentsMargins(12, 10, 12, 12)
-        cli_l.setSpacing(8)
+        cli_l.setContentsMargins(10, 8, 10, 10)
+        cli_l.setSpacing(6)
         cli_head = QHBoxLayout()
         cli_head.setSpacing(6)
         file_icon = QLabel()
@@ -950,8 +960,8 @@ class SynopticPage(QWidget):
             button = QToolButton()
             button.setText(label)
             button.setStyleSheet(CLI_BTN_QSS)
-            button.setIcon(lucide_icon("file-text", "#94a3b8", 18))
-            button.setIconSize(QSize(18, 18))
+            button.setIcon(lucide_icon("file-text", "#94a3b8", 14))
+            button.setIconSize(QSize(14, 14))
             button.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
             button.setCursor(Qt.CursorShape.PointingHandCursor)
             button.clicked.connect(lambda _=False, m=module_key: self._open_cli(m))
@@ -963,8 +973,8 @@ class SynopticPage(QWidget):
         # card 3: extra cloud fields ----------------------------------------
         extra_card = self._card()
         extra_l = QVBoxLayout(extra_card)
-        extra_l.setContentsMargins(12, 10, 12, 12)
-        extra_l.setSpacing(6)
+        extra_l.setContentsMargins(10, 8, 10, 10)
+        extra_l.setSpacing(4)
         extra_head = QHBoxLayout()
         extra_head.setSpacing(6)
         cloud_icon = QLabel()
@@ -984,29 +994,29 @@ class SynopticPage(QWidget):
             title.setProperty("minilabel", True)
             title.setStyleSheet(MINILABEL_QSS)
             extra_l.addWidget(title)
-            extra_l.addWidget(self._make_grid_input(key))
+            extra_input = self._make_grid_input(key)
+            extra_input.setMinimumHeight(26)  # sidebar compactness
+            extra_l.addWidget(extra_input)
         right.addWidget(extra_card)
 
         # card 4: actions (Guardar accent per hour + Cargar JSON) -----------
-        self.error_label = QLabel("")
-        self.error_label.setWordWrap(True)
+        self.error_label = _MessageLabel()
         self.error_label.setStyleSheet(
             "color: #fecaca; font-weight: bold; background: transparent;"
         )
-        self.status_label = QLabel("")
-        self.status_label.setWordWrap(True)
+        self.status_label = _MessageLabel()
         self.status_label.setStyleSheet(
             "color: #6ee7b7; font-weight: bold; background: transparent;"
         )
         actions_card = self._card()
         actions_l = QVBoxLayout(actions_card)
-        actions_l.setContentsMargins(10, 10, 10, 10)
-        actions_l.setSpacing(6)
+        actions_l.setContentsMargins(10, 8, 10, 10)
+        actions_l.setSpacing(5)
         self.save_btn = QPushButton("Guardar Observación")
         self.save_btn.setIconSize(QSize(16, 16))
         self.save_btn.setProperty("dark", True)  # contrato Lotes-C se conserva
         self.save_btn.setDefault(True)
-        self.save_btn.setMinimumHeight(40)
+        self.save_btn.setMinimumHeight(32)
         self.save_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.save_btn.clicked.connect(self.save_clicked)
         self.cargar_btn = QPushButton("Cargar JSON")
@@ -1014,7 +1024,7 @@ class SynopticPage(QWidget):
         self.cargar_btn.setStyleSheet(SECONDARY_BTN_QSS)
         self.cargar_btn.setIcon(lucide_icon("upload", "#475569", 15))
         self.cargar_btn.setIconSize(QSize(15, 15))
-        self.cargar_btn.setMinimumHeight(38)
+        self.cargar_btn.setMinimumHeight(28)
         self.cargar_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.cargar_btn.clicked.connect(self._load_json_file)
         actions_l.addWidget(self.save_btn)
@@ -1024,16 +1034,7 @@ class SynopticPage(QWidget):
         right.addWidget(actions_card)
         right.addStretch(1)
 
-        side_scroll = QScrollArea()
-        side_scroll.setWidgetResizable(False)
-        side_scroll.setFrameShape(QScrollArea.Shape.NoFrame)
-        side_scroll.setHorizontalScrollBarPolicy(
-            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
-        )
-        side_scroll.setStyleSheet("QScrollArea { background: transparent; }")
-        side_scroll.viewport().setAutoFillBackground(False)
-        side_scroll.setWidget(side)
-        content.addWidget(side_scroll, 0, Qt.AlignmentFlag.AlignTop)
+        content.addWidget(side, 0, Qt.AlignmentFlag.AlignTop)
         # wiring -----------------------------------------------------------
         self.station_combo.currentIndexChanged.connect(self._on_station_changed)
         self.fecha_edit.dateChanged.connect(self._on_date_changed)

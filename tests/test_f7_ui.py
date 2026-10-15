@@ -430,3 +430,24 @@ def test_dashboard_grid_responsive_columns(qtbot, fresh_db):
     qtbot.wait(100)
     row, col, _, _ = page._grid.getItemPosition(1)
     assert (row, col) == (0, 1)
+
+
+def test_operations_center_grid_fills_page_height(qtbot, fresh_db):
+    """Owner round 3: the grid+sync card column owns the FULL page height;
+    the trailing stretch used to split the center at half the screen."""
+    from PySide6.QtWidgets import QApplication, QScrollArea
+
+    page = DashboardPage(fresh_db, role="admin",
+                         on_navigate=lambda _pid: None, parent=None)
+    qtbot.addWidget(page)
+    page.resize(1200, 640)
+    page.show()
+    for _ in range(6):
+        QApplication.processEvents()
+    areas = page.findChildren(QScrollArea)
+    assert areas, "dashboard must keep its card scroll area"
+    viewport = areas[0].viewport().height()
+    assert viewport >= page.height() * 0.55, (
+        f"center grid collapsed: viewport {viewport} / page {page.height()}"
+    )
+    assert page.station_cards  # the responsive grid still owns its cards
