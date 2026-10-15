@@ -105,6 +105,9 @@ def test_login_screen_failure_inline_and_loading_state(qtbot, db):
 
 
 def test_rail_toggle_and_persistence(qtbot, db):
+    # hermetic: ambient QSettings (real user runs, screenshot scripts)
+    # must not leak into the initial state.
+    QSettings("NeoArca", "shell").remove("rail_collapsed")
     window = MainWindow(role="admin", db_path=db)
     qtbot.addWidget(window)
     assert not window.rail_collapsed
@@ -155,3 +158,39 @@ def test_splash_dead_token_falls_back_to_login(db):
         assert startup_mod.settings().value("session_token", "", type=str) == ""
     finally:
         startup_mod.clear_token()
+
+
+# ---------------------------------------------------------------- login window
+
+
+def test_login_window_is_compact_not_fullscreen(qtbot, db):
+    from oms_ui.login_window import LoginWindow
+
+    store = auth.SessionStore()
+    add_user(db, "w_admin@arca.test", "admin")
+    window = LoginWindow(lambda e, p: auth.login(db, store, e, p))
+    qtbot.addWidget(window)
+    assert window.maximumWidth() == window.minimumWidth() or window.width() <= 520
+    assert window.windowTitle() != ""
+
+
+def test_login_window_success_and_inline_error(qtbot, db):
+    from oms_ui.login_window import LoginWindow
+
+    store = auth.SessionStore()
+    add_user(db, "w_ok@arca.test", "encargado")
+    window = LoginWindow(lambda e, p: auth.login(db, store, e, p))
+    qtbot.addWidget(window)
+    got = []
+    window.authenticated.connect(got.append)
+    window.email_edit.setText("w_ok@arca.test")
+    window.password_edit.setText(PASSWORD)
+    window.attempt_login()
+    assert len(got) == 1 and got[0].user_email == "w_ok@arca.test"
+
+    window.email_edit.setText("w_ok@arca.test")
+    window.password_edit.setText("mala")
+    window.attempt_login()
+    assert len(got) == 1  # no new emission
+    assert "incorrectos" in window.error_label.text()
+    assert window.login_button.isEnabled()

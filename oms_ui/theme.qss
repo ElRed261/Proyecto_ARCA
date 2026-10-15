@@ -164,3 +164,166 @@ QScrollBar::handle:vertical {
 QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
     height: 0;
 }
+
+/* ===== Neo Arca theme v2 (IMG vocabulary) ===== */
+QPushButton[primary="true"] {
+    background-color: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 0,
+        stop: 0 #2563eb, stop: 1 #7c3aed);
+    border: none;
+    border-radius: 8px;
+    color: #ffffff;
+    font-weight: bold;
+    padding: 10px 14px;
+}
+QPushButton[primary="true"]:hover {
+    background-color: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 0,
+        stop: 0 #1d4ed8, stop: 1 #6d28d9);
+}
+QPushButton[primary="true"]:disabled {
+    background-color: #c4b5fd;
+    color: #ffffff;
+}
+QPushButton[accent="orange"] {
+    background-color: #ea580c;
+    border: 1px solid #ea580c;
+    color: #ffffff;
+    font-weight: bold;
+    border-radius: 8px;
+    padding: 9px 16px;
+}
+QPushButton[accent="orange"]:hover { background-color: #c2410c; }
+QPushButton[accent="green"] {
+    background-color: #16a34a;
+    border: 1px solid #16a34a;
+    color: #ffffff;
+    font-weight: bold;
+    border-radius: 8px;
+    padding: 9px 16px;
+}
+QPushButton[accent="green"]:hover { background-color: #15803d; }
+QPushButton[circle="true"] {
+    border: 1px solid #e2e8f0;
+    border-radius: 22px;
+    background-color: #ffffff;
+    color: #3b82f6;
+    font-weight: bold;
+}
+QPushButton[link="true"] {
+    border: none;
+    background-color: transparent;
+    padding: 2px;
+    font-weight: bold;
+}
+QPushButton[link="blue"] { color: #2563eb; }
+QPushButton[link="violet"] { color: #a855f7; }
+QPushButton[link="orange"] { color: #ea580c; }
+QLabel[pill="role"] {
+    background-color: #f3e8ff;
+    color: #7c3aed;
+    border-radius: 10px;
+    padding: 2px 12px;
+    font-weight: 600;
+}
+QLabel[pill="ok"] {
+    background-color: #dcfce7;
+    color: #15803d;
+    border-radius: 10px;
+    padding: 2px 12px;
+    font-weight: 600;
+}
+QLabel[pill="info"] {
+    background-color: #dbeafe;
+    color: #1d4ed8;
+    border-radius: 10px;
+    padding: 2px 12px;
+    font-weight: 600;
+}
+QLabel[pill="warn"] {
+    background-color: #fef3c7;
+    color: #b45309;
+    border-radius: 10px;
+    padding: 2px 12px;
+    font-weight: 600;
+}
+QFrame[tint="violet"] {
+    background-color: #faf5ff;
+    border: 1px solid #e9d5ff;
+    border-radius: 12px;
+}
+QFrame[tint="orange"] {
+    background-color: #fff7ed;
+    border: 1px solid #fed7aa;
+    border-radius: 12px;
+}
+QFrame[tint="blue"] {
+    background-color: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 12px;
+}
+QFrame[tint="teal"] {
+    background-color: #f0fdfa;
+    border: 1px solid #99f6e4;
+    border-radius: 12px;
+}
+QLabel[cardTitle="true"] {
+    font-size: 18px;
+    font-weight: 800;
+    color: #0f172a;
+    background-color: transparent;
+}
+QLabel[cardSub="true"] {
+    font-size: 13px;
+    color: #64748b;
+    background-color: transparent;
+}
+QLabel[emptyTitle="true"] {
+    font-size: 16px;
+    font-weight: 800;
+    color: #0f172a;
+    background-color: transparent;
+}
+QLabel[emptyBody="true"] {
+    font-size: 13px;
+    color: #64748b;
+    background-color: transparent;
+}
+QLabel[tile="blue"] {
+    background-color: #3b82f6;
+    color: #ffffff;
+    border-radius: 10px;
+    font-size: 18px;
+    font-weight: 800;
+    padding: 10px;
+}
+QLabel[tile="violet"] {
+    background-color: #a855f7;
+    color: #ffffff;
+    border-radius: 10px;
+    font-size: 18px;
+    font-weight: 800;
+    padding: 10px;
+}
+QLabel[tile="orange"] {
+    background-color: #f97316;
+    color: #ffffff;
+    border-radius: 10px;
+    font-size: 18px;
+    font-weight: 800;
+    padding: 10px;
+}
+QLabel[tile="teal"] {
+    background-color: #0d9488;
+    color: #ffffff;
+    border-radius: 10px;
+    font-size: 18px;
+    font-weight: 800;
+    padding: 10px;
+}
+QLabel[tile="gray"] {
+    background-color: #64748b;
+    color: #ffffff;
+    border-radius: 10px;
+    font-size: 18px;
+    font-weight: 800;
+    padding: 10px;
+}

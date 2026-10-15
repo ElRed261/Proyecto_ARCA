@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "pyside6-engineer": {
+      "source": "vosslab/vosslab-skills",
+      "sourceType": "github",
+      "skillPath": "skills/experts/pyside6-engineer/SKILL.md",
+      "computedHash": "cdcf6d243b013a30cecf39bc93f801fcbbe8f9b85d0eee266a02636534a53922"
+    }
+  }
+}

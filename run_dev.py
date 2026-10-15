@@ -28,7 +28,7 @@ from oms_core.db.connection import connect
 from oms_core.db.migrations import migrate
 from oms_core.db.repositories import users as users_repo
 from oms_core.services import auth
-from oms_ui.login_screen import LoginScreen
+from oms_ui.login_window import LoginWindow
 from oms_ui.main_window import MainWindow
 from oms_ui.startup import clear_token, save_token, try_restore_session
 from oms_ui.theme import apply_theme
@@ -75,11 +75,11 @@ def main() -> int:
 
     def show_login() -> None:
         state.pop("shell", None)
-        login = LoginScreen(
+        login = LoginWindow(
             lambda email, password: auth.login(conn, store, email, password)
         )
         login.authenticated.connect(lambda session: (login.close(), open_shell(session)))
-        login.showFullScreen()
+        login.show()
         state["login"] = login
 
     if restored is not None:

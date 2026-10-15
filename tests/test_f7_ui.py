@@ -409,3 +409,24 @@ def test_main_window_dashboard_shortcut_navigates(qtbot, fresh_db):
     dashboard: DashboardPage = window._pages["dashboard"]
     qtbot.mouseClick(dashboard.sync_button, Qt.LeftButton)
     assert window.stack.currentWidget() is window._pages["maintenance"]
+
+
+def test_dashboard_grid_responsive_columns(qtbot, fresh_db):
+    """Narrow (1 col) vs comfortable (2 cols) card layout (IMG Panel)."""
+    from oms_ui.pages.dashboard import DashboardPage
+
+    page = DashboardPage(fresh_db, role="admin", today="2025-12-08")
+    qtbot.addWidget(page)
+    page.show()
+    codes = page._card_codes
+    assert len(codes) >= 2
+
+    page.resize(500, 700)
+    qtbot.wait(100)
+    row, col, _, _ = page._grid.getItemPosition(1)
+    assert (row, col) == (1, 0)
+
+    page.resize(800, 700)
+    qtbot.wait(100)
+    row, col, _, _ = page._grid.getItemPosition(1)
+    assert (row, col) == (0, 1)

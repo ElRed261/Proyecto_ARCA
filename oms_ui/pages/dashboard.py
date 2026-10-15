@@ -19,6 +19,7 @@ import datetime as _dt
 import sqlite3
 from collections.abc import Callable
 
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QGridLayout,
     QGroupBox,
@@ -38,8 +39,28 @@ from oms_core.services import sync as sync_service
 HOURS_PER_DAY = 8
 
 
+_CARD_ACCENTS = ("blue", "teal", "violet", "orange", "gray")
+
+
+def _accent_for(code: str) -> str:
+    """Stable accent per station (IMG module-tile language)."""
+    return _CARD_ACCENTS[abs(hash(code)) % len(_CARD_ACCENTS)]
+
+
+def _monogram(name: str, code: str) -> str:
+    parts = [w for w in name.split() if w]
+    if len(parts) >= 2:
+        return (parts[0][0] + parts[1][0]).upper()
+    text = (name or code).strip()
+    return (text[:2] if len(text) >= 2 else (text + "•")[:2]).upper()
+
+
 class StationCard(QGroupBox):
-    """One station: today progress + month count + continue button."""
+    """One station: accent tile + today progress + month count + accent link.
+
+    Test contract preserved: ``code_label``/``today_label``/``month_label``
+    texts and the clickable ``go_button`` keep their semantics.
+    """
 
     def __init__(
         self,
@@ -50,16 +71,36 @@ class StationCard(QGroupBox):
         on_go: Callable[[], None] | None = None,
         parent: QWidget | None = None,
     ) -> None:
-        super().__init__(name, parent)
+        super().__init__("", parent)
         self.code = code
+        accent = _accent_for(code)
         layout = QVBoxLayout(self)
+
+        header = QHBoxLayout()
+        tile = QLabel(_monogram(name, code))
+        tile.setProperty("tile", accent)
+        tile.setFixedSize(48, 48)
+        tile.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        header.addWidget(tile)
+        title_box = QVBoxLayout()
+        title = QLabel(name)
+        title.setProperty("cardTitle", True)
+        title.setWordWrap(True)
+        title_box.addWidget(title)
         self.code_label = QLabel(code)
-        layout.addWidget(self.code_label)
+        self.code_label.setProperty("cardSub", True)
+        title_box.addWidget(self.code_label)
+        header.addLayout(title_box, 1)
+        layout.addLayout(header)
+
         self.today_label = QLabel(f"Hoy: {done}/{HOURS_PER_DAY}")
         layout.addWidget(self.today_label)
         self.month_label = QLabel(f"{month_days} días con datos este mes")
+        self.month_label.setProperty("cardSub", True)
         layout.addWidget(self.month_label)
         self.go_button = QPushButton("Continuar →")
+        self.go_button.setProperty("link", "blue")
+        self.go_button.setCursor(Qt.CursorShape.PointingHandCursor)
         if on_go is not None:
             self.go_button.clicked.connect(on_go)
         layout.addWidget(self.go_button)
@@ -127,9 +168,11 @@ class DashboardPage(QWidget):
                     f"Sin estación asignada: el rol '{role}' requiere una estación asignada"
                 )
 
-        grid = QGridLayout()
+        self._grid = QGridLayout()
+        self._grid.setSpacing(12)
         self.station_cards: dict[str, StationCard] = {}
-        for index, code in enumerate(codes):
+        self._card_codes: list[str] = []
+        for code in codes:
             day_rows = observations_repo.get_day(conn, code, self.today_iso)
             done = min(len(day_rows), HOURS_PER_DAY)
             month_rows = observations_repo.get_month(conn, code, int(year), int(month))
@@ -142,12 +185,19 @@ class DashboardPage(QWidget):
                 on_go=self._go("synoptic"),
             )
             self.station_cards[code] = card
-            grid.addWidget(card, index // 2, index % 2)
-        cards_box = QWidget()
-        cards_box.setLayout(grid)
-        layout.addWidget(cards_box)
+            self._card_codes.append(code)
+        self._cards_box = QWidget()
+        self._cards_box.setLayout(self._grid)
+        from PySide6.QtWidgets import QScrollArea
 
-        # ---- sync badge ------------------------------------------------
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setWidget(self._cards_box)
+        scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+        layout.addWidget(scroll, 1)
+        self._relayout_cards()
+
+        # ---- sync badge (belongs to __init__: uses layout + conn) ------
         try:
             sync_status = sync_service.get_sync_status(conn)
             pending, synced = sync_status.pending, sync_status.synced
@@ -170,6 +220,19 @@ class DashboardPage(QWidget):
         badge_box.setLayout(badge_row)
         layout.addWidget(badge_box)
         layout.addStretch(1)
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        self._relayout_cards()
+
+    def _relayout_cards(self) -> None:
+        """Responsive columns: 1 narrow, 2 comfortable, 3 wide."""
+        width = self._cards_box.width() or self.width() or 800
+        columns = 1 if width < 560 else (2 if width < 900 else 3)
+        for index, code in enumerate(self._card_codes):
+            self._grid.addWidget(
+                self.station_cards[code], index // columns, index % columns
+            )
 
     @staticmethod
     def _coerce_today(today: _dt.date | str | None) -> str:
