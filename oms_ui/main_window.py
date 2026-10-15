@@ -73,6 +73,10 @@ class MainWindow(QMainWindow):
     def _build_page(self, page_id: str) -> QWidget:
         if page_id == "admin":
             return StationsAdminPage(self._open_conn())
+        if page_id == "summary":
+            from oms_ui.pages.summary import SummaryPage
+
+            return SummaryPage(self._open_conn())
         placeholder = QLabel(f"Página '{page_id}' — pendiente (F4-F7)")
         placeholder.setStyleSheet("color: #64748b;")
         return placeholder

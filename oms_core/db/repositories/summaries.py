@@ -73,5 +73,24 @@ def list_docs(
     return conn.execute(sql, params).fetchall()
 
 
+def delete_doc(
+    conn: sqlite3.Connection,
+    station_id: str,
+    year: int,
+    month: int,
+    kind: str,
+    *,
+    day: int = 0,
+) -> bool:
+    """Remove one document row by natural key; True when something was removed."""
+    cur = conn.execute(
+        "DELETE FROM summary_logs WHERE station_id = ? AND year = ? AND month = ?"
+        " AND kind = ? AND day = ?",
+        (station_id, year, month, kind, day),
+    )
+    conn.commit()
+    return cur.rowcount > 0
+
+
 def count_docs(conn: sqlite3.Connection) -> int:
     return int(conn.execute("SELECT COUNT(*) FROM summary_logs").fetchone()[0])
