@@ -315,6 +315,64 @@ def _diario_doc(conn: sqlite3.Connection, station: str, year: int, month: int, d
     return doc
 
 
+#: every hour_data key the UI can hold whose day-document synop name is
+#: invertible (verified: to_synop_name is 1:1 over this whole universe).
+_SYNOP_FIELD_KEYS: tuple[str, ...] = (
+    "meteo_2_1", "meteo_4_irixhvv", "meteo_4_1", "meteo_4_6",
+    "meteo_6_0", "meteo_6_2", "meteo_6_3", "meteo_6_4",
+    "meteo_6_5", "meteo_6_6",
+    "meteo_8_0", "meteo_8_1", "meteo_8_3", "meteo_8_4",
+    "meteo_8_5", "meteo_8_6",
+    *(f"meteo_{row}_{col}" for row in (10, 12) for col in range(7)),
+    *(f"meteo_16_{i}" for i in range(5)),
+    "extra_8ns_1", "extra_8ns_2",
+)
+
+
+def load_day(conn: sqlite3.Connection, station: str, fecha: str) -> dict[str, dict] | None:
+    """Stored day as flat lowercase hour data (oracle get_observation path).
+
+    Rebuilds hour_data maps from the diario document by inverting the
+    ``_DATOS_KEY_MAP`` and the ``to_synop_name`` synop names. Returns None
+    when the day has no stored document (the UI decides: blocks backwards
+    nav, creates a fresh day forwards — verbatim oracle navigateToDay).
+    """
+    station = validate_station(station)
+    year, month, day = validate_fecha(fecha)
+    doc = _diario_doc(conn, station, year, month, day)
+    horas_doc = doc.get("horas") if isinstance(doc, dict) else None
+    if not isinstance(horas_doc, dict):
+        return None
+    reverse_datos = {doc_key: key for key, doc_key in _DATOS_KEY_MAP.items()}
+    import oms_calc
+
+    reverse_synop = {oms_calc.to_synop_name(key): key for key in _SYNOP_FIELD_KEYS}
+    day: dict[str, dict] = {}
+    for hora in HOURS:
+        entry = horas_doc.get(hora)
+        if not isinstance(entry, dict):
+            day[hora] = {}
+            continue
+        hour_data: dict[str, Any] = {}
+        datos = entry.get("datos")
+        if isinstance(datos, dict):
+            for doc_key, value in datos.items():
+                key = reverse_datos.get(doc_key)
+                if key is not None:
+                    hour_data[key] = "" if value is None else str(value)
+        synop = entry.get("synop")
+        if isinstance(synop, dict):
+            for synop_name, value in synop.items():
+                key = reverse_synop.get(synop_name)
+                if key is not None:
+                    hour_data[key] = "" if value is None else str(value)
+        observer = str(entry.get("observador") or "")
+        if observer:
+            hour_data["nombre_observador"] = observer
+        day[hora] = hour_data
+    return day
+
+
 def fecha_label(year: int, month: int, day: int) -> str:
     return f"{day:02d}/{month:02d}/{year:04d}"
 

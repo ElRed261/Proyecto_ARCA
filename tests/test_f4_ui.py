@@ -456,19 +456,64 @@ def test_new_keys_roundtrip_into_synop_doc(page, fresh_db, monkeypatch):
     assert "3///" in synop_values
 
 
-def test_hour_arrows_step_and_clamp(page):
+def test_day_nav_prev_never_invents_a_day(page):
+    """Oracle navigateToDay: backwards with no stored day blocks."""
+    page.set_date("2025-12-01")
+    page.prev_btn.click()
+    assert "2025-11-30" in page.error_label.text()
+    assert page.fecha_edit.date().toString("yyyy-MM-dd") == "2025-12-01"
+
+
+def test_day_nav_next_creates_fresh_day(page, fresh_db):
+    """Oracle navigateToDay: forward with no stored day creates a fresh day
+    seeded with station/fecha/corrección and the remembered observer."""
+    page.observer_edit.setText("Andry emiliano")
+    page.next_btn.click()
+    assert page.fecha_edit.date().toString("yyyy-MM-dd") == "2025-12-09"
+    assert page.active_hour == "06Z"  # P4.5: active hour preserved
+    fresh = page.observations["06Z"]
+    assert fresh["station_id"] == STATION
+    assert fresh["fecha"] == "2025-12-09"
+    assert fresh["correc_alt"] == "2.0"
+    assert fresh["nombre_observador"] == "Andry emiliano"
+
+
+def test_day_nav_backwards_loads_stored_day(page, fresh_db):
+    """Oracle step 3: the target day loads flat data from the diario doc."""
+    synoptic_service.save_hour(
+        fresh_db, STATION, "2025-12-08", "06Z", {
+            "ts": "23.2", "th": "22.3", "pres_est": "1025.3",
+            "meteo_2_1": "08030", "meteo_4_irixhvv": "32566",
+            "extra_8ns_1": "81819", "nombre_observador": "Andry emiliano",
+        }, observer="Andry emiliano",
+    )
+    page.next_btn.click()  # go to 12-09 (fresh day)
+    page.prev_btn.click()  # back to 12-08: stored data resurrects
+    assert page.fecha_edit.date().toString("yyyy-MM-dd") == "2025-12-08"
+    assert page.observations["06Z"]["ts"] == "23.2"
+    assert page.observations["06Z"]["meteo_4_irixhvv"] == "32566"
+    assert page.observations["06Z"]["nombre_observador"] == "Andry emiliano"
+    # the active hour's widgets show the loaded values
+    assert page.field("ts").text() == "23.2"
+
+
+def test_day_nav_replays_loaded_hour_after_hour_switch(page, fresh_db):
+    """Navigate, switch hour, come back: each hour keeps its loaded data."""
+    synoptic_service.save_hour(
+        fresh_db, STATION, "2025-12-08", "09Z",
+        {"ts": "24.1"},
+    )
+    synoptic_service.save_hour(
+        fresh_db, STATION, "2025-12-07", "12Z", {"ts": "25.1"}
+    )
+    page.set_date("2025-12-06")
+    page.next_btn.click()  # -> 12-07
+    page.select_hour("12Z")
+    assert page.field("ts").text() == "25.1"
+    page.next_btn.click()  # -> 12-08 fresh
+    assert page.field("ts").text() == ""  # fresh day has no 12Z data
     page.select_hour("06Z")
-    page.next_btn.click()
-    assert page.active_hour == "09Z"
-    page.prev_btn.click()
-    assert page.active_hour == "06Z"
-    last = synoptic_service.HOURS[-1]
-    page.select_hour(last)
-    page.next_btn.click()
-    assert page.active_hour == last
-    page.select_hour(synoptic_service.HOURS[0])
-    page.prev_btn.click()
-    assert page.active_hour == synoptic_service.HOURS[0]
+    assert page.field("ts").text() == ""  # 06Z of the fresh day stays empty
 
 
 def test_cli_buttons_and_dialog_roundtrip(page, fresh_db):
@@ -536,3 +581,62 @@ def test_autos_populate_from_realizar(page):
     assert page.auto_cells["grupo_4pppp"].text() != ""
     assert page.auto_cells["grupo_58_59_p24"].text() != ""
     assert page.auto_cells["grupo_29uuu"].text() != ""
+
+
+def test_est_row_headers_have_oracle_index_suffixes(page):
+    """IMG contract: 8Ns (1)/(2) rows and 9Sp (est. 1..24) headers."""
+    grid_label = lambda r, c: page.grid.itemAtPosition(r, c).widget().text()
+    assert grid_label(8, 0) == "8NsChs hs (1)"
+    assert grid_label(8, 1) == "8NsChs hs (2)"
+    assert grid_label(8, 2).endswith("(est. 1)")
+    assert grid_label(10, 6).endswith("(est. 12)")
+    assert grid_label(12, 0).endswith("(est. 13)")
+    assert grid_label(14, 4).endswith("(est. 24)")
+    assert grid_label(14, 5) == "555"
+    assert grid_label(14, 6) == "29 UUU"
+
+
+def test_grid_placeholders_match_the_oracle(page):
+    """Verbatim oracle placeholders for custom rows 4/6/16."""
+    page.select_hour("06Z")  # even hour: all fields enabled
+    assert page.field("meteo_4_irixhvv").placeholderText() == "Ir iX H VV"
+    assert page.field("meteo_4_6").placeholderText() == "7"
+    assert page.field("meteo_6_2").placeholderText() == "0"
+    assert page.field("meteo_6_3").placeholderText() == "10"
+    assert page.field("meteo_6_4").placeholderText() == "20"
+    assert page.field("meteo_16_0").placeholderText() == "9"
+    assert page.field("meteo_10_2").placeholderText() == "9Sp…"  # unchanged rows
+
+
+def test_hour_theme_application_on_select(qtbot, fresh_db, tmp_path):
+    """Selecting an hour updates title text, accent chip and active icon."""
+    from oms_ui.pages.synoptic import HOUR_THEMES, SynopticPage
+
+    widget = SynopticPage(fresh_db, config_dir=tmp_path)
+    qtbot.addWidget(widget)
+    assert widget.title_label.text() == "Observación Sinóptica 06Z"
+    widget.select_hour("15Z")
+    assert widget.title_label.text() == "Observación Sinóptica 15Z"
+    accent = HOUR_THEMES["15Z"]["accent"]
+    assert accent in widget.save_btn.styleSheet()
+    assert accent in widget.hour_buttons["15Z"].styleSheet()
+    # inactive buttons fall back to the slate-50 inline base (fill tint)
+    assert "#f8fafc" in widget.hour_buttons["06Z"].styleSheet()
+    assert accent not in widget.hour_buttons["06Z"].styleSheet()
+    # every hour button carries its lucide icon (sunrise/sun/sunset/moon)
+    assert not widget.hour_buttons["06Z"].icon().isNull()
+    assert not widget.hour_buttons["03Z"].icon().isNull()
+
+
+def test_sidebar_cards_and_icons_exist(page):
+    """The IMG sidebar: icon badge titles, 2x4 hour grid, CLI tool buttons."""
+    from PySide6.QtWidgets import QToolButton
+    cli_buttons = page.findChildren(QToolButton)
+    codes = {button.text() for button in cli_buttons}
+    assert codes == {"3074", "4074", "5074"}
+    for button in page.hour_buttons.values():
+        assert button.property("hourbtn") is True
+        assert button.iconSize().width() == 14
+    # back button + title exist on the dark page header
+    assert page.back_btn.icon().pixmap(16, 16).isNull() is False
+    assert "background-color: #ffffff" in page.observer_edit.styleSheet()

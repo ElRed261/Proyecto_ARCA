@@ -32,17 +32,25 @@ the window with sample data WITHOUT showing it (the caller takes the shot).
 from __future__ import annotations
 
 import json
+import logging
 import sqlite3
 from typing import Any
 
-from PySide6.QtCore import QDate, QRegularExpression, Qt, QTimer
-from PySide6.QtGui import QKeySequence, QRegularExpressionValidator, QShortcut
+from PySide6.QtCore import QDate, QRegularExpression, QSize, Qt, QTimer, Signal
+from PySide6.QtGui import (
+    QColor,
+    QKeySequence,
+    QLinearGradient,
+    QPainter,
+    QRegularExpressionValidator,
+    QShortcut,
+)
 from PySide6.QtWidgets import (
     QComboBox,
     QDateEdit,
     QDialog,
+    QFrame,
     QGridLayout,
-    QGroupBox,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -51,6 +59,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QScrollArea,
     QStyle,
+    QToolButton,
     QVBoxLayout,
     QWidget,
 )
@@ -58,8 +67,11 @@ from PySide6.QtWidgets import (
 import oms_calc
 from oms_core.db.repositories import stations as stations_repo
 from oms_core.services import synoptic as synoptic_service
+from oms_ui.icons import icon_pixmap, lucide_icon
 
 _AAXX = "AAXX"
+
+_LOGGER = logging.getLogger(__name__)
 
 #: Grid fields (key, label) — base always; t_* are the even-only extras.
 _FIELD_LABELS: tuple[tuple[str, str], ...] = (
@@ -130,12 +142,14 @@ _PRESSURE_KEYS = ("pres_est", "p3", "p24")
 
 #: Placeholders verbatim (meteoPlaceholders rows 2/4/6/8/10/12/14/16).
 _PLACEHOLDERS: dict[str, str] = {
-    "meteo_6_0": "8", "meteo_6_5": "3///",
+    "meteo_4_irixhvv": "Ir iX H VV", "meteo_4_6": "7",
+    "meteo_6_0": "8", "meteo_6_2": "0", "meteo_6_3": "10",
+    "meteo_6_4": "20", "meteo_6_5": "3///",
     "meteo_8_1": "56", "meteo_8_3": "6", "meteo_8_4": "7",
     "meteo_8_5": "8", "meteo_8_6": "8",
     **{f"meteo_{r}_{i}": ("8..." if i < 2 else "9Sp…")
        for r in (10, 12, 14) for i in range(7)},
-    **{f"meteo_16_{i}": "9Sp…" for i in range(5)},
+    **{f"meteo_16_{i}": "9" for i in range(5)},
     "ts": "°C", "let_barom": "Lectura...", "t_max": "°C",
     "t_max_24h": "°C", "th": "°C", "correc_temp": "0.0",
     "pres_est": "hPa", "p3": "hPa", "p24": "hPa",
@@ -167,13 +181,119 @@ _TOOLTIPS: dict[str, str] = {
 
 _GROUP_RE = QRegularExpression(r"[0-9/]{0,5}")
 
-_ERROR_QSS = """
-SynopticPage QLineEdit[error="true"] { border: 2px solid #ef4444; }
-SynopticPage QPushButton[fill="part"] { background: #fffbeb; }
-SynopticPage QPushButton[fill="ok"] { background: #ecfdf5; }
-SynopticPage QPushButton[fill="empty"] { background: #f8fafc; color: #94a3b8; }
-SynopticPage QPushButton[active="true"] { border: 2px solid #2563eb; font-weight: bold; }
-"""
+#: Inline stylesheets — per-widget, not page-wide. Probe finding: the
+#: page-level descendant selectors rendered backgrounds unreliably while
+#: every inline rule painted correctly; the visual contract goes inline.
+FIELD_QSS = (
+    "QLineEdit { background-color: #ffffff; border: 1px solid #cbd5e1;"
+    "border-radius: 4px; padding: 5px 8px; color: #1e293b;"
+    "selection-background-color: #bfdbfe; }"
+    "QLineEdit:disabled { background-color: #e2e8f0; color: #94a3b8; }"
+)
+FIELD_ERROR_QSS = (
+    "QLineEdit { background-color: #ffffff; border: 2px solid #ef4444;"
+    "border-radius: 4px; padding: 5px 8px; color: #1e293b; }"
+)
+RO_QSS = (
+    "QLineEdit { background-color: #ffffff; border: 1px solid #cbd5e1;"
+    "border-radius: 4px; padding: 5px 8px; color: #2563eb; font-weight: bold; }"
+    "QLineEdit:disabled { background-color: #e2e8f0; color: #94a3b8; }"
+)
+CONST_QSS = (
+    "QLineEdit { background-color: #e2e8f0; border: 1px solid #94a3b8;"
+    "border-radius: 4px; padding: 5px 8px; color: #334155; font-weight: bold; }"
+)
+CARD_QSS = (
+    "QFrame { background-color: #ffffff; border: 1px solid #e2e8f0;"
+    "border-radius: 16px; }"
+)
+CARDHEAD_QSS = (
+    "color: #94a3b8; font-size: 12px; font-weight: 700; background: transparent;"
+    "border: none;"
+)
+MINILABEL_QSS = (
+    "color: #94a3b8; font-size: 11px; font-weight: 700; background: transparent;"
+    "border: none;"
+)
+HOURBTN_QSS = (
+    "QPushButton { background-color: #f8fafc; color: #475569;"
+    "border: 1px solid #f1f5f9; border-radius: 8px;"
+    "padding: 8px 6px; font-weight: 700; font-size: 12px; }"
+    "QPushButton:hover { background-color: #f1f5f9; color: #0f172a; }"
+)
+DAYNAV_BACK_QSS = (
+    "QPushButton { background-color: #eff6ff; border: 1px solid #dbeafe;"
+    "border-radius: 8px; padding: 8px 0; }"
+    "QPushButton:hover { background-color: #dbeafe; }"
+)
+DAYNAV_FORWARD_QSS = (
+    "QPushButton { background-color: #f0fdf4; border: 1px solid #dcfce7;"
+    "border-radius: 8px; padding: 8px 0; }"
+    "QPushButton:hover { background-color: #dcfce7; }"
+)
+CLI_BTN_QSS = (
+    "QToolButton { background-color: #f8fafc; color: #334155;"
+    "border: 1px solid #e2e8f0; border-radius: 12px;"
+    "padding: 8px 4px; font-size: 12px; font-weight: 700; }"
+    "QToolButton:hover { background-color: #fef3c7; border-color: #fde68a; }"
+)
+SECONDARY_BTN_QSS = (
+    "QPushButton { background-color: #f8fafc; color: #334155;"
+    "border: 1px solid #e2e8f0; border-radius: 12px;"
+    "padding: 7px 10px; font-size: 12px; font-weight: 700; }"
+    "QPushButton:hover { background-color: #f1f5f9; }"
+)
+
+
+def _hour_button_qss(bg: str) -> str:
+    """Completion tint over the slate-50 base (oracle dot-color contract)."""
+    return (
+        f"QPushButton {{ background-color: {bg}; color: #475569;"
+        "border: 1px solid #f1f5f9; border-radius: 8px;"
+        "padding: 8px 6px; font-weight: 700; font-size: 12px; }"
+        "QPushButton:hover { color: #0f172a; }"
+    )
+
+
+def _progress_qss(chunk: str) -> str:
+    return (
+        "QProgressBar { background-color: #f1f5f9; border: none;"
+        "border-radius: 3px; }"
+        f"QProgressBar::chunk {{ background-color: {chunk}; border-radius: 3px; }}"
+    )
+
+
+#: Hour themes verbatim from synopticConfig.hourThemes: the page is a
+#: bg-gradient-to-br surface whose stops, accent chips and title text
+#: follow the observation hour ("escala de azules según altura del sol").
+HOUR_THEMES: dict[str, dict[str, str]] = {
+    "06Z": {"from": "#020617", "to": "#172554", "accent": "#1e293b", "text": "#e2e8f0"},
+    "09Z": {"from": "#172554", "to": "#1e3a8a", "accent": "#172554", "text": "#dbeafe"},
+    "12Z": {"from": "#1e40af", "to": "#2563eb", "accent": "#1d4ed8", "text": "#ffffff"},
+    "15Z": {"from": "#2563eb", "to": "#3b82f6", "accent": "#2563eb", "text": "#ffffff"},
+    "18Z": {"from": "#2563eb", "to": "#60a5fa", "accent": "#3b82f6", "text": "#ffffff"},
+    "21Z": {"from": "#1d4ed8", "to": "#2563eb", "accent": "#1d4ed8", "text": "#ffffff"},
+    "00Z": {"from": "#1e3a8a", "to": "#1e40af", "accent": "#1e3a8a", "text": "#dbeafe"},
+    "03Z": {"from": "#0f172a", "to": "#172554", "accent": "#0f172a", "text": "#e2e8f0"},
+}
+
+#: lucide icon per hour selector button (oracle JSX hour-icons mapping).
+HOUR_ICONS: dict[str, tuple[str, str]] = {
+    "06Z": ("sunrise", "#fb923c"),
+    "09Z": ("sun", "#f59e0b"),
+    "12Z": ("sun", "#f59e0b"),
+    "15Z": ("sun", "#f59e0b"),
+    "18Z": ("sunset", "#fb7185"),
+    "21Z": ("moon", "#818cf8"),
+    "00Z": ("moon", "#818cf8"),
+    "03Z": ("moon", "#818cf8"),
+}
+
+#: slate-600 header chips (oracle tableHeader slate bg; square corners).
+_HEADER_QSS = (
+    "background-color: #475569; color: #ffffff; font-weight: 600;"
+    "font-size: 12px; padding: 7px 6px; border-radius: 6px;"
+)
 
 
 def normalize_pressure(value: object) -> str:
@@ -271,7 +391,14 @@ class DraftGuardDialog(QDialog):
 
 
 class SynopticPage(QWidget):
-    """The 8-hour observation grid with drafts, review and structured errors."""
+    """The 8-hour observation grid with drafts, review and structured errors.
+
+    Visual contract: IMG/Modulo OBS 1-2 recreation (dark hourly gradient,
+    white cards, lucide icons); behavior contract: SynopticPage.jsx.
+    """
+
+    #: fired by the oracle's round back arrow; the shell routes to Inicio
+    _back_requested = Signal()
 
     def __init__(
         self,
@@ -301,25 +428,94 @@ class SynopticPage(QWidget):
         self.field_widgets: dict[str, QLineEdit] = {}
         self.readouts: dict[str, QLineEdit] = {}
         self.auto_cells: dict[str, QLineEdit] = {}
+        self._primary_headers: list[QLabel] = []  # accent chips (hour theme)
 
         self._build_ui()
         self._install_shortcuts()
-        self.setStyleSheet(_ERROR_QSS)
+        self._apply_hour_theme()  # gradient + accents follow the hour
         self._observer_prefill()
+
+    def paintEvent(self, event) -> None:
+        """Hour theme: bg-gradient-to-br from/to stops (oracle page wrapper)."""
+        theme = HOUR_THEMES.get(self.active_hour, HOUR_THEMES["06Z"])
+        painter = QPainter(self)
+        gradient = QLinearGradient(0.0, 0.0, float(self.width()), float(self.height()))
+        gradient.setColorAt(0.0, QColor(theme["from"]))
+        gradient.setColorAt(1.0, QColor(theme["to"]))
+        painter.fillRect(self.rect(), gradient)
+        painter.end()
+        super().paintEvent(event)
+
+    # ------------------------------------------------------------ theme
+
+    def _style_hour_button(self, hora: str, accent: str) -> None:
+        """One hour button: active gets the accent, others keep the fill tint"""
+        button = self.hour_buttons[hora]
+        active = hora == self.active_hour
+        if active:
+            button.setStyleSheet(
+                f"QPushButton {{ background-color: {accent}; color: #ffffff;"
+                "border: none; border-radius: 8px; padding: 8px 6px;"
+                "font-weight: 700; font-size: 12px; }"
+            )
+        else:
+            fill = button.property("fill") or "empty"
+            tint = {"part": "#fffbeb", "ok": "#ecfdf5"}.get(str(fill), "#f8fafc")
+            button.setStyleSheet(_hour_button_qss(tint))
+        icon_name, base_color = HOUR_ICONS[hora]
+        button.setIcon(lucide_icon(
+            icon_name, "#ffffff" if active else base_color, 14
+        ))
+        button.setIconSize(QSize(14, 14))
+
+    def _apply_hour_theme(self) -> None:
+        """Accent chips, title color and active-hour button follow the hour."""
+        theme = HOUR_THEMES.get(self.active_hour, HOUR_THEMES["06Z"])
+        accent, text_color = theme["accent"], theme["text"]
+        self.title_label.setText(f"Observación Sinóptica {self.active_hour}")
+        self.title_label.setStyleSheet(
+            f"background: transparent; color: {text_color};"
+            "font-size: 22px; font-weight: 700;"
+        )
+        chip_qss = (
+            f"background-color: {accent}; color: #ffffff; font-weight: 700;"
+            "font-size: 12px; padding: 8px 14px; border: none; border-radius: 10px;"
+        )
+        for chip in (self.observer_label, *self._primary_headers):
+            chip.setStyleSheet(chip_qss)
+        for hora in self.hour_buttons:
+            self._style_hour_button(hora, accent)
+        self.save_btn.setStyleSheet(
+            f"QPushButton {{ background-color: {accent}; color: #ffffff;"
+            "border: none; border-radius: 12px; padding: 10px 12px;"
+            "font-weight: 700; font-size: 13px; }"
+            "QPushButton:hover { opacity: 0.95; }"
+        )
+        self.save_btn.setIcon(lucide_icon("save", "#ffffff", 16))
+        self.update()  # repaint the gradient (hour themes change with the hour)
 
     # ------------------------------------------------------------ building
 
-    def _grid_header(self, grid: QGridLayout, row: int, cells: list) -> None:
-        """Slate header row (oracle tableHeader); cells are (text, span)."""
+    def _grid_header(self, grid: QGridLayout, row: int, cells: list,
+                     accent: str | None = None) -> None:
+        """Slate header row (oracle tableHeader); cells are (text, span).
+
+        ``accent`` renders the oracle primaryHeader chips (hour accent) and
+        registers them for the per-hour theme application.
+        """
         col = 0
         for text, span in cells:
             label = QLabel(text)
             label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             label.setWordWrap(True)
-            label.setStyleSheet(
-                "background-color: #475569; color: white; font-weight: 600;"
-                "font-size: 11px; padding: 6px; border-radius: 4px;"
-            )
+            if accent is None:
+                label.setStyleSheet(_HEADER_QSS)
+            else:
+                label.setStyleSheet(
+                    f"background-color: {accent}; color: #ffffff;"
+                    "font-weight: 700; font-size: 12px; padding: 7px 6px;"
+                )
+                self._primary_headers.append(label)
             grid.addWidget(label, row, col, 1, span)
             col += span
 
@@ -327,26 +523,27 @@ class SynopticPage(QWidget):
         """Slate header row from plain labels (one column each)."""
         self._grid_header(grid, row, [(text, 1) for text in texts])
 
+    def _card(self) -> QFrame:
+        """One oracle sidebar/panel card: white rounded-2xl, slate-200 hairline."""
+        frame = QFrame()
+        frame.setProperty("card", True)  # marker for tests/probes
+        frame.setStyleSheet(CARD_QSS)
+        return frame
+
     def _grid_const(self, grid: QGridLayout, row: int, col: int, text: str) -> None:
         """Readonly slate constant cell (AAXX/333/555, oracle constantClass)."""
         cell = QLineEdit(text)
         cell.setReadOnly(True)
+        cell.setStyleSheet(CONST_QSS)
         cell.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        cell.setStyleSheet(
-            "background-color: #e2e8f0; color: #334155; font-weight: bold;"
-            "border: 1px solid #94a3b8; border-radius: 4px;"
-        )
         grid.addWidget(cell, row, col)
 
     def _grid_auto(self, grid: QGridLayout, row: int, col: int, key: str) -> None:
         """Readonly blue computed cell (oracle readonlyClass groups)."""
         cell = QLineEdit()
         cell.setReadOnly(True)
+        cell.setStyleSheet(RO_QSS)
         cell.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        cell.setStyleSheet(
-            "background-color: #ffffff; color: #1d4ed8; font-weight: bold;"
-            "border: 1px solid #cbd5e1; border-radius: 4px;"
-        )
         grid.addWidget(cell, row, col)
         self.auto_cells[key] = cell
 
@@ -356,16 +553,62 @@ class SynopticPage(QWidget):
         grid.addWidget(widget, row, col, 1, colspan)
 
     def _build_ui(self) -> None:
+        """OBS 1:1: dark hourly gradient with white cards + icon sidebar."""
         self.setWindowTitle("Observación Sinóptica")
 
-        outer = QHBoxLayout(self)
-        left = QVBoxLayout()
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(24, 20, 24, 16)
+        outer.setSpacing(14)
 
-        # observer row (full width, oracle row 0) --------------------------
+        # oracle header: round back arrow + hour-theme colored title -------
+        header = QHBoxLayout()
+        header.setSpacing(12)
+        self.back_btn = QPushButton()
+        self.back_btn.setFixedSize(44, 44)
+        self.back_btn.setIcon(lucide_icon("arrow-left", "#2563eb", 18))
+        self.back_btn.setIconSize(QSize(18, 18))
+        self.back_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.back_btn.setToolTip("Volver al inicio")
+        self.back_btn.setStyleSheet(
+            "QPushButton { background-color: #f8fafc; border: none;"
+            "border-radius: 22px; }"
+            "QPushButton:hover { background-color: #e2e8f0; }"
+        )
+        self.back_btn.clicked.connect(self._back_requested.emit)
+        header.addWidget(self.back_btn, 0, Qt.AlignmentFlag.AlignTop)
+        self.title_label = QLabel("Observación Sinóptica")
+        header.addWidget(self.title_label, 0, Qt.AlignmentFlag.AlignVCenter)
+        header.addStretch(1)
+        outer.addLayout(header)
+
+        content = QHBoxLayout()
+        content.setSpacing(16)
+        outer.addLayout(content, 1)
+
+        left_column = QWidget()
+        left = QVBoxLayout(left_column)
+        left.setContentsMargins(0, 0, 0, 0)
+        left.setSpacing(16)
+
+        # observation card: observer chip row + full data grid -------------
+        obs_card = self._card()
+        obs_l = QVBoxLayout(obs_card)
+        obs_l.setContentsMargins(20, 16, 20, 20)
+        obs_l.setSpacing(12)
+
+        meta_row = QHBoxLayout()
+        meta_row.setSpacing(10)
         self.observer_label = QLabel("Observador")
+        self.observer_label.setMinimumWidth(112)
+        self.observer_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.observer_edit = QLineEdit()
         self.observer_edit.setPlaceholderText("Nombre del Observador...")
+        self.observer_edit.setStyleSheet(FIELD_QSS)
+        self.observer_edit.setMinimumHeight(32)
         self.observer_label.setBuddy(self.observer_edit)
+        meta_row.addWidget(self.observer_label)
+        meta_row.addWidget(self.observer_edit, 1)
+        obs_l.addLayout(meta_row)
 
         # station/date/alt live in the grid (row 2) and the calc panel;
         # the widgets stay alive here so setters/tests keep working
@@ -375,23 +618,33 @@ class SynopticPage(QWidget):
         # nothing selected until the user (or an observation) picks a station
         if self.station_combo.count():
             self.station_combo.setCurrentIndex(-1)
+        self.station_combo.setStyleSheet(
+            "QComboBox { background-color: #ffffff; border: 1px solid #cbd5e1;"
+            "border-radius: 4px; padding: 4px 8px; }"
+            "QComboBox:item { color: #1e293b; }"
+            "QComboBox::drop-down { border: none; width: 22px; }"
+        )
+        self.station_combo.setMinimumHeight(32)
 
         self.fecha_edit = QDateEdit()
         self.fecha_edit.setDisplayFormat("dd/MM/yyyy")
         self.fecha_edit.setCalendarPopup(False)
+        self.fecha_edit.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.fecha_edit.setStyleSheet(
+            "QDateEdit { background-color: #ffffff; border: 1px solid #cbd5e1;"
+            "border-radius: 4px; padding: 4px 8px; color: #1e293b; }"
+        )
+        self.fecha_edit.setMinimumHeight(32)
 
         self.correc_alt_edit = QLineEdit()
         self.correc_alt_edit.setReadOnly(True)
-        self.correc_alt_edit.setStyleSheet("background: #f1f5f9; color: #0f172a; font-weight: bold;")
+        self.correc_alt_edit.setStyleSheet(RO_QSS)
+        self.correc_alt_edit.setPlaceholderText("hPa")
+        self.correc_alt_edit.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        meta_grid = QGridLayout()
-        meta_grid.addWidget(self.observer_label, 0, 0)
-        meta_grid.addWidget(self.observer_edit, 0, 1, 1, 6)
-        left.addLayout(meta_grid)
-
-        # data grid: OBS grouped rows (header labels + inputs in order) ----
-        grid_box = QGroupBox("Grilla meteorológica")
-        grid = QGridLayout(grid_box)
+        grid = QGridLayout()
+        grid.setHorizontalSpacing(8)
+        grid.setVerticalSpacing(10)
         self._grid_header(grid, 0, [("MiMi MjMj", 1), ("YYGG Iw", 1),
                                     ("IIiii", 1), ("Fecha", 4)])
         self._grid_const(grid, 1, 0, "AAXX")
@@ -431,59 +684,63 @@ class SynopticPage(QWidget):
         self._grid_field(grid, 7, 4, "meteo_8_4")
         self._grid_field(grid, 7, 5, "meteo_8_5")
         self._grid_field(grid, 7, 6, "meteo_8_6")
-        for pos, row in enumerate((10, 12, 14)):
-            base = 8 + pos * 2
-            self._grid_header(grid, base, [("8NsChs hs", 1), ("8NsChs hs", 1),
-                                           ("9Sp SpSpSp", 1), ("9Sp SpSpSp", 1),
-                                           ("9Sp SpSpSp", 1), ("9Sp SpSpSp", 1),
-                                           ("9Sp SpSpSp", 1)])
+
+        # est-indexed 8Ns/Sp rows per IMG: "(1)"/"(2)" then (est. 1..24)
+        est = 0
+        for base, field_row in ((8, 10), (10, 12), (12, 14)):
+            cells: list[tuple[str, int]] = (
+                [("8NsChs hs (1)", 1), ("8NsChs hs (2)", 1)] if base == 8 else []
+            )
+            for _ in range(5 if base == 8 else 7):
+                est += 1
+                cells.append((f"9Sp SpSpSp (est. {est})", 1))
+            self._grid_header(grid, base, cells)
             for col in range(7):
-                self._grid_field(grid, base + 1, col, f"meteo_{row}_{col}")
-        self._grid_header(grid, 14, [("9Sp SpSpSp", 1), ("9Sp SpSpSp", 1),
-                                     ("9Sp SpSpSp", 1), ("9Sp SpSpSp", 1),
-                                     ("9Sp SpSpSp", 1), ("555", 1), ("29 UUU", 1)])
+                self._grid_field(grid, base + 1, col, f"meteo_{field_row}_{col}")
+        final_cells: list[tuple[str, int]] = []
+        for _ in range(5):
+            est += 1
+            final_cells.append((f"9Sp SpSpSp (est. {est})", 1))
+        final_cells.extend([("555", 1), ("29 UUU", 1)])
+        self._grid_header(grid, 14, final_cells)
         for col in range(5):
             self._grid_field(grid, 15, col, f"meteo_16_{col}")
         self._grid_const(grid, 15, 5, "555")
         self._grid_auto(grid, 15, 6, "grupo_29uuu")
+        obs_l.addLayout(grid, 1)
         self.grid = grid
-        left.addWidget(grid_box, 1)
+        left.addWidget(obs_card, 1)
 
-        # station calc panel: OBS 7-column grid (headers + raw inputs + --
-        # computed readouts). Raw widgets are (re)created here via the same
-        # factory, so validators, gating and blur behavior travel with them.
-        calc_box = QGroupBox("Cálculos de Estación")
-        calc = QGridLayout(calc_box)
-
-        def chead(row: int, col: int, text: str, span: int = 1) -> None:
-            label = QLabel(text)
-            label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            label.setStyleSheet(
-                "background-color: #475569; color: white; font-weight: 600;"
-                "padding: 6px; border-radius: 4px;"
-            )
-            calc.addWidget(label, row, col, 1, span)
+        # calculations card: same 7-column grid, accent primaryHeader chips
+        calc_card = self._card()
+        calc_l = QVBoxLayout(calc_card)
+        calc_l.setContentsMargins(20, 16, 20, 20)
+        calc = QGridLayout()
+        calc.setHorizontalSpacing(8)
+        calc.setVerticalSpacing(10)
+        calc_l.addLayout(calc)
 
         def cfield(row: int, col: int, key: str) -> None:
             calc.addWidget(self._make_grid_input(key), row, col)
 
-        def cro(row: int, col: int, store: dict, key: str) -> None:
+        def cro(row: int, col: int, store: dict, key: str,
+                placeholder: str = "") -> None:
             cell = QLineEdit()
             cell.setReadOnly(True)
+            cell.setStyleSheet(RO_QSS)
             cell.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            cell.setStyleSheet(
-                "background-color: #f1f5f9; color: #1d4ed8; font-weight: bold;"
-                "border: 1px solid #cbd5e1; border-radius: 4px;"
-            )
+            if placeholder:
+                cell.setPlaceholderText(placeholder)
             calc.addWidget(cell, row, col)
             store[key] = cell
 
-        chead(0, 0, "Cálculos de Estación", 2)
-        chead(0, 2, "Presión de la Estación")
-        chead(0, 3, "P 3 Horas")
-        chead(0, 4, "P 24 Horas")
-        chead(0, 5, "Máx. / Mín.")
-        chead(0, 6, "Máx. / Mín. (24 H)")
+        self._grid_header(
+            calc, 0,
+            [("Cálculos de Estación", 2), ("Presión de la Estación", 1),
+             ("P 3 Horas", 1), ("P 24 Horas", 1), ("Máx. / Mín.", 1),
+             ("Máx. / Mín. (24 H)", 1)],
+            accent=HOUR_THEMES.get(self.active_hour, HOUR_THEMES["06Z"])["accent"],
+        )
         self._grid_header_text(calc, 1, ["Ts.", "Let. Barom.", "P 3",
                                           "P 24", "T Máx.", "T Máx."])
         cfield(1, 1, "ts")
@@ -496,128 +753,231 @@ class SynopticPage(QWidget):
                                           "Let.", "T Mín.", "T Mín."])
         cfield(3, 1, "th")
         cfield(4, 2, "correc_temp")
-        cro(2, 1, self.readouts, "punto_rocio")
-        cro(4, 3, self.auto_cells, "p3_let")
-        cro(4, 4, self.auto_cells, "p24_let")
+        cro(2, 1, self.readouts, "punto_rocio", "°C")
+        cro(4, 3, self.auto_cells, "p3_let", "hPa")
+        cro(4, 4, self.auto_cells, "p24_let", "hPa")
         cfield(4, 5, "t_min")
         cfield(4, 6, "t_min_24h")
         self._grid_header_text(calc, 5, ["Tv.", "Pres. Est.", "Dif.",
                                           "Dif.", "LL", "LL"])
-        cro(5, 1, self.readouts, "tension_vapor")
+        cro(5, 1, self.readouts, "tension_vapor", "hPa")
         cfield(5, 2, "pres_est")
-        cro(5, 3, self.auto_cells, "p3_dif")
-        cro(5, 4, self.auto_cells, "p24_dif")
+        cro(5, 3, self.auto_cells, "p3_dif", "hPa")
+        cro(5, 4, self.auto_cells, "p24_dif", "hPa")
         cfield(5, 5, "ll")
         cfield(5, 6, "ll_24h")
         self._grid_header_text(calc, 6, ["Dif.", "Correc. Alt."])
-        cro(6, 1, self.readouts, "diferencia")
+        cro(6, 1, self.readouts, "diferencia", "°C")
         calc.addWidget(self.correc_alt_edit, 6, 2)
         self._grid_header_text(calc, 7, ["Hr.", "Pres. NMM"])
-        cro(7, 1, self.readouts, "humedad_relativa")
-        cro(7, 2, self.readouts, "pres_nmm")
-        left.addWidget(calc_box)
+        cro(7, 1, self.readouts, "humedad_relativa", "%")
+        cro(7, 2, self.readouts, "pres_nmm", "hPa")
+        left.addWidget(calc_card)
 
-        form_host = QWidget()
-        form_host.setLayout(left)
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
-        scroll.setWidget(form_host)
-        outer.addWidget(scroll, 1)
+        scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+        scroll.setStyleSheet("QScrollArea { background: transparent; }")
+        scroll.viewport().setAutoFillBackground(False)
+        left_column.setStyleSheet("background: transparent;")
+        scroll.setWidget(left_column)
+        content.addWidget(scroll, 1)
 
-        # right panel: hours + actions -------------------------------------
-        right = QVBoxLayout()
-        hours_box = QGroupBox("Horas de Observación")  # also the selector card
-        hours_grid = QGridLayout(hours_box)
+        # right column: oracle stacked cards (w-64, gap-4, sticky top-6) ---
+        side = QWidget()
+        side.setFixedWidth(264)
+        side.setStyleSheet("background: transparent;")
+        right = QVBoxLayout(side)
+        right.setContentsMargins(0, 0, 0, 0)
+        right.setSpacing(16)
+
+        # card 1: hours of observation + completion bar + day navigation
+        hours_card = self._card()
+        hours_l = QVBoxLayout(hours_card)
+        hours_l.setContentsMargins(16, 14, 16, 16)
+        hours_l.setSpacing(10)
+        hours_head = QHBoxLayout()
+        hours_head.setSpacing(6)
+        clock_icon = QLabel()
+        clock_icon.setPixmap(icon_pixmap("clock", "#94a3b8", 14))
+        hours_head.addWidget(clock_icon, 0, Qt.AlignmentFlag.AlignVCenter)
+        hours_title = QLabel("HORAS DE OBSERVACIÓN")
+        hours_title.setProperty("cardhead", True)
+        hours_title.setStyleSheet(CARDHEAD_QSS)
+        hours_head.addWidget(hours_title, 0, Qt.AlignmentFlag.AlignVCenter)
+        hours_head.addStretch(1)
+        hours_l.addLayout(hours_head)
+
+        progress_row = QHBoxLayout()
+        progress_row.setSpacing(6)
+        self.progress_label = QLabel("0/21 campos")
+        self.progress_label.setStyleSheet(
+            "color: #64748b; font-size: 11px; font-weight: 600;"
+            "background: transparent;"
+        )
+        progress_row.addWidget(self.progress_label)
+        progress_row.addStretch(1)
+        hours_l.addLayout(progress_row)
+        self.progress = QProgressBar()
+        self.progress.setTextVisible(False)
+        self.progress.setFixedHeight(6)
+        self.progress.setProperty("fillcls", "empty")
+        hours_l.addWidget(self.progress)
+
+        hours_grid = QGridLayout()
+        hours_grid.setHorizontalSpacing(8)
+        hours_grid.setVerticalSpacing(8)
         for index, hora in enumerate(synoptic_service.HOURS):
             row, col = divmod(index, 2)
             button = QPushButton(hora)
+            button.setProperty("hourbtn", True)  # marker for tests/probes
             button.setProperty("fill", "empty")
+            button.setStyleSheet(HOURBTN_QSS)
+            button.setIconSize(QSize(14, 14))
+            button.setMinimumHeight(34)
+            button.setCursor(Qt.CursorShape.PointingHandCursor)
             button.clicked.connect(lambda _=False, h=hora: self.select_hour(h))
             self.hour_buttons[hora] = button
             hours_grid.addWidget(button, row, col)
-        right.addWidget(hours_box)
+        hours_l.addLayout(hours_grid)
+
+        divider = QFrame()
+        divider.setFrameShape(QFrame.Shape.HLine)
+        divider.setStyleSheet("background-color: #f1f5f9; border: none;")
+        divider.setFixedHeight(1)
+        hours_l.addWidget(divider)
 
         nav_row = QHBoxLayout()
-        self.prev_btn = QPushButton("←")
-        self.prev_btn.setToolTip("Hora anterior")
-        self.prev_btn.clicked.connect(lambda: self._step_hour(-1))
-        self.next_btn = QPushButton("→")
-        self.next_btn.setToolTip("Hora siguiente")
-        self.next_btn.clicked.connect(lambda: self._step_hour(1))
-        nav_row.addWidget(self.prev_btn)
-        nav_row.addWidget(self.next_btn)
-        right.addLayout(nav_row)
+        nav_row.setSpacing(8)
+        self.prev_btn = QPushButton()
+        self.prev_btn.setProperty("daynav", "back")
+        self.prev_btn.setStyleSheet(DAYNAV_BACK_QSS)
+        self.prev_btn.setIcon(lucide_icon("arrow-left", "#0369a1", 16))
+        self.prev_btn.setIconSize(QSize(16, 16))
+        self.prev_btn.setToolTip("Guardar y cargar día anterior")
+        self.prev_btn.setMinimumHeight(36)
+        self.prev_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.prev_btn.clicked.connect(lambda: self.navigate_to_day(-1))
+        self.next_btn = QPushButton()
+        self.next_btn.setProperty("daynav", "forward")
+        self.next_btn.setStyleSheet(DAYNAV_FORWARD_QSS)
+        self.next_btn.setIcon(lucide_icon("arrow-right", "#15803d", 16))
+        self.next_btn.setIconSize(QSize(16, 16))
+        self.next_btn.setToolTip("Guardar y avanzar al siguiente día")
+        self.next_btn.setMinimumHeight(36)
+        self.next_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.next_btn.clicked.connect(lambda: self.navigate_to_day(1))
+        nav_row.addWidget(self.prev_btn, 1)
+        nav_row.addWidget(self.next_btn, 1)
+        hours_l.addLayout(nav_row)
+        right.addWidget(hours_card)
 
-        self.progress_label = QLabel("0/21 campos")
-        self.progress = QProgressBar()
-        right.addWidget(self.progress_label)
-        right.addWidget(self.progress)
-
-        self.error_label = QLabel("")
-        self.error_label.setWordWrap(True)
-        self.error_label.setStyleSheet("color: #b91c1c; font-weight: bold;")
-        self.status_label = QLabel("")
-        self.status_label.setWordWrap(True)
-        self.status_label.setStyleSheet("color: #047857; font-weight: bold;")
-
-        cli_box = QGroupBox("MÓDULOS CLI")
-        cli_row = QHBoxLayout(cli_box)
+        # card 2: CLI modules with icon-over-number buttons ----------------
+        cli_card = self._card()
+        cli_l = QVBoxLayout(cli_card)
+        cli_l.setContentsMargins(16, 14, 16, 16)
+        cli_l.setSpacing(10)
+        cli_head = QHBoxLayout()
+        cli_head.setSpacing(6)
+        file_icon = QLabel()
+        file_icon.setPixmap(icon_pixmap("file-text", "#94a3b8", 14))
+        cli_head.addWidget(file_icon, 0, Qt.AlignmentFlag.AlignVCenter)
+        cli_title = QLabel("MÓDULOS CLI")
+        cli_title.setProperty("cardhead", True)
+        cli_title.setStyleSheet(CARDHEAD_QSS)
+        cli_head.addWidget(cli_title, 0, Qt.AlignmentFlag.AlignVCenter)
+        cli_head.addStretch(1)
+        cli_l.addLayout(cli_head)
+        self._cli_buttons: dict[str, QToolButton] = {}
+        cli_row = QHBoxLayout()
+        cli_row.setSpacing(8)
         for module_key, label in (
             ("cli3074", "3074"),
             ("cli4074", "4074"),
             ("cli5074", "5074"),
         ):
-            button = QPushButton(label)
+            button = QToolButton()
+            button.setText(label)
+            button.setStyleSheet(CLI_BTN_QSS)
+            button.setIcon(lucide_icon("file-text", "#94a3b8", 18))
+            button.setIconSize(QSize(18, 18))
+            button.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
+            button.setCursor(Qt.CursorShape.PointingHandCursor)
             button.clicked.connect(lambda _=False, m=module_key: self._open_cli(m))
-            cli_row.addWidget(button)
-        right.addWidget(cli_box)
+            cli_row.addWidget(button, 1)
+            self._cli_buttons[module_key] = button
+        cli_l.addLayout(cli_row)
+        right.addWidget(cli_card)
 
-        extra_box = QGroupBox("NUBOSIDAD EXTRA")
-        extra_grid = QGridLayout(extra_box)
-        for row, (key, label) in enumerate((
+        # card 3: extra cloud fields ----------------------------------------
+        extra_card = self._card()
+        extra_l = QVBoxLayout(extra_card)
+        extra_l.setContentsMargins(16, 14, 16, 16)
+        extra_l.setSpacing(8)
+        extra_head = QHBoxLayout()
+        extra_head.setSpacing(6)
+        cloud_icon = QLabel()
+        cloud_icon.setPixmap(icon_pixmap("cloud", "#94a3b8", 14))
+        extra_head.addWidget(cloud_icon, 0, Qt.AlignmentFlag.AlignVCenter)
+        extra_title = QLabel("NUBOSIDAD EXTRA")
+        extra_title.setProperty("cardhead", True)
+        extra_title.setStyleSheet(CARDHEAD_QSS)
+        extra_head.addWidget(extra_title, 0, Qt.AlignmentFlag.AlignVCenter)
+        extra_head.addStretch(1)
+        extra_l.addLayout(extra_head)
+        for key, label in (
             ("extra_8ns_1", "GRUPO EXTRA 1 (8NS)"),
             ("extra_8ns_2", "GRUPO EXTRA 2 (8NS)"),
-        )):
+        ):
             title = QLabel(label)
-            title.setStyleSheet(
-                "font-size: 11px; font-weight: 600; color: #64748b;"
-                "background: transparent;"
-            )
-            extra_grid.addWidget(title, row * 2, 0)
-            extra_grid.addWidget(self._make_grid_input(key), row * 2 + 1, 0)
-        right.addWidget(extra_box)
+            title.setProperty("minilabel", True)
+            title.setStyleSheet(MINILABEL_QSS)
+            extra_l.addWidget(title)
+            extra_l.addWidget(self._make_grid_input(key))
+        right.addWidget(extra_card)
 
+        # card 4: actions (Guardar accent per hour + Cargar JSON) -----------
+        self.error_label = QLabel("")
+        self.error_label.setWordWrap(True)
+        self.error_label.setStyleSheet(
+            "color: #fecaca; font-weight: bold; background: transparent;"
+        )
+        self.status_label = QLabel("")
+        self.status_label.setWordWrap(True)
+        self.status_label.setStyleSheet(
+            "color: #6ee7b7; font-weight: bold; background: transparent;"
+        )
+        actions_card = self._card()
+        actions_l = QVBoxLayout(actions_card)
+        actions_l.setContentsMargins(12, 12, 12, 12)
+        actions_l.setSpacing(8)
         self.save_btn = QPushButton("Guardar Observación")
-        self.save_btn.setProperty("dark", True)
+        self.save_btn.setIconSize(QSize(16, 16))
+        self.save_btn.setProperty("dark", True)  # contrato Lotes-C se conserva
         self.save_btn.setDefault(True)
+        self.save_btn.setMinimumHeight(40)
+        self.save_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.save_btn.clicked.connect(self.save_clicked)
         self.cargar_btn = QPushButton("Cargar JSON")
+        self.cargar_btn.setProperty("secondaryaction", True)  # marker
+        self.cargar_btn.setStyleSheet(SECONDARY_BTN_QSS)
+        self.cargar_btn.setIcon(lucide_icon("upload", "#475569", 15))
+        self.cargar_btn.setIconSize(QSize(15, 15))
+        self.cargar_btn.setMinimumHeight(38)
+        self.cargar_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.cargar_btn.clicked.connect(self._load_json_file)
-        save_row = QHBoxLayout()
-        save_row.addWidget(self.save_btn)
-        save_row.addWidget(self.cargar_btn)
-        right.addWidget(self.error_label)
-        right.addWidget(self.status_label)
-        right.addLayout(save_row)
+        actions_l.addWidget(self.save_btn)
+        actions_l.addWidget(self.cargar_btn)
+        actions_l.addWidget(self.error_label)
+        actions_l.addWidget(self.status_label)
+        right.addWidget(actions_card)
         right.addStretch(1)
 
-        side_host = QWidget()
-        side_host.setLayout(right)
-        outer.addWidget(side_host, 0, Qt.AlignmentFlag.AlignTop)
-
+        content.addWidget(side, 0, Qt.AlignmentFlag.AlignTop)
         # wiring -----------------------------------------------------------
         self.station_combo.currentIndexChanged.connect(self._on_station_changed)
         self.fecha_edit.dateChanged.connect(self._on_date_changed)
         self.observer_edit.textChanged.connect(self._on_observer_changed)
-
-    def _step_hour(self, delta: int) -> None:
-        """Prev/next hour buttons (clamped at the ends, no wrap)."""
-        hours = synoptic_service.HOURS
-        try:
-            index = hours.index(self.active_hour)
-        except ValueError:
-            return
-        self.select_hour(hours[min(max(index + delta, 0), len(hours) - 1)])
 
     def _open_cli(self, module_key: str) -> None:
         """Open the generic CLI sheet dialog (OBS MÓDULOS CLI card)."""
@@ -639,6 +999,75 @@ class SynopticPage(QWidget):
                 self.error_label.setText(f"Error al guardar {module_key}: {exc}")
                 return
             self.status_label.setText(f"{module_key} guardado")
+
+    def navigate_to_day(self, delta: int) -> None:
+        """Oracle navigateToDay: silent-save, load/create the target day.
+
+        - saves the current day first (best effort, failures tolerated);
+        - loads the target day flat data from the diario document;
+        - backwards with no stored day: blocked with a message (never navigates);
+        - forwards with no stored day: creates a fresh day seeded with the
+          station, date, correction and remembered observer;
+        - keeps the active hour between days; invalid drafts never revive.
+        """
+        station = self.station_id
+        fecha = self.fecha_iso
+        if not station or not fecha:
+            self.clear_error_state()
+            self.error_label.setText(
+                "Elegí estación y fecha antes de navegar entre días"
+            )
+            return
+        # 1) persist the current day quietly; a validation failure must not
+        # block navigation (oracle try/catch around the save, console.error).
+        # Only user-touched data triggers the save: walking through empty
+        # days must not fabricate diario documents.
+        if self._dirty:
+            try:
+                self.do_save()
+            except Exception:
+                _LOGGER.exception("Error al guardar día actual antes de navegar")
+        # 2) target date (calendar math, not string math)
+        target_date: QDate = self.fecha_edit.date().addDays(delta)
+        target = target_date.toString("yyyy-MM-dd")
+        # 3) load or create
+        try:
+            loaded = synoptic_service.load_day(self._conn, station, target)
+        except synoptic_service.SaveError as exc:
+            self.error_label.setText(f"Error al cargar el día: {exc}")
+            return
+        base = {
+            "station_id": station,
+            "fecha": target,
+            "correc_alt": self.correc_alt_edit.text(),
+        }
+        if loaded is None:
+            if delta < 0:
+                self.error_label.setText(f"No hay observación para {target}")
+                return  # backwards never invents a day (oracle)
+            remembered = synoptic_service.observer_for(self._conn, station)
+            self.observations = {
+                hora: dict(base) for hora in synoptic_service.HOURS
+            }
+            if remembered:
+                for hour_data in self.observations.values():
+                    hour_data["nombre_observador"] = remembered
+        else:
+            self.observations = {}
+            for hora in synoptic_service.HOURS:
+                merged = dict(base)
+                merged.update(loaded.get(hora) or {})  # stored data wins
+                self.observations[hora] = merged
+        # 4) repaint the form for the new day (active hour is preserved)
+        self.fecha_edit.setDate(target_date)
+        self._load_hour_into_fields()
+        self._refresh_hour_mode()
+        self.refresh_progress()
+        self._update_readouts()
+        self._dirty = False
+        self.status_label.setText(
+            f"Día: {target_date.toString('dd/MM/yyyy')}"
+        )
 
     def _load_json_file(self, path: str | None = None) -> None:
         """Load a diario JSON file into the form (OBS Cargar JSON)."""
@@ -699,6 +1128,9 @@ class SynopticPage(QWidget):
         if tooltip:
             widget.setToolTip(tooltip)
         widget.setProperty("field_key", key)
+        widget.setStyleSheet(FIELD_QSS)  # oracle fieldClass token, inline
+        widget.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        widget.setMinimumHeight(32)
         widget.textChanged.connect(lambda _text, k=key: self._on_field_changed(k))
         if key in _PRESSURE_KEYS:
             widget.editingFinished.connect(lambda k=key: self._on_pressure_blur(k))
@@ -751,6 +1183,7 @@ class SynopticPage(QWidget):
         self._refresh_hour_mode()
         self.refresh_progress()
         self._update_readouts()
+        self._apply_hour_theme()  # gradient + accents follow the hour
 
     def hour_value(self, hora: str, key: str) -> str:
         value = self.observations.get(hora, {}).get(key)
@@ -800,7 +1233,7 @@ class SynopticPage(QWidget):
         widget = self.field_widgets.get(key)
         if widget is not None and widget.property("error"):
             widget.setProperty("error", None)
-            _repolish(widget)
+            widget.setStyleSheet(FIELD_QSS)
             self.error_label.setText("")
 
         # meteo_6_2 (0CS) vs meteo_8_1 (56) mutual exclusion, verbatim oracle
@@ -939,12 +1372,19 @@ class SynopticPage(QWidget):
             )
             if button.property("fill") != fill:
                 button.setProperty("fill", fill)
-                _repolish(button)
+                self._style_hour_button(hora, HOUR_THEMES.get(self.active_hour, HOUR_THEMES["06Z"])["accent"])
         active = synoptic_service.hour_completion(
             self.observations.get(self.active_hour) or {}, self.active_hour
         )
         self.progress.setRange(0, active["total"])
         self.progress.setValue(int(active["done"]))
+        fillcls = (
+            "empty" if active["done"] == 0
+            else "ok" if active["ratio"] == 1.0
+            else "part"
+        )
+        chunk = {"empty": "#e2e8f0", "part": "#fbbf24", "ok": "#10b981"}[fillcls]
+        self.progress.setStyleSheet(_progress_qss(chunk))
         self.progress_label.setText(
             f"{self.active_hour}: {active['done']}/{active['total']} campos"
         )
@@ -1021,7 +1461,7 @@ class SynopticPage(QWidget):
         for widget in self.field_widgets.values():
             if widget.property("error"):
                 widget.setProperty("error", None)
-                _repolish(widget)
+                widget.setStyleSheet(FIELD_QSS)
         self.error_label.setText("")
 
     def _highlight_guilty_field(self, error: synoptic_service.SaveError) -> None:
@@ -1041,7 +1481,7 @@ class SynopticPage(QWidget):
         widget = self.field_widgets.get(field)
         if widget is not None:
             widget.setProperty("error", True)
-            _repolish(widget)
+            widget.setStyleSheet(FIELD_ERROR_QSS)
         if switched:
             self.error_label.setText(f"Revisá el campo {field} en {hour}")
         else:

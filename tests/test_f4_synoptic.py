@@ -272,3 +272,37 @@ def test_pre_save_review_all_complete_is_clean():
     review = synoptic.pre_save_review(day)
     assert review["partial"] == []
     assert review["empty_count"] == 0
+
+
+# ---------------------------------------------------------------- load_day (day navigation)
+
+
+def test_load_day_roundtrips_saved_hour_fields(fresh_db, station):
+    """Oracle get_observation: a stored day returns flat lowercase hour data."""
+    synoptic.save_hour(fresh_db, station, "2025-12-08", "06Z",
+                       _hour_data(), observer="Andry emiliano")
+    synoptic.save_hour(fresh_db, station, "2025-12-08", "09Z",
+                       _hour_data(ts="24.1", th="22.9"))
+
+    loaded = synoptic.load_day(fresh_db, station, "2025-12-08")
+    assert loaded is not None
+    assert set(loaded) == set(HOURS)  # every hour present, empty or filled
+    entry = loaded["06Z"]
+    assert entry["ts"] == "23.2"
+    assert entry["pres_est"] == "1025.3"
+    assert entry["meteo_4_irixhvv"] == "32566"
+    assert entry["meteo_2_1"] == "08030"
+    assert entry["extra_8ns_1"] == "81819"
+    assert entry["t_max"] == ""  # even extras come back empty as saved
+    assert entry["nombre_observador"] == "Andry emiliano"
+    assert loaded["09Z"]["ts"] == "24.1"
+    assert loaded["15Z"] == {}  # unsaved hour stays empty
+
+
+def test_load_day_returns_none_when_no_document(fresh_db, station):
+    assert synoptic.load_day(fresh_db, station, "2025-12-07") is None
+
+
+def test_load_day_rejects_bad_fecha(fresh_db, station):
+    with pytest.raises(synoptic.SaveError):
+        synoptic.load_day(fresh_db, station, "2025-13-99")
