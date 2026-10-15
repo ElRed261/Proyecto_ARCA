@@ -1,0 +1,84 @@
+{
+  "schedule_checks": [
+    {
+      "attempts": 1,
+      "window_min": 2,
+      "skip_inside": true,
+      "run_outside": true,
+      "ok": true
+    },
+    {
+      "attempts": 2,
+      "window_min": 4,
+      "skip_inside": true,
+      "run_outside": true,
+      "ok": true
+    },
+    {
+      "attempts": 3,
+      "window_min": 8,
+      "skip_inside": true,
+      "run_outside": true,
+      "ok": true
+    },
+    {
+      "attempts": 4,
+      "window_min": 16,
+      "skip_inside": true,
+      "run_outside": true,
+      "ok": true
+    },
+    {
+      "attempts": 5,
+      "window_min": 32,
+      "skip_inside": true,
+      "run_outside": true,
+      "ok": true
+    },
+    {
+      "attempts": 6,
+      "window_min": 60,
+      "skip_inside": true,
+      "run_outside": true,
+      "ok": true
+    },
+    {
+      "attempts": 7,
+      "window_min": 60,
+      "skip_inside": true,
+      "run_outside": true,
+      "ok": true
+    }
+  ],
+  "schedule_ok": true,
+  "drain": {
+    "first": {
+      "attempted": 1,
+      "uploaded": 0,
+      "marked_synced": 0,
+      "last_error": "outage #1",
+      "stopped": false
+    },
+    "skipped_while_in_window": true,
+    "second_error": "outage #2",
+    "third": {
+      "attempted": 1,
+      "uploaded": 1,
+      "marked_synced": 1,
+      "last_error": null,
+      "stopped": false
+    },
+    "final_pending": 0,
+    "final_synced": 8,
+    "ok": true
+  },
+  "thread": {
+    "rows": 25,
+    "payload_bytes_each": 524288,
+    "event_ticks_during_op": 2973,
+    "elapsed_ms": 10.7,
+    "marked_synced": 25,
+    "ok": true
+  },
+  "verdict_ok": true
+}

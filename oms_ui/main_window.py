@@ -1,8 +1,10 @@
-"""Main window of Neo Arca (PRD F3 skeleton).
+"""Main window of Neo Arca (PRD F3 skeleton, F4-F7 pages wired).
 
 A left nav with the six Sidebar entries filtered by role through
-``oms_core.services.access`` and a stacked content area. Only the stations
-admin page exists in F3; the rest are placeholders for F4-F7.
+``oms_core.services.access`` and a stacked content area. Every entry shows
+its REAL page now (dashboard, synoptic, summary, audit wizard + report tabs,
+maintenance, stations admin): no placeholders remain. The audit observation
+drill-down (station + date) opens as a dialog from the wizard.
 """
 
 from __future__ import annotations
@@ -11,14 +13,17 @@ import sqlite3
 from pathlib import Path
 
 from PySide6.QtWidgets import (
+    QDialog,
     QHBoxLayout,
-    QLabel,
     QListWidget,
     QMainWindow,
     QStackedWidget,
+    QTabWidget,
+    QVBoxLayout,
     QWidget,
 )
 
+from oms_core.db.repositories import app_config as app_config_repo
 from oms_core.services import access
 from oms_ui.pages.stations_admin import StationsAdminPage
 
@@ -70,21 +75,79 @@ class MainWindow(QMainWindow):
 
         return connect(self._db_path)
 
-    def _build_page(self, page_id: str) -> QWidget:
-        if page_id == "admin":
-            return StationsAdminPage(self._open_conn())
-        if page_id == "audit":
-            from oms_core.services.audit import default_base_dir
-            from oms_ui.pages.audit import AuditPage
+    def _assigned_station(self, conn: sqlite3.Connection) -> str | None:
+        try:
+            return app_config_repo.get(conn, "assigned_station") or None
+        except Exception:  # noqa: BLE001 - a broken KV never breaks the shell
+            return None
 
-            return AuditPage(self._open_conn(), default_base_dir(), role=self.role)
+    def _navigate_to(self, page_id: str) -> None:
+        try:
+            index = self.visible_pages().index(page_id)
+        except ValueError:
+            return
+        self.nav.setCurrentRow(index)
+
+    def _open_observation(self, station: str, fecha: str) -> None:
+        from oms_core.services.audit import default_base_dir
+        from oms_ui.pages.audit_observation import AuditObservationPage
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle(f"Auditoría {station} {fecha}")
+        layout = QVBoxLayout(dialog)
+        layout.addWidget(
+            AuditObservationPage(
+                self._open_conn(), default_base_dir(), station, fecha, role=self.role
+            )
+        )
+        dialog.resize(900, 600)
+        dialog.exec()
+
+    def _build_audit(self, conn: sqlite3.Connection) -> QWidget:
+        from oms_core.services.audit import default_base_dir
+        from oms_ui.pages.audit import AuditPage
+        from oms_ui.pages.audit_report import AuditReportPage
+
+        tabs = QTabWidget()
+        wizard = AuditPage(
+            conn,
+            default_base_dir(),
+            role=self.role,
+            on_open_day=self._open_observation,
+            on_open_report=lambda: tabs.setCurrentIndex(1),
+        )
+        tabs.addTab(wizard, "Revisar")
+        tabs.addTab(AuditReportPage(conn, role=self.role), "Reporte")
+        return tabs
+
+    def _build_page(self, page_id: str) -> QWidget:
+        conn = self._open_conn()
+        if page_id == "admin":
+            return StationsAdminPage(conn)
+        if page_id == "audit":
+            return self._build_audit(conn)
         if page_id == "summary":
             from oms_ui.pages.summary import SummaryPage
 
-            return SummaryPage(self._open_conn())
-        placeholder = QLabel(f"Página '{page_id}' — pendiente (F4-F7)")
-        placeholder.setStyleSheet("color: #64748b;")
-        return placeholder
+            return SummaryPage(conn)
+        if page_id == "synoptic":
+            from oms_ui.pages.synoptic import SynopticPage
+
+            return SynopticPage(conn)
+        if page_id == "dashboard":
+            from oms_ui.pages.dashboard import DashboardPage
+
+            return DashboardPage(
+                conn,
+                role=self.role,
+                assigned_station=self._assigned_station(conn),
+                on_navigate=self._navigate_to,
+            )
+        if page_id == "maintenance":
+            from oms_ui.pages.maintenance import MaintenancePage
+
+            return MaintenancePage(conn, role=self.role, db_path=self._db_path)
+        raise AssertionError(f"unknown page id: {page_id!r} (no placeholders remain)")
 
     def _on_nav(self, row: int) -> None:
         if row >= 0:
