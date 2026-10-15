@@ -267,9 +267,7 @@ class MainWindow(QMainWindow):
         if page_id == "synoptic":
             from oms_ui.pages.synoptic import SynopticPage
 
-            page = SynopticPage(conn)
-            page._back_requested.connect(lambda: self._navigate_to("dashboard"))
-            return page
+            return SynopticPage(conn, role=self.role)
         if page_id == "dashboard":
             from oms_ui.pages.dashboard import DashboardPage
 

@@ -670,9 +670,38 @@ def test_sidebar_cards_and_icons_exist(page):
     for button in page.hour_buttons.values():
         assert button.property("hourbtn") is True
         assert button.iconSize().width() == 14
-    # back button + title exist on the dark page header
-    assert page.back_btn.icon().pixmap(16, 16).isNull() is False
+    # no back button on the page header (the shell's Inicio entry routes);
+    # title + floating toast carry the dark band instead
+    assert not hasattr(page, "back_btn")
+    assert page.title_label.text().startswith("Observación Sinóptica")
     assert "background-color: #ffffff" in page.observer_edit.styleSheet()
+
+
+def test_notifications_float_top_right_never_squeeze_hours(qtbot, fresh_db, tmp_path):
+    """Owner round 4: Dia/nav messages live in a top-right toast, outside
+    the sidebar; hour buttons keep their geometry while it shows."""
+    from PySide6.QtWidgets import QApplication
+
+    widget = SynopticPage(fresh_db, config_dir=tmp_path)
+    qtbot.addWidget(widget)
+    widget.resize(1100, 640)
+    widget.show()
+    for _ in range(6):
+        QApplication.processEvents()
+    hour_widths = {h: b.width() for h, b in widget.hour_buttons.items()}
+    widget.status_label.setText("Día 03/01/2000")
+    for _ in range(6):
+        QApplication.processEvents()
+    toast = widget._toast
+    assert toast.isVisible()
+    assert toast.y() <= 20  # pinned to the top of the page
+    assert toast.x() + toast.width() >= widget.width() - 40  # right edge
+    # the hour buttons did not lose a pixel while the toast shows
+    assert {h: b.width() for h, b in widget.hour_buttons.items()} == hour_widths
+    widget.status_label.setText("")
+    for _ in range(4):
+        QApplication.processEvents()
+    assert toast.isVisible() is False
 
 
 def test_sidebar_fits_without_scroll_and_labels_hide_when_empty(qtbot, fresh_db, tmp_path):
@@ -697,3 +726,69 @@ def test_sidebar_fits_without_scroll_and_labels_hide_when_empty(qtbot, fresh_db,
     # the only scroll area left is the form's: no side-scroll wrapper
     scrolls = widget.findChildren(QScrollArea)
     assert len(scrolls) == 1  # left form column only; sidebar has none
+
+
+# ---------------------------------------------------------------- CLI 3074 window
+
+
+@pytest.fixture()
+def cli3074_page(qtbot, fresh_db, tmp_path, page):
+    """Synoptic page with station/date set to open the CLI 3074 window."""
+    return page
+
+
+def test_cli3074_window_structure_matches_oracle(cli3074_page, qtbot):
+    """IMG/CLI 3074.png contract: 24 rows, grouped headers, fenómenos lanes."""
+    from oms_ui.pages.cli3074 import SYNOP_ROWS, Cli3074Window
+
+    cli3074_page._open_cli("cli3074")
+    qtbot.waitUntil(lambda: getattr(cli3074_page, "_cli3074_window", None) is not None)
+    window = cli3074_page._cli3074_window
+    assert isinstance(window, Cli3074Window)
+    assert set(window.row_inputs) == set(range(1, 25))  # 24 local hours
+    for row in window.row_checks.values():
+        assert set(row) == {
+            "granizo", "ventarron", "neblina", "trueno", "relampago",
+            "rocio", "polvo", "calima", "niebla", "tornado",
+        }
+    assert set(window._hour_buttons) == set(SYNOP_ROWS)
+    window.close()
+
+
+def test_cli3074_save_load_roundtrip_with_fenomenos(cli3074_page, qtbot):
+    """Save writes the diario doc; load_cli3074 rebuilds the sheet."""
+    cli3074_page._open_cli("cli3074")
+    window = cli3074_page._cli3074_window
+    window.row_inputs[2]["pres_est"].setText("1015.3")
+    window.row_inputs[2]["temp_seco"].setText("23.2")
+    window.row_checks[2]["trueno"].setChecked(True)
+    window.row_inputs[2]["tiempo_presente"].setText("1")
+    window.save_data()
+    reloaded = type(window)(window._conn, station="78485", fecha="2025-12-08")
+    assert reloaded.row_inputs[2]["pres_est"].text() == "1015.3"
+    assert reloaded.row_inputs[2]["temp_seco"].text() == "23.2"
+    assert reloaded.row_checks[2]["trueno"].isChecked() is True
+    assert reloaded.row_inputs[2]["tiempo_presente"].text() == "1"
+    window.close()
+
+
+def test_cli3074_one_decimal_and_ceiling_on_blur(qtbot, fresh_db, tmp_path):
+    from oms_ui.pages.cli3074 import Cli3074Window
+
+    widget = Cli3074Window(fresh_db, station="78485", fecha="2025-12-08")
+    qtbot.addWidget(widget)
+    widget.row_inputs[1]["pres_est"].setText("23.50")
+    widget._normalize_edit(widget.row_inputs[1]["pres_est"], "pres_est", 1)
+    assert widget.row_inputs[1]["pres_est"].text() == "23.5"
+    widget.row_inputs[1]["hum_hr"].setText("66.7")
+    widget._normalize_edit(widget.row_inputs[1]["hum_hr"], "hum_hr", 1)
+    assert widget.row_inputs[1]["hum_hr"].text() == "67"  # ceil to integer
+
+
+def test_cli3074_ver_hora_synop_feeds_synoptic_hour(cli3074_page, qtbot):
+    """The 00Z..21Z buttons jump (oracle: navigate with activeHour)."""
+    cli3074_page._open_cli("cli3074")
+    window = cli3074_page._cli3074_window
+    window._hour_buttons["00Z"].click()
+    qtbot.waitUntil(lambda: cli3074_page.active_hour == "00Z")
+    window.close()

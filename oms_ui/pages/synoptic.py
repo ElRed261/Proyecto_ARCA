@@ -34,9 +34,10 @@ from __future__ import annotations
 import json
 import logging
 import sqlite3
+from collections.abc import Callable
 from typing import Any
 
-from PySide6.QtCore import QDate, QRegularExpression, QSize, Qt, QTimer, Signal
+from PySide6.QtCore import QDate, QRegularExpression, QSize, Qt, QTimer
 from PySide6.QtGui import (
     QColor,
     QKeySequence,
@@ -323,16 +324,24 @@ def _repolish(widget: QWidget) -> None:
 
 class _MessageLabel(QLabel):
     """Status/error line that occupies NO height while empty (the two
-    unused white rows under Cargar JSON, reported by the owner)."""
+    unused white rows under Cargar JSON, reported by the owner).
 
-    def __init__(self, parent: QWidget | None = None) -> None:
+    Optionally notifies a host callback on every change so a floating
+    container can stay in sync (SynopticPage's top-right toast).
+    """
+
+    def __init__(self, parent: QWidget | None = None,
+                 on_change: Callable[[], None] | None = None) -> None:
         super().__init__("", parent)
         self.setWordWrap(True)
+        self._on_change = on_change
         self.setVisible(False)  # auto-shows on the first real message
 
     def setText(self, text: str) -> None:
         super().setText(text)
         self.setVisible(bool(text))
+        if self._on_change is not None:
+            self._on_change()
 
 
 class SaveReviewDialog(QDialog):
@@ -412,19 +421,18 @@ class SynopticPage(QWidget):
     white cards, lucide icons); behavior contract: SynopticPage.jsx.
     """
 
-    #: fired by the oracle's round back arrow; the shell routes to Inicio
-    _back_requested = Signal()
-
     def __init__(
         self,
         conn: sqlite3.Connection,
         *,
         config_dir: str | None = None,
+        role: str = "observador",
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
         self._conn = conn
         self._config_dir = config_dir
+        self._role = role  # oracle: Cargar JSON is admin-only
         self.observations = _initial_observations()
         self.active_hour = "06Z"
         self.results_per_hour: dict[str, dict[str, str]] = {}
@@ -462,6 +470,37 @@ class SynopticPage(QWidget):
         super().paintEvent(event)
 
     # ------------------------------------------------------------ theme
+
+    def resizeEvent(self, event) -> None:
+        """Keep the floating toast pinned to the top-right on resizes."""
+        super().resizeEvent(event)
+        self._place_toast()
+
+    def _place_toast(self) -> None:
+        """Top-right of the window, inside the header band."""
+        if self._toast is None or self._toast.width() == 0:
+            return
+        self._toast.move(
+            max(0, self.width() - self._toast.width() - 20), 16
+        )
+        self._toast.raise_()
+
+    def _refresh_toast(self) -> None:
+        """Show the toast only while a message lives; status auto-dismisses.
+
+        Decided on TEXT emptiness, not isVisible(): a hidden parent makes
+        every child's isVisible() False (the label/toast catch-22).
+        """
+        if self._toast is None:
+            return
+        has_text = bool(self.error_label.text()) or bool(self.status_label.text())
+        self.error_label.setVisible(bool(self.error_label.text()))
+        self.status_label.setVisible(bool(self.status_label.text()))
+        self._toast.setVisible(has_text)
+        if has_text:
+            self._toast.adjustSize()
+            self._place_toast()
+            self._status_timer.start()
 
     def _style_hour_button(self, hora: str, accent: str) -> None:
         """One hour button: active gets the accent, others keep the fill tint"""
@@ -575,22 +614,11 @@ class SynopticPage(QWidget):
         outer.setContentsMargins(24, 20, 24, 16)
         outer.setSpacing(14)
 
-        # oracle header: round back arrow + hour-theme colored title -------
+        # opening title on the dark page band (the old round back arrow is
+        # gone — the shell's Inicio rail entry already routes there)
         header = QHBoxLayout()
         header.setSpacing(12)
-        self.back_btn = QPushButton()
-        self.back_btn.setFixedSize(44, 44)
-        self.back_btn.setIcon(lucide_icon("arrow-left", "#2563eb", 18))
-        self.back_btn.setIconSize(QSize(18, 18))
-        self.back_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.back_btn.setToolTip("Volver al inicio")
-        self.back_btn.setStyleSheet(
-            "QPushButton { background-color: #f8fafc; border: none;"
-            "border-radius: 22px; }"
-            "QPushButton:hover { background-color: #e2e8f0; }"
-        )
-        self.back_btn.clicked.connect(self._back_requested.emit)
-        header.addWidget(self.back_btn, 0, Qt.AlignmentFlag.AlignTop)
+        header.addSpacing(12)
         self.title_label = QLabel("Observación Sinóptica")
         header.addWidget(self.title_label, 0, Qt.AlignmentFlag.AlignVCenter)
         header.addStretch(1)
@@ -1000,14 +1028,35 @@ class SynopticPage(QWidget):
         right.addWidget(extra_card)
 
         # card 4: actions (Guardar accent per hour + Cargar JSON) -----------
-        self.error_label = _MessageLabel()
+        # notifications float at the top-right of the window (a toast in the
+        # header band): they must never squeeze the hour buttons again and
+        # carry a 6s auto-dismiss for status lines (owner round 4)
+        self._toast = QWidget(self)
+        toast_l = QVBoxLayout(self._toast)
+        toast_l.setContentsMargins(12, 8, 12, 8)
+        self._toast.setObjectName("syntoast")
+        self._toast.setStyleSheet(
+            "QWidget#syntoast { background-color: rgba(15, 23, 42, 0.94);"
+            "border: 1px solid #334155; border-radius: 10px; }"
+            "QWidget#syntoast QLabel { background: transparent; border: none; }"
+        )
+        self.error_label = _MessageLabel(on_change=self._refresh_toast)
         self.error_label.setStyleSheet(
             "color: #fecaca; font-weight: bold; background: transparent;"
         )
-        self.status_label = _MessageLabel()
+        self.status_label = _MessageLabel(on_change=self._refresh_toast)
         self.status_label.setStyleSheet(
             "color: #6ee7b7; font-weight: bold; background: transparent;"
         )
+        toast_l.addWidget(self.error_label)
+        toast_l.addWidget(self.status_label)
+        self._status_timer = QTimer(self)
+        self._status_timer.setSingleShot(True)
+        self._status_timer.setInterval(6000)
+        self._status_timer.timeout.connect(
+            lambda: self.status_label.setText("")
+        )
+        self._refresh_toast()
         actions_card = self._card()
         actions_l = QVBoxLayout(actions_card)
         actions_l.setContentsMargins(10, 8, 10, 10)
@@ -1029,8 +1078,6 @@ class SynopticPage(QWidget):
         self.cargar_btn.clicked.connect(self._load_json_file)
         actions_l.addWidget(self.save_btn)
         actions_l.addWidget(self.cargar_btn)
-        actions_l.addWidget(self.error_label)
-        actions_l.addWidget(self.status_label)
         right.addWidget(actions_card)
         right.addStretch(1)
 
@@ -1041,15 +1088,19 @@ class SynopticPage(QWidget):
         self.observer_edit.textChanged.connect(self._on_observer_changed)
 
     def _open_cli(self, module_key: str) -> None:
-        """Open the generic CLI sheet dialog (OBS MÓDULOS CLI card)."""
-        from oms_ui.pages.cli_dialog import CliModuleDialog
-
+        """Open the CLI window: 3074 gets its real window (IMG/CLI 3074.png);
+        4074/5074 still ride the compact generic sheet dialog."""
         if not self.station_id or not self.fecha_iso:
             self.clear_error_state()
             self.error_label.setText(
                 "Elegí estación y fecha antes de abrir el módulo CLI"
             )
             return
+        if module_key == "cli3074":
+            self._open_cli3074()
+            return
+        from oms_ui.pages.cli_dialog import CliModuleDialog
+
         dialog = CliModuleDialog(
             self._conn, self.station_id, self.fecha_iso, module_key, self
         )
@@ -1059,7 +1110,19 @@ class SynopticPage(QWidget):
             except Exception as exc:  # noqa: BLE001 - service errors show inline
                 self.error_label.setText(f"Error al guardar {module_key}: {exc}")
                 return
-            self.status_label.setText(f"{module_key} guardado")
+
+    def _open_cli3074(self) -> None:
+        """The full CLI 3074 window; VER HORA SYNOP feeds the synoptic page."""
+        from oms_ui.pages.cli3074 import Cli3074Window
+
+        window = Cli3074Window(
+            self._conn, station=self.station_id or "", fecha=self.fecha_iso or ""
+        )
+        window.synop_hour_requested.connect(self.select_hour)
+        window.setAttribute(Qt.WA_DeleteOnClose, True)
+        window.show()
+        window.raise_()
+        self._cli3074_window = window  # keep it alive while open
 
     def navigate_to_day(self, delta: int) -> None:
         """Oracle navigateToDay: silent-save, load/create the target day.
