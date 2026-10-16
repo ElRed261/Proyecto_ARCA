@@ -728,67 +728,126 @@ def test_sidebar_fits_without_scroll_and_labels_hide_when_empty(qtbot, fresh_db,
     assert len(scrolls) == 1  # left form column only; sidebar has none
 
 
-# ---------------------------------------------------------------- CLI 3074 window
+# ---------------------------------------------------------------- CLI views (same-window)
 
 
 @pytest.fixture()
 def cli3074_page(qtbot, fresh_db, tmp_path, page):
-    """Synoptic page with station/date set to open the CLI 3074 window."""
+    """Synoptic page with station/date set to open the CLI views."""
     return page
 
 
-def test_cli3074_window_structure_matches_oracle(cli3074_page, qtbot):
-    """IMG/CLI 3074.png contract: 24 rows, grouped headers, fenómenos lanes."""
-    from oms_ui.pages.cli3074 import SYNOP_ROWS, Cli3074Window
+def test_cli3074_opens_embedded_view_no_extra_window(cli3074_page, qtbot):
+    """Owner round 5: the CLI lives in the SAME window — no QMainWindow."""
+    from PySide6.QtWidgets import QMainWindow
+
+    from oms_ui.pages.cli3074 import SYNOP_ROWS, Cli3074View
 
     cli3074_page._open_cli("cli3074")
-    qtbot.waitUntil(lambda: getattr(cli3074_page, "_cli3074_window", None) is not None)
-    window = cli3074_page._cli3074_window
-    assert isinstance(window, Cli3074Window)
-    assert set(window.row_inputs) == set(range(1, 25))  # 24 local hours
-    for row in window.row_checks.values():
+    view = cli3074_page._stack.currentWidget()
+    assert isinstance(view, Cli3074View)
+    assert cli3074_page.findChildren(QMainWindow) == []
+    assert set(view.row_inputs) == set(range(1, 25))  # 24 local hours
+    for row in view.row_checks.values():
         assert set(row) == {
             "granizo", "ventarron", "neblina", "trueno", "relampago",
             "rocio", "polvo", "calima", "niebla", "tornado",
         }
-    assert set(window._hour_buttons) == set(SYNOP_ROWS)
-    window.close()
+    assert set(view._hour_buttons) == set(SYNOP_ROWS)
 
 
 def test_cli3074_save_load_roundtrip_with_fenomenos(cli3074_page, qtbot):
-    """Save writes the diario doc; load_cli3074 rebuilds the sheet."""
+    """Save writes the diario doc; the view reloads the stored sheet."""
     cli3074_page._open_cli("cli3074")
-    window = cli3074_page._cli3074_window
-    window.row_inputs[2]["pres_est"].setText("1015.3")
-    window.row_inputs[2]["temp_seco"].setText("23.2")
-    window.row_checks[2]["trueno"].setChecked(True)
-    window.row_inputs[2]["tiempo_presente"].setText("1")
-    window.save_data()
-    reloaded = type(window)(window._conn, station="78485", fecha="2025-12-08")
-    assert reloaded.row_inputs[2]["pres_est"].text() == "1015.3"
-    assert reloaded.row_inputs[2]["temp_seco"].text() == "23.2"
-    assert reloaded.row_checks[2]["trueno"].isChecked() is True
-    assert reloaded.row_inputs[2]["tiempo_presente"].text() == "1"
-    window.close()
+    view = cli3074_page._stack.currentWidget()
+    view.row_inputs[2]["pres_est"].setText("1015.3")
+    view.row_inputs[2]["temp_seco"].setText("23.2")
+    view.row_checks[2]["trueno"].setChecked(True)
+    view.row_inputs[2]["tiempo_presente"].setText("1")
+    view.save_data()
+    fresh_view = type(view)(view._conn, station="78485", fecha="2025-12-08")
+    assert fresh_view.row_inputs[2]["pres_est"].text() == "1015.3"
+    assert fresh_view.row_inputs[2]["temp_seco"].text() == "23.2"
+    assert fresh_view.row_checks[2]["trueno"].isChecked() is True
+    assert fresh_view.row_inputs[2]["tiempo_presente"].text() == "1"
 
 
 def test_cli3074_one_decimal_and_ceiling_on_blur(qtbot, fresh_db, tmp_path):
-    from oms_ui.pages.cli3074 import Cli3074Window
+    from oms_ui.pages.cli3074 import Cli3074View
 
-    widget = Cli3074Window(fresh_db, station="78485", fecha="2025-12-08")
-    qtbot.addWidget(widget)
-    widget.row_inputs[1]["pres_est"].setText("23.50")
-    widget._normalize_edit(widget.row_inputs[1]["pres_est"], "pres_est", 1)
-    assert widget.row_inputs[1]["pres_est"].text() == "23.5"
-    widget.row_inputs[1]["hum_hr"].setText("66.7")
-    widget._normalize_edit(widget.row_inputs[1]["hum_hr"], "hum_hr", 1)
-    assert widget.row_inputs[1]["hum_hr"].text() == "67"  # ceil to integer
+    view = Cli3074View(fresh_db, station="78485", fecha="2025-12-08")
+    qtbot.addWidget(view)
+    view.row_inputs[1]["pres_est"].setText("23.50")
+    view._normalize_edit(view.row_inputs[1]["pres_est"], "pres_est", 1)
+    assert view.row_inputs[1]["pres_est"].text() == "23.5"
+    view.row_inputs[1]["hum_hr"].setText("66.7")
+    view._normalize_edit(view.row_inputs[1]["hum_hr"], "hum_hr", 1)
+    assert view.row_inputs[1]["hum_hr"].text() == "67"  # ceil to integer
 
 
-def test_cli3074_ver_hora_synop_feeds_synoptic_hour(cli3074_page, qtbot):
-    """The 00Z..21Z buttons jump (oracle: navigate with activeHour)."""
+def test_cli_back_returns_to_last_open_synoptic_hour(cli3074_page, qtbot):
+    """Owner round 5: back arrow returns to the LAST open synoptic hour."""
+    cli3074_page.select_hour("21Z")
+    cli3074_page._open_cli("cli4074")
+    assert cli3074_page._stack.currentWidget() is not cli3074_page._grid_host
+    cli3074_page._stack.currentWidget().back_requested.emit()
+    assert cli3074_page._stack.currentWidget() is cli3074_page._grid_host
+    assert cli3074_page.active_hour == "21Z"  # the last hour, untouched
+
+
+def test_cli_tabs_redirect_between_modules(cli3074_page, qtbot):
+    """The 3074/4074/5074 tabs swap CLI views inside the same window."""
+    from oms_ui.pages.cli4074 import Cli4074View
+    from oms_ui.pages.cli5074 import Cli5074View
+
     cli3074_page._open_cli("cli3074")
-    window = cli3074_page._cli3074_window
-    window._hour_buttons["00Z"].click()
-    qtbot.waitUntil(lambda: cli3074_page.active_hour == "00Z")
-    window.close()
+    view = cli3074_page._stack.currentWidget()
+    view.switch_requested.emit("cli5074")
+    assert isinstance(cli3074_page._stack.currentWidget(), Cli5074View)
+    cli3074_page._stack.currentWidget().switch_requested.emit("cli4074")
+    assert isinstance(cli3074_page._stack.currentWidget(), Cli4074View)
+    # cached: reopening reuses the same instance
+    cli3074_page._open_cli("cli4074")
+    assert isinstance(cli3074_page._stack.currentWidget(), Cli4074View)
+
+
+def test_cli_ver_hora_synop_jumps_to_grid_hour(cli3074_page, qtbot):
+    """00Z..21Z buttons: select that hour on the grid and return to it."""
+    cli3074_page._open_cli("cli4074")
+    cli3074_page._stack.currentWidget().synop_hour_requested.emit("00Z")
+    assert cli3074_page._stack.currentWidget() is cli3074_page._grid_host
+    assert cli3074_page.active_hour == "00Z"
+
+
+def test_cli4074_and_5074_views_roundtrip(cli3074_page, qtbot, fresh_db):
+    """Both sheets save through the service and rebuild from storage."""
+    from oms_ui.pages.cli4074 import Cli4074View
+    from oms_ui.pages.cli5074 import Cli5074View
+
+    cli3074_page._open_cli("cli4074")
+    v40 = cli3074_page._stack.currentWidget()
+    v40.row_inputs[2]["nb_cant"].setText("8")
+    v40.row_inputs[2]["lluvia_6h"].setText("12.30")
+    v40.save_data()
+    re40 = Cli4074View(fresh_db, station="78485", fecha="2025-12-08")
+    assert re40.row_inputs[2]["nb_cant"].text() == "8"
+    # without a blur pass the typed value stores verbatim (blur does the
+    # one-decimal pass — proven in the 3074 normalization test)
+    assert re40.row_inputs[2]["lluvia_6h"].text() == "12.30"
+    re40.row_inputs[2]["lluvia_6h"].setText("12.30")
+    re40._normalize_edit(re40.row_inputs[2]["lluvia_6h"], "lluvia_6h")
+    assert re40.row_inputs[2]["lluvia_6h"].text() == "12.3"
+
+    cli3074_page._open_cli("cli5074")
+    v50 = cli3074_page._stack.currentWidget()
+    v50.fields["daily.temp_max"].setText("31.05")
+    v50.fields["hourly.8.pres_est"].setText("1013.7")
+    v50.fields["fenomenos.3.fenomeno"].setText("Tormenta")
+    v50.save_data()
+    re50 = Cli5074View(fresh_db, station="78485", fecha="2025-12-08")
+    assert re50.fields["daily.temp_max"].text() == "31.05"  # stored verbatim
+    assert re50.fields["hourly.8.pres_est"].text() == "1013.7"
+    assert re50.fields["fenomenos.3.fenomeno"].text() == "Tormenta"
+    re50.fields["daily.hum_max"].setText("66.7")
+    re50._normalize_edit(re50.fields["daily.hum_max"], "hum_max")
+    assert re50.fields["daily.hum_max"].text() == "67"  # 5074 ceil field

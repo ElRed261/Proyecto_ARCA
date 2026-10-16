@@ -60,6 +60,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QScrollArea,
     QSizePolicy,
+    QStackedWidget,
     QStyle,
     QToolButton,
     QVBoxLayout,
@@ -610,7 +611,10 @@ class SynopticPage(QWidget):
         """OBS 1:1: dark hourly gradient with white cards + icon sidebar."""
         self.setWindowTitle("Observación Sinóptica")
 
-        outer = QVBoxLayout(self)
+        # the CLI sheets live in the SAME window: a view stack holds the
+        # grid host (view 0) and the lazily built CLI views (owner round 5)
+        self._grid_host = QWidget()
+        outer = QVBoxLayout(self._grid_host)
         outer.setContentsMargins(24, 20, 24, 16)
         outer.setSpacing(14)
 
@@ -1087,42 +1091,58 @@ class SynopticPage(QWidget):
         self.fecha_edit.dateChanged.connect(self._on_date_changed)
         self.observer_edit.textChanged.connect(self._on_observer_changed)
 
+        self._cli_views: dict[str, QWidget] = {}
+        self._stack = QStackedWidget(self)
+        page_layout = QVBoxLayout(self)
+        page_layout.setContentsMargins(0, 0, 0, 0)
+        page_layout.addWidget(self._stack)
+        self._stack.addWidget(self._grid_host)
+
     def _open_cli(self, module_key: str) -> None:
-        """Open the CLI window: 3074 gets its real window (IMG/CLI 3074.png);
-        4074/5074 still ride the compact generic sheet dialog."""
+        """Swap to the CLI view INSIDE this window (owner round 5: no extra
+        windows); back returns to the last open synoptic hour."""
         if not self.station_id or not self.fecha_iso:
             self.clear_error_state()
             self.error_label.setText(
                 "Elegí estación y fecha antes de abrir el módulo CLI"
             )
             return
-        if module_key == "cli3074":
-            self._open_cli3074()
-            return
-        from oms_ui.pages.cli_dialog import CliModuleDialog
+        view = self._cli_views.get(module_key)
+        if view is None:
+            view = self._make_cli_view(module_key)
+            self._cli_views[module_key] = view
+            self._stack.addWidget(view)
+        elif (view.station, view.fecha) != (self.station_id, self.fecha_iso):
+            view.station = self.station_id
+            view.fecha = self.fecha_iso
+            view.load_data()  # context moved: reload the stored sheet
+        self._stack.setCurrentWidget(view)
 
-        dialog = CliModuleDialog(
-            self._conn, self.station_id, self.fecha_iso, module_key, self
-        )
-        if dialog.exec():
-            try:
-                dialog.save()
-            except Exception as exc:  # noqa: BLE001 - service errors show inline
-                self.error_label.setText(f"Error al guardar {module_key}: {exc}")
-                return
+    def _make_cli_view(self, module_key: str) -> QWidget:
+        from oms_ui.pages import cli3074, cli4074, cli5074
 
-    def _open_cli3074(self) -> None:
-        """The full CLI 3074 window; VER HORA SYNOP feeds the synoptic page."""
-        from oms_ui.pages.cli3074 import Cli3074Window
-
-        window = Cli3074Window(
+        classes = {
+            "cli3074": cli3074.Cli3074View,
+            "cli4074": cli4074.Cli4074View,
+            "cli5074": cli5074.Cli5074View,
+        }
+        view = classes[module_key](
             self._conn, station=self.station_id or "", fecha=self.fecha_iso or ""
         )
-        window.synop_hour_requested.connect(self.select_hour)
-        window.setAttribute(Qt.WA_DeleteOnClose, True)
-        window.show()
-        window.raise_()
-        self._cli3074_window = window  # keep it alive while open
+        view.back_requested.connect(self._back_from_cli)
+        view.switch_requested.connect(self._open_cli)
+        view.synop_hour_requested.connect(self._jump_to_synop_hour)
+        return view
+
+    def _back_from_cli(self) -> None:
+        """Return to the grid: the active hour was never touched — the last
+        synoptic hour the user had open stays exactly as it was."""
+        self._stack.setCurrentWidget(self._grid_host)
+
+    def _jump_to_synop_hour(self, hora: str) -> None:
+        """VER HORA SYNOP: select that hour on the grid and go back to it."""
+        self.select_hour(hora)
+        self._stack.setCurrentWidget(self._grid_host)
 
     def navigate_to_day(self, delta: int) -> None:
         """Oracle navigateToDay: silent-save, load/create the target day.

@@ -1,0 +1,386 @@
+"""Cli4074View — cloud observation sheet, 24 local-hour rows.
+
+Embeddable view (owner round 5: no extra windows) ported from
+``OLD/frontend/src/features/synoptic/cli4074/pages/Cli4074Page.jsx``:
+N + CÚMULONIMBOS (Cant/Tipo/Altura) + NUBES BAJAS CL (Cant/Tipo/Dir/
+Altura/TOTAL) + NUBES MEDIAS CM ×5 + NUBES ALTAS CH ×5 + LLUVIA 6H +
+TEMPS Máx/Mín + EST. SUELO + OBS. The doc rides the transactional
+``cli_service.save_cli`` under ``cli4074`` (shape: ``{"horas": ...}``).
+"""
+
+from __future__ import annotations
+
+import sqlite3
+
+from PySide6.QtCore import QSize, Qt, Signal
+from PySide6.QtWidgets import (
+    QComboBox,
+    QFrame,
+    QGridLayout,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QScrollArea,
+    QVBoxLayout,
+    QWidget,
+)
+
+from oms_core.db.repositories import stations as stations_repo
+from oms_core.services import cli as cli_service
+from oms_ui.icons import lucide_icon
+
+#: (field, sub-header text) in column order; groups carry their own colors.
+GROUPS_4074: tuple[tuple[str, str, int, tuple[tuple[str, str], ...]], ...] = (
+    ("CÚMULONIMBOS", "#6b21a8", 3, (
+        ("cb_cant", "Cant"), ("cb_tipo", "Tipo"), ("cb_altura", "Altura"),
+    )),
+    ("NUBES BAJAS (CL)", "#475569", 5, (
+        ("nb_cant", "Cant"), ("nb_tipo", "Tipo"), ("nb_direc", "Dir"),
+        ("nb_altura", "Altura"), ("nb_total", "TOTAL"),
+    )),
+    ("NUBES MEDIAS (CM)", "#0c4a6e", 5, (
+        ("nm_cant", "Cant"), ("nm_tipo", "Tipo"), ("nm_direc", "Dir"),
+        ("nm_altura", "Altura"), ("nm_total", "TOTAL"),
+    )),
+    ("NUBES ALTAS (CH)", "#3730a3", 5, (
+        ("na_cant", "Cant"), ("na_tipo", "Tipo"), ("na_direc", "Dir"),
+        ("na_altura", "Altura"), ("na_total", "TOTAL"),
+    )),
+)
+_ROWSPAN_FIELDS: tuple[tuple[str, str, str], ...] = (
+    ("nubosidad", "N", "#4b5563"),
+    ("lluvia_6h", "LLUVIA 6H (mm)", "#155e75"),
+    ("estado_suelo", "EST. SUELO", "#92400e"),
+    ("observador", "OBS.", "#115e59"),
+)
+_TEMPS: tuple[tuple[str, str], ...] = (("temp_max", "Máx"), ("temp_min", "Mín"))
+INPUT_QSS = (
+    "QLineEdit { background-color: #ffffff; border: 1px solid #e2e8f0;"
+    "color: #1e293b; font-size: 12px; padding: 3px 4px; }"
+    "QLineEdit:focus { border-color: #38bdf8; background-color: #f0f9ff; }"
+)
+_HEADER_QSS = (
+    "background-color: {color}; color: #ffffff; font-weight: bold;"
+    "font-size: 11px; padding: 5px 3px;"
+)
+_SUB_HEADER_QSS = (
+    "background-color: #1f2937; color: #cbd5e1; font-weight: 600;"
+    "font-size: 10px; padding: 4px 2px;"
+)
+_SAVE_QSS = (
+    "QPushButton { background-color: #0ea5e9; color: #ffffff;"
+    "border: none; border-radius: 8px; padding: 7px 14px;"
+    "font-weight: 700; font-size: 12px; }"
+    "QPushButton:hover { background-color: #0284c7; }"
+)
+
+
+class Cli4074View(QWidget):
+    """CLI 4074 cloud sheet embedded in the synoptic page view stack."""
+
+    synop_hour_requested = Signal(str)
+    back_requested = Signal()
+    switch_requested = Signal(str)
+
+    MODULE_KEY = "cli4074"
+    TITLE = "CLI 4074 - OBSERVACIONES DE NUBES"
+
+    def __init__(
+        self,
+        conn: sqlite3.Connection,
+        *,
+        station: str,
+        fecha: str,
+        parent: QWidget | None = None,
+    ) -> None:
+        super().__init__(parent)
+        self._conn = conn
+        self.station = station
+        self.fecha = fecha
+        self.setWindowTitle(self.TITLE)
+        self.setStyleSheet("background-color: #f1f5f9;")
+
+        self.row_inputs: dict[int, dict[str, QLineEdit]] = {
+            row: {} for row in range(1, 25)
+        }
+        self._build()
+        self.load_data()
+
+    # ------------------------------------------------------------ building
+
+    def _build(self) -> None:
+        central = QWidget()
+        outer = QVBoxLayout(central)
+        outer.setContentsMargins(16, 12, 16, 12)
+        outer.setSpacing(10)
+
+        top = QHBoxLayout()
+        back_btn = QPushButton()
+        back_btn.setFixedSize(40, 40)
+        back_btn.setIcon(lucide_icon("arrow-left", "#0369a1", 18))
+        back_btn.setIconSize(QSize(18, 18))
+        back_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        back_btn.setToolTip("Volver a la última hora de observación")
+        back_btn.setStyleSheet(
+            "QPushButton { background-color: #ffffff; border: 1px solid #e2e8f0;"
+            "border-radius: 20px; }"
+            "QPushButton:hover { background-color: #e0f2fe; }"
+        )
+        back_btn.clicked.connect(self.back_requested.emit)
+        top.addWidget(back_btn, 0, Qt.AlignmentFlag.AlignVCenter)
+
+        title = QLabel(self.TITLE)
+        title.setStyleSheet(
+            "font-size: 18px; font-weight: 800; color: #0f172a;"
+            "background: transparent;"
+        )
+        title.setWordWrap(True)
+        top.addWidget(title, 0, Qt.AlignmentFlag.AlignVCenter)
+        top.addStretch(1)
+        self._build_tabs(top)
+        self._build_ver_hora(top)
+
+        self.save_btn = QPushButton("Guardar")
+        self.save_btn.setIcon(lucide_icon("save", "#ffffff", 15))
+        self.save_btn.setIconSize(QSize(15, 15))
+        self.save_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.save_btn.setStyleSheet(_SAVE_QSS)
+        self.save_btn.clicked.connect(self.save_data)
+        top.addWidget(self.save_btn, 0, Qt.AlignmentFlag.AlignVCenter)
+        outer.addLayout(top)
+
+        self._build_station_card(outer)
+
+        sheet_card = QFrame()
+        sheet_card.setStyleSheet(
+            "QFrame { background-color: #ffffff; border: 1px solid #e2e8f0;"
+            "border-radius: 10px; }"
+        )
+        sheet_layout = QVBoxLayout(sheet_card)
+        sheet_layout.setContentsMargins(0, 0, 0, 0)
+        grid_host = QWidget()
+        grid = QGridLayout(grid_host)
+        grid.setHorizontalSpacing(0)
+        grid.setVerticalSpacing(0)
+
+        col = 1
+        for text, color, span, fields in GROUPS_4074:
+            header = QLabel(text)
+            header.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            header.setWordWrap(True)
+            header.setStyleSheet(_HEADER_QSS.format(color=color))
+            grid.addWidget(header, 0, col, 1, span)
+            for offset, (_field, sub) in enumerate(fields):
+                sub_label = QLabel(sub)
+                sub_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                sub_label.setStyleSheet(_SUB_HEADER_QSS)
+                grid.addWidget(sub_label, 1, col + offset)
+            col += span
+        for field, text, color in _ROWSPAN_FIELDS:
+            header = QLabel(text)
+            header.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            header.setWordWrap(True)
+            header.setStyleSheet(_HEADER_QSS.format(color=color))
+            grid.addWidget(header, 0, col, 2, 1)
+            col += 1
+            if field == "lluvia_6h":  # TEMPS. group sits right after lluvia
+                temps = QLabel("TEMPS.")
+                temps.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                temps.setStyleSheet(_HEADER_QSS.format(color="#9a3412"))
+                grid.addWidget(temps, 0, col, 1, 2)
+                for offset, (_tf, sub) in enumerate(_TEMPS):
+                    sub_label = QLabel(sub)
+                    sub_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                    sub_label.setStyleSheet(_SUB_HEADER_QSS)
+                    grid.addWidget(sub_label, 1, col + offset)
+                col += 2
+
+        for row in range(1, 25):
+            number = QLabel(str(row))
+            number.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            main = (row - 2) % 3 == 0
+            number.setStyleSheet(
+                f"background-color: {'#bae6fd' if main else '#f1f5f9'};"
+                "color: #475569; font-weight: bold; font-size: 12px;"
+                "padding: 4px 5px;"
+            )
+            grid.addWidget(number, row + 1, 0)
+            for cindex, (field, _text) in enumerate(self._all_fields()):
+                edit = QLineEdit()
+                edit.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                edit.setStyleSheet(INPUT_QSS)
+                edit.setMinimumHeight(26)
+                edit.editingFinished.connect(
+                    lambda w=edit, f=field: self._normalize_edit(w, f)
+                )
+                self.row_inputs[row][field] = edit
+                grid.addWidget(edit, row + 1, 1 + cindex)
+        for cindex in range(len(self._all_fields())):
+            grid.setColumnStretch(1 + cindex, 1)
+
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+        scroll.setWidget(grid_host)
+        sheet_layout.addWidget(scroll)
+        outer.addWidget(sheet_card, 1)
+
+        page_layout = QVBoxLayout(self)
+        page_layout.setContentsMargins(0, 0, 0, 0)
+        page_layout.addWidget(central)
+
+    @staticmethod
+    def _all_fields() -> tuple[tuple[str, str], ...]:
+        fields: list[tuple[str, str]] = [("nubosidad", "N")]
+        for _g, _c, _s, group_fields in GROUPS_4074:
+            fields.extend(group_fields)
+        fields.append(("lluvia_6h", "LLUVIA 6H"))
+        fields.extend(_TEMPS)
+        fields.extend([("estado_suelo", "EST. SUELO"), ("observador", "OBS.")])
+        return tuple(fields)
+
+    def _build_tabs(self, top: QHBoxLayout) -> None:
+        tabs_box = QWidget()
+        tabs_box.setStyleSheet("background-color: #e2e8f0; border-radius: 8px;")
+        tabs_row = QHBoxLayout(tabs_box)
+        tabs_row.setContentsMargins(4, 4, 4, 4)
+        tabs_row.setSpacing(4)
+        for module_key, label in (
+            ("cli3074", "3074"), ("cli4074", "4074"), ("cli5074", "5074"),
+        ):
+            active = module_key == self.MODULE_KEY
+            tab = QPushButton(label)
+            tab.setStyleSheet(
+                f"QPushButton {{ background-color: {'#ffffff' if active else 'transparent'};"
+                f"color: {'#0369a1' if active else '#475569'}; border: none;"
+                "border-radius: 5px; padding: 3px 9px; font-size: 11px;"
+                "font-weight: bold; }"
+                "QPushButton:hover { background-color: #f0f9ff; }"
+            )
+            tab.setCursor(Qt.CursorShape.PointingHandCursor)
+            if not active:
+                tab.clicked.connect(
+                    lambda _=False, m=module_key: self.switch_requested.emit(m)
+                )
+            tabs_row.addWidget(tab)
+        top.addWidget(tabs_box, 0, Qt.AlignmentFlag.AlignVCenter)
+
+    def _build_ver_hora(self, top: QHBoxLayout) -> None:
+        hour_box = QWidget()
+        hour_box.setStyleSheet("background-color: #e2e8f0; border-radius: 8px;")
+        hour_row = QHBoxLayout(hour_box)
+        hour_row.setContentsMargins(8, 4, 8, 4)
+        hour_row.setSpacing(4)
+        hint = QLabel("VER HORA SYNOP:")
+        hint.setStyleSheet(
+            "color: #64748b; font-size: 10px; font-weight: 700;"
+            "background: transparent;"
+        )
+        hour_row.addWidget(hint)
+        for hour in ("00Z", "03Z", "06Z", "09Z", "12Z", "15Z", "18Z", "21Z"):
+            button = QPushButton(hour)
+            button.setStyleSheet(
+                "QPushButton { background-color: #ffffff; color: #475569;"
+                "border: none; border-radius: 5px; padding: 3px 7px;"
+                "font-size: 11px; font-weight: bold; }"
+                "QPushButton:hover { color: #0369a1; background-color: #f0f9ff; }"
+            )
+            button.setCursor(Qt.CursorShape.PointingHandCursor)
+            button.clicked.connect(
+                lambda _checked=False, h=hour: self.synop_hour_requested.emit(h)
+            )
+            hour_row.addWidget(button)
+        top.addWidget(hour_box, 0, Qt.AlignmentFlag.AlignVCenter)
+
+    def _build_station_card(self, outer: QVBoxLayout) -> None:
+        card = QFrame()
+        card.setStyleSheet(
+            "QFrame { background-color: #ffffff; border: 1px solid #e2e8f0;"
+            "border-radius: 10px; }"
+        )
+        grid = QGridLayout(card)
+        grid.setContentsMargins(14, 10, 14, 10)
+
+        def meta_label(text: str) -> QLabel:
+            label = QLabel(text)
+            label.setStyleSheet(
+                "color: #475569; font-weight: 700; font-size: 11px;"
+                "background: transparent;"
+            )
+            return label
+
+        self.station_combo = QComboBox()
+        for row in stations_repo.list_stations(self._conn):
+            self.station_combo.addItem(f"{row.name} ({row.id})", row.id)
+        self.station_combo.setCurrentIndex(
+            max(self.station_combo.findData(self.station), 0)
+        )
+        self.station_combo.setEnabled(False)  # locked like the oracle route
+        self.station_combo.setStyleSheet(
+            "QComboBox { background-color: #f8fafc; border: 1px solid #cbd5e1;"
+            "border-radius: 6px; padding: 4px 8px; color: #475569; height: 24px; }"
+        )
+        self.fecha_edit = _ro_field(f"{self.fecha[8:]}/{self.fecha[5:7]}/{self.fecha[:4]}")
+
+        grid.addWidget(meta_label("ESTACIÓN:"), 0, 0)
+        grid.addWidget(self.station_combo, 0, 1)
+        grid.addWidget(meta_label("FECHA:"), 0, 2)
+        grid.addWidget(self.fecha_edit, 0, 3)
+        grid.setColumnStretch(4, 1)
+        outer.addWidget(card)
+
+    # ------------------------------------------------------------ behavior
+
+    def _normalize_edit(self, widget: QLineEdit, field: str) -> None:
+        value = widget.text().strip()
+        normalized = cli_service.enforce_one_decimal(
+            value, field,
+            decimal_fields=cli_service.DECIMAL_FIELDS_4074,
+            ceil_fields=cli_service.CEIL_FIELDS_4074,
+        )
+        if normalized != value:
+            widget.setText("" if normalized is None else str(normalized))
+
+    # ------------------------------------------------------------ data I/O
+
+    def row_values(self, row: int) -> dict[str, str]:
+        return {
+            field: self.row_inputs[row][field].text().strip()
+            for field, _text in self._all_fields()
+        }
+
+    def set_row(self, row: int, data: dict) -> None:
+        for field, _text in self._all_fields():
+            value = data.get(field)
+            if value is not None:
+                self.row_inputs[row][field].setText(str(value))
+
+    def load_data(self) -> None:
+        doc = cli_service.load_cli(self._conn, self.station, self.fecha, self.MODULE_KEY)
+        horas = (doc or {}).get("horas") if isinstance(doc, dict) else None
+        if not isinstance(horas, dict):
+            return
+        for row in range(1, 25):
+            data = horas.get(str(row))
+            if isinstance(data, dict):
+                self.set_row(row, data)
+
+    def save_data(self) -> None:
+        cli_service.save_cli(
+            self._conn, self.station, self.fecha, self.MODULE_KEY,
+            {"horas": {str(r): self.row_values(r) for r in range(1, 25)}},
+        )
+        self.save_btn.setToolTip("Guardado en el documento diario ✓")
+
+
+def _ro_field(text: str) -> QLineEdit:
+    edit = QLineEdit(text)
+    edit.setReadOnly(True)
+    edit.setAlignment(Qt.AlignmentFlag.AlignCenter)
+    edit.setStyleSheet(
+        "background-color: #f8fafc; border: 1px solid #e2e8f0;"
+        "border-radius: 6px; padding: 4px 8px; color: #334155; font-size: 12px;"
+    )
+    return edit
+

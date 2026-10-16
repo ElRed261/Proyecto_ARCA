@@ -24,7 +24,7 @@ from __future__ import annotations
 import sqlite3
 from typing import Any
 
-from PySide6.QtCore import Qt, QTimer, Signal
+from PySide6.QtCore import QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QPainter
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -34,7 +34,6 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
-    QMainWindow,
     QPushButton,
     QScrollArea,
     QVBoxLayout,
@@ -135,11 +134,22 @@ class _VerticalLabel(QLabel):
         painter.end()
 
 
-class Cli3074Window(QMainWindow):
-    """The CLI 3074 station sheet with 24 local-hour rows."""
+class Cli3074View(QWidget):
+    """The CLI 3074 station sheet with 24 local-hour rows.
+
+    Embeddable view (owner round 5: no extra windows — the CLI lives in the
+    same window as the synoptic page, swapped by a view stack).
+    """
 
     #: VER HORA SYNOP jumps: the synoptic page reacts by selecting the hour
     synop_hour_requested = Signal(str)
+    #: the round back arrow: return to the last open synoptic hour
+    back_requested = Signal()
+    #: module tabs (3074/4074/5074): the host swaps CLI views
+    switch_requested = Signal(str)
+
+    MODULE_KEY = "cli3074"
+    TITLE = "CLI 3074 - OBSERVACIONES DE SUPERFICIE"
 
     def __init__(
         self,
@@ -153,7 +163,8 @@ class Cli3074Window(QMainWindow):
         self._conn = conn
         self.station = station
         self.fecha = fecha
-        self.setWindowTitle("CLI 3074 - OBSERVACIONES DE SUPERFICIE")
+        self.setWindowTitle(self.TITLE)
+        self.setStyleSheet("background-color: #f1f5f9;")
 
         #: oracle rows state: numerics + stored extras (p3 when present).
         self._row_data: dict[int, dict[str, Any]] = {
@@ -174,9 +185,22 @@ class Cli3074Window(QMainWindow):
         outer.setContentsMargins(16, 12, 16, 12)
         outer.setSpacing(10)
 
-        # top band: title + VER HORA SYNOP + Guardar -----------------------
+        # top band: back + title + module tabs + VER HORA SYNOP + Guardar --
         top = QHBoxLayout()
-        title = QLabel("CLI 3074 - OBSERVACIONES DE SUPERFICIE")
+        back_btn = QPushButton()
+        back_btn.setFixedSize(40, 40)
+        back_btn.setIcon(lucide_icon("arrow-left", "#0369a1", 18))
+        back_btn.setIconSize(QSize(18, 18))
+        back_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        back_btn.setToolTip("Volver a la última hora de observación")
+        back_btn.setStyleSheet(
+            "QPushButton { background-color: #ffffff; border: 1px solid #e2e8f0;"
+            "border-radius: 20px; }"
+            "QPushButton:hover { background-color: #e0f2fe; }"
+        )
+        back_btn.clicked.connect(self.back_requested.emit)
+        top.addWidget(back_btn, 0, Qt.AlignmentFlag.AlignVCenter)
+        title = QLabel(self.TITLE)
         title.setStyleSheet(
             "font-size: 18px; font-weight: 800; color: #0f172a;"
             "background: transparent;"
@@ -184,6 +208,34 @@ class Cli3074Window(QMainWindow):
         title.setWordWrap(True)
         top.addWidget(title, 0, Qt.AlignmentFlag.AlignVCenter)
         top.addStretch(1)
+
+        # module tabs (oracle intra-CLI navigation)
+        tabs_box = QWidget()
+        tabs_box.setStyleSheet("background-color: #e2e8f0; border-radius: 8px;")
+        tabs_row = QHBoxLayout(tabs_box)
+        tabs_row.setContentsMargins(4, 4, 4, 4)
+        tabs_row.setSpacing(4)
+        for module_key, label in (
+            ("cli3074", "3074"),
+            ("cli4074", "4074"),
+            ("cli5074", "5074"),
+        ):
+            active = module_key == self.MODULE_KEY
+            tab = QPushButton(label)
+            tab.setStyleSheet(
+                f"QPushButton {{ background-color: {'#ffffff' if active else 'transparent'};"
+                f"color: {'#0369a1' if active else '#475569'}; border: none;"
+                "border-radius: 5px; padding: 3px 9px; font-size: 11px;"
+                "font-weight: bold; }"
+                "QPushButton:hover { background-color: #f0f9ff; }"
+            )
+            tab.setCursor(Qt.CursorShape.PointingHandCursor)
+            if not active:
+                tab.clicked.connect(
+                    lambda _=False, m=module_key: self.switch_requested.emit(m)
+                )
+            tabs_row.addWidget(tab)
+        top.addWidget(tabs_box, 0, Qt.AlignmentFlag.AlignVCenter)
 
         hour_box = QWidget()
         hour_box.setStyleSheet("background-color: #e2e8f0; border-radius: 8px;")
@@ -333,7 +385,9 @@ class Cli3074Window(QMainWindow):
         sheet_layout.addWidget(scroll)
         outer.addWidget(sheet_card, 1)
 
-        self.setCentralWidget(central)
+        page_layout = QVBoxLayout(self)
+        page_layout.setContentsMargins(0, 0, 0, 0)
+        page_layout.addWidget(central)
 
     def _card_host(self) -> QFrame:
         frame = QFrame()
