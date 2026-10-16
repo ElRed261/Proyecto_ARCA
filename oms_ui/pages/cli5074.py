@@ -1,20 +1,34 @@
-"""Cli5074View — daily form sheet (max/min, subsuelo, evaporímetros...).
+"""Cli5074View — extreme observations & phenomena daily sheet.
 
-Embeddable view (owner round 5: no extra windows) ported from
-``OLD/frontend/src/features/synoptic/cli5074/pages/Cli5074Page.jsx``:
-sections DIARIO (15 fields), HORARIO (rows 2/8/14/20 × 6 pressure/thermograph
-fields), SUBSUELO (d5..d100), EVAPORÍMETROS (piche/tanque/evaporigrafo),
-FENÓMENOS (12 rows × hora/min/ráfaga/intensidad/fenomeno/inicio/final/
-duración/iniciales) plus iniciales/manuales. The doc rides the transactional
-``cli_service.save_cli`` under ``cli5074`` (the sections dict as-is).
+Embeddable view (owner round 5: no extra windows) shaped EXACTLY as
+``IMG/CLI 5074.png`` (oracle ``Cli5074Page.jsx`` + ``getInitialState``):
+
+- EXTREMOS band: grouped two-row header — TEMPERATURA °C (Máxima/Mínima),
+  RÁFAGA MÁXIMA (DIR.-VEL. Dir/Vel + Hora Local HH:MM), HUM. REL. (%)
+  Máx/Mín, PRESIÓN ESTACIÓN (hPa) Máxima/Minima, INSOLAC (HORA), RADIAC
+  (CAL/CM²), LLUVIA (mm), EVAPOR. TANQUE A (mm), PUNTO DE ROCÍO (°C)
+  (emerald, full height) and RECORRIDO DEL VIENTO (km) — one data row;
+- HORARIO: fields as ROWS (Lect. Bar/Term. Anexo/Correc. Temp./Pres. Est./
+  Correc. Alt./Pres. NMM) and the synoptic hours 2/8/14/20 as COLUMNS;
+- TEMPERATURA SUBSUELO: (cm) 5..100 header over one (°C) data row;
+- EVAP. 0.00 A 0.00 HL (Piche/Tanque C/Evaporígrafo) + INICIALES OBS.;
+- FENÓMENOS: OBSERVACIONES Y DETALLES textarea + the 12-row table with
+  HORA LOCAL (Horas/Minutos), RÁFAGAS DE VIENTO (dd 16-P / ff m/s),
+  INTENSIDAD, FENÓMENOS METEOROLÓGICOS, INICIO (HH:MM, emerald), FINAL
+  (HH:MM), DURACIÓN, INICIALES OBSERV.
+
+The doc rides the transactional ``cli_service.save_cli`` under ``cli5074``
+(stored shape = the sections dict of ``get_initial_state``). Autosave is
+debounced and silent (owner round 8: no save button anywhere in the CLIs).
 """
 
 from __future__ import annotations
 
+import logging
 import sqlite3
 from typing import Any
 
-from PySide6.QtCore import QSize, Qt, Signal
+from PySide6.QtCore import QSize, Qt, QTimer, Signal
 from PySide6.QtWidgets import (
     QComboBox,
     QFrame,
@@ -22,6 +36,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QPlainTextEdit,
     QPushButton,
     QScrollArea,
     QVBoxLayout,
@@ -32,38 +47,54 @@ from oms_core.db.repositories import stations as stations_repo
 from oms_core.services import cli as cli_service
 from oms_ui.icons import lucide_icon
 
-#: (section key, human label, field list) — oracle getInitialState verbatim.
-_SECTIONS: tuple[tuple[str, str, tuple[tuple[str, str], ...]], ...] = (
-    ("daily", "DIARIO", (
-        ("temp_max", "T Máx"), ("temp_min", "T Mín"),
-        ("rafaga_dir", "Ráfaga Dir"), ("rafaga_vel", "Ráfaga Vel"),
-        ("rafaga_hora", "Ráfaga Hora"),
-        ("hum_max", "HR Máx"), ("hum_min", "HR Mín"),
-        ("pres_max", "P Máx"), ("pres_min", "P Mín"),
-        ("insolac", "Insolac"), ("radiac", "Radiac"),
-        ("lluvia", "Lluvia"), ("evap_tanque_a", "Evap. Tanque A"),
-        ("punto_rocio", "Punto Rocío"), ("recorrido_viento", "Recorrido Viento"),
+_LOGGER = logging.getLogger(__name__)
+
+#: oracle getInitialState sections (field, header label, header color).
+_DAILY_GROUPS: tuple[tuple[str, str, str, tuple[tuple[str, str], ...]], ...] = (
+    ("TEMPERATURA °C", "#334155", 2, (("temp_max", "Máxima"), ("temp_min", "Mínima"))),
+    ("RÁFAGA MÁXIMA", "#334155", 3, (
+        ("rafaga_dir", "Dir"), ("rafaga_vel", "Vel"), ("rafaga_hora", "Hora Local"),
     )),
-    ("subsuelo", "SUBSUELO (°C)", tuple(
-        (f"d{depth}", f"{depth} cm") for depth in (5, 10, 15, 20, 25, 50, 100)
+    ("HUM. REL. (%)", "#334155", 2, (("hum_max", "Máx"), ("hum_min", "Mín"))),
+    ("PRESIÓN ESTACIÓN (hPa)", "#334155", 2, (
+        ("pres_max", "Máxima"), ("pres_min", "Minima"),
     )),
-    ("evaporimetros", "EVAPORÍMETROS", (
-        ("piche", "Piche"), ("tanque_c", "Tanque C"), ("evaporigrafo", "Evaporígrafo"),
-    )),
+    ("INSOLAC", "#334155", 1, (("insolac", "HORA"),)),
+    ("RADIAC", "#334155", 1, (("radiac", "CAL/CM²"),)),
+    ("LLUVIA", "#334155", 1, (("lluvia", "(mm)"),)),
+    ("EVAPOR. TANQUE A", "#334155", 1, (("evap_tanque_a", "(mm)"),)),
+)
+_DAILY_ROWSPAN: tuple[tuple[str, str, str], ...] = (
+    ("punto_rocio", "PUNTO DE ROCÍO (°C)", "#047857"),
+    ("recorrido_viento", "RECORRIDO DEL VIENTO (km)", "#1e293b"),
 )
 _HOURLY_ROWS = (2, 8, 14, 20)
 _HOURLY_FIELDS: tuple[tuple[str, str], ...] = (
-    ("lect_bar", "Let. Bar."), ("term_anexo", "Term. Anexo"),
-    ("correc_temp", "Correc. Temp."), ("pres_est", "Pres. Est."),
-    ("correc_alt", "Correc. Alt."), ("pres_nmm", "Pres. NMM"),
+    ("lect_bar", "LECT. BAR (mmHg)"),
+    ("term_anexo", "TERM. ANEXO (°C)"),
+    ("correc_temp", "CORREC. TEMP."),
+    ("pres_est", "PRES. EST. (hPa)"),
+    ("correc_alt", "CORREC. ALT."),
+    ("pres_nmm", "PRES. NMM (hPa)"),
+)
+_SUBSUELO_DEPTHS = (5, 10, 15, 20, 25, 50, 100)
+_EVAP_FIELDS: tuple[tuple[str, str], ...] = (
+    ("piche", "PICHE"), ("tanque_c", "TANQUE C."), ("evaporigrafo", "EVAPORÍGRAFO"),
 )
 _FENO_ROWS = 12
-_FENO_FIELDS: tuple[tuple[str, str], ...] = (
-    ("hora", "Hora"), ("min", "Min"), ("raf_dir", "Ráf Dir"),
-    ("raf_vel", "Ráf Vel"), ("intensidad", "Intens."),
-    ("fenomeno", "Fenómeno"), ("inicio", "Inicio"), ("final", "Final"),
-    ("duracion", "Duración"), ("iniciales", "Iniciales"),
+_FENO_GROUPS: tuple[tuple[str, str, str, tuple[tuple[str, str], ...]], ...] = (
+    ("HORA LOCAL", "#334155", 2, (("hora", "HORAS"), ("min", "MINUTOS"))),
+    ("RÁFAGAS DE VIENTO", "#334155", 2, (
+        ("raf_dir", "dd 16-P"), ("raf_vel", "ff (m/s)"),
+    )),
+    ("INTENSIDAD", "#334155", 1, (("intensidad", ""),)),
+    ("FENÓMENOS METEOROLÓGICOS", "#334155", 1, (("fenomeno", ""),)),
+    ("INICIO (HH:MM)", "#047857", 1, (("inicio", ""),)),
+    ("FINAL (HH:MM)", "#334155", 1, (("final", ""),)),
+    ("DURACIÓN", "#334155", 1, (("duracion", ""),)),
+    ("INICIALES OBSERV.", "#334155", 1, (("iniciales", ""),)),
 )
+
 _SECTION_QSS = (
     "QFrame { background-color: #ffffff; border: 1px solid #e2e8f0;"
     "border-radius: 10px; }"
@@ -71,46 +102,61 @@ _SECTION_QSS = (
 _LABEL_QSS = (
     "color: #475569; font-weight: 600; font-size: 11px; background: transparent;"
 )
+_HEADER_QSS = (
+    "background-color: {color}; color: #ffffff; font-weight: bold;"
+    "font-size: 11px; padding: 5px 4px;"
+)
+_SUB_HEADER_QSS = (
+    "background-color: #1f2937; color: #cbd5e1; font-weight: 600;"
+    "font-size: 10px; padding: 4px 2px;"
+)
 _INPUT_QSS = (
     "QLineEdit { background-color: #ffffff; border: 1px solid #e2e8f0;"
     "color: #1e293b; font-size: 12px; padding: 3px 6px; }"
-    "QLineEdit:focus { border-color: #38bdf8; background-color: #f0f9ff; }"
+    "QLineEdit:focus { border-color: #34d399; background-color: #ecfdf5; }"
 )
-_SAVE_QSS = (
-    "QPushButton { background-color: #0ea5e9; color: #ffffff;"
-    "border: none; border-radius: 8px; padding: 7px 14px;"
-    "font-weight: 700; font-size: 12px; }"
-    "QPushButton:hover { background-color: #0284c7; }"
+_TEXT_QSS = (
+    "QPlainTextEdit { background-color: #ffffff; border: 1px solid #e2e8f0;"
+    "color: #475569; font-size: 12px; border-radius: 6px; }"
 )
 
 
 def get_initial_state() -> dict[str, Any]:
     """Oracle getInitialState: empty sections in the stored doc's shape."""
     return {
-        "daily": {field: "" for field, _t in _SECTIONS[0][2]},
+        "daily": {
+            "temp_max": "", "temp_min": "",
+            "rafaga_dir": "", "rafaga_vel": "", "rafaga_hora": "",
+            "hum_max": "", "hum_min": "",
+            "pres_max": "", "pres_min": "",
+            "insolac": "", "radiac": "", "lluvia": "",
+            "evap_tanque_a": "", "punto_rocio": "", "recorrido_viento": "",
+        },
         "hourly": {
             str(row): {field: "" for field, _t in _HOURLY_FIELDS}
             for row in _HOURLY_ROWS
         },
-        "subsuelo": {field: "" for field, _t in _SECTIONS[1][2]},
-        "evaporimetros": {field: "" for field, _t in _SECTIONS[2][2]},
+        "subsuelo": {f"d{d}": "" for d in _SUBSUELO_DEPTHS},
+        "evaporimetros": {field: "" for field, _t in _EVAP_FIELDS},
         "iniciales_obs": "",
         "observaciones_manuales": "",
         "fenomenos": [
-            {field: "" for field, _t in _FENO_FIELDS} for _ in range(_FENO_ROWS)
+            {field: "" for field, _t in _FENO_GROUPS} if False else
+            {field: "" for group in _FENO_GROUPS for field, _t in group[3]}
+            for _ in range(_FENO_ROWS)
         ],
     }
 
 
 class Cli5074View(QWidget):
-    """CLI 5074 daily form embedded in the synoptic page view stack."""
+    """CLI 5074 extremes & phenomena sheet, embedded in the view stack."""
 
     synop_hour_requested = Signal(str)
     back_requested = Signal()
     switch_requested = Signal(str)
 
     MODULE_KEY = "cli5074"
-    TITLE = "CLI 5074 - OBSERVACIONES DE SUPERFICIE"
+    TITLE = "CLI 5074 - OBSERVACIONES EXTREMAS Y FENÓMENOS"
 
     def __init__(
         self,
@@ -124,12 +170,22 @@ class Cli5074View(QWidget):
         self._conn = conn
         self.station = station
         self.fecha = fecha
-        self.setWindowTitle(self.TITLE)  # transparent: hourly gradient behind
+        self.setWindowTitle(self.TITLE)
+        # transparent: the page's hourly gradient shows through (round 6)
+        self.setStyleSheet("background: transparent;")
 
         self.fields: dict[str, QLineEdit] = {}
-        self.feno_inputs: list[dict[str, QLineEdit]] = []
+        self.feno_inputs: dict[int, dict[str, QLineEdit]] = {}
 
+        self._loading = False
+        self._autosave_timer = QTimer(self)
+        self._autosave_timer.setSingleShot(True)
+        self._autosave_timer.setInterval(700)
+        self._autosave_timer.timeout.connect(self.save_data)
         self._build()
+        for widget in self.fields.values():
+            if isinstance(widget, QLineEdit):  # el bridge conecta por su lado
+                widget.textChanged.connect(self._schedule_autosave)
         self.load_data()
 
     # ------------------------------------------------------------ building
@@ -151,7 +207,7 @@ class Cli5074View(QWidget):
         back_btn.setStyleSheet(
             "QPushButton { background-color: #ffffff; border: 1px solid #e2e8f0;"
             "border-radius: 20px; }"
-            "QPushButton:hover { background-color: #e0f2fe; }"
+            "QPushButton:hover { background-color: #d1fae5; }"
         )
         back_btn.clicked.connect(self.back_requested.emit)
         top.addWidget(back_btn, 0, Qt.AlignmentFlag.AlignVCenter)
@@ -166,73 +222,27 @@ class Cli5074View(QWidget):
         top.addStretch(1)
         self._build_tabs(top)
         self._build_ver_hora(top)
-
-        self.save_btn = QPushButton("Guardar")
-        self.save_btn.setIcon(lucide_icon("save", "#ffffff", 15))
-        self.save_btn.setIconSize(QSize(15, 15))
-        self.save_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.save_btn.setStyleSheet(_SAVE_QSS)
-        self.save_btn.clicked.connect(self.save_data)
-        top.addWidget(self.save_btn, 0, Qt.AlignmentFlag.AlignVCenter)
         outer.addLayout(top)
 
         self._build_station_card(outer)
-        for section_key, label, fields in _SECTIONS:
-            self._build_section_card(outer, section_key, label, fields)
+        self._build_extremos_card(outer)
 
-        # HORARIO (rows 2/8/14/20)
-        hourly_card = QFrame()
-        hourly_card.setStyleSheet(_SECTION_QSS)
-        hourly_l = QVBoxLayout(hourly_card)
-        hourly_l.setContentsMargins(14, 10, 14, 10)
-        hourly_title = QLabel("HORARIO (2-8-14-20 LOCAL)")
-        hourly_title.setStyleSheet(
-            "font-weight: 800; font-size: 12px; color: #0f172a;"
-            "background: transparent;"
-        )
-        hourly_l.addWidget(hourly_title)
-        self.hour_inputs: dict[int, dict[str, QLineEdit]] = {}
-        for row in _HOURLY_ROWS:
-            row_layout = QHBoxLayout()
-            row_layout.setSpacing(6)
-            row_label = QLabel(f"{row}:00")
-            row_label.setStyleSheet(_LABEL_QSS)
-            row_label.setMinimumWidth(48)
-            row_layout.addWidget(row_label)
-            self.hour_inputs[row] = {}
-            for field, label in _HOURLY_FIELDS:
-                edit = self._field_edit(f"hourly.{row}.{field}")
-                self.hour_inputs[row][field] = edit
-                row_layout.addWidget(QLabel(label))
-                row_layout.addWidget(edit)
-            hourly_l.addLayout(row_layout)
-        outer.addWidget(hourly_card)
+        middle = QHBoxLayout()
+        middle.setSpacing(10)
+        self._build_hourly_card(middle)
 
-        # FENÓMENOS (12 rows × 10 fields)
-        feno_card = QFrame()
-        feno_card.setStyleSheet(_SECTION_QSS)
-        feno_l = QVBoxLayout(feno_card)
-        feno_l.setContentsMargins(14, 10, 14, 10)
-        feno_title = QLabel("FENÓMENOS (12 registros)")
-        feno_title.setStyleSheet(
-            "font-weight: 800; font-size: 12px; color: #0f172a;"
-            "background: transparent;"
-        )
-        feno_l.addWidget(feno_title)
-        feno_grid = QGridLayout()
-        feno_grid.setHorizontalSpacing(6)
-        for col, (_field, label) in enumerate(_FENO_FIELDS):
-            head = QLabel(label)
-            head.setStyleSheet(_LABEL_QSS)
-            feno_grid.addWidget(head, 0, col)
-        for row in range(_FENO_ROWS):
-            self.feno_inputs.append({})
-            for col, (field, _label) in enumerate(_FENO_FIELDS):
-                edit = self._field_edit(f"fenomenos.{row}.{field}")
-                self.feno_inputs[row][field] = edit
-                feno_grid.addWidget(edit, row + 1, col)
-        feno_l.addLayout(feno_grid)
-        outer.addWidget(feno_card, 1)
+        right = QVBoxLayout()
+        right.setSpacing(10)
+        self._build_subsuelo_card(right)
+        bottom_right = QHBoxLayout()
+        bottom_right.setSpacing(10)
+        self._build_evap_card(bottom_right)
+        self._build_iniciales_card(bottom_right)
+        right.addLayout(bottom_right)
+        middle.addLayout(right, 1)
+        outer.addLayout(middle)
+
+        self._build_fenomenos_card(outer)
 
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
@@ -245,80 +255,21 @@ class Cli5074View(QWidget):
         page_layout.setContentsMargins(0, 0, 0, 0)
         page_layout.addWidget(scroll)
 
-    def _field_edit(self, storage_key: str) -> QLineEdit:
-        edit = QLineEdit()
-        edit.setStyleSheet(_INPUT_QSS)
-        edit.setMinimumHeight(26)
-        field = storage_key.split(".")[-1]
-        edit.editingFinished.connect(
-            lambda w=edit, f=field: self._normalize_edit(w, f)
-        )
-        self.fields[storage_key] = edit
-        return edit
-
-    def _normalize_edit(self, widget: QLineEdit, field: str) -> None:
-        """Oracle enforceOneDecimal: one decimal + ceil hum fields."""
-        value = widget.text().strip()
-        normalized = cli_service.enforce_one_decimal(
-            value, field,
-            decimal_fields=cli_service.DECIMAL_FIELDS_5074,
-            ceil_fields=cli_service.CEIL_FIELDS_5074,
-        )
-        if normalized != value:
-            widget.setText("" if normalized is None else str(normalized))
-
-    def _build_tabs(self, top: QHBoxLayout) -> None:
-        tabs_box = QWidget()
-        tabs_box.setStyleSheet("background-color: #e2e8f0; border-radius: 8px;")
-        tabs_row = QHBoxLayout(tabs_box)
-        tabs_row.setContentsMargins(4, 4, 4, 4)
-        tabs_row.setSpacing(4)
-        for module_key, label in (
-            ("cli3074", "3074"), ("cli4074", "4074"), ("cli5074", "5074"),
-        ):
-            active = module_key == self.MODULE_KEY
-            tab = QPushButton(label)
-            tab.setStyleSheet(
-                f"QPushButton {{ background-color: {'#ffffff' if active else 'transparent'};"
-                f"color: {'#0369a1' if active else '#475569'}; border: none;"
-                "border-radius: 5px; padding: 3px 9px; font-size: 11px;"
-                "font-weight: bold; }"
-                "QPushButton:hover { background-color: #f0f9ff; }"
+    def _section_card(self, layout, title_text: str | None = None) -> tuple[QFrame, QVBoxLayout]:
+        card = QFrame()
+        card.setStyleSheet(_SECTION_QSS)
+        card_layout = QVBoxLayout(card)
+        card_layout.setContentsMargins(12, 10, 12, 12)
+        card_layout.setSpacing(8)
+        if title_text:
+            title = QLabel(title_text)
+            title.setStyleSheet(
+                "font-weight: 800; font-size: 12px; color: #0f172a;"
+                "background: transparent;"
             )
-            tab.setCursor(Qt.CursorShape.PointingHandCursor)
-            if not active:
-                tab.clicked.connect(
-                    lambda _=False, m=module_key: self.switch_requested.emit(m)
-                )
-            tabs_row.addWidget(tab)
-        top.addWidget(tabs_box, 0, Qt.AlignmentFlag.AlignVCenter)
-
-    def _build_ver_hora(self, top: QHBoxLayout) -> None:
-        hour_box = QWidget()
-        hour_box.setStyleSheet("background-color: #e2e8f0; border-radius: 8px;")
-        hour_row = QHBoxLayout(hour_box)
-        hour_row.setContentsMargins(8, 4, 8, 4)
-        hour_row.setSpacing(4)
-        hint = QLabel("VER HORA SYNOP:")
-        hint.setStyleSheet(
-            "color: #64748b; font-size: 10px; font-weight: 700;"
-            "background: transparent;"
-        )
-        hour_row.addWidget(hint)
-        for hour in ("00Z", "03Z", "06Z", "09Z", "12Z", "15Z", "18Z", "21Z"):
-            button = QPushButton(hour)
-            button.setStyleSheet(
-                "QPushButton { background-color: #ffffff; color: #475569;"
-                "border: none; border-radius: 5px; padding: 3px 7px;"
-                "font-size: 11px; font-weight: bold; }"
-                "QPushButton:hover { color: #0369a1; background-color: #f0f9ff; }"
-            )
-            button.setCursor(Qt.CursorShape.PointingHandCursor)
-            button.clicked.connect(
-                lambda _checked=False, h=hour: self.synop_hour_requested.emit(h)
-            )
-            hour_row.addWidget(button)
-        top.addWidget(hour_box, 0, Qt.AlignmentFlag.AlignVCenter)
+            card_layout.addWidget(title)
+        layout.addWidget(card)
+        return card, card_layout
 
     def _build_station_card(self, outer: QVBoxLayout) -> None:
         card = QFrame()
@@ -356,31 +307,257 @@ class Cli5074View(QWidget):
         grid.setColumnStretch(4, 1)
         outer.addWidget(card)
 
-    def _build_section_card(
-        self,
-        outer: QVBoxLayout,
-        section_key: str,
-        label: str,
-        fields: tuple[tuple[str, str], ...],
-    ) -> None:
+    def _build_extremos_card(self, outer: QVBoxLayout) -> None:
+        _card, layout = self._section_card(outer, None)
+        grid = QGridLayout()
+        grid.setHorizontalSpacing(0)
+        grid.setVerticalSpacing(0)
+        layout.addLayout(grid)
+
+        col = 1
+        for text, color, span, fields in _DAILY_GROUPS:
+            header = QLabel(text)
+            header.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            header.setWordWrap(True)
+            header.setStyleSheet(_HEADER_QSS.format(color=color))
+            grid.addWidget(header, 0, col, 1, span)
+            for offset, (field, sub) in enumerate(fields):
+                sub_label = QLabel(sub)
+                sub_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                sub_label.setStyleSheet(_SUB_HEADER_QSS)
+                grid.addWidget(sub_label, 1, col + offset)
+                edit = self._field_edit(f"daily.{field}")
+                grid.addWidget(edit, 2, col + offset)
+            col += span
+        for field, text, color in _DAILY_ROWSPAN:
+            header = QLabel(text)
+            header.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            header.setWordWrap(True)
+            header.setStyleSheet(_HEADER_QSS.format(color=color))
+            grid.addWidget(header, 0, col, 2, 1)
+            edit = self._field_edit(f"daily.{field}")
+            grid.addWidget(edit, 2, col)
+            col += 1
+        for c in range(1, col):
+            grid.setColumnStretch(c, 1)
+
+    def _build_hourly_card(self, layout: QHBoxLayout) -> None:
+        _card, card_layout = self._section_card(layout, "HORARIO")
+        grid = QGridLayout()
+        grid.setHorizontalSpacing(0)
+        grid.setVerticalSpacing(0)
+        card_layout.addLayout(grid)
+        corner = QLabel("HORA LOCAL")
+        corner.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        corner.setStyleSheet(_HEADER_QSS.format(color="#1e293b"))
+        grid.addWidget(corner, 0, 0)
+        for col_index, row in enumerate(_HOURLY_ROWS):
+            head = QLabel(str(row))
+            head.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            head.setStyleSheet(_HEADER_QSS.format(color="#334155"))
+            grid.addWidget(head, 0, 1 + col_index)
+        self.hour_inputs: dict[int, dict[str, QLineEdit]] = {}
+        for row_index, (field, label) in enumerate(_HOURLY_FIELDS):
+            row_label = QLabel(label)
+            row_label.setStyleSheet(_LABEL_QSS)
+            grid.addWidget(row_label, 1 + row_index, 0)
+            self.hour_inputs.setdefault(_HOURLY_ROWS[0], {})  # safety
+            for col_index, hour in enumerate(_HOURLY_ROWS):
+                edit = self._field_edit(f"hourly.{hour}.{field}")
+                self.hour_inputs.setdefault(hour, {})[field] = edit
+                grid.addWidget(edit, 1 + row_index, 1 + col_index)
+        grid.setColumnStretch(0, 2)
+        for col_index in range(len(_HOURLY_ROWS)):
+            grid.setColumnStretch(1 + col_index, 1)
+
+    def _build_subsuelo_card(self, right: QVBoxLayout) -> None:
+        _card, layout = self._section_card(right, "TEMPERATURA SUBSUELO")
+        grid = QGridLayout()
+        grid.setHorizontalSpacing(0)
+        grid.setVerticalSpacing(0)
+        layout.addLayout(grid)
+        cm_label = QLabel("(cm)")
+        cm_label.setStyleSheet(_SUB_HEADER_QSS)
+        grid.addWidget(cm_label, 0, 0)
+        for col_index, depth in enumerate(_SUBSUELO_DEPTHS):
+            head = QLabel(str(depth))
+            head.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            head.setStyleSheet(_SUB_HEADER_QSS)
+            grid.addWidget(head, 0, 1 + col_index)
+        c_label = QLabel("(°C)")
+        c_label.setStyleSheet(_SUB_HEADER_QSS)
+        grid.addWidget(c_label, 1, 0)
+        for col_index, depth in enumerate(_SUBSUELO_DEPTHS):
+            edit = self._field_edit(f"subsuelo.d{depth}")
+            grid.addWidget(edit, 1, 1 + col_index)
+        for c in range(len(_SUBSUELO_DEPTHS) + 1):
+            grid.setColumnStretch(c, 1)
+
+    def _build_evap_card(self, bottom_right: QHBoxLayout) -> None:
+        _card, layout = self._section_card(bottom_right, "EVAP. 0.00 A 0.00 HL")
+        grid = QGridLayout()
+        grid.setHorizontalSpacing(0)
+        grid.setVerticalSpacing(0)
+        layout.addLayout(grid)
+        for col_index, (field, label) in enumerate(_EVAP_FIELDS):
+            head = QLabel(label)
+            head.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            head.setStyleSheet(_SUB_HEADER_QSS)
+            grid.addWidget(head, 0, col_index)
+            sub = QLabel("(mm)")
+            sub.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            sub.setStyleSheet(_SUB_HEADER_QSS)
+            grid.addWidget(sub, 1, col_index)
+            edit = self._field_edit(f"evaporimetros.{field}")
+            grid.addWidget(edit, 2, col_index)
+        for c in range(len(_EVAP_FIELDS)):
+            grid.setColumnStretch(c, 1)
+
+    def _build_iniciales_card(self, bottom_right: QHBoxLayout) -> None:
+        _card, layout = self._section_card(bottom_right, "INICIALES OBS.")
+        edit = QLineEdit()
+        edit.setStyleSheet(_INPUT_QSS)
+        edit.setMinimumHeight(28)
+        self.fields["iniciales_obs"] = edit
+        layout.addWidget(edit)
+        bottom_right.addWidget(_card) if False else None
+
+    def _build_fenomenos_card(self, outer: QVBoxLayout) -> None:
         card = QFrame()
         card.setStyleSheet(_SECTION_QSS)
-        layout = QVBoxLayout(card)
-        layout.setContentsMargins(14, 10, 14, 10)
-        title = QLabel(label)
-        title.setStyleSheet(
+        row = QHBoxLayout(card)
+        row.setContentsMargins(12, 10, 12, 12)
+        row.setSpacing(10)
+
+        # OBSERVACIONES Y DETALLES textarea (oracle placeholder verbatim)
+        left = QVBoxLayout()
+        left_title = QLabel("OBSERVACIONES Y DETALLES DEL FENÓMENO")
+        left_title.setStyleSheet(
             "font-weight: 800; font-size: 12px; color: #0f172a;"
             "background: transparent;"
         )
-        layout.addWidget(title)
-        grid = QGridLayout()
-        grid.setHorizontalSpacing(10)
-        for index, (field, field_label) in enumerate(fields):
-            grid.addWidget(QLabel(field_label), index // 5, (index % 5) * 2)
-            edit = self._field_edit(f"{section_key}.{field}")
-            grid.addWidget(edit, index // 5, (index % 5) * 2 + 1)
-        layout.addLayout(grid)
-        outer.addWidget(card)
+        left.addWidget(left_title)
+        manual = QPlainTextEdit()
+        manual.setPlaceholderText(
+            "Espacio destinado a detallar más información de forma manual..."
+        )
+        manual.setStyleSheet(_TEXT_QSS)
+        manual.setFixedHeight(140)
+        self.fields["observaciones_manuales"] = _PlainTextBridge(manual, self._schedule_autosave)
+        left.addWidget(manual)
+        row.addLayout(left, 1)
+
+        # fenómenos table (groups + 12 rows)
+        feno_grid = QGridLayout()
+        feno_grid.setHorizontalSpacing(0)
+        feno_grid.setVerticalSpacing(0)
+        col = 0
+        for text, color, span, fields in _FENO_GROUPS:
+            header = QLabel(text)
+            header.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            header.setWordWrap(True)
+            header.setStyleSheet(_HEADER_QSS.format(color=color))
+            feno_grid.addWidget(header, 0, col, 1, span)
+            for offset, (field, sub) in enumerate(fields):
+                if sub:
+                    sub_label = QLabel(sub)
+                    sub_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                    sub_label.setStyleSheet(_SUB_HEADER_QSS)
+                    feno_grid.addWidget(sub_label, 1, col + offset)
+                col_offset = col + offset
+                for row_index in range(_FENO_ROWS):
+                    edit = self._field_edit(f"fenomenos.{row_index}.{field}")
+                    if field == "fenomeno":
+                        edit.setPlaceholderText("Ej: Tormenta, Gr")
+                    self.feno_inputs.setdefault(row_index, {})[field] = edit
+                    feno_grid.addWidget(edit, 2 + row_index, col_offset)
+            col += span
+        for c in range(col):
+            feno_grid.setColumnStretch(c, 1)
+        row.addLayout(feno_grid, 3)
+        outer.addWidget(card, 1)
+
+    def _build_tabs(self, top: QHBoxLayout) -> None:
+        tabs_box = QWidget()
+        tabs_box.setStyleSheet("background-color: #e2e8f0; border-radius: 8px;")
+        tabs_row = QHBoxLayout(tabs_box)
+        tabs_row.setContentsMargins(4, 4, 4, 4)
+        tabs_row.setSpacing(4)
+        for module_key, label in (
+            ("cli3074", "3074"), ("cli4074", "4074"), ("cli5074", "5074"),
+        ):
+            active = module_key == self.MODULE_KEY
+            tab = QPushButton(label)
+            tab.setStyleSheet(
+                f"QPushButton {{ background-color: {'#ffffff' if active else 'transparent'};"
+                f"color: {'#047857' if active else '#475569'}; border: none;"
+                "border-radius: 5px; padding: 3px 9px; font-size: 11px;"
+                "font-weight: bold; }"
+                "QPushButton:hover { background-color: #ecfdf5; }"
+            )
+            tab.setCursor(Qt.CursorShape.PointingHandCursor)
+            if not active:
+                tab.clicked.connect(
+                    lambda _=False, m=module_key: self.switch_requested.emit(m)
+                )
+            tabs_row.addWidget(tab)
+        top.addWidget(tabs_box, 0, Qt.AlignmentFlag.AlignVCenter)
+
+    def _build_ver_hora(self, top: QHBoxLayout) -> None:
+        hour_box = QWidget()
+        hour_box.setStyleSheet("background-color: #e2e8f0; border-radius: 8px;")
+        hour_row = QHBoxLayout(hour_box)
+        hour_row.setContentsMargins(8, 4, 8, 4)
+        hour_row.setSpacing(4)
+        hint = QLabel("VER HORA SYNOP:")
+        hint.setStyleSheet(
+            "color: #64748b; font-size: 10px; font-weight: 700;"
+            "background: transparent;"
+        )
+        hour_row.addWidget(hint)
+        for hour in ("00Z", "03Z", "06Z", "09Z", "12Z", "15Z", "18Z", "21Z"):
+            button = QPushButton(hour)
+            button.setStyleSheet(
+                "QPushButton { background-color: #ffffff; color: #475569;"
+                "border: none; border-radius: 5px; padding: 3px 7px;"
+                "font-size: 11px; font-weight: bold; }"
+                "QPushButton:hover { color: #047857; background-color: #ecfdf5; }"
+            )
+            button.setCursor(Qt.CursorShape.PointingHandCursor)
+            button.clicked.connect(
+                lambda _checked=False, h=hour: self.synop_hour_requested.emit(h)
+            )
+            hour_row.addWidget(button)
+        top.addWidget(hour_box, 0, Qt.AlignmentFlag.AlignVCenter)
+
+    # ------------------------------------------------------------ behavior
+
+    def _schedule_autosave(self, *args) -> None:
+        if self._loading:
+            return
+        self._autosave_timer.start()
+
+    def _field_edit(self, storage_key: str) -> QLineEdit:
+        edit = QLineEdit()
+        edit.setStyleSheet(_INPUT_QSS)
+        edit.setMinimumHeight(26)
+        field = storage_key.split(".")[-1]
+        edit.editingFinished.connect(
+            lambda w=edit, f=field: self._normalize_edit(w, f)
+        )
+        self.fields[storage_key] = edit
+        return edit
+
+    def _normalize_edit(self, widget: QLineEdit, field: str) -> None:
+        """Oracle enforceOneDecimal: one decimal + ceil hum fields."""
+        value = widget.text().strip()
+        normalized = cli_service.enforce_one_decimal(
+            value, field,
+            decimal_fields=cli_service.DECIMAL_FIELDS_5074,
+            ceil_fields=cli_service.CEIL_FIELDS_5074,
+        )
+        if normalized != value:
+            widget.setText("" if normalized is None else str(normalized))
 
     # ------------------------------------------------------------ data I/O
 
@@ -389,14 +566,16 @@ class Cli5074View(QWidget):
         data = get_initial_state()
         for key, widget in self.fields.items():
             parts = key.split(".")
-            if parts[0] == "fenomenos":  # fenomenos.<row>.<field>
-                data["fenomenos"][int(parts[1])][parts[2]] = widget.text().strip()
-            elif parts[0] == "hourly":  # hourly.<row>.<field>
+            if parts[0] == "fenomenos":
+                data["fenomenos"][int(parts[1])][parts[2]] = widget.toPlainText().strip() \
+                    if hasattr(widget, "toPlainText") else widget.text().strip()
+            elif parts[0] == "hourly":
                 data["hourly"][parts[1]][parts[2]] = widget.text().strip()
-            elif len(parts) == 2:  # <section>.<field>
+            elif len(parts) == 2:
                 data[parts[0]][parts[1]] = widget.text().strip()
             else:
-                data[key] = widget.text().strip()
+                data[key] = widget.toPlainText().strip() \
+                    if hasattr(widget, "toPlainText") else widget.text().strip()
         return data
 
     def set_state(self, data: dict[str, Any]) -> None:
@@ -407,7 +586,7 @@ class Cli5074View(QWidget):
                 if isinstance(rows, list) and int(parts[1]) < len(rows):
                     value = rows[int(parts[1])].get(parts[2])
                     if value is not None:
-                        widget.setText(str(value))
+                        widget.setPlainText(str(value)) if hasattr(widget, "setPlainText") else widget.setText(str(value))
             elif parts[0] == "hourly":
                 row_data = (data.get("hourly") or {}).get(parts[1]) or {}
                 value = row_data.get(parts[2])
@@ -421,15 +600,41 @@ class Cli5074View(QWidget):
             else:
                 value = data.get(key)
                 if value is not None:
-                    widget.setText(str(value))
+                    widget.setPlainText(str(value)) if hasattr(widget, "setPlainText") else widget.setText(str(value))
 
     def load_data(self) -> None:
-        doc = cli_service.load_cli(self._conn, self.station, self.fecha, self.MODULE_KEY)
-        if isinstance(doc, dict):
-            self.set_state(doc)
+        self._loading = True
+        try:
+            doc = cli_service.load_cli(self._conn, self.station, self.fecha, self.MODULE_KEY)
+            if isinstance(doc, dict):
+                self.set_state(doc)
+        finally:
+            self._loading = False
 
     def save_data(self) -> None:
-        cli_service.save_cli(
-            self._conn, self.station, self.fecha, self.MODULE_KEY, self.state()
-        )
-        self.save_btn.setToolTip("Guardado en el documento diario ✓")
+        try:
+            cli_service.save_cli(
+                self._conn, self.station, self.fecha, self.MODULE_KEY, self.state()
+            )
+        except (cli_service.SaveError, ValueError, sqlite3.Error):
+            _LOGGER.exception("CLI 5074 autosave falló")
+
+
+class _PlainTextBridge:
+    """Adapts a QPlainTextEdit to the fields dict (text()/setText contract)."""
+
+    def __init__(self, editor: QPlainTextEdit, on_change) -> None:
+        self._editor = editor
+        self._editor.textChanged.connect(lambda: on_change())
+
+    def text(self) -> str:
+        return self._editor.toPlainText()
+
+    def setText(self, text: str) -> None:
+        self._editor.setPlainText(text)
+
+    def setPlainText(self, text: str) -> None:
+        self._editor.setPlainText(text)
+
+    def toPlainText(self) -> str:
+        return self._editor.toPlainText()

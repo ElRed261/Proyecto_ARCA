@@ -273,12 +273,14 @@ def _progress_qss(chunk: str) -> str:
 HOUR_THEMES: dict[str, dict[str, str]] = {
     "06Z": {"from": "#020617", "to": "#172554", "accent": "#1e293b", "text": "#e2e8f0"},
     "09Z": {"from": "#172554", "to": "#1e3a8a", "accent": "#172554", "text": "#dbeafe"},
-    "12Z": {"from": "#1e40af", "to": "#2563eb", "accent": "#1d4ed8", "text": "#ffffff"},
-    "15Z": {"from": "#2563eb", "to": "#3b82f6", "accent": "#2563eb", "text": "#ffffff"},
+    # 12Z = 08:00 en RD: azul CIELO de día pleno (owner round 8)
+    "12Z": {"from": "#0ea5e9", "to": "#38bdf8", "accent": "#0369a1", "text": "#ffffff"},
+    "15Z": {"from": "#38bdf8", "to": "#7dd3fc", "accent": "#0284c7", "text": "#ffffff"},
     "18Z": {"from": "#2563eb", "to": "#60a5fa", "accent": "#3b82f6", "text": "#ffffff"},
     "21Z": {"from": "#1d4ed8", "to": "#2563eb", "accent": "#1d4ed8", "text": "#ffffff"},
-    "00Z": {"from": "#1e3a8a", "to": "#1e40af", "accent": "#1e3a8a", "text": "#dbeafe"},
-    "03Z": {"from": "#0f172a", "to": "#172554", "accent": "#0f172a", "text": "#e2e8f0"},
+    # 00Z = 20:00 en RD: moradito oscuro de anochecer (owner round 8)
+    "00Z": {"from": "#4c1d95", "to": "#2e1065", "accent": "#5b21b6", "text": "#e2e8f0"},
+    "03Z": {"from": "#2e1065", "to": "#1e1b4b", "accent": "#4c1d95", "text": "#e2e8f0"},
 }
 
 #: lucide icon per hour selector button (oracle JSX hour-icons mapping).
@@ -629,6 +631,9 @@ class SynopticPage(QWidget):
         # the CLI sheets live in the SAME window: a view stack holds the
         # grid host (view 0) and the lazily built CLI views (owner round 5)
         self._grid_host = QWidget()
+        # transparent: the page's hourly gradient shows through (owner
+        # round 6/8 — otherwise the theme paints flat gray over it)
+        self._grid_host.setStyleSheet("background: transparent;")
         outer = QVBoxLayout(self._grid_host)
         outer.setContentsMargins(24, 20, 24, 16)
         outer.setSpacing(14)
@@ -1118,6 +1123,15 @@ class SynopticPage(QWidget):
         page_layout.setContentsMargins(0, 0, 0, 0)
         page_layout.addWidget(self._stack)
         self._stack.addWidget(self._grid_host)
+        # structural transparency: the theme paints QWidget/viewport gray
+        # over the hourly gradient — the stack and every scroll host in the
+        # CLI views must let the gradient through (owner round 8)
+        self.setStyleSheet(
+            "QStackedWidget { background: transparent; }"
+            "QScrollArea { background: transparent; }"
+            "QScrollArea > QWidget { background: transparent; }"
+            "QAbstractScrollArea > QWidget > QWidget { background: transparent; }"
+        )
 
     def _open_cli(self, module_key: str) -> None:
         """Swap to the CLI view INSIDE this window (owner round 5: no extra

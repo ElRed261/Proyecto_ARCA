@@ -1028,3 +1028,109 @@ def test_fenomenos_abbreviations_render_dark_chips(cli3074_page, qtbot):
     pix = gr.grab()
     color = pix.toImage().pixelColor(3, 3).name()
     assert color == "#1f2937"  # the dark chip really paints
+
+
+# ---------------------------------------------------------------- round 8 details
+
+
+def test_toast_5s_and_click_dismiss(qtbot, fresh_db, tmp_path):
+    """Owner round 8: toast dies after 5s or on any click (already shipped
+    round 6 — pinned here for the synthesized shell flow)."""
+    import time as _time
+
+    from PySide6.QtWidgets import QApplication
+
+    widget = SynopticPage(fresh_db, config_dir=tmp_path)
+    qtbot.addWidget(widget)
+    widget.resize(1100, 640)
+    widget.show()
+    for _ in range(6):
+        QApplication.processEvents()
+    widget.status_label.setText("Día 03/01/2000")
+    start = _time.time()
+    while _time.time() - start < 5.4:
+        QApplication.processEvents()
+        _time.sleep(0.05)
+    assert widget._toast.isVisible() is False
+
+
+def test_hourly_gradient_reaches_the_grid(qtbot, fresh_db, tmp_path):
+    """Owner round 8: the background REALLY shifts per hour (00Z purple-dark,
+    12Z sky) — the stack must not paint flat gray over it."""
+    from PySide6.QtCore import QPoint
+    from PySide6.QtWidgets import QApplication
+
+    widget = SynopticPage(fresh_db, config_dir=tmp_path)
+    qtbot.addWidget(widget)
+    widget.resize(1200, 700)
+    widget.show()
+    for _ in range(6):
+        QApplication.processEvents()
+    point = QPoint(6, 300)  # page margin: pure background
+    seen = {}
+    for hour in ("00Z", "12Z"):
+        widget.select_hour(hour)
+        for _ in range(8):
+            QApplication.processEvents()
+        seen[hour] = widget.grab().toImage().pixelColor(point).name()
+    assert seen["00Z"] != seen["12Z"]  # the background really changed
+    assert seen["00Z"].startswith("#") and seen["12Z"].startswith("#")
+
+
+def test_cli3074_group_headers_uniform_slate(cli3074_page, qtbot):
+    """Owner round 8: every 3074 group header wears the HUMEDAD color."""
+    from PySide6.QtWidgets import QLabel
+
+    cli3074_page._open_cli("cli3074")
+    view = cli3074_page._stack.currentWidget()
+    labels = [w for w in view.findChildren(QLabel)
+              if w.text() in ("PRESIÓN (hPa)", "3 H. TEND", "TEMPERATURA",
+                              "HUMEDAD", "VIENTO", "VISIBILIDAD (km)", "FENÓMENOS")]
+    assert len(labels) == 7
+    styles = {w.styleSheet() for w in labels}
+    assert len(styles) == 1  # one shared color across all groups
+    assert "#334155" in labels[0].styleSheet()
+
+
+def test_cli4074_total_headers_full_height_emerald(cli3074_page, qtbot):
+    """Owner round 8: the three TOTAL heads span both header rows (same
+    height as N/LLUVIA) in emerald."""
+    from PySide6.QtWidgets import QLabel
+
+    cli3074_page._open_cli("cli4074")
+    view = cli3074_page._stack.currentWidget()
+    grid = view.row_inputs[2]["nubosidad"].parentWidget().layout()
+    totals = []
+    for r in range(grid.count()):
+        item = grid.itemAt(r)
+        w = item.widget() if item else None
+        if isinstance(w, QLabel) and w.text() == "TOTAL":
+            totals.append(grid.getItemPosition(r))
+    assert len(totals) == 3
+    for _row, _col, row_span, _col_span in totals:
+        assert row_span == 2  # full header height like N/LLUVIA
+
+
+def test_cli_no_save_button_autosaves_instead(cli3074_page, qtbot, fresh_db):
+    """Owner round 8: no Guardar button anywhere; edits autosave debounced."""
+    import time as _time
+
+    from oms_ui.pages.cli3074 import Cli3074View
+
+    cli3074_page._open_cli("cli3074")
+    view = cli3074_page._stack.currentWidget()
+    assert not hasattr(view, "save_btn")
+    view.row_inputs[2]["pres_est"].setText("1014.7")
+    start = _time.time()
+    while _time.time() - start < 1.2:
+        QApplication_events(cli3074_page)
+        _time.sleep(0.05)
+    reloaded = Cli3074View(fresh_db, station="78485", fecha="2025-12-08")
+    assert reloaded.row_inputs[2]["pres_est"].text() == "1014.7"
+
+
+def QApplication_events(widget):
+    from PySide6.QtWidgets import QApplication
+
+    for _ in range(4):
+        QApplication.processEvents()

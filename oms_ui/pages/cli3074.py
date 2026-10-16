@@ -21,6 +21,7 @@ Cli3074Page.jsx`` backed by ``oms_core.services.cli``:
 
 from __future__ import annotations
 
+import logging
 import sqlite3
 from typing import Any
 
@@ -82,10 +83,11 @@ FENOMENOS: tuple[tuple[str, str, str], ...] = (
 
 _MAIN_ROW_TINT = "#eff6ff"      # sky-50 main-hour rows
 _MAIN_STICKY_TINT = "#bae6fd"   # sky-200 sticky-number cells
+#: owner round 8: EVERY group header in the same muted slate as HUMEDAD.
 _GROUP_COLORS = {
-    "pres": "#3e5c68", "tend": "#47538b", "temp": "#55519b",
-    "hum": "#334155", "viento": "#7c5f83", "vis": "#334155",
-    "feno": "#475569",
+    "pres": "#334155", "tend": "#334155", "temp": "#334155",
+    "hum": "#334155", "viento": "#334155", "vis": "#334155",
+    "feno": "#334155",
 }
 _HEADER_QSS = (
     "background-color: {color}; color: #ffffff; font-weight: bold;"
@@ -168,6 +170,9 @@ class _VerticalLabel(QLabel):
         painter.end()
 
 
+_LOGGER = logging.getLogger(__name__)
+
+
 class Cli3074View(QWidget):
     """The CLI 3074 station sheet with 24 local-hour rows.
 
@@ -208,7 +213,18 @@ class Cli3074View(QWidget):
         self.row_inputs: dict[int, dict[str, QLineEdit]] = {}
         self.row_checks: dict[int, dict[str, QCheckBox]] = {}
 
+        self._loading = False
+        self._autosave_timer = QTimer(self)
+        self._autosave_timer.setSingleShot(True)
+        self._autosave_timer.setInterval(700)
+        self._autosave_timer.timeout.connect(self.save_data)
         self._build()
+        for row_map in self.row_inputs.values():
+            for edit in row_map.values():
+                edit.textChanged.connect(self._schedule_autosave)
+        for row_map in self.row_checks.values():
+            for check in row_map.values():
+                check.toggled.connect(self._schedule_autosave)
         self.load_data()
 
     # ------------------------------------------------------------ building
@@ -302,13 +318,7 @@ class Cli3074View(QWidget):
             hour_row.addWidget(button)
         top.addWidget(hour_box, 0, Qt.AlignmentFlag.AlignVCenter)
 
-        self.save_btn = QPushButton("Guardar")
-        self.save_btn.setIcon(lucide_icon("save", "#ffffff", 15))
-        self.save_btn.setIconSize(self.save_btn.iconSize())
-        self.save_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.save_btn.setStyleSheet(_SAVE_QSS)
-        self.save_btn.clicked.connect(self.save_data)
-        top.addWidget(self.save_btn, 0, Qt.AlignmentFlag.AlignVCenter)
+        # NO save button (owner round 8): edits autosave debounced+silently
         outer.addLayout(top)
 
         # locked station card (oracle StationHeader isLocked) ---------------
@@ -581,6 +591,13 @@ class Cli3074View(QWidget):
 
     def load_data(self) -> None:
         """Stored sheet + the oracle derived pass (tend Dif/C.A.R, etc.)."""
+        self._loading = True
+        try:
+            self._load_data_inner()
+        finally:
+            self._loading = False
+
+    def _load_data_inner(self) -> None:
         doc = cli_service.load_cli3074(self._conn, self.station, self.fecha)
         horas = (doc or {}).get("horas") if isinstance(doc, dict) else None
         if not isinstance(horas, dict):
@@ -594,26 +611,16 @@ class Cli3074View(QWidget):
                 self.set_row(row, data)
 
     def save_data(self) -> None:
-        """Transactional save via the service; visual error feedback."""
+        """Transactional save via the service (autosave path, no button)."""
         try:
             cli_service.save_cli(
                 self._conn, self.station, self.fecha, "cli3074",
                 {"horas": self.rows_payload()},
             )
-        except (cli_service.SaveError, ValueError) as exc:
-            self.save_btn.setText("Error ✗")
-            self.save_btn.setToolTip(f"Error al guardar: {exc}")
-            self.save_btn.setStyleSheet(
-                "QPushButton { background-color: #dc2626; color: #ffffff;"
-                "border: none; border-radius: 8px; padding: 7px 14px;"
-                "font-weight: 700; font-size: 12px; }"
-            )
-            QTimer.singleShot(2500, self._restore_save_style)
-        else:
-            self.save_btn.setText("Guardar")
-            self.save_btn.setToolTip("Guardado en el documento diario ✓")
-            self.save_btn.setStyleSheet(_SAVE_QSS)
+        except (cli_service.SaveError, ValueError, sqlite3.Error):
+            _LOGGER.exception("CLI 3074 autosave falló")
 
-    def _restore_save_style(self) -> None:
-        self.save_btn.setText("Guardar")
-        self.save_btn.setStyleSheet(_SAVE_QSS)
+    def _schedule_autosave(self, *args) -> None:
+        if self._loading:
+            return
+        self._autosave_timer.start()

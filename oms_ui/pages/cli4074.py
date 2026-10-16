@@ -10,9 +10,10 @@ TEMPS Máx/Mín + EST. SUELO + OBS. The doc rides the transactional
 
 from __future__ import annotations
 
+import logging
 import sqlite3
 
-from PySide6.QtCore import QSize, Qt, Signal
+from PySide6.QtCore import QSize, Qt, QTimer, Signal
 from PySide6.QtWidgets import (
     QComboBox,
     QFrame,
@@ -93,6 +94,9 @@ _SAVE_QSS = (
 )
 
 
+_LOGGER = logging.getLogger(__name__)
+
+
 class Cli4074View(QWidget):
     """CLI 4074 cloud sheet embedded in the synoptic page view stack."""
 
@@ -120,7 +124,15 @@ class Cli4074View(QWidget):
         self.row_inputs: dict[int, dict[str, QLineEdit]] = {
             row: {} for row in range(1, 25)
         }
+        self._loading = False
+        self._autosave_timer = QTimer(self)
+        self._autosave_timer.setSingleShot(True)
+        self._autosave_timer.setInterval(700)
+        self._autosave_timer.timeout.connect(self.save_data)
         self._build()
+        for row_map in self.row_inputs.values():
+            for edit in row_map.values():
+                edit.textChanged.connect(self._schedule_autosave)
         self.load_data()
 
     # ------------------------------------------------------------ building
@@ -158,13 +170,7 @@ class Cli4074View(QWidget):
         self._build_tabs(top)
         self._build_ver_hora(top)
 
-        self.save_btn = QPushButton("Guardar")
-        self.save_btn.setIcon(lucide_icon("save", "#ffffff", 15))
-        self.save_btn.setIconSize(QSize(15, 15))
-        self.save_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.save_btn.setStyleSheet(_SAVE_QSS)
-        self.save_btn.clicked.connect(self.save_data)
-        top.addWidget(self.save_btn, 0, Qt.AlignmentFlag.AlignVCenter)
+        # NO save button (owner round 8): autosave debounced+silently
         outer.addLayout(top)
 
         self._build_station_card(outer)
@@ -183,6 +189,9 @@ class Cli4074View(QWidget):
 
         col = 1
 
+        #: owner round 8: TOTAL headers full height + emerald (like N/LLUVIA)
+        TOTAL_FIELDS = {"nb_total", "nm_total", "na_total"}
+
         def rowspan_header(text: str, color: str, at_col: int) -> None:
             header = QLabel(text)
             header.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -197,7 +206,10 @@ class Cli4074View(QWidget):
             header.setWordWrap(True)
             header.setStyleSheet(_HEADER_QSS.format(color=color))
             grid.addWidget(header, 0, at_col, 1, span)
-            for offset, (_field, sub) in enumerate(fields):
+            for offset, (field, sub) in enumerate(fields):
+                if field in TOTAL_FIELDS:  # full height + emerald, like N
+                    rowspan_header(sub, "#047857", at_col + offset)
+                    continue
                 sub_label = QLabel(sub)
                 sub_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
                 sub_label.setStyleSheet(_SUB_HEADER_QSS)
@@ -400,21 +412,31 @@ class Cli4074View(QWidget):
                 self.row_inputs[row][field].setText(str(value))
 
     def load_data(self) -> None:
-        doc = cli_service.load_cli(self._conn, self.station, self.fecha, self.MODULE_KEY)
-        horas = (doc or {}).get("horas") if isinstance(doc, dict) else None
-        if not isinstance(horas, dict):
-            return
-        for row in range(1, 25):
-            data = horas.get(str(row))
-            if isinstance(data, dict):
-                self.set_row(row, data)
+        self._loading = True
+        try:
+            doc = cli_service.load_cli(self._conn, self.station, self.fecha, self.MODULE_KEY)
+            horas = (doc or {}).get("horas") if isinstance(doc, dict) else None
+            if isinstance(horas, dict):
+                for row in range(1, 25):
+                    data = horas.get(str(row))
+                    if isinstance(data, dict):
+                        self.set_row(row, data)
+        finally:
+            self._loading = False
 
     def save_data(self) -> None:
-        cli_service.save_cli(
-            self._conn, self.station, self.fecha, self.MODULE_KEY,
-            {"horas": {str(r): self.row_values(r) for r in range(1, 25)}},
-        )
-        self.save_btn.setToolTip("Guardado en el documento diario ✓")
+        try:
+            cli_service.save_cli(
+                self._conn, self.station, self.fecha, self.MODULE_KEY,
+                {"horas": {str(r): self.row_values(r) for r in range(1, 25)}},
+            )
+        except (cli_service.SaveError, ValueError, sqlite3.Error):
+            _LOGGER.exception("CLI 4074 autosave falló")
+
+    def _schedule_autosave(self, *args) -> None:
+        if self._loading:
+            return
+        self._autosave_timer.start()
 
 
 def _ro_field(text: str) -> QLineEdit:
