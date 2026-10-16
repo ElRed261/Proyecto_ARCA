@@ -65,7 +65,7 @@ _DAILY_GROUPS: tuple[tuple[str, str, str, tuple[tuple[str, str], ...]], ...] = (
     ("EVAPOR. TANQUE A", "#334155", 1, (("evap_tanque_a", "(mm)"),)),
 )
 _DAILY_ROWSPAN: tuple[tuple[str, str, str], ...] = (
-    ("punto_rocio", "PUNTO DE ROCÍO (°C)", "#047857"),
+    ("punto_rocio", "PUNTO DE ROCÍO (°C)", "#e11d48"),
     ("recorrido_viento", "RECORRIDO DEL VIENTO (km)", "#1e293b"),
 )
 _HOURLY_ROWS = (2, 8, 14, 20)
@@ -89,7 +89,7 @@ _FENO_GROUPS: tuple[tuple[str, str, str, tuple[tuple[str, str], ...]], ...] = (
     )),
     ("INTENSIDAD", "#334155", 1, (("intensidad", ""),)),
     ("FENÓMENOS METEOROLÓGICOS", "#334155", 1, (("fenomeno", ""),)),
-    ("INICIO (HH:MM)", "#047857", 1, (("inicio", ""),)),
+    ("INICIO (HH:MM)", "#e11d48", 1, (("inicio", ""),)),
     ("FINAL (HH:MM)", "#334155", 1, (("final", ""),)),
     ("DURACIÓN", "#334155", 1, (("duracion", ""),)),
     ("INICIALES OBSERV.", "#334155", 1, (("iniciales", ""),)),
@@ -99,11 +99,8 @@ _SECTION_QSS = (
     "QFrame { background-color: #ffffff; border: 1px solid #e2e8f0;"
     "border-radius: 10px; }"
 )
-#: owner round 9: the 5074's representative color is RED (IMG tab).
-_STATION_CARD_QSS = (
-    "QFrame { background-color: #ffffff; border: 1px solid #e2e8f0;"
-    "border-top: 3px solid #e11d48; border-radius: 10px; }"
-)
+#: owner round 10: the station/fecha card carries NO module color — the
+#: 4074's clean line (only the group headers speak the identity).
 _LABEL_QSS = (
     "color: #475569; font-weight: 600; font-size: 11px; background: transparent;"
 )
@@ -278,7 +275,7 @@ class Cli5074View(QWidget):
 
     def _build_station_card(self, outer: QVBoxLayout) -> None:
         card = QFrame()
-        card.setStyleSheet(_STATION_CARD_QSS)  # red top band, like the image
+        card.setStyleSheet(_SECTION_QSS)  # neutral, like the 4074
         grid = QGridLayout(card)
         grid.setContentsMargins(14, 10, 14, 10)
 
