@@ -182,36 +182,40 @@ class Cli4074View(QWidget):
         grid.setVerticalSpacing(0)
 
         col = 1
-        for text, color, span, fields in GROUPS_4074:
+
+        def rowspan_header(text: str, color: str, at_col: int) -> None:
             header = QLabel(text)
             header.setAlignment(Qt.AlignmentFlag.AlignCenter)
             header.setWordWrap(True)
             header.setStyleSheet(_HEADER_QSS.format(color=color))
-            grid.addWidget(header, 0, col, 1, span)
+            grid.addWidget(header, 0, at_col, 2, 1)  # full header height
+
+        def group_header(at_col: int, text: str, color: str,
+                          span: int, fields: tuple[tuple[str, str], ...]) -> None:
+            header = QLabel(text)
+            header.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            header.setWordWrap(True)
+            header.setStyleSheet(_HEADER_QSS.format(color=color))
+            grid.addWidget(header, 0, at_col, 1, span)
             for offset, (_field, sub) in enumerate(fields):
                 sub_label = QLabel(sub)
                 sub_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
                 sub_label.setStyleSheet(_SUB_HEADER_QSS)
-                grid.addWidget(sub_label, 1, col + offset)
-            col += span
-        for field, text, color in _ROWSPAN_FIELDS:
-            header = QLabel(text)
-            header.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            header.setWordWrap(True)
-            header.setStyleSheet(_HEADER_QSS.format(color=color))
-            grid.addWidget(header, 0, col, 2, 1)
-            col += 1
-            if field == "lluvia_6h":  # TEMPS. group sits right after lluvia
-                temps = QLabel("TEMPS.")
-                temps.setAlignment(Qt.AlignmentFlag.AlignCenter)
-                temps.setStyleSheet(_HEADER_QSS.format(color="#334155"))
-                grid.addWidget(temps, 0, col, 1, 2)
-                for offset, (_tf, sub) in enumerate(_TEMPS):
-                    sub_label = QLabel(sub)
-                    sub_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-                    sub_label.setStyleSheet(_SUB_HEADER_QSS)
-                    grid.addWidget(sub_label, 1, col + offset)
-                col += 2
+                grid.addWidget(sub_label, 1, at_col + offset)
+
+        # column order verbatim IMG/CLI 4074.png: N first, then the four
+        # cloud groups, lluvia, temps, est. suelo, obs. — every rowspan
+        # interleaved at its real column (the celdas already follow this
+        # order via _all_fields)
+        rowspan_header("N", _ROWSPAN_FIELDS[0][2], col); col += 1
+        group_header(col, "CÚMULONIMBOS", GROUPS_4074[0][1], 3, GROUPS_4074[0][3]); col += 3
+        group_header(col, "NUBES BAJAS (CL)", GROUPS_4074[1][1], 5, GROUPS_4074[1][3]); col += 5
+        group_header(col, "NUBES MEDIAS (CM)", GROUPS_4074[2][1], 5, GROUPS_4074[2][3]); col += 5
+        group_header(col, "NUBES ALTAS (CH)", GROUPS_4074[3][1], 5, GROUPS_4074[3][3]); col += 5
+        rowspan_header("LLUVIA 6H (mm)", _ROWSPAN_FIELDS[1][2], col); col += 1
+        group_header(col, "TEMPS.", "#334155", 2, _TEMPS); col += 2
+        rowspan_header("EST. SUELO", _ROWSPAN_FIELDS[2][2], col); col += 1
+        rowspan_header("OBS.", _ROWSPAN_FIELDS[3][2], col); col += 1
 
         for row in range(1, 25):
             number = QLabel(str(row))

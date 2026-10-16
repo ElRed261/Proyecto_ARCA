@@ -956,3 +956,75 @@ def test_cli_rows_highlight_full_width(cli3074_page, qtbot):
     v40 = cli3074_page._stack.currentWidget()
     assert "#d1fae5" in v40.row_inputs[2]["nb_cant"].styleSheet()
     assert "#d1fae5" not in v40.row_inputs[3]["nb_cant"].styleSheet()
+
+
+# ---------------------------------------------------------------- round 7 details
+
+
+def test_cli3074_visibilidad_and_tpres_tinted_on_main_rows(cli3074_page, qtbot):
+    """Owner round 7: VISIBILIDAD and T. PRES. cells carry the main tint."""
+    cli3074_page._open_cli("cli3074")
+    view = cli3074_page._stack.currentWidget()
+    for key in ("visibilidad", "tiempo_presente"):
+        assert "#eff6ff" in view.row_inputs[2][key].styleSheet(), key
+        assert "#eff6ff" not in view.row_inputs[3][key].styleSheet(), key
+
+
+def test_cli3074_tpres_header_matches_visibilidad_height(cli3074_page, qtbot):
+    """T. PRES. spans both header rows like VISIBILIDAD (same height)."""
+    from PySide6.QtWidgets import QLabel
+
+    cli3074_page._open_cli("cli3074")
+    view = cli3074_page._stack.currentWidget()
+    grid = next(
+        w for w in view.findChildren(QLabel) if w.text() == "T. PRES."
+    ).parentWidget().layout()
+    positions = {}
+    for r in range(grid.count()):
+        item = grid.itemAt(r)
+        w = item.widget() if item else None
+        if isinstance(w, QLabel) and w.text() in ("T. PRES.", "VISIBILIDAD (km)"):
+            positions[w.text()] = grid.getItemPosition(r)
+    assert positions["T. PRES."][:3] == (0, 14, 2)   # row0, col14, rowspan2
+    assert positions["VISIBILIDAD (km)"][:3] == (0, 13, 2)
+
+
+def test_cli4074_columns_match_the_reference_image_order(cli3074_page, qtbot):
+    """IMG/CLI 4074.png: N first, cloud groups, lluvia/temps/est/obs —
+    every group header aligned with its own cells."""
+
+    cli3074_page._open_cli("cli4074")
+    view = cli3074_page._stack.currentWidget()
+    grid = view.row_inputs[2]["nubosidad"].parentWidget().layout()
+
+    def text_at(r, c):
+        item = grid.itemAtPosition(r, c)
+        return item.widget().text() if item and item.widget() else None
+
+    assert text_at(0, 1) == "N"           # N goes FIRST
+    assert text_at(0, 2) == "CÚMULONIMBOS" and text_at(1, 4) == "Altura"
+    assert text_at(0, 5) == "NUBES BAJAS (CL)" and text_at(1, 9) == "TOTAL"
+    assert text_at(0, 10) == "NUBES MEDIAS (CM)"
+    assert text_at(0, 15) == "NUBES ALTAS (CH)"
+    assert text_at(0, 20) == "LLUVIA 6H (mm)"
+    assert text_at(0, 21) == "TEMPS." and text_at(1, 22) == "Mín"
+    assert text_at(0, 23) == "EST. SUELO" and text_at(0, 24) == "OBS."
+    # every cell sits under its own group
+    assert grid.itemAtPosition(3, 1).widget() is view.row_inputs[2]["nubosidad"]
+    assert grid.itemAtPosition(3, 2).widget() is view.row_inputs[2]["cb_cant"]
+    assert grid.itemAtPosition(3, 20).widget() is view.row_inputs[2]["lluvia_6h"]
+    assert grid.itemAtPosition(3, 24).widget() is view.row_inputs[2]["observador"]
+
+
+def test_fenomenos_abbreviations_render_dark_chips(cli3074_page, qtbot):
+    """GR/SQ/FC heads: dark chip + light bold text (visible, round 7)."""
+    from PySide6.QtWidgets import QLabel
+
+    cli3074_page._open_cli("cli3074")
+    view = cli3074_page._stack.currentWidget()
+    gr = next(w for w in view.findChildren(QLabel)
+              if isinstance(w, __import__("oms_ui.pages.cli3074", fromlist=["_VerticalLabel"])._VerticalLabel))
+    assert gr._text == "GR"
+    pix = gr.grab()
+    color = pix.toImage().pixelColor(3, 3).name()
+    assert color == "#1f2937"  # the dark chip really paints

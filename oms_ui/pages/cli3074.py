@@ -25,7 +25,7 @@ import sqlite3
 from typing import Any
 
 from PySide6.QtCore import QSize, Qt, QTimer, Signal
-from PySide6.QtGui import QPainter
+from PySide6.QtGui import QColor, QPainter
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -138,20 +138,29 @@ _SAVE_QSS = (
 
 
 class _VerticalLabel(QLabel):
-    """Rotated sub-header (the oracle fenómenos abbr column heads)."""
+    """Rotated sub-header (the oracle fenómenos abbr column heads).
+
+    Owner round 7: dark chip like the other sub-headers — the bare gray
+    glyphs on the page background were unreadable.
+    """
 
     def __init__(self, text: str, tooltip: str) -> None:
         super().__init__()
         self._text = text
         self.setToolTip(tooltip)
-        self.setFixedSize(26, 40)
+        self.setFixedSize(26, 44)
         self.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
     def paintEvent(self, event) -> None:
         painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.fillRect(self.rect(), QColor("#1f2937"))
         painter.translate(0, self.height())
         painter.rotate(-90)
-        painter.setPen(Qt.GlobalColor.gray)
+        painter.setPen(QColor("#e2e8f0"))
+        font = painter.font()
+        font.setBold(True)
+        painter.setFont(font)
         painter.drawText(
             0, 0, self.height(), self.width(),
             Qt.AlignmentFlag.AlignCenter, self._text,
@@ -392,7 +401,7 @@ class Cli3074View(QWidget):
         tp_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         tp_label.setToolTip("Tiempo presente")
         tp_label.setStyleSheet(_SUB_HEADER_QSS)
-        grid.addWidget(tp_label, 1, 14)
+        grid.addWidget(tp_label, 0, 14, 2, 1)  # full header height = VISIBILIDAD
 
         for index, (_key, abbr, tooltip) in enumerate(FENOMENOS):
             grid.addWidget(_VerticalLabel(abbr, tooltip), 1, 15 + index)
@@ -466,14 +475,14 @@ class Cli3074View(QWidget):
 
         vis_edit = QLineEdit()
         vis_edit.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        vis_edit.setStyleSheet(INPUT_QSS)
+        vis_edit.setStyleSheet(_MAIN_INPUT_QSS if main else INPUT_QSS)
         vis_edit.setMinimumHeight(26)
         self.row_inputs[row]["visibilidad"] = vis_edit
         grid.addWidget(vis_edit, row + 1, 13)
 
         tp_edit = QLineEdit()
         tp_edit.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        tp_edit.setStyleSheet(INPUT_QSS)
+        tp_edit.setStyleSheet(_MAIN_INPUT_QSS if main else INPUT_QSS)
         tp_edit.setMinimumHeight(26)
         self.row_inputs[row]["tiempo_presente"] = tp_edit
         grid.addWidget(tp_edit, row + 1, 14)
