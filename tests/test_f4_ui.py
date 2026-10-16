@@ -851,3 +851,108 @@ def test_cli4074_and_5074_views_roundtrip(cli3074_page, qtbot, fresh_db):
     re50.fields["daily.hum_max"].setText("66.7")
     re50._normalize_edit(re50.fields["daily.hum_max"], "hum_max")
     assert re50.fields["daily.hum_max"].text() == "67"  # 5074 ceil field
+
+
+# ---------------------------------------------------------------- round 6 details
+
+
+def test_toast_auto_dismisses_after_5_seconds(qtbot, fresh_db, tmp_path):
+    """Owner round 6: EVERY notification dies after 5 seconds."""
+    import time as _time
+
+    from PySide6.QtWidgets import QApplication
+
+    widget = SynopticPage(fresh_db, config_dir=tmp_path)
+    qtbot.addWidget(widget)
+    widget.resize(1100, 640)
+    widget.show()
+    for _ in range(6):
+        QApplication.processEvents()
+    widget.error_label.setText("No hay observación para 2000-04-02")
+    widget.status_label.setText("Día 03/01/2000")
+    for _ in range(4):
+        QApplication.processEvents()
+    assert widget._toast.isVisible()
+    start = _time.time()
+    while _time.time() - start < 5.4:
+        QApplication.processEvents()
+        _time.sleep(0.05)
+    assert widget.error_label.text() == "" and widget.status_label.text() == ""
+    assert widget._toast.isVisible() is False
+
+
+def test_toast_dismisses_on_click_anywhere(qtbot, fresh_db, tmp_path):
+    from PySide6.QtCore import QEvent, QPointF
+    from PySide6.QtCore import Qt as Qtt
+    from PySide6.QtGui import QMouseEvent
+    from PySide6.QtWidgets import QApplication
+
+    widget = SynopticPage(fresh_db, config_dir=tmp_path)
+    qtbot.addWidget(widget)
+    widget.resize(1100, 640)
+    widget.show()
+    for _ in range(6):
+        QApplication.processEvents()
+    widget.status_label.setText("Día 03/01/2000")
+    for _ in range(4):
+        QApplication.processEvents()
+    assert widget._toast.isVisible()
+    target = widget.field("ts")
+    app.sendEvent(target, QMouseEvent(
+        QEvent.Type.MouseButtonPress, QPointF(5, 5), QPointF(5, 5),
+        Qtt.MouseButton.LeftButton, Qtt.MouseButton.LeftButton,
+        Qtt.KeyboardModifier.NoModifier,
+    )) if (app := QApplication.instance()) else None
+    for _ in range(6):
+        QApplication.processEvents()
+    assert widget._toast.isVisible() is False
+    assert widget.status_label.text() == ""
+
+
+def test_station_combo_shows_only_the_code_in_iiiii(qtbot, fresh_db, tmp_path):
+    """Owner round 6: IIiii cell shows just '78485', name stays in tooltip."""
+    widget = SynopticPage(fresh_db, config_dir=tmp_path)
+    qtbot.addWidget(widget)
+    widget.set_station("78485")
+    assert widget.station_combo.currentText() == "78485"
+    assert widget.station_combo.currentData() == "78485"
+    assert widget.station_combo.itemText(0).isdigit()
+
+
+def test_fenomenos_header_spans_gr_to_fc_only(cli3074_page, qtbot):
+    """FENÓMENOS group covers GR..FC (10 lanes), NOT the T. PRES. column."""
+    from PySide6.QtWidgets import QLabel
+
+    cli3074_page._open_cli("cli3074")
+    view = cli3074_page._stack.currentWidget()
+    from PySide6.QtWidgets import QGridLayout
+
+    feno_label = next(
+        w for w in view.findChildren(QLabel) if w.text() == "FENÓMENOS"
+    )
+    grid = feno_label.parentWidget().layout()
+    assert isinstance(grid, QGridLayout)
+    feno_item = None
+    for r in range(grid.count()):
+        item = grid.itemAt(r)
+        w = item.widget() if item else None
+        if isinstance(w, QLabel) and w.text() == "FENÓMENOS":
+            feno_item = grid.getItemPosition(r)
+            break
+    assert feno_item is not None
+    _row, col, _rs, span = feno_item
+    assert (col, span) == (15, 10)  # GR..FC, T. PRES. excluded
+    assert view._hour_buttons  # sanity
+
+
+def test_cli_rows_highlight_full_width(cli3074_page, qtbot):
+    """3074 main rows tinted blue through every cell; 4074 green (IMG)."""
+
+    cli3074_page._open_cli("cli3074")
+    view = cli3074_page._stack.currentWidget()
+    assert "#eff6ff" in view.row_inputs[2]["pres_est"].styleSheet()
+    assert "#eff6ff" not in view.row_inputs[3]["pres_est"].styleSheet()
+    cli3074_page._open_cli("cli4074")
+    v40 = cli3074_page._stack.currentWidget()
+    assert "#d1fae5" in v40.row_inputs[2]["nb_cant"].styleSheet()
+    assert "#d1fae5" not in v40.row_inputs[3]["nb_cant"].styleSheet()

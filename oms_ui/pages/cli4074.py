@@ -32,29 +32,46 @@ from oms_ui.icons import lucide_icon
 
 #: (field, sub-header text) in column order; groups carry their own colors.
 GROUPS_4074: tuple[tuple[str, str, int, tuple[tuple[str, str], ...]], ...] = (
-    ("CÚMULONIMBOS", "#6b21a8", 3, (
+    ("CÚMULONIMBOS", "#334155", 3, (
         ("cb_cant", "Cant"), ("cb_tipo", "Tipo"), ("cb_altura", "Altura"),
     )),
-    ("NUBES BAJAS (CL)", "#475569", 5, (
+    ("NUBES BAJAS (CL)", "#334155", 5, (
         ("nb_cant", "Cant"), ("nb_tipo", "Tipo"), ("nb_direc", "Dir"),
         ("nb_altura", "Altura"), ("nb_total", "TOTAL"),
     )),
-    ("NUBES MEDIAS (CM)", "#0c4a6e", 5, (
+    ("NUBES MEDIAS (CM)", "#334155", 5, (
         ("nm_cant", "Cant"), ("nm_tipo", "Tipo"), ("nm_direc", "Dir"),
         ("nm_altura", "Altura"), ("nm_total", "TOTAL"),
     )),
-    ("NUBES ALTAS (CH)", "#3730a3", 5, (
+    ("NUBES ALTAS (CH)", "#334155", 5, (
         ("na_cant", "Cant"), ("na_tipo", "Tipo"), ("na_direc", "Dir"),
         ("na_altura", "Altura"), ("na_total", "TOTAL"),
     )),
 )
 _ROWSPAN_FIELDS: tuple[tuple[str, str, str], ...] = (
-    ("nubosidad", "N", "#4b5563"),
-    ("lluvia_6h", "LLUVIA 6H (mm)", "#155e75"),
-    ("estado_suelo", "EST. SUELO", "#92400e"),
-    ("observador", "OBS.", "#115e59"),
+    ("nubosidad", "N", "#1e293b"),
+    ("lluvia_6h", "LLUVIA 6H (mm)", "#1e293b"),
+    ("estado_suelo", "EST. SUELO", "#1e293b"),
+    ("observador", "OBS.", "#1e293b"),
 )
 _TEMPS: tuple[tuple[str, str], ...] = (("temp_max", "Máx"), ("temp_min", "Mín"))
+#: main-hour rows tinted GREEN across the full row (IMG/CLI 4074.png).
+_MAIN_TINT = "#d1fae5"
+_MAIN_STICKY = "#a7f3d0"
+_MAIN_NUMBER = "#059669"
+_MAIN_INPUT_QSS = (
+    "QLineEdit { background-color: #d1fae5; border: 1px solid #a7f3d0;"
+    "color: #1e293b; font-size: 12px; padding: 3px 4px; }"
+    "QLineEdit:focus { border-color: #10b981; background-color: white; }"
+)
+_CHECKBOX_QSS = (
+    "QCheckBox::indicator { width: 17px; height: 17px;"
+    "border: 2px solid #64748b; border-radius: 4px; background-color: #ffffff; }"
+    "QCheckBox::indicator:hover { border-color: #10b981; }"
+    "QCheckBox::indicator:checked { background-color: #10b981;"
+    "border-color: #047857; }"
+    "QCheckBox { background-color: transparent; }"
+)
 INPUT_QSS = (
     "QLineEdit { background-color: #ffffff; border: 1px solid #e2e8f0;"
     "color: #1e293b; font-size: 12px; padding: 3px 4px; }"
@@ -84,7 +101,7 @@ class Cli4074View(QWidget):
     switch_requested = Signal(str)
 
     MODULE_KEY = "cli4074"
-    TITLE = "CLI 4074 - OBSERVACIONES DE NUBES"
+    TITLE = "CLI 4074 - NUBOSIDAD Y TEMPERATURA"
 
     def __init__(
         self,
@@ -98,8 +115,7 @@ class Cli4074View(QWidget):
         self._conn = conn
         self.station = station
         self.fecha = fecha
-        self.setWindowTitle(self.TITLE)
-        self.setStyleSheet("background-color: #f1f5f9;")
+        self.setWindowTitle(self.TITLE)  # transparent: hourly gradient behind
 
         self.row_inputs: dict[int, dict[str, QLineEdit]] = {
             row: {} for row in range(1, 25)
@@ -111,6 +127,7 @@ class Cli4074View(QWidget):
 
     def _build(self) -> None:
         central = QWidget()
+        central.setStyleSheet("background: transparent;")
         outer = QVBoxLayout(central)
         outer.setContentsMargins(16, 12, 16, 12)
         outer.setSpacing(10)
@@ -187,7 +204,7 @@ class Cli4074View(QWidget):
             if field == "lluvia_6h":  # TEMPS. group sits right after lluvia
                 temps = QLabel("TEMPS.")
                 temps.setAlignment(Qt.AlignmentFlag.AlignCenter)
-                temps.setStyleSheet(_HEADER_QSS.format(color="#9a3412"))
+                temps.setStyleSheet(_HEADER_QSS.format(color="#334155"))
                 grid.addWidget(temps, 0, col, 1, 2)
                 for offset, (_tf, sub) in enumerate(_TEMPS):
                     sub_label = QLabel(sub)
@@ -201,15 +218,17 @@ class Cli4074View(QWidget):
             number.setAlignment(Qt.AlignmentFlag.AlignCenter)
             main = (row - 2) % 3 == 0
             number.setStyleSheet(
-                f"background-color: {'#bae6fd' if main else '#f1f5f9'};"
-                "color: #475569; font-weight: bold; font-size: 12px;"
-                "padding: 4px 5px;"
+                f"background-color: {_MAIN_STICKY if main else '#f1f5f9'};"
+                f"color: {_MAIN_NUMBER if main else '#475569'}; font-weight: bold;"
+                "font-size: 12px; padding: 4px 5px;"
             )
             grid.addWidget(number, row + 1, 0)
             for cindex, (field, _text) in enumerate(self._all_fields()):
                 edit = QLineEdit()
                 edit.setAlignment(Qt.AlignmentFlag.AlignCenter)
-                edit.setStyleSheet(INPUT_QSS)
+                edit.setStyleSheet(
+                    _MAIN_INPUT_QSS if main else INPUT_QSS
+                )
                 edit.setMinimumHeight(26)
                 edit.editingFinished.connect(
                     lambda w=edit, f=field: self._normalize_edit(w, f)
@@ -323,11 +342,31 @@ class Cli4074View(QWidget):
         )
         self.fecha_edit = _ro_field(f"{self.fecha[8:]}/{self.fecha[5:7]}/{self.fecha[:4]}")
 
+        station_row = next(
+            (s for s in stations_repo.list_stations(self._conn) if s.id == self.station),
+            None,
+        )
+        self.latitud_edit = _ro_field(
+            "" if station_row is None else str(round(station_row.latitud, 4))
+        )
+        self.longitud_edit = _ro_field(
+            "" if station_row is None else str(round(station_row.longitud, 4))
+        )
+        self.altura_edit = _ro_field(
+            "" if station_row is None else str(round(station_row.ch, 1))
+        )
+
         grid.addWidget(meta_label("ESTACIÓN:"), 0, 0)
         grid.addWidget(self.station_combo, 0, 1)
-        grid.addWidget(meta_label("FECHA:"), 0, 2)
-        grid.addWidget(self.fecha_edit, 0, 3)
-        grid.setColumnStretch(4, 1)
+        grid.addWidget(meta_label("LATITUD:"), 0, 2)
+        grid.addWidget(self.latitud_edit, 0, 3)
+        grid.addWidget(meta_label("LONGITUD:"), 0, 4)
+        grid.addWidget(self.longitud_edit, 0, 5)
+        grid.addWidget(meta_label("ALTURA:"), 0, 6)
+        grid.addWidget(self.altura_edit, 0, 7)
+        grid.addWidget(meta_label("FECHA:"), 0, 8)
+        grid.addWidget(self.fecha_edit, 0, 9)
+        grid.setColumnStretch(10, 1)
         outer.addWidget(card)
 
     # ------------------------------------------------------------ behavior

@@ -83,9 +83,9 @@ FENOMENOS: tuple[tuple[str, str, str], ...] = (
 _MAIN_ROW_TINT = "#eff6ff"      # sky-50 main-hour rows
 _MAIN_STICKY_TINT = "#bae6fd"   # sky-200 sticky-number cells
 _GROUP_COLORS = {
-    "pres": "#0c4a6e", "tend": "#1e40af", "temp": "#3730a3",
-    "hum": "#1e293b", "viento": "#86198f", "vis": "#1e293b",
-    "feno": "#334155",
+    "pres": "#3e5c68", "tend": "#47538b", "temp": "#55519b",
+    "hum": "#334155", "viento": "#7c5f83", "vis": "#334155",
+    "feno": "#475569",
 }
 _HEADER_QSS = (
     "background-color: {color}; color: #ffffff; font-weight: bold;"
@@ -103,6 +103,31 @@ INPUT_QSS = (
 _RO_QSS = (
     "QLineEdit { background-color: #eff6ff; border: 1px solid #dbeafe;"
     "color: #0369a1; font-weight: bold; font-size: 12px; padding: 3px 4px; }"
+)
+_MAIN_INPUT_QSS = (
+    "QLineEdit { background-color: #eff6ff; border: 1px solid #dbeafe;"
+    "color: #1e293b; font-size: 12px; padding: 3px 4px; }"
+    "QLineEdit:focus { border-color: #38bdf8; background-color: white; }"
+)
+_MAIN_RO_QSS = (
+    "QLineEdit { background-color: #dbeafe; border: 1px solid #bfdbfe;"
+    "color: #075985; font-weight: bold; font-size: 12px; padding: 3px 4px; }"
+)
+_CHECKBOX_QSS = (
+    "QCheckBox::indicator { width: 17px; height: 17px;"
+    "border: 2px solid #64748b; border-radius: 4px; background-color: #ffffff; }"
+    "QCheckBox::indicator:hover { border-color: #0369a1; }"
+    "QCheckBox::indicator:checked { background-color: #0ea5e9;"
+    "border-color: #0369a1; }"
+    "QCheckBox { background-color: transparent; }"
+)
+_MAIN_CHECKBOX_QSS = (
+    "QCheckBox::indicator { width: 17px; height: 17px;"
+    "border: 2px solid #64748b; border-radius: 4px; background-color: #eff6ff; }"
+    "QCheckBox::indicator:hover { border-color: #0369a1; }"
+    "QCheckBox::indicator:checked { background-color: #0ea5e9;"
+    "border-color: #0369a1; }"
+    "QCheckBox { background-color: transparent; }"
 )
 _SAVE_QSS = (
     "QPushButton { background-color: #0ea5e9; color: #ffffff;"
@@ -163,8 +188,8 @@ class Cli3074View(QWidget):
         self._conn = conn
         self.station = station
         self.fecha = fecha
-        self.setWindowTitle(self.TITLE)
-        self.setStyleSheet("background-color: #f1f5f9;")
+        self.setWindowTitle(self.TITLE)  # transparent: the page's hourly
+        # gradient shows through (owner round 6: fondo según la hora)
 
         #: oracle rows state: numerics + stored extras (p3 when present).
         self._row_data: dict[int, dict[str, Any]] = {
@@ -181,6 +206,7 @@ class Cli3074View(QWidget):
 
     def _build(self) -> None:
         central = QWidget()
+        central.setStyleSheet("background: transparent;")
         outer = QVBoxLayout(central)
         outer.setContentsMargins(16, 12, 16, 12)
         outer.setSpacing(10)
@@ -353,7 +379,7 @@ class Cli3074View(QWidget):
         group_header(8, 3, "HUMEDAD", _GROUP_COLORS["hum"])
         group_header(11, 2, "VIENTO", _GROUP_COLORS["viento"])
         group_header(13, 1, "VISIBILIDAD (km)", _GROUP_COLORS["vis"], rowspan=2)
-        group_header(14, 11, "FENÓMENOS", _GROUP_COLORS["feno"])
+        group_header(15, 10, "FENÓMENOS", _GROUP_COLORS["feno"])
 
         for index, (field, text, _ro) in enumerate(ROW_FIELDS):
             sub = QLabel(text)
@@ -423,7 +449,11 @@ class Cli3074View(QWidget):
         for index, (field, _text, read_only) in enumerate(ROW_FIELDS):
             edit = QLineEdit()
             edit.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            edit.setStyleSheet(_RO_QSS if read_only else INPUT_QSS)
+            edit.setStyleSheet(
+                _MAIN_RO_QSS if (read_only and main)
+                else _MAIN_INPUT_QSS if main and not read_only
+                else (_RO_QSS if read_only else INPUT_QSS)
+            )
             edit.setMinimumHeight(26)
             if read_only:
                 edit.setReadOnly(True)
@@ -453,6 +483,7 @@ class Cli3074View(QWidget):
             check = QCheckBox()
             check.setToolTip(tooltip)
             check.setCursor(Qt.CursorShape.PointingHandCursor)
+            check.setStyleSheet(_MAIN_CHECKBOX_QSS if main else _CHECKBOX_QSS)
             self.row_checks[row][key] = check
             grid.addWidget(
                 check, row + 1, 15 + index, 1, 1, Qt.AlignmentFlag.AlignCenter

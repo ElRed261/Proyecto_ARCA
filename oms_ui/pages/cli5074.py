@@ -124,8 +124,7 @@ class Cli5074View(QWidget):
         self._conn = conn
         self.station = station
         self.fecha = fecha
-        self.setWindowTitle(self.TITLE)
-        self.setStyleSheet("background-color: #f1f5f9;")
+        self.setWindowTitle(self.TITLE)  # transparent: hourly gradient behind
 
         self.fields: dict[str, QLineEdit] = {}
         self.feno_inputs: list[dict[str, QLineEdit]] = []
@@ -137,6 +136,7 @@ class Cli5074View(QWidget):
 
     def _build(self) -> None:
         central = QWidget()
+        central.setStyleSheet("background: transparent;")
         outer = QVBoxLayout(central)
         outer.setContentsMargins(16, 12, 16, 12)
         outer.setSpacing(10)
@@ -238,6 +238,7 @@ class Cli5074View(QWidget):
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QScrollArea.Shape.NoFrame)
         host = QWidget()
+        host.setStyleSheet("background: transparent;")
         host.setLayout(outer)
         scroll.setWidget(host)
         page_layout = QVBoxLayout(self)

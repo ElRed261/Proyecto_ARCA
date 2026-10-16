@@ -47,6 +47,7 @@ from PySide6.QtGui import (
     QShortcut,
 )
 from PySide6.QtWidgets import (
+    QApplication,
     QComboBox,
     QDateEdit,
     QDialog,
@@ -486,6 +487,20 @@ class SynopticPage(QWidget):
         )
         self._toast.raise_()
 
+    def _dismiss_toast(self) -> None:
+        """Owner round 6: EVERY notification dies after 5s (or on click)."""
+        self._status_timer.stop()
+        self.error_label.setText("")
+        self.status_label.setText("")
+
+    def eventFilter(self, watched, event) -> bool:
+        """A click anywhere in the app dismisses the toast (no consumption)."""
+        if event.type() == event.Type.MouseButtonPress and (
+            self.error_label.text() or self.status_label.text()
+        ):
+            self._dismiss_toast()
+        return super().eventFilter(watched, event)
+
     def _refresh_toast(self) -> None:
         """Show the toast only while a message lives; status auto-dismisses.
 
@@ -661,7 +676,13 @@ class SynopticPage(QWidget):
         # the widgets stay alive here so setters/tests keep working
         self.station_combo = QComboBox()
         for station in self._stations.values():
-            self.station_combo.addItem(f"{station.name} ({station.id})", station.id)
+            # IIiii muestra solo el código (owner round 6); el nombre queda
+            # como tooltip del item y vive en dashboard/cards CLI
+            self.station_combo.addItem(station.id, station.id)
+            self.station_combo.setItemData(
+                self.station_combo.count() - 1, station.name,
+                Qt.ItemDataRole.ToolTipRole,
+            )
         # the IIiii column must not inflate from its longest item name
         self.station_combo.setSizeAdjustPolicy(
             QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon
@@ -1056,10 +1077,10 @@ class SynopticPage(QWidget):
         toast_l.addWidget(self.status_label)
         self._status_timer = QTimer(self)
         self._status_timer.setSingleShot(True)
-        self._status_timer.setInterval(6000)
-        self._status_timer.timeout.connect(
-            lambda: self.status_label.setText("")
-        )
+        self._status_timer.setInterval(5000)
+        self._status_timer.timeout.connect(self._dismiss_toast)
+        # any click anywhere dismisses the toast (owner round 6)
+        QApplication.instance().installEventFilter(self)
         self._refresh_toast()
         actions_card = self._card()
         actions_l = QVBoxLayout(actions_card)
