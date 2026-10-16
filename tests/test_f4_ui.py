@@ -1134,3 +1134,65 @@ def QApplication_events(widget):
 
     for _ in range(4):
         QApplication.processEvents()
+
+
+# ---------------------------------------------------------------- round 9: sky transition
+
+
+def test_hour_themes_trace_the_real_sky(qtbot, fresh_db, tmp_path):
+    """Owner round 9: the background is a DAY-LIGHT transition — noon hours
+    sky-blue, 21Z golden-hour (violet->amber), 00Z dusk purple, deep night
+    hours near-black navy; adjacent hours must differ noticeably."""
+    from oms_ui.pages.synoptic import HOUR_THEMES
+
+    assert HOUR_THEMES["12Z"]["from"] == "#38bdf8"   # 08:00 cielo
+    assert HOUR_THEMES["15Z"]["from"] == "#0ea5e9"   # mediodía
+    assert HOUR_THEMES["21Z"]["to"] == "#f59e0b"     # golden hour ámbar
+    assert HOUR_THEMES["00Z"]["from"] == "#4a3a7a"   # 20:00 dusk violeta
+    assert HOUR_THEMES["06Z"]["to"] == "#020617"     # noche profunda
+    # the transition actually moves: no two adjacent local hours identical
+    order = ("06Z", "09Z", "12Z", "15Z", "18Z", "21Z", "00Z", "03Z")
+    from itertools import pairwise
+
+    for prev, nxt in pairwise(order):
+        assert HOUR_THEMES[prev]["from"] != HOUR_THEMES[nxt]["from"]
+
+
+def test_background_changes_across_day_cycle(qtbot, fresh_db, tmp_path):
+    """Pinned pixels: noon sky-blue vs dusk purple vs deep night."""
+    from PySide6.QtCore import QPoint
+    from PySide6.QtWidgets import QApplication
+
+    widget = SynopticPage(fresh_db, config_dir=tmp_path)
+    qtbot.addWidget(widget)
+    widget.resize(1200, 700)
+    widget.show()
+    for _ in range(6):
+        QApplication.processEvents()
+    point = QPoint(6, 300)
+    seen = {}
+    for hour in ("12Z", "00Z", "06Z"):
+        widget.select_hour(hour)
+        for _ in range(8):
+            QApplication.processEvents()
+        seen[hour] = widget.grab().toImage().pixelColor(point).name()
+    assert len(set(seen.values())) == 3  # morning != dusk != night
+
+
+def test_cli5074_uses_its_red_identity(cli3074_page, qtbot):
+    """Owner round 9: 5074's representative color is RED (focus ring,
+    station-card top band, hover accents) per IMG/CLI 5074.png."""
+    from PySide6.QtWidgets import QPushButton
+
+    cli3074_page._open_cli("cli5074")
+    view = cli3074_page._stack.currentWidget()
+    # focus ring red on the sheet fields
+    assert "#e11d48" in view.fields["daily.temp_max"].styleSheet()
+    # the station card carries the red top band
+    station_card = view.station_combo.parentWidget()
+    assert "#e11d48" in station_card.styleSheet()
+    # the tab bar marks 5074 red while 3074 keeps blue / 4074 green
+    tabs = [b for b in view.findChildren(QPushButton)
+            if b.text() in ("3074", "4074", "5074")]
+    fifty = next(b for b in tabs if b.text() == "5074")
+    assert "#e11d48" in fifty.styleSheet()

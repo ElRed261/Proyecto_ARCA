@@ -99,6 +99,11 @@ _SECTION_QSS = (
     "QFrame { background-color: #ffffff; border: 1px solid #e2e8f0;"
     "border-radius: 10px; }"
 )
+#: owner round 9: the 5074's representative color is RED (IMG tab).
+_STATION_CARD_QSS = (
+    "QFrame { background-color: #ffffff; border: 1px solid #e2e8f0;"
+    "border-top: 3px solid #e11d48; border-radius: 10px; }"
+)
 _LABEL_QSS = (
     "color: #475569; font-weight: 600; font-size: 11px; background: transparent;"
 )
@@ -113,7 +118,7 @@ _SUB_HEADER_QSS = (
 _INPUT_QSS = (
     "QLineEdit { background-color: #ffffff; border: 1px solid #e2e8f0;"
     "color: #1e293b; font-size: 12px; padding: 3px 6px; }"
-    "QLineEdit:focus { border-color: #34d399; background-color: #ecfdf5; }"
+    "QLineEdit:focus { border-color: #e11d48; background-color: #fff1f2; }"
 )
 _TEXT_QSS = (
     "QPlainTextEdit { background-color: #ffffff; border: 1px solid #e2e8f0;"
@@ -207,7 +212,7 @@ class Cli5074View(QWidget):
         back_btn.setStyleSheet(
             "QPushButton { background-color: #ffffff; border: 1px solid #e2e8f0;"
             "border-radius: 20px; }"
-            "QPushButton:hover { background-color: #d1fae5; }"
+            "QPushButton:hover { background-color: #ffe4e6; }"
         )
         back_btn.clicked.connect(self.back_requested.emit)
         top.addWidget(back_btn, 0, Qt.AlignmentFlag.AlignVCenter)
@@ -273,7 +278,7 @@ class Cli5074View(QWidget):
 
     def _build_station_card(self, outer: QVBoxLayout) -> None:
         card = QFrame()
-        card.setStyleSheet(_SECTION_QSS)
+        card.setStyleSheet(_STATION_CARD_QSS)  # red top band, like the image
         grid = QGridLayout(card)
         grid.setContentsMargins(14, 10, 14, 10)
 
@@ -490,7 +495,7 @@ class Cli5074View(QWidget):
             tab = QPushButton(label)
             tab.setStyleSheet(
                 f"QPushButton {{ background-color: {'#ffffff' if active else 'transparent'};"
-                f"color: {'#047857' if active else '#475569'}; border: none;"
+                f"color: {'#e11d48' if active else '#475569'}; border: none;"
                 "border-radius: 5px; padding: 3px 9px; font-size: 11px;"
                 "font-weight: bold; }"
                 "QPushButton:hover { background-color: #ecfdf5; }"
@@ -521,7 +526,7 @@ class Cli5074View(QWidget):
                 "QPushButton { background-color: #ffffff; color: #475569;"
                 "border: none; border-radius: 5px; padding: 3px 7px;"
                 "font-size: 11px; font-weight: bold; }"
-                "QPushButton:hover { color: #047857; background-color: #ecfdf5; }"
+                "QPushButton:hover { color: #e11d48; background-color: #fff1f2; }"
             )
             button.setCursor(Qt.CursorShape.PointingHandCursor)
             button.clicked.connect(

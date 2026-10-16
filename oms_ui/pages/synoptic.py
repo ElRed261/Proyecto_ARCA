@@ -271,16 +271,19 @@ def _progress_qss(chunk: str) -> str:
 #: bg-gradient-to-br surface whose stops, accent chips and title text
 #: follow the observation hour ("escala de azules según altura del sol").
 HOUR_THEMES: dict[str, dict[str, str]] = {
-    "06Z": {"from": "#020617", "to": "#172554", "accent": "#1e293b", "text": "#e2e8f0"},
-    "09Z": {"from": "#172554", "to": "#1e3a8a", "accent": "#172554", "text": "#dbeafe"},
-    # 12Z = 08:00 en RD: azul CIELO de día pleno (owner round 8)
-    "12Z": {"from": "#0ea5e9", "to": "#38bdf8", "accent": "#0369a1", "text": "#ffffff"},
-    "15Z": {"from": "#38bdf8", "to": "#7dd3fc", "accent": "#0284c7", "text": "#ffffff"},
-    "18Z": {"from": "#2563eb", "to": "#60a5fa", "accent": "#3b82f6", "text": "#ffffff"},
-    "21Z": {"from": "#1d4ed8", "to": "#2563eb", "accent": "#1d4ed8", "text": "#ffffff"},
-    # 00Z = 20:00 en RD: moradito oscuro de anochecer (owner round 8)
-    "00Z": {"from": "#4c1d95", "to": "#2e1065", "accent": "#5b21b6", "text": "#e2e8f0"},
-    "03Z": {"from": "#2e1065", "to": "#1e1b4b", "accent": "#4c1d95", "text": "#e2e8f0"},
+    # hora local RD = UTC-4; cada par from/to es el cielo real de esa hora:
+    # 00Z=20:00 dusk (violeta cayendo a indigo), 03Z=23:00 noche, 06Z=02:00
+    # noche profunda, 09Z=05:00 amanecer (azul noche + ambar al horizonte),
+    # 12Z=08:00 mañana azul cielo, 15Z=11:00 mediodia pleno, 18Z=14:00
+    # tarde luminosa, 21Z=17:00 golden hour (violeta alto + dorado bajo).
+    "00Z": {"from": "#4a3a7a", "to": "#1e1b4b", "accent": "#4a3a7a", "text": "#e2e8f0"},
+    "03Z": {"from": "#172554", "to": "#0b1026", "accent": "#172554", "text": "#dbeafe"},
+    "06Z": {"from": "#0f172a", "to": "#020617", "accent": "#1e293b", "text": "#e2e8f0"},
+    "09Z": {"from": "#1e2a5a", "to": "#b45309", "accent": "#35426b", "text": "#fde68a"},
+    "12Z": {"from": "#38bdf8", "to": "#93c5fd", "accent": "#0369a1", "text": "#0c4a6e"},
+    "15Z": {"from": "#0ea5e9", "to": "#7dd3fc", "accent": "#0284c7", "text": "#0c4a6e"},
+    "18Z": {"from": "#22b8ea", "to": "#67e8f9", "accent": "#0e7490", "text": "#0c4a6e"},
+    "21Z": {"from": "#614e72", "to": "#f59e0b", "accent": "#6d28d9", "text": "#fef3c7"},
 }
 
 #: lucide icon per hour selector button (oracle JSX hour-icons mapping).
