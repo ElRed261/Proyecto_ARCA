@@ -1717,6 +1717,13 @@ class SynopticPage(QWidget):
         self.clear_error_state()
         station = self.station_id or ""
         fecha = self.fecha_iso or ""
+        # rule R4: the day closes at 06Z of the next day; afterwards only the
+        # audit roles may correct it (and the change is versioned).
+        from oms_core.services import closure
+
+        if fecha and not closure.can_edit(self._role, fecha):
+            self.error_label.setText(closure.closed_message(fecha))
+            return
         observer = self.observer_edit.text().strip() or None
         day_data = self.collect_day_data()
         for hora in synoptic_service.HOURS:

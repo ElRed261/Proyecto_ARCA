@@ -15,7 +15,7 @@ import pytest
 
 pytest.importorskip("PySide6", reason="PySide6 not installed in this interpreter")
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QDate, Qt
 from PySide6.QtWidgets import QDialog
 
 from oms_core.db.repositories import observations as observations_repo
@@ -65,7 +65,9 @@ def page(qtbot, fresh_db, tmp_path):
     """A page whose closeEvent guard never opens a (real, modal) dialog: the
     default stub silently discards, so any dirty widget left behind still
     closes cleanly during pytest-qt teardown."""
-    widget = SynopticPage(fresh_db, config_dir=tmp_path)
+    # admin: these tests exercise the save mechanics on dates that are
+    # already closed under rule R4 (06Z of the next day)
+    widget = SynopticPage(fresh_db, config_dir=tmp_path, role="admin")
     qtbot.addWidget(widget)
     widget._draft_guard_class = _stub_dialog_class(DraftGuardDialog.DISCARD)
     widget.set_station(STATION)
@@ -550,7 +552,9 @@ def test_cli_buttons_and_dialog_roundtrip(page, fresh_db):
 def test_cli_requires_station_and_fecha(qtbot, fresh_db, tmp_path):
     from oms_ui.pages.synoptic import SynopticPage
 
-    widget = SynopticPage(fresh_db, config_dir=tmp_path)
+    # admin: these tests exercise the save mechanics on dates that are
+    # already closed under rule R4 (06Z of the next day)
+    widget = SynopticPage(fresh_db, config_dir=tmp_path, role="admin")
     qtbot.addWidget(widget)
     widget._open_cli("cli3074")
     assert "estación y fecha" in widget.error_label.text()
@@ -733,7 +737,9 @@ def test_hour_theme_application_on_select(qtbot, fresh_db, tmp_path):
     """Selecting an hour updates title text, accent chip and active icon."""
     from oms_ui.pages.synoptic import HOUR_THEMES, SynopticPage
 
-    widget = SynopticPage(fresh_db, config_dir=tmp_path)
+    # admin: these tests exercise the save mechanics on dates that are
+    # already closed under rule R4 (06Z of the next day)
+    widget = SynopticPage(fresh_db, config_dir=tmp_path, role="admin")
     qtbot.addWidget(widget)
     assert widget.title_label.text() == "Observación Sinóptica 06Z"
     widget.select_hour("15Z")
@@ -770,7 +776,9 @@ def test_notifications_float_top_right_never_squeeze_hours(qtbot, fresh_db, tmp_
     the sidebar; hour buttons keep their geometry while it shows."""
     from PySide6.QtWidgets import QApplication
 
-    widget = SynopticPage(fresh_db, config_dir=tmp_path)
+    # admin: these tests exercise the save mechanics on dates that are
+    # already closed under rule R4 (06Z of the next day)
+    widget = SynopticPage(fresh_db, config_dir=tmp_path, role="admin")
     qtbot.addWidget(widget)
     widget.resize(1100, 640)
     widget.show()
@@ -797,7 +805,9 @@ def test_sidebar_fits_without_scroll_and_labels_hide_when_empty(qtbot, fresh_db,
     bottom (no internal scroll) and no dead white rows under Cargar JSON."""
     from PySide6.QtWidgets import QScrollArea
 
-    widget = SynopticPage(fresh_db, config_dir=tmp_path)
+    # admin: these tests exercise the save mechanics on dates that are
+    # already closed under rule R4 (06Z of the next day)
+    widget = SynopticPage(fresh_db, config_dir=tmp_path, role="admin")
     qtbot.addWidget(widget)
     widget.resize(1100, 640)
     widget.show()
@@ -949,7 +959,9 @@ def test_toast_auto_dismisses_after_5_seconds(qtbot, fresh_db, tmp_path):
 
     from PySide6.QtWidgets import QApplication
 
-    widget = SynopticPage(fresh_db, config_dir=tmp_path)
+    # admin: these tests exercise the save mechanics on dates that are
+    # already closed under rule R4 (06Z of the next day)
+    widget = SynopticPage(fresh_db, config_dir=tmp_path, role="admin")
     qtbot.addWidget(widget)
     widget.resize(1100, 640)
     widget.show()
@@ -972,7 +984,9 @@ def test_toast_dismisses_on_click_anywhere(qtbot, fresh_db, tmp_path):
     from PySide6.QtGui import QMouseEvent
     from PySide6.QtWidgets import QApplication
 
-    widget = SynopticPage(fresh_db, config_dir=tmp_path)
+    # admin: these tests exercise the save mechanics on dates that are
+    # already closed under rule R4 (06Z of the next day)
+    widget = SynopticPage(fresh_db, config_dir=tmp_path, role="admin")
     qtbot.addWidget(widget)
     widget.resize(1100, 640)
     widget.show()
@@ -996,7 +1010,9 @@ def test_toast_dismisses_on_click_anywhere(qtbot, fresh_db, tmp_path):
 
 def test_station_combo_shows_only_the_code_in_iiiii(qtbot, fresh_db, tmp_path):
     """Owner round 6: IIiii cell shows just '78485', name stays in tooltip."""
-    widget = SynopticPage(fresh_db, config_dir=tmp_path)
+    # admin: these tests exercise the save mechanics on dates that are
+    # already closed under rule R4 (06Z of the next day)
+    widget = SynopticPage(fresh_db, config_dir=tmp_path, role="admin")
     qtbot.addWidget(widget)
     widget.set_station("78485")
     assert widget.station_combo.currentText() == "78485"
@@ -1124,7 +1140,9 @@ def test_toast_5s_and_click_dismiss(qtbot, fresh_db, tmp_path):
 
     from PySide6.QtWidgets import QApplication
 
-    widget = SynopticPage(fresh_db, config_dir=tmp_path)
+    # admin: these tests exercise the save mechanics on dates that are
+    # already closed under rule R4 (06Z of the next day)
+    widget = SynopticPage(fresh_db, config_dir=tmp_path, role="admin")
     qtbot.addWidget(widget)
     widget.resize(1100, 640)
     widget.show()
@@ -1142,7 +1160,9 @@ def test_hourly_gradient_reaches_the_grid(qtbot, fresh_db, tmp_path):
     from PySide6.QtCore import QPoint
     from PySide6.QtWidgets import QApplication
 
-    widget = SynopticPage(fresh_db, config_dir=tmp_path)
+    # admin: these tests exercise the save mechanics on dates that are
+    # already closed under rule R4 (06Z of the next day)
+    widget = SynopticPage(fresh_db, config_dir=tmp_path, role="admin")
     qtbot.addWidget(widget)
     widget.resize(1200, 700)
     widget.show()
@@ -1242,7 +1262,9 @@ def test_background_changes_across_day_cycle(qtbot, fresh_db, tmp_path):
     from PySide6.QtCore import QPoint
     from PySide6.QtWidgets import QApplication
 
-    widget = SynopticPage(fresh_db, config_dir=tmp_path)
+    # admin: these tests exercise the save mechanics on dates that are
+    # already closed under rule R4 (06Z of the next day)
+    widget = SynopticPage(fresh_db, config_dir=tmp_path, role="admin")
     qtbot.addWidget(widget)
     widget.resize(1200, 700)
     widget.show()
@@ -1372,3 +1394,44 @@ def test_cli5074_red_accent_map(cli3074_page, qtbot):
     assert "#e11d48" in by_text["(mm)"]          # evap unit chips
     assert "#334155" in by_text["PUNTO DE ROCÍO (°C)"]
     assert "#334155" in by_text["LLUVIA"]        # same slate family
+
+
+# ------------------------------------------------- A4: cierre del día (R4)
+
+
+def test_observador_cannot_save_a_closed_day(fresh_db, tmp_path, qtbot):
+    """The day closes at 06Z of the next day: a regular role is refused and
+    nothing is written."""
+    from oms_core.db.repositories import summaries as summaries_repo
+
+    widget = SynopticPage(fresh_db, config_dir=tmp_path, role="observador")
+    qtbot.addWidget(widget)
+    widget._draft_guard_class = _stub_dialog_class(DraftGuardDialog.DISCARD)
+    widget.set_station(STATION)
+    widget.fecha_edit.setDate(QDate(2025, 12, 8))  # long closed
+    _filled_hour(widget, "06Z")
+
+    widget.do_save()
+
+    assert "se cerró a las 06Z" in widget.error_label.text()
+    assert summaries_repo.get_summary_doc(
+        fresh_db, STATION, 2025, 12, "diario", day=8) is None
+
+
+def test_admin_can_correct_a_closed_day(fresh_db, tmp_path, qtbot):
+    """The auditing roles keep the door open, and the write is versioned."""
+    from oms_core.db.repositories import summaries as summaries_repo
+    from oms_core.services import versions as versions_service
+
+    widget = SynopticPage(fresh_db, config_dir=tmp_path, role="admin")
+    qtbot.addWidget(widget)
+    widget._draft_guard_class = _stub_dialog_class(DraftGuardDialog.DISCARD)
+    widget.set_station(STATION)
+    widget.fecha_edit.setDate(QDate(2025, 12, 8))
+    _filled_hour(widget, "06Z")
+
+    widget.do_save()
+
+    assert summaries_repo.get_summary_doc(
+        fresh_db, STATION, 2025, 12, "diario", day=8) is not None
+    assert versions_service.count(fresh_db, STATION, 2025, 12, 8) >= 1
