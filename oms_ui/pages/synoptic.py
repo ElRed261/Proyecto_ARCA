@@ -1234,7 +1234,12 @@ class SynopticPage(QWidget):
         target = target_date.toString("yyyy-MM-dd")
         # 3) load or create
         try:
-            loaded = synoptic_service.load_day(self._conn, station, target)
+            # A2: the whole day comes from the single document object, so the
+            # grid, the observer slots and the CLI views share one source.
+            from oms_core.services import document as document_service
+
+            day_doc = document_service.load_day_document(self._conn, station, target)
+            loaded = day_doc.horas if day_doc is not None else None
         except synoptic_service.SaveError as exc:
             self.error_label.setText(f"Error al cargar el día: {exc}")
             return
