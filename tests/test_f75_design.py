@@ -131,7 +131,10 @@ def test_rail_role_filtering_unchanged(qtbot, db):
     obs = MainWindow(role="observador", db_path=db)
     qtbot.addWidget(obs)
     assert obs.visible_pages() == ["dashboard", "synoptic", "summary", "maintenance"]
-    assert set(obs._rail_buttons) == set(obs.visible_pages())
+    # round 11: the rail lists only the selectable modules — the dashboard
+    # (default landing) is the logo, not a button
+    rail_modules = {pid for pid in obs.visible_pages() if pid != "dashboard"}
+    assert set(obs._rail_buttons) == rail_modules
 
 
 # ---------------------------------------------------------------- splash / session
@@ -226,3 +229,37 @@ def test_oversize_frame_gets_clamped_after_restore(qtbot, db):
         QApplication.processEvents()
     assert window.width() <= clamp_width + 1
     assert window.height() <= clamp_height + 1
+
+
+def test_rail_inicio_becomes_logo_and_click_empty_toggles(qtbot, db):
+    """Owner round 11: Inicio is NOT a rail option (a logo replaces it and
+    clicking it routes home); the rail toggles by clicking its EMPTY space
+    (Gemini-style), with no «/» button; state keeps persisting."""
+    QSettings("NeoArca", "shell").remove("rail_collapsed")
+    window = MainWindow(role="admin", db_path=db)
+    qtbot.addWidget(window)
+    window.show()
+    for _ in range(6):
+        QApplication.processEvents()
+    assert "dashboard" not in window._rail_buttons  # not an option anymore
+    assert hasattr(window, "_rail_logo")
+    assert window._toggle_button is None            # no «/» button
+    window._navigate_to("synoptic")
+    for _ in range(4):
+        QApplication.processEvents()
+    window._rail_logo.mousePressEvent(None)
+    for _ in range(4):
+        QApplication.processEvents()
+    assert window.stack.currentWidget() is window._pages["dashboard"]
+    before = window.rail_collapsed
+    window._rail_widget.mousePressEvent(None)
+    for _ in range(4):
+        QApplication.processEvents()
+    assert window.rail_collapsed != before
+    window._rail_widget.mousePressEvent(None)
+    for _ in range(4):
+        QApplication.processEvents()
+    assert window.rail_collapsed == before
+    assert QSettings("NeoArca", "shell").value(
+        "rail_collapsed", False, type=bool
+    ) == window.rail_collapsed

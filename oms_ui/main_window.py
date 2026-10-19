@@ -13,7 +13,7 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
-from PySide6.QtCore import QSettings, QTimer, Signal
+from PySide6.QtCore import QSettings, Qt, QTimer, Signal
 from PySide6.QtWidgets import (
     QApplication,
     QDialog,
@@ -33,6 +33,11 @@ from oms_ui.pages.stations_admin import StationsAdminPage
 
 #: Nav entries mirroring OLD Sidebar.jsx MODULES (id, label, accent, monogram)
 #: — the role filtering itself lives in oms_core.services.access.
+#: Rail entries WITHOUT "Inicio": the dashboard is the program's default
+#: landing point, not a selectable module (owner round 11 — a logo will
+#: replace it once the owner picks one).
+_RAIL_MODULE_IDS = ("synoptic", "summary", "audit", "maintenance", "admin")
+
 NAV_ENTRIES = (
     ("dashboard", "Inicio", "#3b82f6", "IN"),
     ("synoptic", "Sinóptico", "#3b82f6", "SI"),
@@ -107,8 +112,21 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(8, 12, 8, 12)
         layout.setSpacing(4)
 
+        # owner round 11: a logo mark (identity TBD by the owner) — also the
+        # home click target: tapping it returns to the default landing page
+        from PySide6.QtWidgets import QLabel
+
+        self._rail_logo = QLabel("OMS")
+        self._rail_logo.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._rail_logo.setToolTip("Inicio")
+        self._rail_logo.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._rail_logo.mousePressEvent = lambda _event: self._navigate_to("dashboard")
+        layout.addWidget(self._rail_logo)
+
         self._rail_buttons: dict[str, QPushButton] = {}
         for page_id, label, accent, mono in NAV_ENTRIES:
+            if page_id not in _RAIL_MODULE_IDS:  # Inicio is NOT an option
+                continue
             if not access.can_access(self.role, page_id):
                 continue
             button = QPushButton()
@@ -132,10 +150,10 @@ class MainWindow(QMainWindow):
             self._email_label.setWordWrap(True)
             layout.addWidget(self._email_label)
 
-        self._toggle_button = QPushButton("«" if not self._collapsed else "»")
-        self._toggle_button.setToolTip("Colapsar menú" if not self._collapsed else "Expandir menú")
-        self._toggle_button.clicked.connect(self.toggle_rail)
-        layout.addWidget(self._toggle_button)
+        # owner round 11 (Gemini-style): NO «/» toggle button — clicking the
+        # rail's empty space collapses when expanded, expands when collapsed
+        self._toggle_button = None
+        rail.mousePressEvent = lambda _event: self.toggle_rail()
 
         self._logout_button = QPushButton("Salir")
         self._logout_button.clicked.connect(self.logout_requested.emit)
@@ -166,10 +184,7 @@ class MainWindow(QMainWindow):
                     "QPushButton { border: none; text-align: left; padding: 10px 12px; "
                     "font-weight: 600; color: #334155; }"
                 )
-        self._toggle_button.setText("»" if collapsed else "«")
-        self._toggle_button.setToolTip(
-            "Expandir menú" if collapsed else "Colapsar menú"
-        )
+        self._rail_logo.setText("OMS" if collapsed else "OMS · Observations")
         if hasattr(self, "_email_label"):
             self._email_label.setVisible(not collapsed)
         if hasattr(self, "_logout_button"):

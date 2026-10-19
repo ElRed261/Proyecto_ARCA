@@ -420,13 +420,21 @@ class Cli5074View(QWidget):
             grid.setColumnStretch(c, 1)
 
     def _build_iniciales_card(self, bottom_right: QHBoxLayout) -> None:
-        _card, layout = self._section_card(bottom_right, "INICIALES OBS.")
+        # owner round 11: the header shrinks to a whisper so the OBSERVER
+        # initials field is the protagonist (tall, roomy)
+        _card, layout = self._section_card(bottom_right, None)
+        label = QLabel("Iniciales obs.")
+        label.setStyleSheet(
+            "color: #94a3b8; font-size: 9px; font-weight: 700;"
+            "letter-spacing: 1px; background: transparent;"
+        )
+        layout.addWidget(label)
         edit = QLineEdit()
         edit.setStyleSheet(_INPUT_QSS)
-        edit.setMinimumHeight(28)
+        edit.setMinimumHeight(64)  # tall: the initials take the stage
+        edit.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.fields["iniciales_obs"] = edit
         layout.addWidget(edit)
-        bottom_right.addWidget(_card) if False else None
 
     def _build_fenomenos_card(self, outer: QVBoxLayout) -> None:
         card = QFrame()
@@ -435,12 +443,14 @@ class Cli5074View(QWidget):
         row.setContentsMargins(12, 10, 12, 12)
         row.setSpacing(10)
 
-        # OBSERVACIONES Y DETALLES textarea (oracle placeholder verbatim)
+        # OBSERVACIONES Y DETALLES textarea (oracle placeholder verbatim);
+        # owner round 11: whisper header, the manual-detail area is the
+        # protagonist and grows with the card
         left = QVBoxLayout()
-        left_title = QLabel("OBSERVACIONES Y DETALLES DEL FENÓMENO")
+        left_title = QLabel("Detalles del fenómeno")
         left_title.setStyleSheet(
-            "font-weight: 800; font-size: 12px; color: #0f172a;"
-            "background: transparent;"
+            "color: #94a3b8; font-size: 9px; font-weight: 700;"
+            "letter-spacing: 1px; background: transparent;"
         )
         left.addWidget(left_title)
         manual = QPlainTextEdit()
@@ -448,7 +458,6 @@ class Cli5074View(QWidget):
             "Espacio destinado a detallar más información de forma manual..."
         )
         manual.setStyleSheet(_TEXT_QSS)
-        manual.setFixedHeight(140)
         self.fields["observaciones_manuales"] = _PlainTextBridge(manual, self._schedule_autosave)
         left.addWidget(manual)
         row.addLayout(left, 1)
