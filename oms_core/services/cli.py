@@ -28,6 +28,7 @@ import math
 import sqlite3
 
 import oms_calc
+from oms_core.db.repositories import stations as stations_repo
 from oms_core.db.repositories import summaries as summaries_repo
 from oms_core.services.synoptic import SaveError, validate_fecha, validate_station
 
@@ -265,18 +266,99 @@ def load_cli(conn: sqlite3.Connection, station: str, fecha: str, cli_key: str) -
 _PREV_ROW = {str(i): (str(i - 1) if i > 1 else None) for i in range(1, 25)}
 
 
+#: hora sinóptica -> fila del CLI 3074 (oracle synopRows / monthly adapter).
+SYNOP_ROWS: tuple[tuple[str, str], ...] = (
+    ("06Z", "2"), ("09Z", "5"), ("12Z", "8"), ("15Z", "11"),
+    ("18Z", "14"), ("21Z", "17"), ("00Z", "20"), ("03Z", "23"),
+)
+
+
+def _normalize_cli_block(value: object) -> dict | None:
+    """Accept the legacy flat block (``{"2": {...}}``) and the current one.
+
+    The application writes ``{"horas": {"2": {...}}}``; the documents produced
+    by the old build kept the rows at the top level, so the loader found no
+    ``horas`` key and the view rendered an empty table.
+    """
+    if not isinstance(value, dict):
+        return None
+    if isinstance(value.get("horas"), dict):
+        return value
+    rows = {k: v for k, v in value.items() if str(k).isdigit() and isinstance(v, dict)}
+    if not rows:
+        return value
+    return {**value, "horas": rows}
+
+
+def _viento_dir_from_nddff(nddff: str) -> str:
+    """dd (digits 2-3 of Nddff) x 10 -> degrees, as the oracle did."""
+    text = str(nddff or "")
+    if len(text) >= 3 and text[1] != "/" and text[2] != "/":
+        try:
+            return str(int(text[1:3]) * 10)
+        except ValueError:
+            return ""
+    return ""
+
+
+def _overlay_from_synoptic(row: dict, hour: dict, ch: str) -> dict:
+    """Fill the row's derived fields from its synoptic hour (rule R3).
+
+    One call to the calculation boundary returns every derived value, so the
+    CLI row can never disagree with the form: the synoptic hour owns them.
+    """
+    out = dict(row)
+    ts = str(hour.get("ts") or "")
+    th = str(hour.get("th") or "")
+    pres_est = str(hour.get("pres_est") or "")
+    nddff = str(hour.get("meteo_4_1") or "")
+    raw = oms_calc.recalculate_derived_fields_json(
+        None, ts, th, pres_est, str(hour.get("p3") or ""),
+        str(hour.get("p24") or ""), "", str(hour.get("meteo_4_irixhvv") or ""),
+        str(hour.get("meteo_4_6") or ""), nddff, "", ch,
+    )
+    derived = json.loads(raw) if isinstance(raw, str) else (raw or {})
+    values = {
+        "temp_seco": ts,
+        "temp_humedo": th,
+        "pres_est": pres_est,
+        "pres_nmm": derived.get("pres_nmm"),
+        "tend_dif": derived.get("tend_dif"),
+        "tend_car": derived.get("tend_car"),
+        "visibilidad": derived.get("visibilidad"),
+        "hum_hr": derived.get("humedad_relativa"),
+        "hum_tvap": derived.get("tension_vapor"),
+        "hum_ptor": derived.get("punto_rocio"),
+    }
+    for key, value in values.items():
+        if value:
+            out[key] = str(value)
+    direction = _viento_dir_from_nddff(nddff)
+    if direction:
+        out["viento_dir"] = direction
+    return out
+
+
+def _synoptic_hours(conn: sqlite3.Connection, station: str, fecha: str) -> dict[str, dict]:
+    from oms_core.services import document as document_service
+
+    day = document_service.load_day_document(conn, station, fecha)
+    return day.horas if day is not None else {}
+
+
 def load_cli3074(conn: sqlite3.Connection, station: str, fecha: str) -> dict | None:
     """cli3074 document with the automatic fields recalculated on load.
 
     Port of ``load_cli3074_json_core``: tendencia dif/car, visibilidad from
     IrIXHVV and tiempo_presente per hora-row, using oms_calc pure functions.
     """
-    value = load_cli(conn, station, fecha, "cli3074")
-    if value is None or not isinstance(value, dict):
-        return value if value is None else None
-    horas_obj = value.get("horas")
+    stored = load_cli(conn, station, fecha, "cli3074")
+    if stored is not None and not isinstance(stored, dict):
+        return None
+    value = _normalize_cli_block(stored) if stored is not None else None
+    horas_obj = value.get("horas") if isinstance(value, dict) else None
     if not isinstance(horas_obj, dict):
-        return value
+        horas_obj = {}
 
     new_horas: dict = {}
     for hora_key, hora_data in horas_obj.items():
@@ -317,6 +399,25 @@ def load_cli3074(conn: sqlite3.Connection, station: str, fecha: str) -> dict | N
 
         new_horas[hora_key] = new_hora
 
-    result = dict(value)
+    # rule R3: for the eight synoptic hours the synoptic form owns the values,
+    # so the CLI row shows what the observer typed there (and what derives from
+    # it) instead of a stale copy.
+    synoptic = _synoptic_hours(conn, station, fecha)
+    if synoptic:
+        station_row = stations_repo.get_station(conn, station)
+        ch = str(station_row.ch) if station_row is not None else ""
+        for hora, row_key in SYNOP_ROWS:
+            hour = synoptic.get(hora)
+            if not hour:
+                continue
+            existing = new_horas.get(row_key)
+            new_horas[row_key] = _overlay_from_synoptic(
+                existing if isinstance(existing, dict) else {}, hour, ch)
+
+    # a day with synoptic data yields rows even when no CLI block was stored:
+    # the view is a projection of the form, not a separate record.
+    if value is None and not new_horas:
+        return None
+    result = dict(value or {})
     result["horas"] = new_horas
     return result
