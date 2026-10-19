@@ -36,10 +36,28 @@ QLineEdit, QComboBox, QDateEdit, QSpinBox {
     border: 1px solid #cbd5e1;
     border-radius: 6px;
     padding: 6px 8px;
+}
+/* text selection only where there is text being selected: on a QComboBox
+   the property cascades into the popup list and painted its selection. */
+QLineEdit, QDateEdit, QSpinBox {
     selection-background-color: #bfdbfe;
 }
 QLineEdit:focus, QComboBox:focus, QDateEdit:focus {
     border: 1px solid #3b82f6;
+}
+
+/* QComboBox popup: the combo's own rule must not leak into the list, and
+   the list must sit on the same light surface (no dark frame bands). */
+QComboBox QAbstractItemView {
+    background-color: #ffffff;
+    border: none;
+    outline: none;
+    padding: 4px;
+    selection-background-color: #e2e8f0;
+    selection-color: #0f172a;
+}
+QComboBox QAbstractItemView::item {
+    padding: 4px 8px;
 }
 QLineEdit[readOnly="true"] {
     background-color: #f1f5f9;

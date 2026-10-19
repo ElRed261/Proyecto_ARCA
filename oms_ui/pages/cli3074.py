@@ -29,7 +29,6 @@ from PySide6.QtCore import QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QColor, QPainter
 from PySide6.QtWidgets import (
     QCheckBox,
-    QComboBox,
     QFrame,
     QGridLayout,
     QHBoxLayout,
@@ -44,6 +43,7 @@ from PySide6.QtWidgets import (
 from oms_core.db.repositories import stations as stations_repo
 from oms_core.services import cli as cli_service
 from oms_ui.icons import lucide_icon
+from oms_ui.widgets import StyledComboBox
 
 #: oracle synopRows: synoptic UTC hour -> local row number (1-based).
 SYNOP_ROWS: dict[str, int] = {
@@ -339,7 +339,7 @@ class Cli3074View(QWidget):
             )
             return label
 
-        self.station_combo = QComboBox()
+        self.station_combo = StyledComboBox()
         for row in stations_repo.list_stations(self._conn):
             self.station_combo.addItem(f"{row.name} ({row.id})", row.id)
         index = self.station_combo.findData(self.station)

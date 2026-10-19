@@ -15,7 +15,6 @@ import sqlite3
 
 from PySide6.QtCore import QSize, Qt, QTimer, Signal
 from PySide6.QtWidgets import (
-    QComboBox,
     QFrame,
     QGridLayout,
     QHBoxLayout,
@@ -30,6 +29,7 @@ from PySide6.QtWidgets import (
 from oms_core.db.repositories import stations as stations_repo
 from oms_core.services import cli as cli_service
 from oms_ui.icons import lucide_icon
+from oms_ui.widgets import StyledComboBox
 
 #: (field, sub-header text) in column order; groups carry their own colors.
 GROUPS_4074: tuple[tuple[str, str, int, tuple[tuple[str, str], ...]], ...] = (
@@ -349,7 +349,7 @@ class Cli4074View(QWidget):
             )
             return label
 
-        self.station_combo = QComboBox()
+        self.station_combo = StyledComboBox()
         for row in stations_repo.list_stations(self._conn):
             self.station_combo.addItem(f"{row.name} ({row.id})", row.id)
         self.station_combo.setCurrentIndex(

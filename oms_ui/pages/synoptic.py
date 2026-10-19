@@ -48,7 +48,6 @@ from PySide6.QtGui import (
 )
 from PySide6.QtWidgets import (
     QApplication,
-    QComboBox,
     QDateEdit,
     QDialog,
     QFrame,
@@ -72,6 +71,7 @@ import oms_calc
 from oms_core.db.repositories import stations as stations_repo
 from oms_core.services import synoptic as synoptic_service
 from oms_ui.icons import icon_pixmap, lucide_icon
+from oms_ui.widgets import StyledComboBox
 
 _AAXX = "AAXX"
 
@@ -699,7 +699,7 @@ class SynopticPage(QWidget):
 
         # station/date/alt live in the grid (row 2) and the calc panel;
         # the widgets stay alive here so setters/tests keep working
-        self.station_combo = QComboBox()
+        self.station_combo = StyledComboBox()
         for station in self._stations.values():
             # IIiii muestra solo el código (owner round 6); el nombre queda
             # como tooltip del item y vive en dashboard/cards CLI
@@ -710,7 +710,7 @@ class SynopticPage(QWidget):
             )
         # the IIiii column must not inflate from its longest item name
         self.station_combo.setSizeAdjustPolicy(
-            QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon
+            StyledComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon
         )
         self.station_combo.setMinimumContentsLength(9)
         self.station_combo.setSizePolicy(

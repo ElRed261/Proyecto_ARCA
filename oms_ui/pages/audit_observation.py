@@ -17,7 +17,6 @@ import sqlite3
 from pathlib import Path
 
 from PySide6.QtWidgets import (
-    QComboBox,
     QDialog,
     QDialogButtonBox,
     QFormLayout,
@@ -35,6 +34,7 @@ from PySide6.QtWidgets import (
 from oms_core.db.repositories.audit import MarkConflictError
 from oms_core.services import access
 from oms_core.services import audit as audit_service
+from oms_ui.widgets import StyledComboBox
 
 #: Service failures the status line can present (never crash the page).
 _UI_ERRORS = (audit_service.AuditError, MarkConflictError, OSError, sqlite3.Error)
@@ -99,7 +99,7 @@ class MarkDialog(QDialog):
         layout = QFormLayout(self)
         self.title_label = QLabel("")
         layout.addRow(self.title_label)
-        self.type_combo = QComboBox()
+        self.type_combo = StyledComboBox()
         self.type_combo.addItems(ERROR_TYPES)
         layout.addRow("Tipo de error", self.type_combo)
         self.note_edit = QTextEdit()

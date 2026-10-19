@@ -35,7 +35,6 @@ from PySide6.QtGui import QBrush, QColor
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QCheckBox,
-    QComboBox,
     QFileDialog,
     QFrame,
     QHBoxLayout,
@@ -56,6 +55,7 @@ from oms_core.db.repositories import stations as stations_repo
 from oms_core.services import excel_export
 from oms_core.services import summary as summary_service
 from oms_ui.icons import lucide_icon
+from oms_ui.widgets import StyledComboBox
 
 #: Months of the year in the UI's Spanish labels (index = month number - 1).
 MONTHS = (
@@ -217,18 +217,18 @@ class SummaryPage(QWidget):
         self.history_cards: list[QWidget] = []
 
         # -- selectors (public names: the tests drive them directly) ---------
-        self.station_combo = QComboBox()
+        self.station_combo = StyledComboBox()
         for station in stations_repo.list_stations(conn, include_inactive=True):
             # the oracle shows the station NAME and keeps the key as value
             self.station_combo.addItem(station.name or station.id, station.id)
         self.station_combo.setMinimumWidth(200)
 
-        self.month_combo = QComboBox()
+        self.month_combo = StyledComboBox()
         for name in MONTHS:
             self.month_combo.addItem(name)
         self.month_combo.setFixedWidth(150)
 
-        self.year_combo = QComboBox()
+        self.year_combo = StyledComboBox()
         current_year = _dt.date.today().year
         for year in range(2020, current_year + 3):
             self.year_combo.addItem(str(year))
@@ -420,7 +420,7 @@ class SummaryPage(QWidget):
         box = QVBoxLayout()
         box.setSpacing(6)
         box.addWidget(_label(caption, size=12, weight=600, color=_SLATE))
-        if isinstance(widget, QComboBox):
+        if isinstance(widget, StyledComboBox):
             widget.setStyleSheet(
                 f"QComboBox {{ background-color: #ffffff; border: 1px solid"
                 f" {_BORDER}; border-radius: 10px; padding: 8px 12px;"

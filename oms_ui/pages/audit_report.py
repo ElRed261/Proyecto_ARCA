@@ -12,7 +12,6 @@ from __future__ import annotations
 import sqlite3
 
 from PySide6.QtWidgets import (
-    QComboBox,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -27,6 +26,7 @@ from PySide6.QtWidgets import (
 
 from oms_core.services import access
 from oms_core.services import audit as audit_service
+from oms_ui.widgets import StyledComboBox
 
 #: Service failures the status line can present (never crash the page).
 _UI_ERRORS = (audit_service.AuditError, OSError, sqlite3.Error)
@@ -60,7 +60,7 @@ class AuditReportPage(QWidget):
         self.station_filter.setPlaceholderText("Station (optional)")
         self.year_filter = QLineEdit()
         self.year_filter.setPlaceholderText("YYYY")
-        self.month_filter = QComboBox()
+        self.month_filter = StyledComboBox()
         self.month_filter.addItem("(All)", "")
         for num in sorted(audit_service.MONTH_NAMES):
             self.month_filter.addItem(audit_service.MONTH_NAMES[num], num)
@@ -105,7 +105,7 @@ class AuditReportPage(QWidget):
         """Inert placeholders so callers can rely on the attributes."""
         self.station_filter = QLineEdit()
         self.year_filter = QLineEdit()
-        self.month_filter = QComboBox()
+        self.month_filter = StyledComboBox()
         self.filter_button = QPushButton("Filtrar")
         self.notes_edit = QTextEdit()
         self.tabs = QTabWidget()
