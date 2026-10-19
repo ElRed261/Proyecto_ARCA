@@ -309,7 +309,58 @@ def _nub_for_ast(
     return _doc_nub(entry) if isinstance(entry, dict) else None
 
 
-def observation_from_doc(doc: dict[str, Any]) -> DailyObservation | None:
+def _fill_derived_from_inputs(
+    hourly: dict, datos: dict, *, correc_alt: str = ""
+) -> dict:
+    """R2: the document no longer stores derived values, so compute them here.
+
+    Feeds the psychrometric pair (ts/th) and the pressure inputs through the
+    calculation boundary; fills only what the document did not carry.
+    """
+    need = [key for key in ("p_nmm", "rocio", "t_vapor", "hr") if hourly.get(key) is None]
+    if not need:
+        return hourly
+    ts = _num(datos.get("ts")) if isinstance(datos, dict) else None
+    th = _num(datos.get("th")) if isinstance(datos, dict) else None
+    p_est = hourly.get("p_est")
+    if p_est is None and isinstance(datos, dict):
+        p_est = _num(datos.get("pres_est"))
+    if ts is None and th is None and p_est is None:
+        return hourly
+
+    def text(value: object) -> str:
+        return "" if value is None else str(value)
+
+    try:
+        raw = oms_calc.recalculate_derived_fields_json(
+            None, text(ts), text(th), text(p_est),
+            text(_num(datos.get("p3")) if isinstance(datos, dict) else None),
+            "", "", str((datos or {}).get("meteo_4_irixhvv") or ""),
+            str((datos or {}).get("meteo_4_6") or ""),
+            str((datos or {}).get("meteo_4_1") or ""), "",
+            str(correc_alt or ""),
+        )
+        derived = json.loads(raw) if isinstance(raw, str) else (raw or {})
+    except (ValueError, TypeError):
+        return hourly
+    mapping = {
+        "p_nmm": "pres_nmm",
+        "rocio": "punto_rocio",
+        "t_vapor": "tension_vapor",
+        "hr": "humedad_relativa",
+    }
+    for key, source in mapping.items():
+        if hourly.get(key) is not None:
+            continue
+        value = _num(derived.get(source))
+        if value is not None:
+            hourly[key] = value
+    return hourly
+
+
+def observation_from_doc(
+    doc: dict[str, Any], *, correc_alt: str = ""
+) -> DailyObservation | None:
     """Adapt a stored diario document into the ``DailyObservation`` row model.
 
     Legacy shape ``{meta, horarias, resumen_dia}``: the horarias rows already
@@ -390,6 +441,7 @@ def observation_from_doc(doc: dict[str, Any]) -> DailyObservation | None:
                 _num(legacy.get("nub")),
             ),
         }
+        hourly = _fill_derived_from_inputs(hourly, datos, correc_alt=correc_alt)
         rows.append((hora, hourly))
 
     # TMAX/TMIN: cli4074 rows first, then the even-hour 'horas' slots, then
@@ -670,7 +722,7 @@ def generate_month(
             apply_corrections(doc, conn, station, fecha_iso, station_ch)
             if overlay else (doc, [])
         )
-        obs = observation_from_doc(doc)
+        obs = observation_from_doc(doc, correc_alt=station_ch)
         per_day.append(observation_to_kpis(obs) if obs else _empty_kpis(fecha_iso))
 
     doc_data = {

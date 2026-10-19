@@ -21,6 +21,7 @@ EXPECTED_TABLES = {
     "app_config",
     "sync_pending",
     "observations",
+    "document_versions",
 }
 
 EXPECTED_INDEXES = {
@@ -37,7 +38,7 @@ EXPECTED_INDEXES = {
 def test_fresh_db_reaches_latest_version(tmp_path):
     conn = connect(tmp_path / "fresh.db")
     migrations.migrate(conn)
-    assert migrations.LATEST_VERSION == 5
+    assert migrations.LATEST_VERSION == 6  # M006: document_versions
     assert conn.execute("PRAGMA user_version").fetchone()[0] == migrations.LATEST_VERSION
     conn.close()
 

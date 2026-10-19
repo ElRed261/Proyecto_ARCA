@@ -30,6 +30,7 @@ import sqlite3
 import oms_calc
 from oms_core.db.repositories import stations as stations_repo
 from oms_core.db.repositories import summaries as summaries_repo
+from oms_core.services import versions as versions_service
 from oms_core.services.synoptic import SaveError, validate_fecha, validate_station
 
 # ---------------------------------------------------------------------------
@@ -173,6 +174,7 @@ def save_cli(
     fecha: str,
     cli_key: str,
     data: object,
+    actor: str = "",
 ) -> None:
     """Write ``cli_key`` into the daily document, touching nothing else.
 
@@ -204,10 +206,13 @@ def save_cli(
         receiver = dict(parsed)
     receiver[cli_key] = data
 
+    previous_sha = _sha256_text(text) if isinstance(text, str) and text else None
+
     conn.execute("SAVEPOINT f4_save_cli")
     try:
         tx = _NoCommitConnection(conn)
         body = json.dumps(receiver, ensure_ascii=False)
+        new_sha = _sha256_text(body)
         summaries_repo.upsert_summary_doc(
             tx,
             station_id=station,
@@ -215,8 +220,13 @@ def save_cli(
             month=month,
             kind="diario",
             data=body,
-            sha256=_sha256_text(body),
+            sha256=new_sha,
             day=day,
+        )
+        versions_service.record(
+            tx, station, year, month, day, actor=str(actor or ""),
+            sha256_before=previous_sha, sha256_after=new_sha,
+            summary=f"cli {cli_key}",
         )
         conn.execute("RELEASE f4_save_cli")
         conn.commit()

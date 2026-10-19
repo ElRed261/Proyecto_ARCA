@@ -181,12 +181,30 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_summary_logs_doc
     ON summary_logs(station_id, year, month, kind, day);
 """
 
+M006_UP = """
+CREATE TABLE IF NOT EXISTS document_versions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    station_id TEXT NOT NULL,
+    year INTEGER NOT NULL,
+    month INTEGER NOT NULL,
+    day INTEGER NOT NULL,
+    at TEXT NOT NULL,
+    actor TEXT NOT NULL DEFAULT '',
+    sha256_antes TEXT,
+    sha256_despues TEXT NOT NULL,
+    resumen_cambio TEXT
+);
+CREATE INDEX IF NOT EXISTS ix_document_versions_day
+    ON document_versions(station_id, year, month, day);
+"""
+
 MIGRATIONS: tuple[tuple[int, str, str], ...] = (
     (1, "initial schema (port of db.rs M1)", M001_UP),
     (2, "drop legacy audit tables (port of db.rs M2)", M002_UP),
     (3, "error_marks dedupe + unique barrier uq_error_marks_slot", M003_UP),
     (4, "sync_pending queue (sync_queue.rs MIGATION_SQL)", M004_UP),
     (5, "observations table + summary_logs doc columns", M005_UP),
+    (6, "document_versions trail (rule R4)", M006_UP),
 )
 
 LATEST_VERSION = MIGRATIONS[-1][0]

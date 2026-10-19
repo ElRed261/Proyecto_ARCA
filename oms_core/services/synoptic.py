@@ -42,6 +42,8 @@ from oms_core.db.repositories import observations as observations_repo
 from oms_core.db.repositories import stations as stations_repo
 from oms_core.db.repositories import summaries as summaries_repo
 from oms_core.db.repositories.observations import Observation
+from oms_core.services import document_map
+from oms_core.services import versions as versions_service
 
 # ---------------------------------------------------------------------------
 # Oracle constants (verbatim; do not "fix" the display order of HOURS, the
@@ -267,33 +269,24 @@ _CALCULADO_KEY_MAP = {
 
 
 def _build_hora_entry(hour_data: dict, derived: dict, observer: str | None) -> dict:
-    """One hour's document structure: {observador, datos, synop, calculado}."""
-    entry: dict[str, Any] = {}
-    hora_observer = str(hour_data.get("nombre_observador") or "") or observer
-    if hora_observer:
-        entry["observador"] = hora_observer
+    """One hour's document structure: {observador, datos, synop}.
 
-    datos: dict[str, Any] = {}
-    for data_key, doc_key in _DATOS_KEY_MAP.items():
-        if data_key in hour_data:
-            datos[doc_key] = hour_data[data_key]
-    synop = {
-        oms_calc.to_synop_name(key): value
-        for key, value in hour_data.items()
-        if key.startswith(("meteo_", "extra_"))
-    }
-    calculado = {
-        doc_key: derived[data_key]
-        for data_key, doc_key in _CALCULADO_KEY_MAP.items()
-        if derived.get(data_key)
-    }
+    Rule R2/R3 of docs/ARQUITECTURA_DATOS.md: only observed values are
+    written. ``calculado`` is gone (it is recomputed on read), ``correc_alt``
+    and ``visibilidad`` stay out of ``datos`` (derived from the station and
+    from IrIXHVV), and the observer is ALWAYS present, empty string included.
+    """
+    del derived  # kept in the signature for callers; nothing derived is stored
+    entry: dict[str, Any] = {}
+    entry["observador"] = str(hour_data.get("nombre_observador") or "") or str(observer or "")
+
+    datos = document_map.datos_to_document(hour_data)
+    synop = document_map.groups_to_document(hour_data)
 
     if synop:
         entry["synop"] = synop
     if datos:
         entry["datos"] = datos
-    if calculado:
-        entry["calculado"] = calculado
     return entry
 
 
@@ -432,6 +425,7 @@ def save_hour(
     hora: str,
     data: dict,
     observer: str | None = None,
+    actor: str = "",
 ) -> None:
     """Validate, recalc derived, upsert the row and revise the daily doc.
 
@@ -475,8 +469,7 @@ def save_hour(
     meta = dict(existing_doc.get("meta")) if isinstance(existing_doc.get("meta"), dict) else {}
     meta["estacion"] = station
     meta["fecha"] = format_date_display(fecha)
-    if observer:
-        meta["observador"] = observer
+    meta.pop("observador", None)  # R3: the observer is per hour, not per day
     meta["ultima_actualizacion"] = _now_local()
     doc = dict(existing_doc)
     doc["meta"] = meta
@@ -499,6 +492,9 @@ def save_hour(
         source_sha256="",  # filled by the transaction below with the doc sha
     )
 
+    previous_text = summaries_repo.get_summary_doc(conn, station, year, month, "diario", day=day)
+    previous_sha = _sha256_text(previous_text) if previous_text else None
+
     conn.execute("SAVEPOINT f4_save_hour")
     try:
         tx = _NoCommitConnection(conn)
@@ -515,6 +511,12 @@ def save_hour(
             data=text,
             sha256=sha,
             day=day,
+        )
+        versions_service.record(
+            tx, station, year, month, day,
+            actor=str(actor or observer or ""),
+            sha256_before=previous_sha, sha256_after=sha,
+            summary=f"synoptic {hora}",
         )
         conn.execute("RELEASE f4_save_hour")
         conn.commit()

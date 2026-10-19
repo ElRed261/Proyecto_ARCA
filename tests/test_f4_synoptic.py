@@ -127,15 +127,22 @@ def test_save_hour_transactional_path_writes_row_and_diario_doc(fresh_db, statio
     doc = json.loads(doc_text)
     assert doc["meta"]["estacion"] == station
     assert doc["meta"]["fecha"] == "08122025"  # DDMMYYYY display format
-    assert doc["meta"]["observador"] == "Andry emiliano"
+    # R3 (docs/ARQUITECTURA_DATOS.md): the observer belongs to the hour
+    assert "observador" not in doc["meta"]
     hora_entry = doc["horas"]["06Z"]
+    assert hora_entry["observador"] == "Andry emiliano"
     assert hora_entry["datos"]["pres_est"] == "1025.3"
-    assert hora_entry["datos"]["Tmax"] == ""  # even-hour extras preserved as given
+    assert "Tmax" not in hora_entry["datos"]  # empty values are not stored (R2)
     assert hora_entry["synop"]["IrIXHVV"] == "32566"
     assert hora_entry["synop"]["Nddff"] == "50102"
-    calculated = hora_entry["calculado"]
-    assert calculated["pres_nmm"]
-    assert calculated["hr"]
+    # R2: nothing derived is persisted; it is recomputed on read instead
+    assert "calculado" not in hora_entry
+    assert "correc_alt" not in hora_entry["datos"]
+    assert "visibilidad" not in hora_entry["datos"]
+    recomputed = synoptic._recalc_derived(
+        {"pres_est": "1025.3", "ts": "23.2", "th": "22.9"}, station, "", "2.0")
+    assert recomputed["pres_nmm"]
+    assert recomputed["humedad_relativa"]
 
 
 def test_save_hour_second_hour_updates_same_doc_and_keeps_first(fresh_db, station):
@@ -293,10 +300,10 @@ def test_load_day_roundtrips_saved_hour_fields(fresh_db, station):
     assert entry["meteo_4_irixhvv"] == "32566"
     assert entry["meteo_2_1"] == "08030"
     assert entry["extra_8ns_1"] == "81819"
-    assert entry["t_max"] == ""  # even extras come back empty as saved
+    assert "t_max" not in entry  # empty values are not values (R2)
     assert entry["nombre_observador"] == "Andry emiliano"
     assert loaded["09Z"]["ts"] == "24.1"
-    assert loaded["15Z"] == {}  # unsaved hour stays empty
+    assert not [k for k in loaded["15Z"] if k != "nombre_observador"]  # empty hour
 
 
 def test_load_day_returns_none_when_no_document(fresh_db, station):
