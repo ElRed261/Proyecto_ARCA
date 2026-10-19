@@ -204,7 +204,12 @@ def save_cli(
         if not isinstance(parsed, dict):
             raise SaveError("el documento cli debe ser un objeto", stage="load")
         receiver = dict(parsed)
-    receiver[cli_key] = data
+    if int(receiver.get("schema") or 1) >= 2:
+        blocks = dict(receiver.get("cli") or {})
+        blocks[cli_key.replace("cli", "")] = data
+        receiver["cli"] = blocks
+    else:
+        receiver[cli_key] = data
 
     previous_sha = _sha256_text(text) if isinstance(text, str) and text else None
 
@@ -265,7 +270,13 @@ def load_cli(conn: sqlite3.Connection, station: str, fecha: str, cli_key: str) -
     if text is None:
         return None
     doc = json.loads(text)
-    return doc.get(cli_key) if isinstance(doc, dict) else None
+    if not isinstance(doc, dict):
+        return None
+    short = cli_key.replace("cli", "")
+    nested = doc.get("cli") if isinstance(doc.get("cli"), dict) else {}
+    if short in nested:
+        return nested[short]
+    return doc.get(cli_key)
 
 
 # ---------------------------------------------------------------------------
