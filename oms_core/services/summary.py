@@ -623,14 +623,16 @@ def _station_ch(conn: sqlite3.Connection, station: str) -> str:
 
 
 def generate_month(
-    conn: sqlite3.Connection, station: str, year: int, month: int
+    conn: sqlite3.Connection, station: str, year: int, month: int,
+    *, overlay: bool = True,
 ) -> dict[str, Any]:
     """Generate the monthly summary document for (station, month, year).
 
     Reads the verbatim 'diario' documents from summary_logs, applies the
-    approved audit corrections per day, recomputes derived inputs where they
-    changed, and runs every day through ``process_day_data_json`` (F2
-    boundary). The document is stored as ``kind='mensual'`` (day=0), never
+    approved audit corrections per day (``overlay=False`` skips them — the
+    UI's 'Incluir correcciones (overlay)' switch), recomputes derived inputs
+    where they changed, and runs every day through ``process_day_data_json``
+    (F2 boundary). The document is stored as ``kind='mensual'`` (day=0), never
     colliding with the imported legacy ``kind='resumen'`` docs; one generation
     is one transaction.
     """
@@ -664,7 +666,10 @@ def generate_month(
         if not isinstance(doc, dict):
             per_day.append(_empty_kpis(fecha_iso))
             continue
-        doc, _applied = apply_corrections(doc, conn, station, fecha_iso, station_ch)
+        doc, _applied = (
+            apply_corrections(doc, conn, station, fecha_iso, station_ch)
+            if overlay else (doc, [])
+        )
         obs = observation_from_doc(doc)
         per_day.append(observation_to_kpis(obs) if obs else _empty_kpis(fecha_iso))
 

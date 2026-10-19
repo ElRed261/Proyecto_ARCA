@@ -4,7 +4,8 @@ Inner elements copied from lucide-static v1.57.0 (ISC license);
 ``stroke="currentColor"`` is substituted by the requested color at render
 time. The OBS 1:1 recreation uses the exact lucide set of the oracle
 (Sunrise, Sun, Sunset, Moon, Clock, FileText, Cloud, Save, Upload,
-ArrowLeft/Right).
+ArrowLeft/Right); the monthly summary adds Plus, Gauge, FileWarning,
+Trash2, BarChart3, Table and Download from the same frozen set.
 """
 
 from PySide6.QtCore import QByteArray, Qt
@@ -72,6 +73,37 @@ _ARROW_RIGHT_INNER = (
     '<path d="M5 12h14" />\n  <path d="m12 5 7 7-7 7" />'
 )
 
+#: inner SVG elements of lucide plus (lucide-static v1.57.0, ISC)
+_PLUS_INNER = '<path d="M5 12h14" />\n  <path d="M12 5v14" />'
+
+#: inner SVG elements of lucide gauge (lucide-static v1.57.0, ISC)
+_GAUGE_INNER = '<path d="m12 14 4-4" />\n  <path d="M3.34 19a10 10 0 1 1 17.32 0" />'
+
+#: inner SVG elements of lucide file-warning (lucide-static v1.57.0, ISC)
+_FILE_WARNING_INNER = (
+    '<path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" />\n  <path d="M14 2v5a1 1 0 0 0 1 1h5" />\n  <path d="M12 9v4" />\n  <path d="M12 17h.01" />'
+)
+
+#: inner SVG elements of lucide trash-2 (lucide-static v1.57.0, ISC)
+_TRASH_2_INNER = (
+    '<path d="M10 11v6" />\n  <path d="M14 11v6" />\n  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />\n  <path d="M3 6h18" />\n  <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />'
+)
+
+#: inner SVG elements of lucide bar-chart-3 (lucide-static v1.57.0, ISC)
+_BAR_CHART_3_INNER = (
+    '<path d="M3 3v16a2 2 0 0 0 2 2h16" />\n  <path d="M18 17V9" />\n  <path d="M13 17V5" />\n  <path d="M8 17v-3" />'
+)
+
+#: inner SVG elements of lucide table (lucide-static v1.57.0, ISC)
+_TABLE_INNER = (
+    '<path d="M12 3v18" />\n  <rect x="3" y="3" width="18" height="18" rx="2" />\n  <path d="M3 9h18" />\n  <path d="M3 15h18" />'
+)
+
+#: inner SVG elements of lucide download (lucide-static v1.57.0, ISC)
+_DOWNLOAD_INNER = (
+    '<path d="M12 15V3" />\n  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />\n  <path d="m7 10 5 5 5-5" />'
+)
+
 _CACHE: dict[tuple[str, str, int], QIcon] = {}
 
 
@@ -93,11 +125,22 @@ def lucide_icon(name: str, color: str, size: int = 16) -> QIcon:
         "upload": _UPLOAD_INNER,
         "arrow-left": _ARROW_LEFT_INNER,
         "arrow-right": _ARROW_RIGHT_INNER,
+        "plus": _PLUS_INNER,
+        "gauge": _GAUGE_INNER,
+        "file-warning": _FILE_WARNING_INNER,
+        "trash-2": _TRASH_2_INNER,
+        "bar-chart-3": _BAR_CHART_3_INNER,
+        "table": _TABLE_INNER,
+        "download": _DOWNLOAD_INNER,
     }.get(name)
     if inner is None:
         raise LookupError(f"unknown lucide icon: {name}")
     body = inner.replace("currentColor", color)
-    source = QByteArray(f"<svg {_SVG_HEADER}>{body}</svg>".encode())
+    # The stroke colour lives in the SVG header, so it is the header that
+    # must be substituted; replacing it inside the body alone left every
+    # icon rendering in SVG's default black.
+    header = _SVG_HEADER.replace("currentColor", color)
+    source = QByteArray(f"<svg {header}>{body}</svg>".encode())
     renderer = QSvgRenderer(source)
     if not renderer.isValid():
         raise ValueError(f"invalid lucide SVG: {name}")
