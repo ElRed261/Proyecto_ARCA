@@ -34,7 +34,7 @@ def combo(qtbot, qapp):
 
 
 def test_popup_edges_are_not_a_dark_band(combo, qtbot):
-    window, image = _popup_image(combo)
+    _window, image = _popup_image(combo)
     try:
         assert image.width() > 0 and image.height() > 0
         rows = (0, 1, image.height() - 2, image.height() - 1)
@@ -55,7 +55,7 @@ def test_popup_container_is_the_styled_frame(combo, qtbot):
 
 
 def test_popup_selection_is_not_the_theme_blue(combo, qtbot):
-    window, image = _popup_image(combo)
+    _window, image = _popup_image(combo)
     try:
         seen = {
             image.pixelColor(x, y).name()
