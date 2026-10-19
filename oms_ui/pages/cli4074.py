@@ -96,6 +96,10 @@ _SAVE_QSS = (
 
 _LOGGER = logging.getLogger(__name__)
 
+#: CLI autosave debounce. Test-injectable (suite waits the real path at
+#: 50ms instead of 700ms).
+AUTOSAVE_MS = 700
+
 
 class Cli4074View(QWidget):
     """CLI 4074 cloud sheet embedded in the synoptic page view stack."""
@@ -127,7 +131,7 @@ class Cli4074View(QWidget):
         self._loading = False
         self._autosave_timer = QTimer(self)
         self._autosave_timer.setSingleShot(True)
-        self._autosave_timer.setInterval(700)
+        self._autosave_timer.setInterval(AUTOSAVE_MS)
         self._autosave_timer.timeout.connect(self.save_data)
         self._build()
         for row_map in self.row_inputs.values():

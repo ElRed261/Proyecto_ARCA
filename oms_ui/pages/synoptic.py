@@ -77,6 +77,10 @@ _AAXX = "AAXX"
 
 _LOGGER = logging.getLogger(__name__)
 
+#: toast auto-dismiss (owner round 6: 5s). Test-injectable so the suite
+#: exercises the real dismissal path without sleeping 5 seconds.
+STATUS_TOAST_MS = 5000
+
 #: Grid fields (key, label) — base always; t_* are the even-only extras.
 _FIELD_LABELS: tuple[tuple[str, str], ...] = (
     ("ts", "Ts (°C)"),
@@ -482,6 +486,19 @@ class SynopticPage(QWidget):
         """Keep the floating toast pinned to the top-right on resizes."""
         super().resizeEvent(event)
         self._place_toast()
+
+    def showEvent(self, event) -> None:
+        """Scope the toast click-dismiss filter to THIS page while visible:
+        an app-wide filter installed once leaked across page instances
+        (every dead page kept eating every event — the suite ran ~10x
+        slower as pages accumulated in pytest)."""
+        super().showEvent(event)
+        QApplication.instance().installEventFilter(self)
+        self._place_toast()
+
+    def hideEvent(self, event) -> None:
+        super().hideEvent(event)
+        QApplication.instance().removeEventFilter(self)
 
     def _place_toast(self) -> None:
         """Top-right of the window, inside the header band."""
@@ -1085,10 +1102,12 @@ class SynopticPage(QWidget):
         toast_l.addWidget(self.status_label)
         self._status_timer = QTimer(self)
         self._status_timer.setSingleShot(True)
-        self._status_timer.setInterval(5000)
+        self._status_timer.setInterval(STATUS_TOAST_MS)
         self._status_timer.timeout.connect(self._dismiss_toast)
-        # any click anywhere dismisses the toast (owner round 6)
-        QApplication.instance().installEventFilter(self)
+        # any click on the page dismisses the toast (owner round 6). Scoped
+        # to THIS widget on purpose: an app-wide filter leaks across page
+        # instances (every dead page kept eating every event — the suite
+        # ran 10x slower as pages accumulated)
         self._refresh_toast()
         actions_card = self._card()
         actions_l = QVBoxLayout(actions_card)
@@ -1746,15 +1765,22 @@ class SynopticPage(QWidget):
             self._draft_timer.start()
 
     def _flush_draft(self) -> None:
+        """Debounced background autosave: silent like the CLI saves — a
+        timer that fires after the DB went away must never surface."""
         station = self.station_id
         fecha = self.fecha_iso
         if not station or not fecha:
             return
-        draft = synoptic_service.bind_draft(
-            self.observations, self.active_hour, self.results_per_hour, station, fecha
-        )
-        synoptic_service.save_draft(self._config_dir, draft)
-        self._dirty = False
+        try:
+            draft = synoptic_service.bind_draft(
+                self.observations, self.active_hour, self.results_per_hour,
+                station, fecha,
+            )
+            synoptic_service.save_draft(self._config_dir, draft)
+        except (synoptic_service.SaveError, sqlite3.Error):
+            _LOGGER.exception("Draft autosave falló")
+        else:
+            self._dirty = False
 
     def _discard_draft(self) -> None:
         synoptic_service.clear_draft(self._config_dir)

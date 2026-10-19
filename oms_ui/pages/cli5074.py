@@ -49,6 +49,10 @@ from oms_ui.icons import lucide_icon
 
 _LOGGER = logging.getLogger(__name__)
 
+#: CLI autosave debounce. Test-injectable (suite waits the real path at
+#: 50ms instead of 700ms).
+AUTOSAVE_MS = 700
+
 #: oracle getInitialState sections (field, header label, header color).
 _DAILY_GROUPS: tuple[tuple[str, str, str, tuple[tuple[str, str], ...]], ...] = (
     ("TEMPERATURA °C", "#334155", 2, (("temp_max", "Máxima"), ("temp_min", "Mínima"))),
@@ -182,7 +186,7 @@ class Cli5074View(QWidget):
         self._loading = False
         self._autosave_timer = QTimer(self)
         self._autosave_timer.setSingleShot(True)
-        self._autosave_timer.setInterval(700)
+        self._autosave_timer.setInterval(AUTOSAVE_MS)
         self._autosave_timer.timeout.connect(self.save_data)
         self._build()
         for widget in self.fields.values():

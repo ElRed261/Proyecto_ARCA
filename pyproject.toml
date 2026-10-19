@@ -20,6 +20,11 @@ ui = ["PySide6"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+    "slow: real-time waits or full-window builds (excluded from fast runs: -m 'not slow')",
+    "smoke: fast structural humo tests",
+]
+addopts = "-ra"
 
 [tool.ruff]
 target-version = "py313"

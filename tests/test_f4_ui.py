@@ -25,6 +25,21 @@ from oms_ui.pages import synoptic as synoptic_ui
 from oms_ui.pages.synoptic import DraftGuardDialog, SynopticPage
 
 STATION = "78485"
+
+
+def _wait_timer(timer, timeout_ms: int = 8000) -> None:
+    """qtbot.waitSignal is BROKEN in this environment (pytest-qt x
+    PySide6 6.12 / py3.14t returns instantly without waiting) — spin a
+    QEventLoop until the timer fires. Proven working: the real timer
+    fires and the loop exits (probe: 5s timer -> fired at 4.75s)."""
+    from PySide6.QtCore import QEventLoop
+    from PySide6.QtWidgets import QApplication
+
+    loop = QEventLoop()
+    timer.timeout.connect(loop.quit)
+    timer.start()
+    loop.exec()
+    QApplication.instance().processEvents()
 FECHA = "2025-12-08"
 
 
@@ -858,7 +873,6 @@ def test_cli4074_and_5074_views_roundtrip(cli3074_page, qtbot, fresh_db):
 
 def test_toast_auto_dismisses_after_5_seconds(qtbot, fresh_db, tmp_path):
     """Owner round 6: EVERY notification dies after 5 seconds."""
-    import time as _time
 
     from PySide6.QtWidgets import QApplication
 
@@ -869,14 +883,12 @@ def test_toast_auto_dismisses_after_5_seconds(qtbot, fresh_db, tmp_path):
     for _ in range(6):
         QApplication.processEvents()
     widget.error_label.setText("No hay observación para 2000-04-02")
+    widget._status_timer.setInterval(60)  # injectable: same real path
     widget.status_label.setText("Día 03/01/2000")
     for _ in range(4):
         QApplication.processEvents()
     assert widget._toast.isVisible()
-    start = _time.time()
-    while _time.time() - start < 5.4:
-        QApplication.processEvents()
-        _time.sleep(0.05)
+    _wait_timer(widget._status_timer)
     assert widget.error_label.text() == "" and widget.status_label.text() == ""
     assert widget._toast.isVisible() is False
 
@@ -1036,7 +1048,6 @@ def test_fenomenos_abbreviations_render_dark_chips(cli3074_page, qtbot):
 def test_toast_5s_and_click_dismiss(qtbot, fresh_db, tmp_path):
     """Owner round 8: toast dies after 5s or on any click (already shipped
     round 6 — pinned here for the synthesized shell flow)."""
-    import time as _time
 
     from PySide6.QtWidgets import QApplication
 
@@ -1046,11 +1057,9 @@ def test_toast_5s_and_click_dismiss(qtbot, fresh_db, tmp_path):
     widget.show()
     for _ in range(6):
         QApplication.processEvents()
+    widget._status_timer.setInterval(60)
     widget.status_label.setText("Día 03/01/2000")
-    start = _time.time()
-    while _time.time() - start < 5.4:
-        QApplication.processEvents()
-        _time.sleep(0.05)
+    _wait_timer(widget._status_timer)
     assert widget._toast.isVisible() is False
 
 
@@ -1113,18 +1122,15 @@ def test_cli4074_total_headers_full_height_emerald(cli3074_page, qtbot):
 
 def test_cli_no_save_button_autosaves_instead(cli3074_page, qtbot, fresh_db):
     """Owner round 8: no Guardar button anywhere; edits autosave debounced."""
-    import time as _time
 
     from oms_ui.pages.cli3074 import Cli3074View
 
     cli3074_page._open_cli("cli3074")
     view = cli3074_page._stack.currentWidget()
     assert not hasattr(view, "save_btn")
+    view._autosave_timer.setInterval(60)  # injectable: same real path
     view.row_inputs[2]["pres_est"].setText("1014.7")
-    start = _time.time()
-    while _time.time() - start < 1.2:
-        QApplication_events(cli3074_page)
-        _time.sleep(0.05)
+    _wait_timer(view._autosave_timer)
     reloaded = Cli3074View(fresh_db, station="78485", fecha="2025-12-08")
     assert reloaded.row_inputs[2]["pres_est"].text() == "1014.7"
 
