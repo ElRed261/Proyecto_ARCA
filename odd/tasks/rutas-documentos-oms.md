@@ -54,3 +54,27 @@ hardcodeada (`Path.home()/"Documents"/"ARCA"/"synop"`) en vez de usar
   estructura visible en Maintenance, y `audit.default_base_dir()` derivando
   de `oms_core.paths` (con `resolve_base_dir(conn)` siguiendo el perfil).
   Suite 440 verde; `tests/test_f15_paths_structure.py` fija las reglas.
+
+## Ronda 16 — ingesta de las observaciones reales
+
+- **L4** (verbatim) «en mi dispositivo hay muchos Json que son de
+  observaciones, buscalas y por favor mueve esos Json a la carpeta de
+  observaciones, pero antes de moverlos valida si tiene la estructura
+  correcta de el Json.»
+- **Hallazgo 1**: `default_documents_root()` ignoraba la carpeta localizada.
+  En esta máquina `XDG_DOCUMENTS_DIR="$HOME/Documentos"`, así que apuntar a
+  `~/Documents` creaba una carpeta paralela. Ahora se resuelve por
+  `XDG_DOCUMENTS_DIR` (env) → `user-dirs.dirs` → `~/Documents`, y el `env`
+  inyectado llega también al default.
+- **Hallazgo 2**: los JSON que la app escribía son `{meta, horas{dict},
+  cli3074...}` (`modules/synoptic/storage.rs`), NO `{meta, horarias[lista]}`
+  que es lo que consume el importador (formato del pipeline mensual). Los
+  archivos se organizan, pero para importarlos hay que aceptar el mapa
+  `horas` (pendiente).
+- **Nuevo servicio** `oms_core/services/ingest.py` (21 tests): valida el
+  documento real y planifica/mueve sin sobrescribir nunca.
+- **Ejecución** (contra `~/Documentos/Trabajo-INDOMET/Soporte/ARCA/synop`):
+  2554 movidos a `~/Documentos/OMS/synop/<EST>/<AÑO>/<MES>/`; 8 dejados en
+  su lugar porque el destino ya tenía una versión MÁS NUEVA del mismo
+  documento; 2 rechazados por estructura (fecha 2324 y 31 de febrero).
+  Manifiesto: `~/Documentos/OMS/respaldos/movimiento_json_*.log`.

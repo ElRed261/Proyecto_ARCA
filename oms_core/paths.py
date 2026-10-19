@@ -215,10 +215,41 @@ def set_path_profile(conn: sqlite3.Connection, profile: PathProfile) -> None:
 # --------------------------------------------------------------------------
 
 
-def default_documents_root() -> Path:
-    """Platform default root: ``Documents/OMS`` (historical HOME fallback)."""
-    home = os.environ.get("HOME") or str(Path.home())
-    return Path(home) / "Documents" / "OMS"
+def _documents_dir(home: str, env: dict[str, str] | None = None) -> Path:
+    """The user's Documents folder, localized when the desktop says so.
+
+    A Spanish desktop keeps it at ``~/Documentos`` and records that in
+    ``user-dirs.dirs`` (``XDG_DOCUMENTS_DIR``). Defaulting to a hardcoded
+    ``Documents`` would silently create a second, parallel folder on those
+    machines, so the XDG value wins and ``Documents`` is only the fallback.
+    """
+    env_map = os.environ if env is None else env
+    explicit = (env_map.get("XDG_DOCUMENTS_DIR") or "").strip()
+    if explicit:
+        return Path(os.path.expanduser(explicit))
+
+    config_home = env_map.get("XDG_CONFIG_HOME") or str(Path(home) / ".config")
+    try:
+        lines = (Path(config_home) / "user-dirs.dirs").read_text(
+            encoding="utf-8", errors="replace").splitlines()
+    except OSError:
+        lines = []
+    for line in lines:
+        key, _, raw = line.partition("=")
+        if key.strip() != "XDG_DOCUMENTS_DIR":
+            continue
+        value = raw.strip().strip('"')
+        if not value:
+            break
+        return Path(value.replace("$HOME", home))
+    return Path(home) / "Documents"
+
+
+def default_documents_root(env: dict[str, str] | None = None) -> Path:
+    """Platform default root: the localized Documents folder + ``OMS``."""
+    env_map = os.environ if env is None else env
+    home = env_map.get("HOME") or str(Path.home())
+    return _documents_dir(home, env_map) / "OMS"
 
 
 def section_dir(root: str | Path, section: str) -> Path:
@@ -291,7 +322,8 @@ def offline_base_dir(
     profile = get_path_profile(conn)  # loud on corrupt/unreadable config
 
     resolved_default = (
-        default_root if default_root is not None else str(default_documents_root())
+        default_root if default_root is not None
+        else str(default_documents_root(env_map))
     )
     return resolve_offline_root(
         None,

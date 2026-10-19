@@ -35,12 +35,14 @@ def conn(fresh_db):
 
 def test_default_root_is_documents_oms(monkeypatch, tmp_path):
     monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.delenv("XDG_DOCUMENTS_DIR", raising=False)
     assert default_documents_root() == tmp_path / "Documents" / "OMS"
 
 
 def test_default_root_exists_after_ensure(monkeypatch, tmp_path, conn):
     monkeypatch.setenv("HOME", str(tmp_path))
-    root = ensure_directories(conn, env={})
+    monkeypatch.delenv("XDG_DOCUMENTS_DIR", raising=False)
+    root = ensure_directories(conn, env={"HOME": str(tmp_path)})
     assert root == tmp_path / "Documents" / "OMS" / "synop"
     assert root.is_dir()
 
@@ -118,3 +120,35 @@ def test_audit_browser_follows_the_default_when_unset(monkeypatch, tmp_path, con
 def test_audit_default_base_dir_has_no_second_literal(monkeypatch, tmp_path):
     monkeypatch.setenv(paths_mod.ENV_BASE_DIR, str(tmp_path / "env"))
     assert audit_service.default_base_dir() == tmp_path / "env" / "synop"
+
+
+# ------------------------------------------------- S1: localized Documents
+
+
+def test_documents_dir_follows_xdg_env(tmp_path):
+    env = {"HOME": str(tmp_path), "XDG_DOCUMENTS_DIR": str(tmp_path / "Doc")}
+    assert paths_mod.default_documents_root(env) == tmp_path / "Doc" / "OMS"
+
+
+def test_documents_dir_reads_user_dirs_with_home_expansion(tmp_path):
+    config = tmp_path / ".config"
+    config.mkdir()
+    (config / "user-dirs.dirs").write_text(
+        '# comentario\nXDG_DOCUMENTS_DIR="$HOME/Documentos"\n', encoding="utf-8")
+    env = {"HOME": str(tmp_path)}
+    assert paths_mod.default_documents_root(env) == tmp_path / "Documentos" / "OMS"
+
+
+def test_documents_dir_falls_back_to_english_documents(tmp_path):
+    env = {"HOME": str(tmp_path)}
+    assert paths_mod.default_documents_root(env) == tmp_path / "Documents" / "OMS"
+
+
+def test_ensure_directories_uses_the_localized_documents_dir(tmp_path, conn):
+    config = tmp_path / ".config"
+    config.mkdir()
+    (config / "user-dirs.dirs").write_text(
+        'XDG_DOCUMENTS_DIR="$HOME/Documentos"\n', encoding="utf-8")
+    root = ensure_directories(conn, env={"HOME": str(tmp_path)})
+    assert root == tmp_path / "Documentos" / "OMS" / "synop"
+    assert (root / "resumenes").is_dir()
