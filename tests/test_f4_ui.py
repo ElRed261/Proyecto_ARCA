@@ -1215,13 +1215,87 @@ def test_cli5074_red_only_where_it_speaks(cli3074_page, qtbot):
 
     cli3074_page._open_cli("cli5074")
     view = cli3074_page._stack.currentWidget()
-    pr = next(w for w in view.findChildren(QLabel)
-              if w.text() == "PUNTO DE ROCÍO (°C)")
     ini = next(w for w in view.findChildren(QLabel)
                if w.text() == "INICIO (HH:MM)")
-    assert "#e11d48" in pr.styleSheet() and "#047857" not in pr.styleSheet()
-    assert "#e11d48" in ini.styleSheet() and "#047857" not in ini.styleSheet()
+    fin = next(w for w in view.findChildren(QLabel)
+               if w.text() == "FINAL (HH:MM)")
+    # round 12: rocío moved to the LLUVIA slate; red = INICIO/FINAL
+    pr = next(w for w in view.findChildren(QLabel)
+              if w.text() == "PUNTO DE ROCÍO (°C)")
+    assert "#334155" in pr.styleSheet() and "#e11d48" not in pr.styleSheet()
+    assert "#e11d48" in ini.styleSheet() and "#e11d48" in fin.styleSheet()
     # station/fecha card: NO module color at all
     card = view.station_combo.parentWidget()
     assert "#e11d48" not in card.styleSheet()
     assert "#ffffff" in card.styleSheet()  # plain white card like the 4074
+
+
+# ---------------------------------------------------------------- round 12: 5074 typography/color order
+
+
+def test_cli5074_section_titles_use_standard_typography(cli3074_page, qtbot):
+    """Owner round 12: 'OBSERVACIONES...' and 'INICIALES OBS.' carry the
+    same 12px/800 section typography as HORARIO/SUBSUELO/EVAP."""
+    from PySide6.QtWidgets import QLabel
+
+    cli3074_page._open_cli("cli5074")
+    view = cli3074_page._stack.currentWidget()
+    reference = next(w for w in view.findChildren(QLabel) if w.text() == "HORARIO")
+    for text in ("OBSERVACIONES Y DETALLES DEL FENÓMENO", "INICIALES OBS."):
+        label = next(w for w in view.findChildren(QLabel) if w.text() == text)
+        assert label.styleSheet() == reference.styleSheet(), text
+
+
+def test_cli5074_subless_fenomeno_headers_full_height(cli3074_page, qtbot):
+    """INTENSIDAD/FENÓMENOS/INICIO/FINAL/DURACIÓN/INICIALES span BOTH header
+    rows — no dead gap under them anymore."""
+    from PySide6.QtWidgets import QLabel
+
+    cli3074_page._open_cli("cli5074")
+    view = cli3074_page._stack.currentWidget()
+    from PySide6.QtWidgets import QGridLayout as _GL
+
+    grids = [g for g in view.findChildren(_GL)]
+    grid = next(
+        g for g in grids
+        if any(
+            (it := g.itemAt(i)) and it.widget() and getattr(it.widget(), "text", lambda: "")() == "INTENSIDAD"
+            for i in range(g.count())
+        )
+    )
+    spans = {}
+    for r in range(grid.count()):
+        item = grid.itemAt(r)
+        w = item.widget() if item else None
+        if isinstance(w, QLabel) and w.text() in (
+            "INTENSIDAD", "FENÓMENOS METEOROLÓGICOS", "INICIO (HH:MM)",
+            "FINAL (HH:MM)", "DURACIÓN", "INICIALES OBSERV.",
+        ):
+            spans[w.text()] = grid.getItemPosition(r)[2]
+    assert spans and all(span == 2 for span in spans.values()), spans
+    # HORA LOCAL keeps its two-row group (Horas/Minutos sub-headers)
+    hora_span = None
+    for r in range(grid.count()):
+        item = grid.itemAt(r)
+        w = item.widget() if item else None
+        if isinstance(w, QLabel) and w.text() == "HORA LOCAL":
+            hora_span = grid.getItemPosition(r)[2]
+    assert hora_span == 1
+
+
+def test_cli5074_red_accent_map(cli3074_page, qtbot):
+    """Round 12: FINAL joins INICIO in red; the (mm)/(°C) unit chips speak
+    red; PUNTO DE ROCÍO wears the LLUVIA slate (NOT red)."""
+    from PySide6.QtWidgets import QLabel
+
+    cli3074_page._open_cli("cli5074")
+    view = cli3074_page._stack.currentWidget()
+    by_text = {}
+    for w in view.findChildren(QLabel):
+        by_text.setdefault(w.text(), w.styleSheet())
+    assert "#e11d48" in by_text["FINAL (HH:MM)"]
+    assert "#e11d48" in by_text["INICIO (HH:MM)"]
+    assert "#e11d48" in by_text["(°C)"]          # subsuelo unit chip
+    assert "#e11d48" in by_text["(mm)"]          # evap unit chips
+    assert "#334155" in by_text["PUNTO DE ROCÍO (°C)"]
+    assert "#334155" in by_text["LLUVIA"]        # same slate family

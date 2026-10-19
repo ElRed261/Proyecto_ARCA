@@ -69,7 +69,7 @@ _DAILY_GROUPS: tuple[tuple[str, str, str, tuple[tuple[str, str], ...]], ...] = (
     ("EVAPOR. TANQUE A", "#334155", 1, (("evap_tanque_a", "(mm)"),)),
 )
 _DAILY_ROWSPAN: tuple[tuple[str, str, str], ...] = (
-    ("punto_rocio", "PUNTO DE ROCÍO (°C)", "#e11d48"),
+    ("punto_rocio", "PUNTO DE ROCÍO (°C)", "#334155"),
     ("recorrido_viento", "RECORRIDO DEL VIENTO (km)", "#1e293b"),
 )
 _HOURLY_ROWS = (2, 8, 14, 20)
@@ -94,11 +94,16 @@ _FENO_GROUPS: tuple[tuple[str, str, str, tuple[tuple[str, str], ...]], ...] = (
     ("INTENSIDAD", "#334155", 1, (("intensidad", ""),)),
     ("FENÓMENOS METEOROLÓGICOS", "#334155", 1, (("fenomeno", ""),)),
     ("INICIO (HH:MM)", "#e11d48", 1, (("inicio", ""),)),
-    ("FINAL (HH:MM)", "#334155", 1, (("final", ""),)),
+    ("FINAL (HH:MM)", "#e11d48", 1, (("final", ""),)),
     ("DURACIÓN", "#334155", 1, (("duracion", ""),)),
     ("INICIALES OBSERV.", "#334155", 1, (("iniciales", ""),)),
 )
 
+#: owner round 12: unit sub-headers (mm)/(°C) speak the module's red.
+_UNIT_RED_QSS = (
+    "background-color: #e11d48; color: #ffffff; font-weight: 600;"
+    "font-size: 10px; padding: 4px 2px;"
+)
 _SECTION_QSS = (
     "QFrame { background-color: #ffffff; border: 1px solid #e2e8f0;"
     "border-radius: 10px; }"
@@ -330,7 +335,9 @@ class Cli5074View(QWidget):
             for offset, (field, sub) in enumerate(fields):
                 sub_label = QLabel(sub)
                 sub_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-                sub_label.setStyleSheet(_SUB_HEADER_QSS)
+                sub_label.setStyleSheet(
+                    _UNIT_RED_QSS if sub in ("(mm)", "(°C)") else _SUB_HEADER_QSS
+                )
                 grid.addWidget(sub_label, 1, col + offset)
                 edit = self._field_edit(f"daily.{field}")
                 grid.addWidget(edit, 2, col + offset)
@@ -391,7 +398,7 @@ class Cli5074View(QWidget):
             head.setStyleSheet(_SUB_HEADER_QSS)
             grid.addWidget(head, 0, 1 + col_index)
         c_label = QLabel("(°C)")
-        c_label.setStyleSheet(_SUB_HEADER_QSS)
+        c_label.setStyleSheet(_UNIT_RED_QSS)
         grid.addWidget(c_label, 1, 0)
         for col_index, depth in enumerate(_SUBSUELO_DEPTHS):
             edit = self._field_edit(f"subsuelo.d{depth}")
@@ -412,7 +419,7 @@ class Cli5074View(QWidget):
             grid.addWidget(head, 0, col_index)
             sub = QLabel("(mm)")
             sub.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            sub.setStyleSheet(_SUB_HEADER_QSS)
+            sub.setStyleSheet(_UNIT_RED_QSS)
             grid.addWidget(sub, 1, col_index)
             edit = self._field_edit(f"evaporimetros.{field}")
             grid.addWidget(edit, 2, col_index)
@@ -423,10 +430,10 @@ class Cli5074View(QWidget):
         # owner round 11: the header shrinks to a whisper so the OBSERVER
         # initials field is the protagonist (tall, roomy)
         _card, layout = self._section_card(bottom_right, None)
-        label = QLabel("Iniciales obs.")
+        label = QLabel("INICIALES OBS.")
         label.setStyleSheet(
-            "color: #94a3b8; font-size: 9px; font-weight: 700;"
-            "letter-spacing: 1px; background: transparent;"
+            "font-weight: 800; font-size: 12px; color: #0f172a;"
+            "background: transparent;"
         )
         layout.addWidget(label)
         edit = QLineEdit()
@@ -447,10 +454,10 @@ class Cli5074View(QWidget):
         # owner round 11: whisper header, the manual-detail area is the
         # protagonist and grows with the card
         left = QVBoxLayout()
-        left_title = QLabel("Detalles del fenómeno")
+        left_title = QLabel("OBSERVACIONES Y DETALLES DEL FENÓMENO")
         left_title.setStyleSheet(
-            "color: #94a3b8; font-size: 9px; font-weight: 700;"
-            "letter-spacing: 1px; background: transparent;"
+            "font-weight: 800; font-size: 12px; color: #0f172a;"
+            "background: transparent;"
         )
         left.addWidget(left_title)
         manual = QPlainTextEdit()
@@ -468,11 +475,13 @@ class Cli5074View(QWidget):
         feno_grid.setVerticalSpacing(0)
         col = 0
         for text, color, span, fields in _FENO_GROUPS:
+            no_sub = all(not sub for _f, sub in fields)
             header = QLabel(text)
             header.setAlignment(Qt.AlignmentFlag.AlignCenter)
             header.setWordWrap(True)
             header.setStyleSheet(_HEADER_QSS.format(color=color))
-            feno_grid.addWidget(header, 0, col, 1, span)
+            # sin subtítulo el header abarca ambas filas: sin hueco debajo
+            feno_grid.addWidget(header, 0, col, 2 if no_sub else 1, span)
             for offset, (field, sub) in enumerate(fields):
                 if sub:
                     sub_label = QLabel(sub)
