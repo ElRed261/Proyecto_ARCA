@@ -5,7 +5,7 @@ Resolution order for the offline root (the layer ``{modulo}`` is always kept):
 1. ``ARCA_BASE_DIR`` environment variable (tests / advanced installs).
 2. ``offline_root`` of the PathProfile stored in ``app_config`` under the
    ``path_config`` key (configured by the admin).
-3. Platform default ``Documents/ARCA``.
+3. Platform default ``Documents/OMS``.
 
 Failure policy (P1.4 hard-fail): a corrupt or unreadable PathProfile raises
 :class:`PathConfigError`. We NEVER silently fall back to the default —
@@ -33,6 +33,17 @@ PATH_CONFIG_KEY = "path_config"
 
 #: Default module layer appended to the resolved root (SYNOP_MODULE port).
 DEFAULT_MODULE = "synop"
+
+#: Sections created inside the resolved root, in display order. The tree is
+#: ``{root}/{section}/<ESTACION>/<AÑO>/<MES>/`` for the two record sections
+#: and a flat ``{root}/{section}/`` for the two archive sections.
+SECTION_SYNOP = "synop"
+SECTION_SUMMARIES = "resumenes"
+SECTION_EXPORTS = "exportaciones"
+SECTION_BACKUPS = "respaldos"
+SECTIONS: tuple[str, ...] = (
+    SECTION_SYNOP, SECTION_SUMMARIES, SECTION_EXPORTS, SECTION_BACKUPS,
+)
 
 
 class PathConfigError(Exception):
@@ -89,7 +100,7 @@ def _path_profile_from_dict(data: dict) -> PathProfile:
 class PathProfile:
     """Serialised path profile (mirror of the Rust serde struct).
 
-    offline_root == "" means "not configured" -> default Documents/ARCA.
+    offline_root == "" means "not configured" -> default Documents/OMS.
     """
 
     __slots__ = ("backups_max_age_days", "offline_root", "online_root", "summaries_dir")
@@ -205,9 +216,41 @@ def set_path_profile(conn: sqlite3.Connection, profile: PathProfile) -> None:
 
 
 def default_documents_root() -> Path:
-    """Platform default: ``Documents/ARCA`` (with the historical HOME fallback)."""
+    """Platform default root: ``Documents/OMS`` (historical HOME fallback)."""
     home = os.environ.get("HOME") or str(Path.home())
-    return Path(home) / "Documents" / "ARCA"
+    return Path(home) / "Documents" / "OMS"
+
+
+def section_dir(root: str | Path, section: str) -> Path:
+    """``{root}/{section}`` — the section names are a closed set."""
+    if section not in SECTIONS:
+        raise PathConfigError(
+            f"sección de rutas desconocida: '{section}'"
+            f" (válidas: {', '.join(SECTIONS)})"
+        )
+    return Path(root) / section
+
+
+def ensure_directories(
+    conn: sqlite3.Connection,
+    *,
+    section: str | None = None,
+    env: dict[str, str] | None = None,
+    default_root: str | None = None,
+    modulo: str = DEFAULT_MODULE,
+) -> Path:
+    """Create the section tree under the resolved root and return that root.
+
+    Pure side effect of existence: never deletes, never overwrites, and an
+    unwritable root propagates the OSError so the caller can report it
+    honestly instead of pretending the layout exists.
+    """
+    root = offline_base_dir(
+        conn, env=env, default_root=default_root, modulo=modulo)
+    targets = SECTIONS if section is None else (section,)
+    for name in targets:
+        section_dir(root, name).mkdir(parents=True, exist_ok=True)
+    return root
 
 
 def resolve_offline_root(

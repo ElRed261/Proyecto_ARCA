@@ -48,6 +48,7 @@ from pathlib import Path
 from typing import Any
 
 import oms_calc
+from oms_core import paths as paths_mod
 from oms_core.db.repositories import audit as audit_repo
 from oms_core.db.repositories import stations as stations_repo
 from oms_core.db.repositories import summaries as summaries_repo
@@ -176,11 +177,31 @@ def normalize_station_code(code: str) -> str:
 
 
 def default_base_dir() -> Path:
-    """Base synop dir: ``ARCA_BASE_DIR`` env, else ``~/Documents/ARCA/synop``."""
-    env = os.environ.get("ARCA_BASE_DIR", "").strip()
+    """Base synop dir: ``ARCA_BASE_DIR`` env, else the platform default root.
+
+    Single source of truth: the layout lives in ``oms_core.paths``, never in
+    a second hardcoded literal here.
+    """
+    env = os.environ.get(paths_mod.ENV_BASE_DIR, "").strip()
     if env:
-        return Path(env) / "synop"
-    return Path.home() / "Documents" / "ARCA" / "synop"
+        return paths_mod.section_dir(env, paths_mod.SECTION_SYNOP)
+    return paths_mod.section_dir(
+        paths_mod.default_documents_root(), paths_mod.SECTION_SYNOP)
+
+
+def resolve_base_dir(conn: sqlite3.Connection) -> Path:
+    """The synop base dir the administrator actually configured.
+
+    Follows the same env > profile > default chain as the rest of the app, so
+    setting the root in Maintenance moves the audit browser with it.
+    """
+    try:
+        root = paths_mod.offline_base_dir(conn, modulo="")
+    except paths_mod.PathConfigError:
+        return default_base_dir()
+    if str(root) in ("", "."):
+        return default_base_dir()
+    return root / paths_mod.SECTION_SYNOP
 
 
 # ---------------------------------------------------------------------------

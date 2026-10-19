@@ -213,9 +213,10 @@ def test_chain_corrupt_profile_is_loud(monkeypatch, tmp_path):
         offline_base_dir(conn, default_root="/default/root")
 
 
-def test_default_documents_root_is_documents_arca(monkeypatch, tmp_path):
+def test_default_documents_root_is_documents_oms(monkeypatch, tmp_path):
+    """Round 15: the shipped default root lives in Documents and is OMS."""
     monkeypatch.setenv("HOME", str(tmp_path))
-    assert default_documents_root() == tmp_path / "Documents" / "ARCA"
+    assert default_documents_root() == tmp_path / "Documents" / "OMS"
 
 
 def test_env_base_dir_constant():

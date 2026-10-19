@@ -16,6 +16,21 @@ _SETTINGS_APP = "shell"
 _TOKEN_KEY = "session_token"
 
 
+def ensure_storage_layout(conn) -> str | None:
+    """Create the Documents/OMS section tree; report instead of crashing.
+
+    Returns ``None`` on success or the honest error message, so the shell can
+    surface a non-writable root without blocking the login.
+    """
+    from oms_core import paths as paths_mod
+
+    try:
+        paths_mod.ensure_directories(conn)
+    except (paths_mod.PathConfigError, OSError) as exc:
+        return str(exc)
+    return None
+
+
 def settings() -> QSettings:
     return QSettings(_SETTINGS_ORG, _SETTINGS_APP)
 

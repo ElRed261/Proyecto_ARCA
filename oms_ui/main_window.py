@@ -238,29 +238,30 @@ class MainWindow(QMainWindow):
         self._refresh_rail_selection()
 
     def _open_observation(self, station: str, fecha: str) -> None:
-        from oms_core.services.audit import default_base_dir
+        from oms_core.services.audit import resolve_base_dir
         from oms_ui.pages.audit_observation import AuditObservationPage
 
+        conn = self._open_conn()
         dialog = QDialog(self)
         dialog.setWindowTitle(f"Auditoría {station} {fecha}")
         layout = QVBoxLayout(dialog)
         layout.addWidget(
             AuditObservationPage(
-                self._open_conn(), default_base_dir(), station, fecha, role=self.role
+                conn, resolve_base_dir(conn), station, fecha, role=self.role
             )
         )
         dialog.resize(900, 600)
         dialog.exec()
 
     def _build_audit(self, conn: sqlite3.Connection) -> QWidget:
-        from oms_core.services.audit import default_base_dir
+        from oms_core.services.audit import resolve_base_dir
         from oms_ui.pages.audit import AuditPage
         from oms_ui.pages.audit_report import AuditReportPage
 
         tabs = QTabWidget()
         wizard = AuditPage(
             conn,
-            default_base_dir(),
+            resolve_base_dir(conn),
             role=self.role,
             on_open_day=self._open_observation,
             on_open_report=lambda: tabs.setCurrentIndex(1),

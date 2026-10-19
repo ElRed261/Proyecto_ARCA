@@ -208,6 +208,8 @@ class MaintenancePage(QWidget):
             self.cards[field_name] = card
             paths_layout.addWidget(card)
 
+        paths_layout.addWidget(self._build_layout_box())
+
         backups_row = QHBoxLayout()
         backups_row.addWidget(QLabel("Backups: antigüedad máxima (días, 0 = sin definir)"))
         self.backups_spin = QSpinBox()
@@ -303,6 +305,31 @@ class MaintenancePage(QWidget):
             return False
         self.save_label.setText("Configuración de rutas guardada")
         return True
+
+    def _build_layout_box(self) -> QGroupBox:
+        """Read-only view of the section tree created inside the root.
+
+        The admin sees where each kind of file lands without having to open
+        the folder; the tree is created automatically on startup.
+        """
+        box = QGroupBox("Estructura dentro de la raíz")
+        rows = QVBoxLayout(box)
+        for section, description in (
+            ("synop", "observaciones sinópticas y CLI — <ESTACIÓN>/<AÑO>/<MES>/"),
+            ("resumenes", "resúmenes mensuales — <ESTACIÓN>/<AÑO>/<MES>/"),
+            ("exportaciones", "Excel y PDF exportados"),
+            ("respaldos", "respaldos de base y JSON"),
+        ):
+            label = QLabel(f"{section}/ — {description}")
+            label.setWordWrap(True)
+            rows.addWidget(label)
+        hint = QLabel(
+            "Se crea sola bajo la raíz resuelta (por defecto "
+            f"{paths_mod.default_documents_root()})."
+        )
+        hint.setWordWrap(True)
+        rows.addWidget(hint)
+        return box
 
     # ------------------------------------------------------------------ sync
 

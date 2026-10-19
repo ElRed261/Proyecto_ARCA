@@ -30,7 +30,12 @@ from oms_core.db.repositories import users as users_repo
 from oms_core.services import auth
 from oms_ui.login_window import LoginWindow
 from oms_ui.main_window import MainWindow
-from oms_ui.startup import clear_token, save_token, try_restore_session
+from oms_ui.startup import (
+    clear_token,
+    ensure_storage_layout,
+    save_token,
+    try_restore_session,
+)
 from oms_ui.theme import apply_theme
 
 
@@ -62,6 +67,9 @@ def main() -> int:
     app = QApplication([])
     family = apply_theme(app)
     print(f"[dev] fuente: {family or 'sistema (fallback)'}", flush=True)
+    layout_error = ensure_storage_layout(conn)
+    if layout_error:
+        print(f"[dev] estructura de carpetas no disponible: {layout_error}", flush=True)
     store = auth.SessionStore()
 
     splash = QLabel("Restaurando sesión…")
