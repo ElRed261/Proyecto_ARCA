@@ -58,6 +58,11 @@ def test_datos_round_trip_keeps_form_keys():
     assert dm.document_to_datos(doc) == hour_data
 
 
+def test_empty_strings_in_the_document_are_not_values():
+    """The legacy writer stored "" for unfilled fields; reading ignores them."""
+    assert dm.document_to_datos({"ts": "24.1", "Tmax": "", "LL": None}) == {"ts": "24.1"}
+
+
 def test_empty_values_are_not_written():
     assert dm.datos_to_document({"ts": "", "th": None, "pres_est": "1001.6"}) == {
         "pres_est": "1001.6"

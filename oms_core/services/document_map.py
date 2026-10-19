@@ -128,8 +128,8 @@ def document_to_datos(datos: dict[str, Any]) -> dict[str, str]:
     out: dict[str, str] = {}
     for doc_key, value in (datos or {}).items():
         form_key = _DOC_TO_FORM.get(doc_key)
-        if form_key is None or value is None:
-            continue
+        if form_key is None or value is None or str(value) == "":
+            continue  # the legacy writer stored empty strings; they are no value
         out[form_key] = str(value)
     return out
 
