@@ -323,7 +323,9 @@ _SYNOP_FIELD_KEYS: tuple[str, ...] = (
     "meteo_6_5", "meteo_6_6",
     "meteo_8_0", "meteo_8_1", "meteo_8_3", "meteo_8_4",
     "meteo_8_5", "meteo_8_6",
-    *(f"meteo_{row}_{col}" for row in (10, 12) for col in range(7)),
+    # rows 10, 12 and 14 carry the 21 nine-lane slots; row 14 was
+    # missing here, so 9spspsp_13.._19 never mapped back to the form
+    *(f"meteo_{row}_{col}" for row in (10, 12, 14) for col in range(7)),
     *(f"meteo_16_{i}" for i in range(5)),
     "extra_8ns_1", "extra_8ns_2",
 )
