@@ -1127,7 +1127,8 @@ class SynopticPage(QWidget):
         self.cargar_btn.setIconSize(QSize(15, 15))
         self.cargar_btn.setMinimumHeight(28)
         self.cargar_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.cargar_btn.clicked.connect(self._load_json_file)
+        # clicked carries checked=False: never let it become the path
+        self.cargar_btn.clicked.connect(lambda: self._load_json_file())
         actions_l.addWidget(self.save_btn)
         actions_l.addWidget(self.cargar_btn)
         right.addWidget(actions_card)
@@ -1274,7 +1275,7 @@ class SynopticPage(QWidget):
         """Load a diario JSON file into the form (OBS Cargar JSON)."""
         from PySide6.QtWidgets import QFileDialog
 
-        from oms_core.importer.parse import parse_daily
+        from oms_core.services import ingest as ingest_service
 
         if path is None:
             chosen, _ = QFileDialog.getOpenFileName(
@@ -1283,15 +1284,14 @@ class SynopticPage(QWidget):
             if not chosen:
                 return
             path = chosen
+        if not path:
+            return
         try:
-            with open(path, encoding="utf-8") as handle:
-                import json as _json
-
-                payload = _json.load(handle)
-            doc = parse_daily(payload)
-        except Exception as exc:  # noqa: BLE001 - bad files show inline
+            doc = ingest_service.load_document_file(path)
+        except (OSError, ValueError) as exc:  # bad files show inline
             self.error_label.setText(f"JSON inválido: {exc}")
             return
+        self.error_label.setText("")
         if doc.station:
             self.set_station(doc.station)
         if doc.fecha_iso:
@@ -1302,7 +1302,10 @@ class SynopticPage(QWidget):
             if hora not in synoptic_service.HOURS:
                 continue
             datos = getattr(row, "datos", {}) or {}
+            # a loaded document REPLACES the hours it carries: merging would
+            # leave values from whatever was on screen before
             entry = self.observations.setdefault(hora, {})
+            entry.clear()
             for key, value in datos.items():
                 if value is None:
                     continue

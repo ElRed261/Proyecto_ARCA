@@ -584,6 +584,79 @@ def test_cargar_json_populates_hour(page, tmp_path):
     assert "1 horas" in page.status_label.text()
 
 
+def test_cargar_json_button_opens_the_dialog(page, qtbot, monkeypatch, tmp_path):
+    """Round 17: clicking the button must OPEN the file dialog.
+
+    ``clicked`` carries a ``checked`` argument; the slot used to receive it as
+    its ``path`` parameter, so ``open(False)`` read file descriptor 0 (stdin)
+    and every click ended in a bogus "JSON inválido".
+    """
+    from PySide6.QtWidgets import QFileDialog
+
+    payload = {
+        "meta": {"estacion": STATION, "fecha": "08122025"},
+        "horarias": [
+            {"hora": "06Z", "datos": {"ts": "19.5"}, "observador": "Dialogo"},
+        ],
+    }
+    path = tmp_path / "clic.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    calls: dict[str, object] = {}
+
+    def fake_dialog(parent, caption, directory, filt):
+        calls["caption"] = caption
+        return str(path), "JSON (*.json)"
+
+    monkeypatch.setattr(QFileDialog, "getOpenFileName", staticmethod(fake_dialog))
+    qtbot.mouseClick(page.cargar_btn, Qt.LeftButton)
+
+    assert calls.get("caption") == "Cargar JSON", "el botón no abrió el diálogo"
+    assert page.error_label.text() == ""
+    assert page.observations["06Z"]["ts"] == "19.5"
+    assert "JSON cargado" in page.status_label.text()
+
+
+def test_cargar_json_accepts_the_document_the_app_writes(page, tmp_path):
+    """The documents ARCA wrote are ``{meta, horas{hour: {datos, ...}}}``.
+
+    The loader only accepted the monthly pipeline's ``horarias`` list, so the
+    application's own files were rejected as invalid.
+    """
+    payload = {
+        "meta": {"estacion": STATION, "fecha": "08122025",
+                 "ultima_actualizacion": "2026-06-02 13:32:03"},
+        "horas": {
+            "06Z": {"datos": {"ts": "21.7"}, "observador": "Archivo",
+                    "synop": {"IIiii": STATION}},
+            "12Z": {"datos": {"ts": "28.0"}, "observador": "Archivo"},
+        },
+        "cli3074": {"1": {"fenomenos": {}}},
+    }
+    path = tmp_path / "documento_app.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    page._load_json_file(str(path))
+
+    assert page.error_label.text() == ""
+    assert page.observations["06Z"]["ts"] == "21.7"
+    assert page.observations["12Z"]["ts"] == "28.0"
+    assert page.observations["06Z"]["nombre_observador"] == "Archivo"
+    assert "2 horas" in page.status_label.text()
+
+
+def test_cargar_json_reports_a_broken_document_without_crashing(page, tmp_path):
+    """A structurally broken file must land in the inline error label."""
+    payload = {"meta": {"estacion": STATION, "fecha": "31022025"}, "horas": {"06Z": {}}}
+    path = tmp_path / "roto.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    page._load_json_file(str(path))
+
+    assert "JSON inválido" in page.error_label.text()
+    assert "no es una fecha real" in page.error_label.text()
+
+
 def test_save_button_is_dark_like_oracle(page):
     assert page.save_btn.property("dark") is True
 

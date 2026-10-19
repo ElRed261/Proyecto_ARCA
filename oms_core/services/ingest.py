@@ -163,6 +163,65 @@ def destination_for(candidate: Candidate, root: str | Path) -> Path:
     )
 
 
+def normalize_document(doc: object) -> dict:
+    """Return the parser-shaped document for the variant the app writes.
+
+    ``{meta, horas{hour: {datos, observador, synop}}, cli*}`` becomes
+    ``{meta, horarias[{hora, datos, observador}], resumen_dia}``, which is what
+    ``oms_core.importer.parse.parse_daily`` consumes. Anything already in the
+    parser shape is returned untouched, so callers never have to know which
+    variant they were handed.
+    """
+    if not isinstance(doc, dict) or "horarias" in doc:
+        return doc  # typing: already the parser shape
+    horas = doc.get("horas")
+    if not isinstance(horas, dict):
+        return doc
+    horarias = []
+    for hora in HOURS:
+        entry = horas.get(hora)
+        if entry is None:
+            continue
+        if not isinstance(entry, dict):
+            continue
+        datos = entry.get("datos")
+        horarias.append({
+            "hora": hora,
+            "datos": datos if isinstance(datos, dict) else {},
+            "observador": str(entry.get("observador") or ""),
+        })
+    return {
+        "meta": doc.get("meta") if isinstance(doc.get("meta"), dict) else {},
+        "horarias": horarias,
+        "resumen_dia": doc.get("resumen_dia")
+        if isinstance(doc.get("resumen_dia"), dict) else {},
+    }
+
+
+def load_document_file(path: str | Path):
+    """Read an observation file of EITHER variant into a ``DailyDocument``.
+
+    The app's own files are validated first, so a broken one fails with the
+    precise reason (bad calendar date, unknown hour) instead of a generic
+    parse error.
+    """
+    from oms_core.importer.parse import parse_daily
+
+    try:
+        raw = Path(path).read_bytes()
+    except OSError as exc:
+        raise IngestError(f"no se pudo leer el archivo: {exc}") from exc
+    try:
+        doc = json.loads(raw)
+    except ValueError as exc:
+        raise IngestError(f"JSON inválido: {exc}") from exc
+    if isinstance(doc, dict) and "horarias" not in doc and isinstance(
+            doc.get("horas"), dict):
+        validate_document(doc)
+        doc = normalize_document(doc)
+    return parse_daily(doc)
+
+
 def scan_json_files(root: Path) -> list[Path]:
     """Every ``*.json`` under ``root``, sorted for a reproducible report."""
     return sorted(p for p in Path(root).rglob("*.json") if p.is_file())
@@ -240,6 +299,8 @@ __all__ = [
     "apply_plan",
     "candidate_from_file",
     "destination_for",
+    "load_document_file",
+    "normalize_document",
     "plan_organization",
     "scan_json_files",
     "validate_document",
