@@ -35,6 +35,7 @@ import json
 import logging
 import sqlite3
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any
 
 from PySide6.QtCore import QDate, QRegularExpression, QSize, Qt, QTimer
@@ -43,6 +44,7 @@ from PySide6.QtGui import (
     QKeySequence,
     QLinearGradient,
     QPainter,
+    QPixmap,
     QRegularExpressionValidator,
     QShortcut,
 )
@@ -333,6 +335,54 @@ def _repolish(widget: QWidget) -> None:
     style.polish(widget)
 
 
+
+#: Observation-hour photographs (assets/hours/<HOUR>.webp, processed at
+#: 1920x1080 WebP q82: 5.3 MB of source JPEGs became 569 KB in the package).
+HOUR_ASSET_DIR = Path(__file__).resolve().parent.parent / "assets" / "hours"
+HOUR_BACKGROUNDS: dict[str, Path] = {
+    hora: HOUR_ASSET_DIR / f"{hora}.webp" for hora in synoptic_service.HOURS
+}
+
+#: Decoded-and-scaled photos, keyed by (hour, width, height). Painting must not
+#: decode or rescale anything: a resize produces one new entry and the rest of
+#: the session reuses it.
+_BACKGROUND_CACHE: dict[tuple[str, int, int], QPixmap] = {}
+_BACKGROUND_CACHE_LIMIT = 24
+
+
+def hour_background(hora: str, size: QSize) -> QPixmap | None:
+    """The hour's photo scaled to COVER ``size`` (centre cropped), or None.
+
+    ``None`` means "no asset for this hour", and the caller falls back to the
+    original gradient — so a missing or unreadable file is never a crash.
+    """
+    path = HOUR_BACKGROUNDS.get(hora)
+    if path is None or not path.exists():
+        return None
+    key = (hora, size.width(), size.height())
+    hit = _BACKGROUND_CACHE.get(key)
+    if hit is not None:
+        return hit
+    source = QPixmap(str(path))
+    if source.isNull():
+        return None
+    scaled = source.scaled(
+        size,
+        Qt.AspectRatioMode.KeepAspectRatioByExpanding,
+        Qt.TransformationMode.SmoothTransformation,
+    )
+    covered = scaled.copy(
+        max(0, (scaled.width() - size.width()) // 2),
+        max(0, (scaled.height() - size.height()) // 2),
+        size.width(),
+        size.height(),
+    )
+    if len(_BACKGROUND_CACHE) >= _BACKGROUND_CACHE_LIMIT:
+        _BACKGROUND_CACHE.clear()
+    _BACKGROUND_CACHE[key] = covered
+    return covered
+
+
 class _MessageLabel(QLabel):
     """Status/error line that occupies NO height while empty (the two
     unused white rows under Cargar JSON, reported by the owner).
@@ -470,13 +520,29 @@ class SynopticPage(QWidget):
         self._observer_prefill()
 
     def paintEvent(self, event) -> None:
-        """Hour theme: bg-gradient-to-br from/to stops (oracle page wrapper)."""
+        """The hour's photograph, with the gradient as the fallback.
+
+        A dark scrim is painted over the photo so the white header and titles
+        stay readable whatever the picture looks like.
+        """
         theme = HOUR_THEMES.get(self.active_hour, HOUR_THEMES["06Z"])
         painter = QPainter(self)
-        gradient = QLinearGradient(0.0, 0.0, float(self.width()), float(self.height()))
-        gradient.setColorAt(0.0, QColor(theme["from"]))
-        gradient.setColorAt(1.0, QColor(theme["to"]))
-        painter.fillRect(self.rect(), gradient)
+        photo = hour_background(self.active_hour, self.size())
+        if photo is not None:
+            painter.drawPixmap(0, 0, photo)
+            # A whisper of shade so the cards never float on raw pixels...
+            painter.fillRect(self.rect(), QColor(0, 0, 0, 30))
+            # ...and a darker band at the top, which is where the title lives.
+            band_height = 96  # just the title strip, not a quarter of the page
+            band = QLinearGradient(0.0, 0.0, 0.0, float(band_height))
+            band.setColorAt(0.0, QColor(0, 0, 0, 135))
+            band.setColorAt(1.0, QColor(0, 0, 0, 0))
+            painter.fillRect(0, 0, self.width(), band_height, band)
+        else:
+            gradient = QLinearGradient(0.0, 0.0, float(self.width()), float(self.height()))
+            gradient.setColorAt(0.0, QColor(theme["from"]))
+            gradient.setColorAt(1.0, QColor(theme["to"]))
+            painter.fillRect(self.rect(), gradient)
         painter.end()
         super().paintEvent(event)
 
@@ -560,10 +626,17 @@ class SynopticPage(QWidget):
         ))
         button.setIconSize(QSize(14, 14))
 
+    def _hour_has_photo(self) -> bool:
+        path = HOUR_BACKGROUNDS.get(self.active_hour)
+        return path is not None and path.exists()
+
     def _apply_hour_theme(self) -> None:
         """Accent chips, title color and active-hour button follow the hour."""
         theme = HOUR_THEMES.get(self.active_hour, HOUR_THEMES["06Z"])
-        accent, text_color = theme["accent"], theme["text"]
+        accent = theme["accent"]
+        # over a photograph the title is always white; the gradient themes keep
+        # their per-hour ink colour
+        text_color = "#ffffff" if self._hour_has_photo() else theme["text"]
         self.title_label.setText(f"Observación Sinóptica {self.active_hour}")
         self.title_label.setStyleSheet(
             f"background: transparent; color: {text_color};"
