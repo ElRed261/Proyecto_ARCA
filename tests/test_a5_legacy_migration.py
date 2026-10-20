@@ -141,3 +141,18 @@ def test_a_broken_file_is_reported_not_crashed(fresh_db, tmp_path):
     assert report.seen == 1
     assert len(report.rejected) == 1
     assert "meta" in report.rejected[0][1]
+
+
+def test_a_corrected_file_wins_over_the_original(fresh_db, tmp_path):
+    """The oracle writes "<day>_cor.json" beside the original; the corrected
+    document must be the one that stays in the database."""
+    original = _write(tmp_path, "78486/2025/10/7848626102025.json", LEGACY)
+    corrected = json.loads(json.dumps(LEGACY))
+    corrected["horas"]["06Z"]["datos"]["ts"] = "29.9"
+    _write(tmp_path, "78486/2025/10/7848626102025_cor.json", corrected)
+
+    migration.migrate_root(fresh_db, tmp_path, dry_run=False)
+
+    day = doc_service.load_day_document(fresh_db, STATION, "2025-10-26")
+    assert day.hour("06Z")["ts"] == "29.9"
+    assert original.exists()

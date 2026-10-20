@@ -139,6 +139,12 @@ def migrate_file(conn: sqlite3.Connection, path: Path, *, dry_run: bool = True,
         )
         conn.execute("RELEASE legacy_migration")
         conn.commit()
+    except sqlite3.IntegrityError as exc:
+        conn.execute("ROLLBACK TO legacy_migration")
+        conn.execute("RELEASE legacy_migration")
+        raise ValueError(
+            f"la estación '{station}' no está registrada en la tabla stations: {exc}"
+        ) from exc
     except Exception:
         conn.execute("ROLLBACK TO legacy_migration")
         conn.execute("RELEASE legacy_migration")
@@ -150,7 +156,11 @@ def migrate_root(conn: sqlite3.Connection, root: str | Path, *,
                  dry_run: bool = True) -> MigrationReport:
     """Walk every ``*.json`` under ``root`` and migrate the legacy ones."""
     report = MigrationReport(dry_run=dry_run)
-    for path in sorted(Path(root).rglob("*.json")):
+    # The oracle's correction workflow writes "<name>_cor.json" next to the
+    # original; when both exist for the same day the corrected file must win,
+    # so it is migrated last instead of relying on alphabetical luck.
+    for path in sorted(Path(root).rglob("*.json"),
+                       key=lambda p: (p.name.endswith("_cor.json"), str(p))):
         report.seen += 1
         try:
             migrated, dropped, cli_blocks = migrate_file(conn, path, dry_run=dry_run)
