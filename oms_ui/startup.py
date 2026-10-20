@@ -1,51 +1,86 @@
-"""Startup flow for Neo Arca (PRD F7.5): splash + session restore + login.
+"""Session token storage: the OS keyring first, QSettings as a fallback.
 
-Oracle parity (OLD App.jsx): on launch, try the stored token ("Restaurando
-sesión…"); a dead token falls back to the login screen. The session store
-is in-memory, so restarts always re-login — documented, not a bug.
+A bearer token in ``QSettings`` is plain text in a config file; the keyring is
+where a secret belongs (`keyring` handles Windows Credential Locker, macOS
+Keychain and the Linux Secret Service). Not every machine has a working
+keyring — a headless Linux box or a container typically does not — so the
+fallback keeps the application usable and says so in the log.
 """
 
 from __future__ import annotations
 
-from PySide6.QtCore import QSettings
+import logging
 
 from oms_core.services.auth import LoginResult, SessionStore
+
+_LOGGER = logging.getLogger(__name__)
+
+#: Service/key names inside the OS keyring.
+SERVICE_NAME = "NeoArca-OMS"
+ACCOUNT_NAME = "session_token"
 
 _SETTINGS_ORG = "NeoArca"
 _SETTINGS_APP = "shell"
 _TOKEN_KEY = "session_token"
 
 
-def ensure_storage_layout(conn) -> str | None:
-    """Create the Documents/OMS section tree; report instead of crashing.
-
-    Returns ``None`` on success or the honest error message, so the shell can
-    surface a non-writable root without blocking the login.
-    """
-    from oms_core import paths as paths_mod
-
+def _keyring():
+    """The keyring module, or ``None`` when the backend is unusable."""
     try:
-        paths_mod.ensure_directories(conn)
-    except (paths_mod.PathConfigError, OSError) as exc:
-        return str(exc)
-    return None
-
-
-def settings() -> QSettings:
-    return QSettings(_SETTINGS_ORG, _SETTINGS_APP)
+        import keyring
+    except Exception:  # noqa: BLE001 - a missing/broken keyring is not fatal
+        return None
+    return keyring
 
 
 def save_token(token: str) -> None:
+    """Store the token in the keyring, else in QSettings (logged)."""
+    backend = _keyring()
+    if backend is not None:
+        try:
+            backend.set_password(SERVICE_NAME, ACCOUNT_NAME, token)
+            settings().remove(_TOKEN_KEY)  # never keep two copies alive
+            _LOGGER.info("token guardado en el llavero del sistema")
+            return
+        except Exception as exc:  # noqa: BLE001
+            _LOGGER.warning("el llavero no está disponible (%s); uso QSettings", exc)
+    else:
+        _LOGGER.warning("keyring no instalado; el token va a QSettings")
     settings().setValue(_TOKEN_KEY, token)
 
 
 def clear_token() -> None:
+    """Remove the token from both places; nothing to undo is not an error."""
+    backend = _keyring()
+    if backend is not None:
+        try:
+            backend.delete_password(SERVICE_NAME, ACCOUNT_NAME)
+        except Exception as exc:  # noqa: BLE001 - absent credential or dead backend
+            _LOGGER.debug("no se pudo borrar del llavero: %s", exc)
     settings().remove(_TOKEN_KEY)
+
+
+def load_token() -> str:
+    backend = _keyring()
+    if backend is not None:
+        try:
+            token = backend.get_password(SERVICE_NAME, ACCOUNT_NAME)
+            if token:
+                return str(token)
+        except Exception as exc:  # noqa: BLE001
+            _LOGGER.debug("el llavero no respondió: %s", exc)
+    return str(settings().value(_TOKEN_KEY, "", type=str) or "")
+
+
+def settings():
+    from PySide6.QtCore import QSettings
+
+    return QSettings(_SETTINGS_ORG, _SETTINGS_APP)
 
 
 def try_restore_session(store: SessionStore) -> LoginResult | None:
     """Validate the stored token; None when absent, dead or expired."""
-    token = settings().value(_TOKEN_KEY, "", type=str)
+    token = load_token()
     if not token:
         return None
     try:
@@ -59,3 +94,26 @@ def try_restore_session(store: SessionStore) -> LoginResult | None:
         user_email=session.email,
         role=session.role,
     )
+
+
+def ensure_storage_layout(conn) -> str | None:
+    """Create the Documents/OMS section tree; report instead of crashing."""
+    from oms_core import paths as paths_mod
+
+    try:
+        paths_mod.ensure_directories(conn)
+    except (paths_mod.PathConfigError, OSError) as exc:
+        return str(exc)
+    return None
+
+
+__all__ = [
+    "ACCOUNT_NAME",
+    "SERVICE_NAME",
+    "clear_token",
+    "ensure_storage_layout",
+    "load_token",
+    "save_token",
+    "settings",
+    "try_restore_session",
+]

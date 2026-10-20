@@ -126,7 +126,7 @@ def test_save_hour_transactional_path_writes_row_and_diario_doc(fresh_db, statio
     assert doc_text is not None
     doc = json.loads(doc_text)
     assert doc["meta"]["estacion"] == station
-    assert doc["meta"]["fecha"] == "08122025"  # DDMMYYYY display format
+    assert doc["meta"]["fecha"] == "2025-12-08"  # ISO, one format everywhere
     # R3 (docs/ARQUITECTURA_DATOS.md): the observer belongs to the hour
     assert "observador" not in doc["meta"]
     hora_entry = doc["synop"]["06Z"]

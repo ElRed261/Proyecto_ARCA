@@ -21,7 +21,7 @@ from typing import Any
 
 from oms_core import paths as paths_mod
 from oms_core.db.repositories import summaries as summaries_repo
-from oms_core.services import legacy_migration
+from oms_core.services import document_schema, legacy_migration
 from oms_core.services import synoptic as synoptic_service
 from oms_core.services import versions as versions_service
 
@@ -107,6 +107,7 @@ def import_day_file(
         migrated, _dropped, _cli = legacy_migration.migrate_file(
             conn, Path(path), dry_run=dry_run, actor=actor)
         return migrated
+    document_schema.validate_document_schema(raw)  # contract, checked once
     meta = raw.get("meta") if isinstance(raw.get("meta"), dict) else {}
     station = str(meta.get("estacion") or "").strip()
     fecha = legacy_migration._iso_fecha(meta.get("fecha") or "")

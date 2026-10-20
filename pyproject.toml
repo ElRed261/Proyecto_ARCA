@@ -3,7 +3,12 @@ name = "neoarca"
 version = "0.1.0"
 description = "OMS — Observations Management System (Neo Arca)"
 requires-python = ">=3.13"
-dependencies = ["openpyxl>=3.1", "platformdirs>=4.0"]
+dependencies = [
+    "openpyxl>=3.1",
+    "platformdirs>=4.0",
+    "jsonschema>=4.20",
+    "keyring>=24.0",
+]
 
 [build-system]
 requires = ["maturin>=1.0,<2.0"]

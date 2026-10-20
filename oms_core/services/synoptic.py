@@ -474,7 +474,7 @@ def save_hour(
 
     meta = dict(existing_doc.get("meta")) if isinstance(existing_doc.get("meta"), dict) else {}
     meta["estacion"] = station
-    meta["fecha"] = format_date_display(fecha)
+    meta["fecha"] = fecha  # ISO everywhere; the display format is the UI's job
     meta.pop("observador", None)  # R3: the observer is per hour, not per day
     meta["ultima_actualizacion"] = _now_local()
     doc = dict(existing_doc)
