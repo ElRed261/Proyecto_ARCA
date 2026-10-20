@@ -938,17 +938,18 @@ def test_cli4074_and_5074_views_roundtrip(cli3074_page, qtbot, fresh_db):
 
     cli3074_page._open_cli("cli5074")
     v50 = cli3074_page._stack.currentWidget()
-    v50.fields["daily.temp_max"].setText("31.05")
+    # the daily extremes block is gone (owner): the sheet keeps the hourly,
+    # subsoil, evaporimeter, phenomena and initials sections
     v50.fields["hourly.8.pres_est"].setText("1013.7")
+    v50.fields["subsuelo.d5"].setText("24.5")
+    v50.fields["iniciales_obs"].setText("AC")
     v50.fields["fenomenos.3.fenomeno"].setText("Tormenta")
     v50.save_data()
     re50 = Cli5074View(fresh_db, station="78485", fecha="2025-12-08")
-    assert re50.fields["daily.temp_max"].text() == "31.05"  # stored verbatim
     assert re50.fields["hourly.8.pres_est"].text() == "1013.7"
+    assert re50.fields["subsuelo.d5"].text() == "24.5"
+    assert re50.fields["iniciales_obs"].text() == "AC"
     assert re50.fields["fenomenos.3.fenomeno"].text() == "Tormenta"
-    re50.fields["daily.hum_max"].setText("66.7")
-    re50._normalize_edit(re50.fields["daily.hum_max"], "hum_max")
-    assert re50.fields["daily.hum_max"].text() == "67"  # 5074 ceil field
 
 
 # ---------------------------------------------------------------- round 6 details
@@ -1288,7 +1289,7 @@ def test_cli5074_uses_its_red_identity(cli3074_page, qtbot):
     cli3074_page._open_cli("cli5074")
     view = cli3074_page._stack.currentWidget()
     # focus ring red on the sheet fields
-    assert "#e11d48" in view.fields["daily.temp_max"].styleSheet()
+    assert "#e11d48" in view.fields["hourly.8.pres_est"].styleSheet()
     # round 10: the station/fecha card is fully neutral (no band)
     station_card = view.station_combo.parentWidget()
     assert "#e11d48" not in station_card.styleSheet()
@@ -1303,21 +1304,20 @@ def test_cli5074_uses_its_red_identity(cli3074_page, qtbot):
 
 
 def test_cli5074_red_only_where_it_speaks(cli3074_page, qtbot):
-    """Owner round 10: PUNTO DE ROCÍO and INICIO (HH:MM) wear the module's
-    red (NOT green anymore); the station/fecha card is fully neutral like
-    the 4074's clean line."""
+    """Owner rounds 10-12 + A12: the module's red speaks only on the
+    phenomena times (INICIO/FINAL); the daily extremes block — and its dew
+    point header — no longer exists, and the station card stays neutral."""
     from PySide6.QtWidgets import QLabel
 
     cli3074_page._open_cli("cli5074")
     view = cli3074_page._stack.currentWidget()
+    labels = [w.text() for w in view.findChildren(QLabel)]
+    assert "PUNTO DE ROCÍO (°C)" not in labels  # A12: block removed
+    assert "LLUVIA" not in labels
     ini = next(w for w in view.findChildren(QLabel)
                if w.text() == "INICIO (HH:MM)")
     fin = next(w for w in view.findChildren(QLabel)
                if w.text() == "FINAL (HH:MM)")
-    # round 12: rocío moved to the LLUVIA slate; red = INICIO/FINAL
-    pr = next(w for w in view.findChildren(QLabel)
-              if w.text() == "PUNTO DE ROCÍO (°C)")
-    assert "#334155" in pr.styleSheet() and "#e11d48" not in pr.styleSheet()
     assert "#e11d48" in ini.styleSheet() and "#e11d48" in fin.styleSheet()
     # station/fecha card: NO module color at all
     card = view.station_combo.parentWidget()
@@ -1379,8 +1379,8 @@ def test_cli5074_subless_fenomeno_headers_full_height(cli3074_page, qtbot):
 
 
 def test_cli5074_red_accent_map(cli3074_page, qtbot):
-    """Round 12: FINAL joins INICIO in red; the (mm)/(°C) unit chips speak
-    red; PUNTO DE ROCÍO wears the LLUVIA slate (NOT red)."""
+    """Round 12 + A12: FINAL joins INICIO in red and the (mm)/(°C) unit chips
+    speak red; the dew point header left with the removed daily block."""
     from PySide6.QtWidgets import QLabel
 
     cli3074_page._open_cli("cli5074")
@@ -1392,8 +1392,7 @@ def test_cli5074_red_accent_map(cli3074_page, qtbot):
     assert "#e11d48" in by_text["INICIO (HH:MM)"]
     assert "#e11d48" in by_text["(°C)"]          # subsuelo unit chip
     assert "#e11d48" in by_text["(mm)"]          # evap unit chips
-    assert "#334155" in by_text["PUNTO DE ROCÍO (°C)"]
-    assert "#334155" in by_text["LLUVIA"]        # same slate family
+    assert "PUNTO DE ROCÍO (°C)" not in by_text   # removed with the block
 
 
 # ------------------------------------------------- A4: cierre del día (R4)

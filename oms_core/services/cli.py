@@ -361,29 +361,156 @@ def _overlay_from_synoptic(row: dict, hour: dict, ch: str) -> dict:
     return out
 
 
-def _overlay_4074_from_synoptic(row: dict, hour: dict) -> dict:
-    """Fill a 4074 row from its synoptic hour (rule R3).
+#: The six cloud groups the form exposes, in the oracle's order.
+_CLOUD_GROUPS = ("meteo_8_5", "meteo_8_6", "extra_8ns_1", "extra_8ns_2",
+                 "meteo_10_0", "meteo_10_1")
 
-    The observer only types the initials and the phenomena flags here; the
-    cloudiness, the six-hour rain, the extremes and the ground state all come
-    from the form (the oracle autofilled them at load time too).
+#: Cloud-type code -> band, exactly like the oracle's parseGrupo8.
+_CLOUD_BAND = {"9": "cb", "8": "nb", "7": "nb", "6": "nb",
+               "5": "nm", "4": "nm", "3": "nm", "2": "na", "1": "na", "0": "na"}
+
+#: WMO single digit cloud-base height -> metres (the IrIXHVV fallback).
+_HEIGHT_METRES = {"0": "25", "1": "75", "2": "150", "3": "250", "4": "450",
+                  "5": "800", "6": "1250", "7": "1750", "8": "2250"}
+
+
+def cloud_height_metres(code: object) -> str:
+    """``hshs`` from an 8NsChshs group -> metres (oracle convertCloudHeight)."""
+    text = str(code or "").strip()
+    if not text or text == "/":
+        return ""
+    try:
+        code_int = int(text)
+    except ValueError:
+        return ""
+    if 3 <= code_int <= 50:
+        feet = 300 + (code_int - 3) * 100
+    elif 56 <= code_int <= 68:
+        feet = 6000 + (code_int - 56) * 1000
+    elif 69 <= code_int <= 80:
+        feet = 19000 + (code_int - 69) * 1000
+    else:
+        return text  # out of range: the oracle returns the code untouched
+    return str(int(feet * 0.3048))
+
+
+def parse_cloud_group(group: object) -> dict | None:
+    """``8NsChshs`` -> {cantidad, tipo, altura, banda} (oracle parseGrupo8)."""
+    text = str(group or "").strip()
+    if len(text) < 5 or text[0] != "8":
+        return None
+    tipo = text[2]
+    banda = _CLOUD_BAND.get(tipo)
+    if banda is None:
+        return None
+    return {
+        "cantidad": text[1],
+        "tipo": tipo,
+        "altura": cloud_height_metres(text[3:5]),
+        "banda": banda,
+    }
+
+
+def _clouds_from_groups(hour: dict, out: dict) -> bool:
+    """Fill the four cloud bands from the six 8NsChshs groups."""
+    groups = [g for g in (hour.get(key) for key in _CLOUD_GROUPS)
+              if g and str(g).startswith("8") and len(str(g)) >= 5]
+    if not groups:
+        return False
+    for banda in ("cb", "nb", "nm", "na"):
+        for field in ("_cant", "_tipo", "_altura"):
+            out.pop(f"{banda}{field}", None)
+        if banda != "cb":
+            out.pop(f"{banda}_total", None)
+    totals = {"cb": 0, "nb": 0, "nm": 0, "na": 0}
+    for group in groups:
+        parsed = parse_cloud_group(group)
+        if parsed is None:
+            continue
+        banda = parsed["banda"]
+        out[f"{banda}_cant"] = parsed["cantidad"]
+        out[f"{banda}_tipo"] = parsed["tipo"]
+        out[f"{banda}_altura"] = parsed["altura"]
+        try:
+            totals[banda] += int(parsed["cantidad"])
+        except (TypeError, ValueError):
+            continue
+    for banda in ("nb", "nm", "na"):
+        if totals[banda] > 0:
+            out[f"{banda}_total"] = str(totals[banda])
+    total = totals["cb"] + totals["nb"] + totals["nm"] + totals["na"]
+    if total > 0:
+        out["nubosidad"] = str(min(total, 8))
+    return True
+
+
+def _digit(value: object, index: int) -> str:
+    text = str(value or "")
+    return text[index] if len(text) > index and text[index] not in "/-" else ""
+
+
+def _overlay_4074_from_synoptic(row: dict, hour: dict) -> dict:
+    """Fill a 4074 row from its synoptic hour (rule R3, oracle parity).
+
+    Parity with ``Cli4074Page.jsx``: the six cloud groups fill the bands and
+    their totals, ``Nddff`` overrides the total cloudiness, ``8NhCLCMCH``
+    supplies the band types when the groups are empty, ``IrIXHVV`` supplies
+    the base height, ``56DLDMDH``/``0CSDLDMDH`` the three directions, and the
+    rain, ground state and extremes come from ``LL``, ``3Ejjj``, ``Tmax`` and
+    ``Tmin``. Only the initials and the phenomenon flags are the operator's.
     """
     out = dict(row)
+    had_groups = _clouds_from_groups(hour, out)
 
-    def digito(group: object, index: int) -> str:
-        text = str(group or "")
-        if len(text) > index and text[index] not in "/-":
-            return text[index]
-        return ""
+    nddff = str(hour.get("meteo_4_1") or "")           # N dd ff
+    if nddff and nddff[0] != "/":
+        out["nubosidad"] = nddff[0]
 
-    nubosidad = digito(hour.get("meteo_4_1"), 0)        # Nddff -> N
-    if nubosidad:
-        out["nubosidad"] = nubosidad
-    suelo = digito(hour.get("meteo_6_5"), 1)            # 3Ejjj -> E
+    meteo60 = str(hour.get("meteo_6_0") or "")         # 8 Nh CL CM CH
+    if not had_groups and meteo60.startswith("8") and len(meteo60) == 5:
+        nh, cl, cm, ch = meteo60[1], meteo60[2], meteo60[3], meteo60[4]
+        if cl not in ("0", "/") and not out.get("nb_cant"):
+            out["nb_cant"] = "" if nh == "/" else nh
+            out["nb_tipo"] = cl
+            out["nb_total"] = "" if nh == "/" else nh
+        elif cl in ("0", "/") and cm not in ("0", "/") and not out.get("nm_cant"):
+            out["nm_cant"] = "" if nh == "/" else nh
+            out["nm_tipo"] = cm
+            out["nm_total"] = "" if nh == "/" else nh
+        if not out.get("nb_tipo") and cl != "/":
+            out["nb_tipo"] = cl
+        if not out.get("nm_tipo") and cm != "/":
+            out["nm_tipo"] = cm
+        if not out.get("na_tipo") and ch != "/":
+            out["na_tipo"] = ch
+
+    altura = _HEIGHT_METRES.get(_digit(hour.get("meteo_4_irixhvv"), 2), "")
+    if altura and not out.get("nb_altura"):
+        if out.get("nb_cant"):
+            out["nb_altura"] = altura
+        elif out.get("nm_cant"):
+            out["nm_altura"] = altura
+
+    direccion = ""
+    ocho_uno = str(hour.get("meteo_8_1") or "")        # 56 DL DM DH
+    seis_dos = str(hour.get("meteo_6_2") or "")        # 0CS DL DM DH
+    if ocho_uno.startswith("56") and len(ocho_uno) == 5:
+        direccion = ocho_uno
+    elif seis_dos.startswith("0") and len(seis_dos) == 5:
+        direccion = seis_dos
+    if direccion:
+        for index, banda in ((2, "nb"), (3, "nm"), (4, "na")):
+            valor = _digit(direccion, index)
+            if valor:
+                out[f"{banda}_direc"] = valor
+
+    lluvia = hour.get("ll")
+    if lluvia not in ("", None):
+        out["lluvia_6h"] = str(lluvia)
+    suelo = _digit(hour.get("meteo_6_5"), 1)           # 3Ejjj -> E
     if suelo:
         out["estado_suelo"] = suelo
-    for field, source in (("lluvia_6h", "ll"), ("temp_max", "t_max"),
-                          ("temp_min", "t_min")):
+    for field, source in (("temp_max", "t_max"), ("temp_min", "t_min")):
         value = hour.get(source)
         if value not in ("", None):
             out[field] = str(value)

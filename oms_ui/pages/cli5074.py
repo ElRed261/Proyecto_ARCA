@@ -54,24 +54,6 @@ _LOGGER = logging.getLogger(__name__)
 AUTOSAVE_MS = 700
 
 #: oracle getInitialState sections (field, header label, header color).
-_DAILY_GROUPS: tuple[tuple[str, str, str, tuple[tuple[str, str], ...]], ...] = (
-    ("TEMPERATURA °C", "#334155", 2, (("temp_max", "Máxima"), ("temp_min", "Mínima"))),
-    ("RÁFAGA MÁXIMA", "#334155", 3, (
-        ("rafaga_dir", "Dir"), ("rafaga_vel", "Vel"), ("rafaga_hora", "Hora Local"),
-    )),
-    ("HUM. REL. (%)", "#334155", 2, (("hum_max", "Máx"), ("hum_min", "Mín"))),
-    ("PRESIÓN ESTACIÓN (hPa)", "#334155", 2, (
-        ("pres_max", "Máxima"), ("pres_min", "Minima"),
-    )),
-    ("INSOLAC", "#334155", 1, (("insolac", "HORA"),)),
-    ("RADIAC", "#334155", 1, (("radiac", "CAL/CM²"),)),
-    ("LLUVIA", "#334155", 1, (("lluvia", "(mm)"),)),
-    ("EVAPOR. TANQUE A", "#334155", 1, (("evap_tanque_a", "(mm)"),)),
-)
-_DAILY_ROWSPAN: tuple[tuple[str, str, str], ...] = (
-    ("punto_rocio", "PUNTO DE ROCÍO (°C)", "#334155"),
-    ("recorrido_viento", "RECORRIDO DEL VIENTO (km)", "#1e293b"),
-)
 _HOURLY_ROWS = (2, 8, 14, 20)
 _HOURLY_FIELDS: tuple[tuple[str, str], ...] = (
     ("lect_bar", "LECT. BAR (mmHg)"),
@@ -135,14 +117,6 @@ _TEXT_QSS = (
 def get_initial_state() -> dict[str, Any]:
     """Oracle getInitialState: empty sections in the stored doc's shape."""
     return {
-        "daily": {
-            "temp_max": "", "temp_min": "",
-            "rafaga_dir": "", "rafaga_vel": "", "rafaga_hora": "",
-            "hum_max": "", "hum_min": "",
-            "pres_max": "", "pres_min": "",
-            "insolac": "", "radiac": "", "lluvia": "",
-            "evap_tanque_a": "", "punto_rocio": "", "recorrido_viento": "",
-        },
         "hourly": {
             str(row): {field: "" for field, _t in _HOURLY_FIELDS}
             for row in _HOURLY_ROWS
@@ -225,7 +199,9 @@ class Cli5074View(QWidget):
 
         title = QLabel(self.TITLE)
         title.setStyleSheet(
-            "font-size: 18px; font-weight: 800; color: #0f172a;"
+            # the CLI sheets sit on the hour's photograph: white title, like
+            # the synoptic page over a photo
+            "font-size: 18px; font-weight: 800; color: #ffffff;"
             "background: transparent;"
         )
         title.setWordWrap(True)
@@ -236,7 +212,6 @@ class Cli5074View(QWidget):
         outer.addLayout(top)
 
         self._build_station_card(outer)
-        self._build_extremos_card(outer)
 
         middle = QHBoxLayout()
         middle.setSpacing(10)
@@ -317,42 +292,6 @@ class Cli5074View(QWidget):
         grid.addWidget(self.fecha_edit, 0, 3)
         grid.setColumnStretch(4, 1)
         outer.addWidget(card)
-
-    def _build_extremos_card(self, outer: QVBoxLayout) -> None:
-        _card, layout = self._section_card(outer, None)
-        grid = QGridLayout()
-        grid.setHorizontalSpacing(0)
-        grid.setVerticalSpacing(0)
-        layout.addLayout(grid)
-
-        col = 1
-        for text, color, span, fields in _DAILY_GROUPS:
-            header = QLabel(text)
-            header.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            header.setWordWrap(True)
-            header.setStyleSheet(_HEADER_QSS.format(color=color))
-            grid.addWidget(header, 0, col, 1, span)
-            for offset, (field, sub) in enumerate(fields):
-                sub_label = QLabel(sub)
-                sub_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-                sub_label.setStyleSheet(
-                    _UNIT_RED_QSS if sub in ("(mm)", "(°C)") else _SUB_HEADER_QSS
-                )
-                grid.addWidget(sub_label, 1, col + offset)
-                edit = self._field_edit(f"daily.{field}")
-                grid.addWidget(edit, 2, col + offset)
-            col += span
-        for field, text, color in _DAILY_ROWSPAN:
-            header = QLabel(text)
-            header.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            header.setWordWrap(True)
-            header.setStyleSheet(_HEADER_QSS.format(color=color))
-            grid.addWidget(header, 0, col, 2, 1)
-            edit = self._field_edit(f"daily.{field}")
-            grid.addWidget(edit, 2, col)
-            col += 1
-        for c in range(1, col):
-            grid.setColumnStretch(c, 1)
 
     def _build_hourly_card(self, layout: QHBoxLayout) -> None:
         _card, card_layout = self._section_card(layout, "HORARIO")
