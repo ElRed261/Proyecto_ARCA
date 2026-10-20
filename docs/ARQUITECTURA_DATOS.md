@@ -280,3 +280,38 @@ manifiesto, nunca sobrescribe).
 7. **Cierre del día**: 06Z del día siguiente.
 8. Nombres correctos de los derivados: `hr`, `tvap`, `ptor` (no `hum_hr`, `hum_tvap`, `hum_ptor`).
 9. Se guarda **toda** la información digitada, aunque el resumen no la use.
+
+---
+
+## 9. Reparaciones de datos aplicadas (2026-10-20)
+
+### Precedencia de los `_cor.json`
+El flujo de correcciones del oráculo escribe `<nombre>_cor.json` junto al
+original. Cuando ambos existen para el mismo día, **el corregido manda**:
+`legacy_migration.migrate_root()` los ordena al final de forma explícita
+(no por orden alfabético) y hay un test que lo fija.
+
+### Códigos de estación mal escritos
+28 documentos tenían un código que no existe en `stations`, así que la base
+los rechazaba por integridad referencial. Se corrigieron en disco (con
+respaldo en `~/Documentos/OMS/respaldos/prefijos_estacion_<fecha>/`):
+
+| Código en el archivo | Estación correcta | Evidencia |
+|---|---|---|
+| `485` (2) | `78485` | observadores P. HENRIQUEZ (644 : 9), BILLY, FELIZABETH |
+| `784855` (1) | `78485` | FELIZABETH (514 : 149) |
+| `78` (24) | `78485` | el único archivo con observador trae CAROLINA PAULINO y FRANKLIN GOMEZ; además 78485 **no** tenía esos días (opción menos destructiva: 3 colisiones contra 23 si fuera 78484) |
+| `784784` (1) | `78484` | BELKIS M (468 : 132) |
+
+Se verificó que esos documentos **no son copias** de otro día (huella de
+datos distinta a las demás estaciones), por lo que son observaciones propias
+con el código mal digitado.
+
+Tres días quedaron en conflicto (`2024-04-09`, `2024-04-15`, `2026-06-02`):
+ya existía un documento de `78485` para esa fecha. Se conservó el de la base,
+se reescribió en disco para que disco y base coincidan, y la variante `78`
+quedó en el respaldo para comparación manual.
+
+Estado final: **2.550 documentos** en la base (2.549 schema 2 + 1 legado
+previo), 2.551 versiones, **0 archivos rechazados** en el ensayo sobre el
+árbol completo.
