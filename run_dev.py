@@ -18,6 +18,7 @@ from PySide6.QtWidgets import QApplication, QLabel
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
 
+from oms_core import logging_setup
 from oms_core import paths as paths_mod
 from oms_core.db.connection import connect
 from oms_core.db.migrations import migrate
@@ -40,6 +41,10 @@ DEV_DIR = DB_PATH.parent
 
 DEV_EMAIL = "admin@arca.rd"
 DEV_PASSWORD = "ArcaDev123!"
+
+# Every run writes to <data dir>/logs/oms.log; OMS_LOG_LEVEL=DEBUG for detail.
+LOG_PATH = logging_setup.setup_logging()
+logging_setup.install_excepthook()
 
 
 def ensure_dev_user(conn) -> None:

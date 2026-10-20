@@ -1267,6 +1267,7 @@ class SynopticPage(QWidget):
                 self.observations[hora] = merged
         # 4) repaint the form for the new day (active hour is preserved)
         self.fecha_edit.setDate(target_date)
+        _LOGGER.debug("día cargado: estación %s fecha %s", station, target)
         self._load_hour_into_fields()
         self._refresh_hour_mode()
         self.refresh_progress()
@@ -1292,33 +1293,30 @@ class SynopticPage(QWidget):
         if not path:
             return
         try:
-            doc = ingest_service.load_document_file(path)
+            day = ingest_service.load_hours(path)
         except (OSError, ValueError) as exc:  # bad files show inline
             self.error_label.setText(f"JSON inválido: {exc}")
             return
         self.error_label.setText("")
-        if doc.station:
-            self.set_station(doc.station)
-        if doc.fecha_iso:
-            self.set_date(doc.fecha_iso)
+        if day.station:
+            self.set_station(day.station)
+        if day.fecha:
+            self.set_date(day.fecha)
         count = 0
-        for row in doc.horarias:
-            hora = getattr(row, "hora", "")
+        for hora, hour_data in day.hours.items():
             if hora not in synoptic_service.HOURS:
                 continue
-            datos = getattr(row, "datos", {}) or {}
             # a loaded document REPLACES the hours it carries: merging would
             # leave values from whatever was on screen before
             entry = self.observations.setdefault(hora, {})
             entry.clear()
-            for key, value in datos.items():
+            for key, value in hour_data.items():
                 if value is None:
                     continue
                 entry[str(key)] = str(value)
-            observer = getattr(row, "observador", "") or ""
-            if observer:
-                entry["nombre_observador"] = str(observer)
             count += 1
+        _LOGGER.info("JSON cargado desde %s: %s horas, estación %s, fecha %s",
+                     path, count, day.station, day.fecha)
         self._load_hour_into_fields()
         self._refresh_hour_mode()
         self.refresh_progress()

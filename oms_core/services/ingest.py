@@ -33,6 +33,15 @@ from oms_core.services.audit import HOURS, normalize_station_code
 REQUIRED_TOP_LEVEL = ("meta", "horas")
 
 
+@dataclass(frozen=True)
+class LoadedDay:
+    """A file read into the form's language: station, date and hours."""
+
+    station: str
+    fecha: str
+    hours: dict[str, dict[str, str]]
+
+
 class IngestError(ValueError):
     """A candidate file is not a valid observation document."""
 
@@ -198,14 +207,20 @@ def normalize_document(doc: object) -> dict:
     }
 
 
-def load_document_file(path: str | Path):
+def load_hours(path: str | Path) -> LoadedDay:
     """Read an observation file of EITHER variant into a ``DailyDocument``.
 
     The app's own files are validated first, so a broken one fails with the
     precise reason (bad calendar date, unknown hour) instead of a generic
     parse error.
     """
+    """Read any document shape and return the form-shaped hours.
+
+    Handles the three shapes that exist: the parser's ``horarias`` list, the
+    legacy ``horas`` container and the current schema 2 (``synop``/``grupos``).
+    """
     from oms_core.importer.parse import parse_daily
+    from oms_core.services import document as document_service
 
     try:
         raw = Path(path).read_bytes()
@@ -215,11 +230,45 @@ def load_document_file(path: str | Path):
         doc = json.loads(raw)
     except ValueError as exc:
         raise IngestError(f"JSON inválido: {exc}") from exc
-    if isinstance(doc, dict) and "horarias" not in doc and isinstance(
-            doc.get("horas"), dict):
+    if not isinstance(doc, dict):
+        raise IngestError("el documento no es un objeto JSON")
+
+    meta = doc.get("meta") if isinstance(doc.get("meta"), dict) else {}
+    station = str(meta.get("estacion") or "").strip()
+    fecha_raw = str(meta.get("fecha") or "").strip()
+    fecha = f"{fecha_raw[4:8]}-{fecha_raw[2:4]}-{fecha_raw[0:2]}" \
+        if len(fecha_raw) == 8 and fecha_raw.isdigit() else fecha_raw
+
+    if "horarias" not in doc and isinstance(doc.get("horas") or doc.get("synop"), dict):
+        if isinstance(doc.get("horas"), dict):
+            validate_document(doc)  # precise messages: bad date, unknown hour
+        else:
+            import datetime as _dt
+
+            try:
+                _dt.date.fromisoformat(fecha)
+            except ValueError as exc:
+                raise IngestError(f"meta.fecha '{fecha}' no es una fecha real: {exc}") from exc
+        day = document_service.day_document_from_stored(doc, station, fecha)
+        # only the hours the document really carries, not the eight padded slots
+        container = doc.get("horas") if isinstance(doc.get("horas"), dict) else doc.get("synop")
+        present = {hora: day.horas[hora] for hora in HOURS if hora in container}
+        return LoadedDay(station=station, fecha=fecha, hours=present)
+
+    if "horarias" not in doc:
         validate_document(doc)
         doc = normalize_document(doc)
-    return parse_daily(doc)
+    parsed = parse_daily(doc)
+    hours: dict[str, dict[str, str]] = {}
+    for row in parsed.horarias:
+        hora = str(getattr(row, "hora", "") or "")
+        if hora not in HOURS:
+            continue
+        datos = getattr(row, "datos", {}) or {}
+        hours[hora] = {str(k): str(v) for k, v in datos.items() if v is not None}
+        observer = str(getattr(row, "observador", "") or "")
+        hours[hora]["nombre_observador"] = observer
+    return LoadedDay(station=parsed.station, fecha=parsed.fecha_iso, hours=hours)
 
 
 def scan_json_files(root: Path) -> list[Path]:
@@ -294,12 +343,13 @@ def apply_plan(plan: Plan, *, log: list[str] | None = None) -> dict[str, int]:
 __all__ = [
     "Candidate",
     "IngestError",
+    "LoadedDay",
     "Plan",
     "Rejection",
     "apply_plan",
     "candidate_from_file",
     "destination_for",
-    "load_document_file",
+    "load_hours",
     "normalize_document",
     "plan_organization",
     "scan_json_files",
