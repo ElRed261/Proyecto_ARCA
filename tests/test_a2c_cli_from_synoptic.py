@@ -89,3 +89,38 @@ def test_a_day_without_synoptic_data_keeps_the_stored_row(fresh_db):
     doc = cli_service.load_cli3074(fresh_db, STATION, FECHA)
     assert doc["horas"]["2"]["viento_vel"] == "2.0"
     assert "temp_seco" not in doc["horas"]["2"]
+
+
+# ------------------------------------------------- CLI 4074 (misma regla R3)
+
+
+def test_the_4074_row_shows_the_synoptic_values(fresh_db):
+    synoptic_service.save_hour(fresh_db, STATION, FECHA, "12Z", {
+        "ts": "28.2", "th": "24.1", "pres_est": "1010.3",
+        "t_max": "30.1", "t_min": "22.4", "ll": "1.2",
+        "meteo_4_1": "80602",       # N = 8
+        "meteo_6_5": "31234",       # E = 1  (3Ejjj)
+        "nombre_observador": "EDGAR ACOSTA",
+    })
+    doc = cli_service.load_cli4074(fresh_db, STATION, FECHA)
+    row = doc["horas"]["8"]           # 12Z es la fila 8 del CLI 4074
+    assert row["temp_max"] == "30.1"
+    assert row["temp_min"] == "22.4"
+    assert row["lluvia_6h"] == "1.2"
+    assert row["nubosidad"] == "8"
+    assert row["estado_suelo"] == "1"
+
+
+def test_the_4074_keeps_the_initials_and_the_phenomena(fresh_db):
+    synoptic_service.save_hour(fresh_db, STATION, FECHA, "12Z",
+                               {"ts": "28.2", "nombre_observador": "EDGAR ACOSTA"})
+    cli_service.save_cli(fresh_db, STATION, FECHA, "cli4074",
+                         {"horas": {"8": {"observador": "EA",
+                                          "fenomenos": {"trueno": True}}}})
+    row = cli_service.load_cli4074(fresh_db, STATION, FECHA)["horas"]["8"]
+    assert row["observador"] == "EA"
+    assert row["fenomenos"]["trueno"] is True
+
+
+def test_the_4074_returns_none_without_any_data(fresh_db):
+    assert cli_service.load_cli4074(fresh_db, STATION, FECHA) is None

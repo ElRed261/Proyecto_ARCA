@@ -257,6 +257,9 @@ class Cli4074View(QWidget):
                 grid.addWidget(edit, row + 1, 1 + cindex)
         for cindex in range(len(self._all_fields())):
             grid.setColumnStretch(1 + cindex, 1)
+            # 4074 values are short (a temperature, a digit); 46 px keeps
+            # every column on screen at 1366 while never clipping them.
+            grid.setColumnMinimumWidth(1 + cindex, 46)
 
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
@@ -418,7 +421,7 @@ class Cli4074View(QWidget):
     def load_data(self) -> None:
         self._loading = True
         try:
-            doc = cli_service.load_cli(self._conn, self.station, self.fecha, self.MODULE_KEY)
+            doc = cli_service.load_cli4074(self._conn, self.station, self.fecha)
             horas = (doc or {}).get("horas") if isinstance(doc, dict) else None
             if isinstance(horas, dict):
                 for row in range(1, 25):

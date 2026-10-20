@@ -422,8 +422,13 @@ class Cli3074View(QWidget):
 
         for row in range(1, 25):
             self._build_data_row(grid, row)
-        for col in range(1, 14):  # numeric + visibility columns share the stretch
+        for col in range(1, 15):  # numeric + visibility columns share the stretch
             grid.setColumnStretch(col, 1)
+        # A value like "1010.3" needs ~50 px with the padding; letting the
+        # columns shrink below that clipped the numbers to "10.3". The grid
+        # keeps its minimum and the sheet scrolls sideways when it must.
+        for col in range(1, 15):
+            grid.setColumnMinimumWidth(col, 62)
         for index in range(len(FENOMENOS)):  # fixed checkbox lanes
             grid.setColumnMinimumWidth(15 + index, 32)
 

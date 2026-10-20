@@ -361,6 +361,61 @@ def _overlay_from_synoptic(row: dict, hour: dict, ch: str) -> dict:
     return out
 
 
+def _overlay_4074_from_synoptic(row: dict, hour: dict) -> dict:
+    """Fill a 4074 row from its synoptic hour (rule R3).
+
+    The observer only types the initials and the phenomena flags here; the
+    cloudiness, the six-hour rain, the extremes and the ground state all come
+    from the form (the oracle autofilled them at load time too).
+    """
+    out = dict(row)
+
+    def digito(group: object, index: int) -> str:
+        text = str(group or "")
+        if len(text) > index and text[index] not in "/-":
+            return text[index]
+        return ""
+
+    nubosidad = digito(hour.get("meteo_4_1"), 0)        # Nddff -> N
+    if nubosidad:
+        out["nubosidad"] = nubosidad
+    suelo = digito(hour.get("meteo_6_5"), 1)            # 3Ejjj -> E
+    if suelo:
+        out["estado_suelo"] = suelo
+    for field, source in (("lluvia_6h", "ll"), ("temp_max", "t_max"),
+                          ("temp_min", "t_min")):
+        value = hour.get(source)
+        if value not in ("", None):
+            out[field] = str(value)
+    return out
+
+
+def load_cli4074(conn: sqlite3.Connection, station: str, fecha: str) -> dict | None:
+    """cli4074 with the synoptic values overlaid, like the 3074 loader."""
+    stored = load_cli(conn, station, fecha, "cli4074")
+    if stored is not None and not isinstance(stored, dict):
+        return None
+    value = _normalize_cli_block(stored) if stored is not None else None
+    horas_obj = value.get("horas") if isinstance(value, dict) else None
+    rows: dict[str, dict] = {}
+    if isinstance(horas_obj, dict):
+        rows = {str(k): dict(v) for k, v in horas_obj.items() if isinstance(v, dict)}
+
+    synoptic = _synoptic_hours(conn, station, fecha)
+    if synoptic:
+        for hora, row_key in SYNOP_ROWS:
+            hour = synoptic.get(hora)
+            if not hour:
+                continue
+            rows[row_key] = _overlay_4074_from_synoptic(rows.get(row_key) or {}, hour)
+
+    if value is None and not rows:
+        return None
+    result = dict(value or {})
+    result["horas"] = rows
+    return result
+
+
 def _synoptic_hours(conn: sqlite3.Connection, station: str, fecha: str) -> dict[str, dict]:
     from oms_core.services import document as document_service
 
