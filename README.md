@@ -8,9 +8,9 @@ observaciones meteorológicas **Proyecto ARCA**:
 
 - Plan maestro (PRD): `Migración/PLAN_MIGRACION_NEoARCA.md` — leer antes de tocar nada.
 - **Cronología completa**: `docs/CRONOLOGIA.md` — todo lo hecho, fase por fase, con commits.
-- **Contrato del oráculo**: `docs/CONTRATO_ORACULO.md` — cómo se valida contra `OLD/`
+- **Contrato del oráculo**: `docs/CONTRATO_ORACULO.md` — cómo se valida contra `../OLD`
   (fórmulas verbatim, mensajes exactos, desviaciones firmadas).
-- App anterior intacta: `OLD/` (React + Tauri 2.11, v2.2.0). Es el **oráculo**:
+- App anterior intacta: **`../OLD`**, fuera del repositorio (React + Tauri 2.11, v2.2.0). Es el **oráculo**:
   a nivel de fórmulas y comportamiento, Neo Arca se guía por ella. No se borra
   hasta el corte (F8).
 
@@ -34,7 +34,6 @@ oms_calc/    Rust (PyO3, abi3) — SOLO funciones puras: datos entran, resultado
 oms_core/    Python sin Qt — SQLite, validaciones, sync, importador legacy
 oms_ui/      PySide6 Widgets — SOLO presentación (páginas + vistas CLI)
 tests/       pytest (núcleo) + pytest-qt (UI) + frontera PyO3
-OLD/         Oráculo read-only (React + Tauri v2.2.0) + IMG/ de referencia
 Migración/   PRD + evidencias por fase (capturas y notas)
 docs/        CRONOLOGIA, CONTRATO_ORACULO, CHANGELOG
 ```
@@ -67,10 +66,10 @@ con GIL. Ambos comparten el mismo `oms_calc` compilado por `maturin`.
    entran, resultados salen (JSON en la frontera Python).
 2. **Portación verbatim** del oráculo para fórmulas y mensajes (ver
    `docs/CONTRATO_ORACULO.md`; las desviaciones están firmadas ahí).
-3. **`OLD/` read-only** — la migración de datos legacy corre sobre copias.
+3. **`../OLD` read-only** — vive fuera del repo; la migración de datos legacy corre sobre copias.
 4. **Tests primero** (RED→GREEN) y evidencia por fase en `Migración/evidencias/`.
 5. **Commits** `neoarca(<fase>)` con el resultado medido en el cuerpo.
-6. UI recreada 1:1 contra `OLD/IMG/*.png` — si la imagen y el JSX difieren,
+6. UI recreada 1:1 contra `../OLD/IMG/*.png` — si la imagen y el JSX difieren,
    gana la imagen (decisión del dueño).
 
 ## Licencia

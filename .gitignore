@@ -42,3 +42,6 @@ miscelaneos/base_para_modulos/Resumen_Mensual_Synop/
 # --- editor swap files ---
 *.swp
 *.kate-swp
+
+# El oráculo vive FUERA del repo (movido por el dueño a ../OLD)
+OLD/

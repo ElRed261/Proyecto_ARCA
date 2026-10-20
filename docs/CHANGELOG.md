@@ -40,5 +40,5 @@ Formato libre por fases; el detalle completo con commits está en
 - CI `neoarca.yml`; dependabot mensual agrupado.
 
 ## Legado (proyecto ARCA clásico)
-Ver `OLD/` — release final **v2.2.0** (React + Tauri). Su CHANGELOG histórico
-vive en `OLD/docs/` si existiera; el código completo es el oráculo.
+Ver **`../OLD`** (fuera del repositorio) — release final **v2.2.0**
+(React + Tauri). El código completo es el oráculo.

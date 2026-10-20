@@ -1,6 +1,8 @@
-# Contrato del oráculo — cómo Neo Arca valida contra OLD/
+# Contrato del oráculo — cómo Neo Arca valida contra `../OLD`
 
-**El oráculo es `OLD/`**: la aplicación React+Tauri v2.2.0 original,
+**El oráculo es `../OLD`**: la aplicación React+Tauri v2.2.0 original, movida
+fuera del repositorio por el dueño (2026-10-20) para no mezclarla con el
+código nuevo. Las rutas de este documento se leen desde la raíz del repo:
 archivada completa, read-only. A nivel de **fórmulas y comportamiento**,
 Neo Arca se guía por ella hasta el corte (F8). Este documento fija las
 reglas del contrato.
@@ -9,7 +11,7 @@ reglas del contrato.
 
 1. **Fórmulas verbatim.** Toda fórmula OMM/metereológica se porta copiada
    letra por letra desde el Rust del oráculo
-   (`OLD/frontend/src-tauri/src/modules/synoptic/calculations.rs`,
+   (`../OLD/frontend/src-tauri/src/modules/synoptic/calculations.rs`,
    `monthly.rs`) hacia `oms_calc/src/*.rs`. Sin "mejoras", sin renombres
    de variables, sin reordenar términos. El diff del port debe poder
    justificarse línea por línea.
@@ -24,8 +26,9 @@ reglas del contrato.
    datos/synop/calculado + claves CLI `cli3074`/`cli4074`/`cli5074`) y el
    mensual mantienen la forma del oráculo — el importador legacy y la
    sincronización dependen de ella.
-5. **`OLD/` es read-only.** La migración de datos legacy corre solo
-   sobre copias temporales. Nada escribe dentro de `OLD/`.
+5. **`../OLD` es read-only.** La migración de datos legacy corre solo
+   sobre copias temporales. Nada escribe dentro de `../OLD`, y el repo tiene
+   `OLD/` en `.gitignore` para que no vuelva a entrar por accidente.
 
 ## Mapa de portación (fórmula → destino)
 

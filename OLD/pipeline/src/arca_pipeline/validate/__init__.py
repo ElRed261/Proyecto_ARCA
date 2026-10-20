@@ -1,1 +1,0 @@
-"""Validate layer: pandera schemas applied at the bronze->silver boundary."""

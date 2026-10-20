@@ -1,3 +1,8 @@
+ > **Nota (2026-10-20):** el oráculo `OLD/` fue movido fuera del repositorio a
+ > `../OLD`. Las rutas `OLD/...` que aparecen en este plan y en las notas de
+ > evidencias eran correctas cuando se escribieron (registro histórico);
+ > hoy se leen como `../OLD/...`.
+
 # PRD — Migración OMS "Neo Arca": React + Tauri → PySide6 + Rust
 
 | Campo | Valor |

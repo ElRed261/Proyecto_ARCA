@@ -2,7 +2,7 @@
 
 Documento de referencia del modelo de datos de la observación. Cierra las
 decisiones tomadas con el dueño a lo largo de la revisión del oráculo
-(`OLD/`). Todo lo que se implemente debe respetar esta ley.
+(`../OLD`, fuera del repositorio). Todo lo que se implemente debe respetar esta ley.
 
 ---
 
