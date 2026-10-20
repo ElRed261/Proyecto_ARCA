@@ -192,7 +192,8 @@ def save_cli(
     text = summaries_repo.get_summary_doc(conn, station, year, month, "diario", day=day)
     if text is None:
         receiver = {
-            "meta": {"estacion": station, "fecha": f"{day:02d}{month:02d}{year:04d}"}
+            "schema": 2,
+            "meta": {"estacion": station, "fecha": f"{day:02d}{month:02d}{year:04d}"},
         }
     else:
         try:

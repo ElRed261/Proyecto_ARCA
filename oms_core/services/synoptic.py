@@ -472,6 +472,7 @@ def save_hour(
     meta.pop("observador", None)  # R3: the observer is per hour, not per day
     meta["ultima_actualizacion"] = _now_local()
     doc = dict(existing_doc)
+    doc["schema"] = 2          # rules R1-R3: observed only, observer per hour
     doc["meta"] = meta
     doc["horas"] = horas
 

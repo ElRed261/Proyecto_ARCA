@@ -57,7 +57,7 @@ la garantía que exige R4.
     "actualizado": "2025-10-26T21:14:07-04:00",
     "cerrado_en": null
   },
-  "synop": {
+  "horas": {
     "00Z": { "observador": "…", "datos": {…}, "grupos": {…} },
     "03Z": { … }, "06Z": { … }, "09Z": { … },
     "12Z": { … }, "15Z": { … }, "18Z": { … }, "21Z": { … }
@@ -71,11 +71,15 @@ la garantía que exige R4.
 }
 ```
 
+- Los contenedores conservan los nombres del build (`horas` y, dentro de
+  cada hora, `datos` + `synop`); lo que cambia con schema 2 es el
+  **contenido**, no los nombres. Los lectores aceptan también los
+  alias de la arquitectura (`synop`/`grupos`).
 - **El observador no va en `meta`**: va por hora (`synop[hora].observador`,
   siempre presente aunque esté vacío) y por fila/documento en los CLI.
 - `meta.fecha` en ISO. `actualizado` y `cerrado_en` en ISO con zona.
 
-### 3.1 `synop[hora]`
+### 3.1 `horas[hora]` (el contenedor histórico se conserva)
 
 | Bloque | Contenido |
 |---|---|

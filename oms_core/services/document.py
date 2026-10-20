@@ -66,11 +66,17 @@ def _document_is_v2(doc: dict[str, Any]) -> bool:
 def _hour_sections(doc: dict[str, Any], hora: str) -> tuple[dict, dict, str]:
     """(datos, grupos, observador) for one hour, whichever shape it is."""
     if _document_is_v2(doc):
-        entry = (doc.get("synop") or {}).get(hora)
+        # the container is 'synop' in the written schema; the owner's build
+        # keeps the historical 'horas' name, so both are honoured.
+        container = doc.get("synop") or doc.get("horas") or {}
+        entry = container.get(hora)
         if not isinstance(entry, dict):
             return {}, {}, ""
         datos = entry.get("datos") if isinstance(entry.get("datos"), dict) else {}
-        grupos = entry.get("grupos") if isinstance(entry.get("grupos"), dict) else {}
+        # 'grupos' is the architecture name; the build keeps 'synop'
+        grupos = entry.get("grupos")
+        if not isinstance(grupos, dict):
+            grupos = entry.get("synop") if isinstance(entry.get("synop"), dict) else {}
         observer = str(entry.get("observador") or "")
         return datos, grupos, observer
     entry = (doc.get("horas") or {}).get(hora)

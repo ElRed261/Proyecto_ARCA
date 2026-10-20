@@ -111,9 +111,14 @@ def test_save_cli3074_merges_into_the_daily_document_without_touching_horas(fres
                          {"2": {"pres_est": "1015.0"}})
 
     doc = json.loads(summaries_repo.get_summary_doc(fresh_db, STATION, 2026, 2, "diario", day=10))
-    assert doc["cli3074"]["2"]["pres_est"] == "1015.0"
+    # schema 2 nests the CLI blocks under 'cli' (they used to sit at the root)
+    assert doc["schema"] == 2
+    assert doc["cli"]["3074"]["2"]["pres_est"] == "1015.0"
     assert doc["horas"]["06Z"]["datos"]["ts"] == "23.2"  # horas untouched
     assert doc["meta"]["estacion"] == STATION
+    # and the reader finds it in either shape
+    assert cli_service.load_cli(fresh_db, STATION, "2026-02-10", "cli3074") == {
+        "2": {"pres_est": "1015.0"}}
 
 
 def test_save_cli_preserves_sibling_cli_keys(fresh_db):
@@ -121,14 +126,14 @@ def test_save_cli_preserves_sibling_cli_keys(fresh_db):
     cli_service.save_cli(fresh_db, STATION, "2026-02-10", "cli5074", {"daily": {"lluvia": "1.2"}})
 
     doc = json.loads(summaries_repo.get_summary_doc(fresh_db, STATION, 2026, 2, "diario", day=10))
-    assert "cli4074" in doc and "cli5074" in doc
+    assert "4074" in doc["cli"] and "5074" in doc["cli"]
 
 
 def test_save_cli_replaces_previous_value_for_the_same_key(fresh_db):
     cli_service.save_cli(fresh_db, STATION, "2026-02-10", "cli4074", {"v": 1})
     cli_service.save_cli(fresh_db, STATION, "2026-02-10", "cli4074", {"v": 2})
     doc = json.loads(summaries_repo.get_summary_doc(fresh_db, STATION, 2026, 2, "diario", day=10))
-    assert doc["cli4074"] == {"v": 2}
+    assert doc["cli"]["4074"] == {"v": 2}
 
 
 def test_save_cli_validates_inputs(fresh_db):
