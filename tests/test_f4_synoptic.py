@@ -129,12 +129,12 @@ def test_save_hour_transactional_path_writes_row_and_diario_doc(fresh_db, statio
     assert doc["meta"]["fecha"] == "08122025"  # DDMMYYYY display format
     # R3 (docs/ARQUITECTURA_DATOS.md): the observer belongs to the hour
     assert "observador" not in doc["meta"]
-    hora_entry = doc["horas"]["06Z"]
+    hora_entry = doc["synop"]["06Z"]
     assert hora_entry["observador"] == "Andry emiliano"
     assert hora_entry["datos"]["pres_est"] == "1025.3"
     assert "Tmax" not in hora_entry["datos"]  # empty values are not stored (R2)
-    assert hora_entry["synop"]["IrIXHVV"] == "32566"
-    assert hora_entry["synop"]["Nddff"] == "50102"
+    assert hora_entry["grupos"]["IrIXHVV"] == "32566"
+    assert hora_entry["grupos"]["Nddff"] == "50102"
     # R2: nothing derived is persisted; it is recomputed on read instead
     assert "calculado" not in hora_entry
     assert "correc_alt" not in hora_entry["datos"]
@@ -151,9 +151,9 @@ def test_save_hour_second_hour_updates_same_doc_and_keeps_first(fresh_db, statio
                        _hour_data(ts="24.1", th="22.9"))
 
     doc = json.loads(summaries_repo.get_summary_doc(fresh_db, station, 2025, 12, "diario", day=8))
-    assert set(doc["horas"]) == {"06Z", "09Z"}
-    assert doc["horas"]["09Z"]["datos"]["ts"] == "24.1"
-    assert doc["horas"]["06Z"]["datos"]["ts"] == "23.2"
+    assert set(doc["synop"]) == {"06Z", "09Z"}
+    assert doc["synop"]["09Z"]["datos"]["ts"] == "24.1"
+    assert doc["synop"]["06Z"]["datos"]["ts"] == "23.2"
     assert len(observations_repo.get_day(fresh_db, station, "2025-12-08")) == 2
 
 

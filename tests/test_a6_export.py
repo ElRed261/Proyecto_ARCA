@@ -44,9 +44,9 @@ def test_export_writes_the_schema_two_document(fresh_db, tmp_path):
     assert path is not None and path.exists()
     document = json.loads(path.read_text(encoding="utf-8"))
     assert document["schema"] == 2
-    assert document["horas"]["06Z"]["observador"] == "YASSER GALAN"
-    assert document["horas"]["06Z"]["datos"]["ts"] == "24.1"
-    assert "calculado" not in document["horas"]["06Z"]
+    assert document["synop"]["06Z"]["observador"] == "YASSER GALAN"
+    assert document["synop"]["06Z"]["datos"]["ts"] == "24.1"
+    assert "calculado" not in document["synop"]["06Z"]
 
 
 def test_export_returns_none_for_a_missing_day(fresh_db, tmp_path):

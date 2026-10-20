@@ -384,7 +384,8 @@ def observation_from_doc(
     if not isinstance(estacion, str) or not isinstance(fecha, str):
         return None
 
-    horas = doc.get("horas") if isinstance(doc.get("horas"), dict) else {}
+    horas = doc.get("horas") if isinstance(doc.get("horas"), dict) else (
+        doc.get("synop") if isinstance(doc.get("synop"), dict) else {})
     horarias = [
         row for row in (doc.get("horarias") or [])
         if isinstance(row, dict) and isinstance(row.get("datos"), dict)
@@ -598,7 +599,8 @@ def apply_corrections(
     doc = copy.deepcopy(doc)
     applied = 0
     recompute: dict[str, dict] = {}
-    horas = doc.get("horas") if isinstance(doc.get("horas"), dict) else {}
+    horas = doc.get("horas") if isinstance(doc.get("horas"), dict) else (
+        doc.get("synop") if isinstance(doc.get("synop"), dict) else {})
     for hora, campo, valor in corrections:
         value = _parse_correction_value(campo, valor)
         entry = horas.get(hora)

@@ -40,7 +40,7 @@ def _doc(conn) -> dict:
 
 def test_derived_values_are_not_stored(fresh_db):
     synoptic_service.save_hour(fresh_db, STATION, FECHA, "06Z", HOUR)
-    hora = _doc(fresh_db)["horas"]["06Z"]
+    hora = _doc(fresh_db)["synop"]["06Z"]
     assert "calculado" not in hora
     assert "correc_alt" not in hora["datos"]
     assert "visibilidad" not in hora["datos"]
@@ -48,7 +48,7 @@ def test_derived_values_are_not_stored(fresh_db):
 
 def test_observed_values_are_stored(fresh_db):
     synoptic_service.save_hour(fresh_db, STATION, FECHA, "06Z", HOUR)
-    datos = _doc(fresh_db)["horas"]["06Z"]["datos"]
+    datos = _doc(fresh_db)["synop"]["06Z"]["datos"]
     assert datos["ts"] == "24.1"
     assert datos["pres_est"] == "1001.6"
 
@@ -57,17 +57,17 @@ def test_the_observer_is_stored_per_hour_not_in_meta(fresh_db):
     synoptic_service.save_hour(fresh_db, STATION, FECHA, "06Z", HOUR)
     doc = _doc(fresh_db)
     assert "observador" not in doc["meta"]
-    assert doc["horas"]["06Z"]["observador"] == "YASSER GALAN"
+    assert doc["synop"]["06Z"]["observador"] == "YASSER GALAN"
 
 
 def test_an_empty_observer_is_still_written(fresh_db):
     synoptic_service.save_hour(fresh_db, STATION, FECHA, "09Z", {"ts": "25.0"})
-    assert _doc(fresh_db)["horas"]["09Z"]["observador"] == ""
+    assert _doc(fresh_db)["synop"]["09Z"]["observador"] == ""
 
 
 def test_the_group_name_is_written_joined(fresh_db):
     synoptic_service.save_hour(fresh_db, STATION, FECHA, "06Z", HOUR)
-    synop = _doc(fresh_db)["horas"]["06Z"]["synop"]
+    synop = _doc(fresh_db)["synop"]["06Z"]["grupos"]
     assert synop["0CSDLDMDH"] == "01000"      # owner's spelling, no spaces
     assert "0CSDL DM DH" not in synop
 

@@ -284,7 +284,7 @@ def _build_hora_entry(hour_data: dict, derived: dict, observer: str | None) -> d
     synop = document_map.groups_to_document(hour_data)
 
     if synop:
-        entry["synop"] = synop
+        entry["grupos"] = synop
     if datos:
         entry["datos"] = datos
     return entry
@@ -335,7 +335,9 @@ def load_day(conn: sqlite3.Connection, station: str, fecha: str) -> dict[str, di
     station = validate_station(station)
     year, month, day = validate_fecha(fecha)
     doc = _diario_doc(conn, station, year, month, day)
-    horas_doc = doc.get("horas") if isinstance(doc, dict) else None
+    horas_doc = None
+    if isinstance(doc, dict):
+        horas_doc = doc.get("horas") if isinstance(doc.get("horas"), dict) else doc.get("synop")
     if not isinstance(horas_doc, dict):
         return None
     reverse_datos = {doc_key: key for key, doc_key in _DATOS_KEY_MAP.items()}
@@ -355,7 +357,7 @@ def load_day(conn: sqlite3.Connection, station: str, fecha: str) -> dict[str, di
                 key = reverse_datos.get(doc_key)
                 if key is not None:
                     hour_data[key] = "" if value is None else str(value)
-        synop = entry.get("synop")
+        synop = entry.get("grupos") if isinstance(entry.get("grupos"), dict) else entry.get("synop")
         if isinstance(synop, dict):
             for synop_name, value in synop.items():
                 key = reverse_synop.get(synop_name)
@@ -450,11 +452,15 @@ def save_hour(
     existing_doc = _diario_doc(conn, station, year, month, day)
     prev_hora = oms_calc.get_prev_hour(hora)
     prev_nddff = ""
-    horas_existing = existing_doc.get("horas")
+    horas_existing = existing_doc.get("synop")
+    if not isinstance(horas_existing, dict):
+        horas_existing = existing_doc.get("horas")
     if isinstance(horas_existing, dict):
         prev_entry = horas_existing.get(prev_hora)
         if isinstance(prev_entry, dict):
-            prev_synop = prev_entry.get("synop")
+            prev_synop = prev_entry.get("grupos")
+            if not isinstance(prev_synop, dict):
+                prev_synop = prev_entry.get("synop")
             if isinstance(prev_synop, dict):
                 value = prev_synop.get("Nddff")
                 if isinstance(value, str):
@@ -474,7 +480,8 @@ def save_hour(
     doc = dict(existing_doc)
     doc["schema"] = 2          # rules R1-R3: observed only, observer per hour
     doc["meta"] = meta
-    doc["horas"] = horas
+    doc.pop("horas", None)     # one layout only: the documented 'synop' block
+    doc["synop"] = horas
 
     # observations row: typed REAL columns from base data + derived values
     obs = Observation(

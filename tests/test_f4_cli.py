@@ -114,7 +114,7 @@ def test_save_cli3074_merges_into_the_daily_document_without_touching_horas(fres
     # schema 2 nests the CLI blocks under 'cli' (they used to sit at the root)
     assert doc["schema"] == 2
     assert doc["cli"]["3074"]["2"]["pres_est"] == "1015.0"
-    assert doc["horas"]["06Z"]["datos"]["ts"] == "23.2"  # horas untouched
+    assert doc["synop"]["06Z"]["datos"]["ts"] == "23.2"  # horas untouched
     assert doc["meta"]["estacion"] == STATION
     # and the reader finds it in either shape
     assert cli_service.load_cli(fresh_db, STATION, "2026-02-10", "cli3074") == {

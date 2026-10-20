@@ -198,8 +198,8 @@ def test_full_flow_save_writes_row_and_diario_document(page, fresh_db, monkeypat
     assert hour_row.p_est == pytest.approx(1025.3)
     assert hour_row.observador == "Andry emiliano"
     doc = json.loads(summaries_repo.get_summary_doc(fresh_db, STATION, 2025, 12, "diario", day=8))
-    assert doc["horas"]["06Z"]["datos"]["pres_est"] == "1025.3"
-    assert doc["horas"]["06Z"]["synop"]["IrIXHVV"] == "32566"
+    assert doc["synop"]["06Z"]["datos"]["pres_est"] == "1025.3"
+    assert doc["synop"]["06Z"]["grupos"]["IrIXHVV"] == "32566"
     assert "Observación guardada" in page.status_label.text()
     # observer remembered per station (synopticUtils/arca_observador_*)
     assert synoptic_service.observer_for(fresh_db, STATION) == "Andry emiliano"
@@ -421,8 +421,8 @@ def test_manual_1sn_2sn_slots_even_only_and_roundtrip(page, fresh_db, monkeypatc
     page.save_clicked()
 
     doc = json.loads(summaries_repo.get_summary_doc(fresh_db, STATION, 2025, 12, "diario", day=8))
-    assert doc["horas"]["06Z"]["synop"]["1snTxTxTx"] == "10245"
-    assert doc["horas"]["06Z"]["synop"]["2snTnTnTn"] == "20183"
+    assert doc["synop"]["06Z"]["grupos"]["1snTxTxTx"] == "10245"
+    assert doc["synop"]["06Z"]["grupos"]["2snTnTnTn"] == "20183"
 
 
 def test_new_grid_keys_present_with_placeholders_and_tooltips(page):
@@ -466,7 +466,7 @@ def test_new_keys_roundtrip_into_synop_doc(page, fresh_db, monkeypatch):
     monkeypatch.setattr(synoptic_ui, "SaveReviewDialog", _stub_dialog_class(QDialog.Accepted))
     page.save_clicked()
     doc = json.loads(summaries_repo.get_summary_doc(fresh_db, STATION, 2025, 12, "diario", day=8))
-    synop_values = list(doc["horas"]["06Z"]["synop"].values())
+    synop_values = list(doc["synop"]["06Z"]["grupos"].values())
     assert "7" in synop_values
     assert "8" in synop_values
     assert "9" in synop_values
@@ -569,7 +569,7 @@ def test_extra_nubosity_fields_present_and_saved(page, fresh_db, monkeypatch):
     monkeypatch.setattr(synoptic_ui, "SaveReviewDialog", _stub_dialog_class(QDialog.Accepted))
     page.save_clicked()
     doc = json.loads(summaries_repo.get_summary_doc(fresh_db, STATION, 2025, 12, "diario", day=8))
-    assert "81819" in list(doc["horas"]["06Z"]["synop"].values())
+    assert "81819" in list(doc["synop"]["06Z"]["grupos"].values())
 
 
 def test_cargar_json_populates_hour(page, tmp_path):
