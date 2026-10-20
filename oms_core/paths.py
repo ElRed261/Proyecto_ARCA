@@ -268,9 +268,13 @@ def ensure_directories(
     section: str | None = None,
     env: dict[str, str] | None = None,
     default_root: str | None = None,
-    modulo: str = DEFAULT_MODULE,
+    modulo: str = "",
 ) -> Path:
-    """Create the section tree under the resolved root and return that root.
+    """Create the section tree under the resolved ROOT and return that root.
+
+    The sections live beside each other (``OMS/synop``, ``OMS/resumenes``, …),
+    never inside the module layer: letting the module layer in here would nest
+    them as ``OMS/synop/synop``.
 
     Pure side effect of existence: never deletes, never overwrites, and an
     unwritable root propagates the OSError so the caller can report it

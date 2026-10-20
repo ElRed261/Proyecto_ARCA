@@ -43,8 +43,9 @@ def test_default_root_exists_after_ensure(monkeypatch, tmp_path, conn):
     monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.delenv("XDG_DOCUMENTS_DIR", raising=False)
     root = ensure_directories(conn, env={"HOME": str(tmp_path)})
-    assert root == tmp_path / "Documents" / "OMS" / "synop"
+    assert root == tmp_path / "Documents" / "OMS"
     assert root.is_dir()
+    assert (root / "synop").is_dir()
 
 
 # ---------------------------------------------------------------- S2 sections
@@ -64,9 +65,13 @@ def test_section_dir_rejects_an_unknown_section():
 
 
 def test_ensure_directories_creates_every_section(conn, tmp_path):
+    """The sections sit BESIDE each other under the root, not nested inside
+    the module layer (the first implementation produced OMS/synop/synop)."""
     root = ensure_directories(conn, default_root=str(tmp_path))
+    assert root == tmp_path  # the root itself, not the module layer
     for section in SECTIONS:
         assert (root / section).is_dir(), section
+    assert not (root / "synop" / "synop").exists()  # never nested
 
 
 def test_ensure_directories_is_idempotent_and_non_destructive(conn, tmp_path):
@@ -93,7 +98,8 @@ def test_env_override_still_wins_over_profile_and_default(conn, tmp_path):
         conn, env={"ARCA_BASE_DIR": str(tmp_path / "env")},
         default_root=str(tmp_path / "default"),
     )
-    assert got == tmp_path / "env" / "synop"
+    assert got == tmp_path / "env"
+    assert (got / "synop").is_dir()
 
 
 def test_profile_still_wins_over_the_default(conn, tmp_path):
@@ -150,5 +156,6 @@ def test_ensure_directories_uses_the_localized_documents_dir(tmp_path, conn):
     (config / "user-dirs.dirs").write_text(
         'XDG_DOCUMENTS_DIR="$HOME/Documentos"\n', encoding="utf-8")
     root = ensure_directories(conn, env={"HOME": str(tmp_path)})
-    assert root == tmp_path / "Documentos" / "OMS" / "synop"
+    assert root == tmp_path / "Documentos" / "OMS"
+    assert (root / "synop").is_dir()
     assert (root / "resumenes").is_dir()
