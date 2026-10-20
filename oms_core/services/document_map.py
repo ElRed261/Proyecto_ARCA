@@ -178,6 +178,42 @@ def is_group_value(value: object) -> bool:
     return bool(_GROUP_RE.match(text))
 
 
+def clean_cli_block(cli_key: str, block: object) -> dict:
+    """Keep only what the operator types in that CLI (rules R2/R3).
+
+    Rows keep ``viento_vel``/``pres_alti`` and the phenomenon booleans in
+    3074, and the observer initials plus phenomena in 4074. The 5074 document
+    is stored whole by the owner's decision. Empty strings and ``False``
+    booleans never survive.
+    """
+    if not isinstance(block, dict):
+        return {}
+    short = cli_key.replace("cli", "")
+    if short == "5074":
+        return dict(block)
+    allowed = OBSERVED_CLI3074 if short == "3074" else OBSERVED_CLI4074
+    rows = block.get("horas") if isinstance(block.get("horas"), dict) else block
+    cleaned: dict[str, dict] = {}
+    for row_key, row in rows.items():
+        if not isinstance(row, dict):
+            continue
+        item: dict = {}
+        for field in allowed:
+            value = row.get(field)
+            if field == "fenomenos":
+                if isinstance(value, dict):
+                    flags = {k: v for k, v in value.items() if v not in ("", None, False)}
+                    if flags:
+                        item[field] = flags
+            elif value not in ("", None):
+                item[field] = value
+        if item:
+            cleaned[str(row_key)] = item
+    if isinstance(block.get("horas"), dict):
+        return {"horas": cleaned} if cleaned else {}
+    return cleaned
+
+
 def form_key_for_synop(synop_name: str) -> str | None:
     return _SYNOP_TO_FORM.get(synop_name)
 
@@ -204,6 +240,7 @@ __all__ = [
     "OBSERVED_DATOS",
     "POLLUTED_9SP_LANES",
     "SYNOP_FIELDS",
+    "clean_cli_block",
     "datos_to_document",
     "doc_key_for",
     "document_to_datos",

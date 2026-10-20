@@ -156,3 +156,69 @@ def test_a_corrected_file_wins_over_the_original(fresh_db, tmp_path):
     day = doc_service.load_day_document(fresh_db, STATION, "2025-10-26")
     assert day.hour("06Z")["ts"] == "29.9"
     assert original.exists()
+
+
+# ------------------------------------------- CLI blocks: observed only (R2)
+
+
+def test_cli3074_keeps_only_the_typed_fields():
+    from oms_core.services import document_map as dm
+
+    block = {"horas": {"2": {
+        "viento_vel": "3.6", "pres_alti": "1012.3",
+        "pres_est": "1001.6", "pres_nmm": "1007.1", "tend_car": "2",
+        "temp_seco": "24.1", "hum_hr": "83", "hum_tvap": "25.0",
+        "viento_dir": "60", "visibilidad": "160", "tend_dif": "01.6",
+        "fenomenos": {"granizo": True, "trueno": False, "tiempo_presente": ""},
+    }}}
+    cleaned = dm.clean_cli_block("cli3074", block)
+    assert cleaned == {"horas": {"2": {
+        "viento_vel": "3.6", "pres_alti": "1012.3",
+        "fenomenos": {"granizo": True},
+    }}}
+
+
+def test_cli4074_keeps_the_initials_and_the_phenomena():
+    from oms_core.services import document_map as dm
+
+    block = {"2": {"observador": "YG", "temp_max": "30.1", "temp_min": "18.3",
+                   "lluvia_6h": "0.0", "estado_suelo": "1"}}
+    assert dm.clean_cli_block("cli4074", block) == {"2": {"observador": "YG"}}
+
+
+def test_cli5074_is_left_whole_by_owner_decision():
+    from oms_core.services import document_map as dm
+
+    block = {"daily": {"lluvia": "1.2"}, "iniciales_obs": "AC"}
+    assert dm.clean_cli_block("cli5074", block) == block
+
+
+def test_the_migration_writes_clean_cli_blocks():
+    document, _ = migration.build_v2_document(
+        {**LEGACY, "cli3074": {"2": {"viento_vel": "3.6", "hum_hr": "77",
+                                     "pres_est": "1"}}},
+        station=STATION, fecha="2025-10-26")
+    assert document["cli"]["3074"] == {"2": {"viento_vel": "3.6"}}
+
+
+def test_the_repair_pass_cleans_documents_already_migrated(fresh_db, tmp_path):
+    _write(tmp_path, "78486/2025/10/7848626102025.json", LEGACY)
+    migration.migrate_root(fresh_db, tmp_path, dry_run=False)
+    # simulate the first (verbatim) migration: put the dirty block back
+    import json as _json
+
+    from oms_core.db.repositories import summaries as _repo
+
+    text = _repo.get_summary_doc(fresh_db, STATION, 2025, 10, "diario", day=26)
+    document = _json.loads(text)
+    document["cli"]["3074"] = {"2": {"viento_vel": "3.6", "hum_hr": "77"}}
+    _repo.upsert_summary_doc(
+        fresh_db, station_id=STATION, year=2025, month=10, kind="diario",
+        data=_json.dumps(document), sha256="x" * 64, day=26)
+    fresh_db.commit()
+
+    assert migration.clean_stored_cli_blocks(fresh_db, dry_run=True)["changed"] == 1
+    assert migration.clean_stored_cli_blocks(fresh_db, dry_run=False)["changed"] == 1
+    cleaned = _json.loads(_repo.get_summary_doc(
+        fresh_db, STATION, 2025, 10, "diario", day=26))
+    assert cleaned["cli"]["3074"] == {"2": {"viento_vel": "3.6"}}

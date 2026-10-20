@@ -89,7 +89,9 @@ def build_v2_document(legacy: dict[str, Any], *, station: str, fecha: str) -> tu
     for key in cli_service.CLI_KEYS:
         block = legacy.get(key)
         if isinstance(block, dict) and block:
-            cli[key.replace("cli", "")] = block
+            cleaned = dm.clean_cli_block(key, block)
+            if cleaned:
+                cli[key.replace("cli", "")] = cleaned
 
     document = {
         "schema": 2,
@@ -176,9 +178,67 @@ def migrate_root(conn: sqlite3.Connection, root: str | Path, *,
     return report
 
 
+def clean_stored_cli_blocks(
+    conn: sqlite3.Connection, *, dry_run: bool = True, actor: str = "limpieza-cli"
+) -> dict[str, int]:
+    """Re-clean the CLI blocks of documents that were migrated verbatim.
+
+    The first migration copied the legacy CLI blocks as-is (they carried the
+    derived humidity trio, thousands of empty strings and ``false`` booleans).
+    This pass rewrites them to the observed-only shape.
+    """
+    changed = untouched = 0
+    rows = conn.execute(
+        "SELECT station_id, year, month, day, data FROM summary_logs"
+        " WHERE kind = 'diario'"
+    ).fetchall()
+    for station, year, month, day, text in rows:
+        try:
+            document = json.loads(text)
+        except ValueError:
+            continue
+        blocks = document.get("cli") if isinstance(document.get("cli"), dict) else {}
+        if not blocks:
+            untouched += 1
+            continue
+        cleaned = {}
+        for short, block in blocks.items():
+            nuevo = dm.clean_cli_block(short, block)
+            if nuevo:
+                cleaned[short] = nuevo
+        if cleaned == blocks:
+            untouched += 1
+            continue
+        changed += 1
+        if dry_run:
+            continue
+        document["cli"] = cleaned
+        body = json.dumps(document, ensure_ascii=False)
+        sha = synoptic_service._sha256_text(body)
+        conn.execute("SAVEPOINT clean_cli")
+        try:
+            tx = synoptic_service._NoCommitConnection(conn)
+            summaries_repo.upsert_summary_doc(
+                tx, station_id=station, year=year, month=month, kind="diario",
+                data=body, sha256=sha, day=day,
+            )
+            versions_service.record(
+                tx, station, year, month, day, actor=actor,
+                sha256_before=None, sha256_after=sha, summary="limpieza de bloques CLI",
+            )
+            conn.execute("RELEASE clean_cli")
+            conn.commit()
+        except Exception:
+            conn.execute("ROLLBACK TO clean_cli")
+            conn.execute("RELEASE clean_cli")
+            raise
+    return {"changed": changed, "untouched": untouched, "dry_run": int(dry_run)}
+
+
 __all__ = [
     "MigrationReport",
     "build_v2_document",
+    "clean_stored_cli_blocks",
     "migrate_file",
     "migrate_root",
 ]
