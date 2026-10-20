@@ -20,6 +20,7 @@ from __future__ import annotations
 import json
 import os
 import sqlite3
+import sys
 from pathlib import Path
 
 from oms_core.db.repositories import app_config
@@ -27,6 +28,16 @@ from oms_core.db.repositories.app_config import set as _kv_set
 
 #: Name of the env var override for tests/advanced installations.
 ENV_BASE_DIR = "ARCA_BASE_DIR"
+
+#: Env override for the per-user data directory (dev, CI, portable installs).
+ENV_DATA_DIR = "OMS_DATA_DIR"
+
+#: Identity used by platformdirs to build the per-OS data directory.
+APP_NAME = "oms"
+APP_AUTHOR = "NeoArca"
+
+#: File name of the SQLite database inside the data directory.
+DATABASE_NAME = "oms.db"
 
 #: app_config key where the serialised PathProfile lives.
 PATH_CONFIG_KEY = "path_config"
@@ -215,7 +226,9 @@ def set_path_profile(conn: sqlite3.Connection, profile: PathProfile) -> None:
 # --------------------------------------------------------------------------
 
 
-def _documents_dir(home: str, env: dict[str, str] | None = None) -> Path:
+def _documents_dir(
+    home: str, env: dict[str, str] | None = None, *, platform: str | None = None
+) -> Path:
     """The user's Documents folder, localized when the desktop says so.
 
     A Spanish desktop keeps it at ``~/Documentos`` and records that in
@@ -234,6 +247,18 @@ def _documents_dir(home: str, env: dict[str, str] | None = None) -> Path:
             encoding="utf-8", errors="replace").splitlines()
     except OSError:
         lines = []
+    plat = (platform or sys.platform).lower()
+    if plat.startswith("win"):
+        # Windows often redirects Documents into OneDrive; prefer the real one.
+        for key in ("OneDrive", "USERPROFILE"):
+            base = (env_map.get(key) or "").strip()
+            if not base:
+                continue
+            candidate = Path(base) / "Documents"
+            if candidate.is_dir():
+                return candidate
+        return Path(home) / "Documents"
+
     for line in lines:
         key, _, raw = line.partition("=")
         if key.strip() != "XDG_DOCUMENTS_DIR":
@@ -245,11 +270,44 @@ def _documents_dir(home: str, env: dict[str, str] | None = None) -> Path:
     return Path(home) / "Documents"
 
 
+def data_dir(env: dict[str, str] | None = None, *, platform: str | None = None) -> Path:
+    """Per-user data directory for the database — ``platformdirs`` decides.
+
+    Linux: ``$XDG_DATA_HOME/oms`` (``~/.local/share/oms``) · Windows:
+    ``%LOCALAPPDATA%\\NeoArca\\oms`` · macOS: ``~/Library/Application
+    Support/oms``. ``OMS_DATA_DIR`` overrides everything (development, CI or a
+    portable install), and ``platform`` is injectable so every branch has a
+    test on a single host.
+
+    The database must NOT live in Documents: a synced folder (Drive, OneDrive)
+    breaks SQLite's locking. The JSON tree is what goes there.
+    """
+    env_map = os.environ if env is None else env
+    override = (env_map.get(ENV_DATA_DIR) or "").strip()
+    if override:
+        return Path(os.path.expanduser(override))
+    plat = (platform or sys.platform).lower()
+    if plat.startswith("win"):
+        from platformdirs.windows import Windows as _platform
+    elif plat.startswith(("darwin", "mac")):
+        from platformdirs.macos import MacOS as _platform
+    else:
+        from platformdirs.unix import Unix as _platform
+    return Path(_platform(APP_NAME, APP_AUTHOR).user_data_dir)
+
+
+def database_path(
+    env: dict[str, str] | None = None, *, platform: str | None = None
+) -> Path:
+    """Where the application database lives on this machine."""
+    return data_dir(env, platform=platform) / DATABASE_NAME
+
+
 def default_documents_root(env: dict[str, str] | None = None) -> Path:
     """Platform default root: the localized Documents folder + ``OMS``."""
     env_map = os.environ if env is None else env
     home = env_map.get("HOME") or str(Path.home())
-    return _documents_dir(home, env_map) / "OMS"
+    return _documents_dir(home, env_map, platform=env_map.get("OMS_PLATFORM")) / "OMS"
 
 
 def section_dir(root: str | Path, section: str) -> Path:

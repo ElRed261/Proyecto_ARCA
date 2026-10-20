@@ -319,3 +319,36 @@ quedó en el respaldo para comparación manual.
 Estado final: **2.550 documentos** en la base (2.549 schema 2 + 1 legado
 previo), 2.551 versiones, **0 archivos rechazados** en el ensayo sobre el
 árbol completo.
+
+---
+
+## 10. Rutas por sistema operativo (A7)
+
+Dos carpetas distintas, y la razón de que no sean una:
+
+| Qué | Dónde | Por qué |
+|---|---|---|
+| **Base SQLite** | carpeta de datos del usuario (`platformdirs`) | SQLite con WAL **no puede vivir en una carpeta sincronizada**: los locks no funcionan sobre red y el archivo se corrompe |
+| **JSON** | `Documentos/OMS/…` | es el transporte: Drive lo sincroniza entre estaciones |
+
+### La base, por SO
+
+| SO | Ruta |
+|---|---|
+| Linux | `$XDG_DATA_HOME/oms` → `~/.local/share/oms/oms.db` |
+| Windows | `%LOCALAPPDATA%\NeoArca\oms\oms.db` |
+| macOS | `~/Library/Application Support/oms/oms.db` |
+
+**Override**: `OMS_DATA_DIR=<ruta>` gana sobre todo (desarrollo, CI, instalación
+portable). `oms_core.paths.database_path()` es la única fuente.
+
+### Los JSON, por SO
+
+| SO | Ruta |
+|---|---|
+| Linux | `$XDG_DOCUMENTS_DIR/OMS` → `~/Documentos/OMS` |
+| Windows | `%OneDrive%\Documents\OMS` si existe, si no `%USERPROFILE%\Documents\OMS` |
+| macOS | `~/Documents/OMS` |
+
+En Windows la carpeta Documentos suele estar **redirigida a OneDrive**, por eso
+se prueba primero; el árbol de JSON sí puede vivir ahí (es sólo archivos).

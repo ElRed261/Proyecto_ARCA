@@ -16,14 +16,9 @@ from pathlib import Path
 from PySide6.QtWidgets import QApplication, QLabel
 
 ROOT = Path(__file__).resolve().parent
-DEV_DIR = ROOT / "dev"
-DB_PATH = DEV_DIR / "neoarca-dev.db"
-
-DEV_EMAIL = "admin@arca.rd"
-DEV_PASSWORD = "ArcaDev123!"
-
 sys.path.insert(0, str(ROOT))
 
+from oms_core import paths as paths_mod
 from oms_core.db.connection import connect
 from oms_core.db.migrations import migrate
 from oms_core.db.repositories import users as users_repo
@@ -37,6 +32,14 @@ from oms_ui.startup import (
     try_restore_session,
 )
 from oms_ui.theme import apply_theme
+
+# The database lives in the per-user data directory (platformdirs). Export
+# OMS_DATA_DIR=<path> to point a dev run somewhere else.
+DB_PATH = paths_mod.database_path()
+DEV_DIR = DB_PATH.parent
+
+DEV_EMAIL = "admin@arca.rd"
+DEV_PASSWORD = "ArcaDev123!"
 
 
 def ensure_dev_user(conn) -> None:
@@ -59,7 +62,7 @@ def _center_on_screen(widget) -> None:
 
 
 def main() -> int:
-    DEV_DIR.mkdir(exist_ok=True)
+    DEV_DIR.mkdir(parents=True, exist_ok=True)
     conn = connect(DB_PATH)
     migrate(conn)
     ensure_dev_user(conn)
