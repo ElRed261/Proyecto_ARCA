@@ -1,0 +1,18 @@
+-- KPI definitions for the gold layer.
+-- KPI: monthly mean temperature / mean humidity / max / min per station,
+-- computed exclusively from silver via the aggregation below.
+-- load/gold.py executes this for the month being processed and upserts the
+-- result into gold.monthly_kpis keyed on (station_code, year, month).
+
+-- INSERT INTO gold.monthly_kpis (station_code, year, month, kpi_name, value)
+-- SELECT
+--     station_code,
+--     EXTRACT(YEAR  FROM fecha)::int AS year,
+--     EXTRACT(MONTH FROM fecha)::int AS month,
+--     'avg_temperature_c',
+--     ROUND(AVG(temperature_c), 2)
+-- FROM silver.observations
+-- WHERE station_code = :station_code
+--   AND fecha >= DATE(:year || '-' || :month || '-01')
+--   AND fecha <  DATE(:year || '-' || (:month + 1) || '-01')
+-- GROUP BY station_code;

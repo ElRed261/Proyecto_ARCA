@@ -1,0 +1,107 @@
+{
+  "meta": {
+    "estacion": "Estacion Central",
+    "fecha": "07052025"
+  },
+  "horarias": [
+    {
+      "hora": "06Z",
+      "datos": {
+        "p_est": NaN,
+        "p_nmm": NaN,
+        "rocio": NaN,
+        "t_vapor": NaN,
+        "hr": NaN,
+        "v_dir_deg": NaN,
+        "v_vel": NaN
+      }
+    },
+    {
+      "hora": "09Z",
+      "datos": {
+        "p_est": NaN,
+        "p_nmm": NaN,
+        "rocio": NaN,
+        "t_vapor": NaN,
+        "hr": NaN,
+        "v_dir_deg": NaN,
+        "v_vel": NaN
+      }
+    },
+    {
+      "hora": "12Z",
+      "datos": {
+        "p_est": NaN,
+        "p_nmm": NaN,
+        "rocio": NaN,
+        "t_vapor": NaN,
+        "hr": NaN,
+        "v_dir_deg": NaN,
+        "v_vel": NaN
+      }
+    },
+    {
+      "hora": "15Z",
+      "datos": {
+        "p_est": NaN,
+        "p_nmm": NaN,
+        "rocio": NaN,
+        "t_vapor": NaN,
+        "hr": NaN,
+        "v_dir_deg": NaN,
+        "v_vel": NaN
+      }
+    },
+    {
+      "hora": "18Z",
+      "datos": {
+        "p_est": NaN,
+        "p_nmm": NaN,
+        "rocio": NaN,
+        "t_vapor": NaN,
+        "hr": NaN,
+        "v_dir_deg": NaN,
+        "v_vel": NaN
+      }
+    },
+    {
+      "hora": "21Z",
+      "datos": {
+        "p_est": NaN,
+        "p_nmm": NaN,
+        "rocio": NaN,
+        "t_vapor": NaN,
+        "hr": NaN,
+        "v_dir_deg": NaN,
+        "v_vel": NaN
+      }
+    },
+    {
+      "hora": "00Z",
+      "datos": {
+        "p_est": NaN,
+        "p_nmm": NaN,
+        "rocio": NaN,
+        "t_vapor": NaN,
+        "hr": NaN,
+        "v_dir_deg": NaN,
+        "v_vel": NaN
+      }
+    },
+    {
+      "hora": "03Z",
+      "datos": {
+        "p_est": NaN,
+        "p_nmm": NaN,
+        "rocio": NaN,
+        "t_vapor": NaN,
+        "hr": NaN,
+        "v_dir_deg": NaN,
+        "v_vel": NaN
+      }
+    }
+  ],
+  "resumen_dia": {
+    "pp": null
+  }
+}

@@ -1,0 +1,557 @@
+================================================================================
+OPCIÓN 4 DETALLADA: VPS GRATUITO CON ORACLE CLOUD FREE TIER
+================================================================================
+Documento actualizado: 08/12/2025
+================================================================================
+
+RESUMEN EJECUTIVO
+================================================================================
+
+Oracle Cloud ofrece un VPS GRATIS PARA SIEMPRE (Always Free) que incluye:
+- 4 CPUs ARM (Ampere A1)
+- 24 GB de RAM
+- 200 GB de almacenamiento
+- 10 TB de transferencia mensual
+- IP pública fija
+
+Esto es SUFICIENTE para correr tu backend FastAPI + PostgreSQL central
+donde los correctores acceden a las observaciones sincronizadas.
+
+================================================================================
+ARQUITECTURA PROPUESTA
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        ESTACIONES METEOROLÓGICAS                            │
+│                          (Sin internet estable)                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐    │
+│  │  Estación 1  │  │  Estación 2  │  │  Estación 3  │  │  Estación N  │    │
+│  │   (78484)    │  │   (78486)    │  │   (MDCY)     │  │     ...      │    │
+│  │              │  │              │  │              │  │              │    │
+│  │ ┌──────────┐ │  │ ┌──────────┐ │  │ ┌──────────┐ │  │ ┌──────────┐ │    │
+│  │ │  SQLite  │ │  │ │  SQLite  │ │  │ │  SQLite  │ │  │ │  SQLite  │ │    │
+│  │ │  Local   │ │  │ │  Local   │ │  │ │  Local   │ │  │ │  Local   │ │    │
+│  │ │+ Electron│ │  │ │+ Electron│ │  │ │+ Electron│ │  │ │+ Electron│ │    │
+│  │ └────┬─────┘ │  │ └────┬─────┘ │  │ └────┬─────┘ │  │ └────┬─────┘ │    │
+│  └──────┼───────┘  └──────┼───────┘  └──────┼───────┘  └──────┼───────┘    │
+│         │                 │                 │                 │            │
+│         └─────────────────┴────────┬────────┴─────────────────┘            │
+│                                    │                                        │
+│                          SYNC CUANDO HAY INTERNET                           │
+│                          (Manual o automático)                              │
+│                                    │                                        │
+└────────────────────────────────────┼────────────────────────────────────────┘
+                                     │
+                                     ▼
+              ┌─────────────────────────────────────────┐
+              │         INTERNET (Cuando disponible)     │
+              └─────────────────────┬───────────────────┘
+                                    │
+                                    ▼
+┌───────────────────────────────────────────────────────────────────────────────┐
+│                     ORACLE CLOUD - VPS GRATUITO                               │
+│                     (IP Pública: xxx.xxx.xxx.xxx)                             │
+├───────────────────────────────────────────────────────────────────────────────┤
+│                                                                               │
+│  ┌─────────────────────────────────────────────────────────────────────────┐  │
+│  │                        Ubuntu 22.04 LTS                                 │  │
+│  │                                                                         │  │
+│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐    │  │
+│  │  │   Nginx     │  │  FastAPI    │  │ PostgreSQL  │  │   pgAdmin   │    │  │
+│  │  │  (Proxy)    │  │  (Backend)  │  │  (Central)  │  │  (Opcional) │    │  │
+│  │  │  :443/:80   │  │   :8000     │  │   :5432     │  │   :5050     │    │  │
+│  │  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘    │  │
+│  │                                                                         │  │
+│  │  ┌───────────────────────────────────────────────────────────────────┐  │  │
+│  │  │                    ALMACENAMIENTO (200 GB)                        │  │  │
+│  │  │  /home/arca/data/                                                 │  │  │
+│  │  │  ├── 78484/2025/12/7848406122025.json                            │  │  │
+│  │  │  ├── 78486/2025/12/7848608122025.json                            │  │  │
+│  │  │  └── .backups/...                                                │  │  │
+│  │  └───────────────────────────────────────────────────────────────────┘  │  │
+│  │                                                                         │  │
+│  └─────────────────────────────────────────────────────────────────────────┘  │
+│                                                                               │
+└───────────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌───────────────────────────────────────────────────────────────────────────────┐
+│                           CORRECTORES                                         │
+│                     (Oficina central con internet)                            │
+├───────────────────────────────────────────────────────────────────────────────┤
+│                                                                               │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐                        │
+│  │  Corrector 1 │  │  Corrector 2 │  │  Supervisor  │                        │
+│  │              │  │              │  │              │                        │
+│  │   Accede a   │  │   Accede a   │  │   Accede a   │                        │
+│  │  http://IP   │  │  http://IP   │  │  http://IP   │                        │
+│  │  :8000/docs  │  │  :8000/docs  │  │  /admin      │                        │
+│  └──────────────┘  └──────────────┘  └──────────────┘                        │
+│                                                                               │
+└───────────────────────────────────────────────────────────────────────────────┘
+
+
+================================================================================
+ESPECIFICACIONES DE ORACLE CLOUD FREE TIER (SIEMPRE GRATIS)
+================================================================================
+
+RECURSOS INCLUIDOS (sin costo, sin límite de tiempo):
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Recurso                    │ Cantidad              │ Notas                  │
+├────────────────────────────┼───────────────────────┼────────────────────────┤
+│ CPUs (ARM Ampere A1)       │ 4 OCPUs               │ Equivale a ~4 cores    │
+│ Memoria RAM                │ 24 GB                 │ Más que suficiente     │
+│ Almacenamiento SSD         │ 200 GB total          │ Para OS + datos        │
+│ Transferencia saliente     │ 10 TB/mes             │ Muy generoso           │
+│ IPs públicas               │ 1 incluida            │ Fija, no dinámica      │
+│ Virtual Networks (VCN)     │ 2                     │ Para segmentar red     │
+│ Load Balancer              │ 1 flexible            │ Opcional               │
+│ AMD VMs adicionales        │ 2x (1 OCPU, 1GB RAM)  │ Alternativa a ARM      │
+│ Object Storage             │ 10 GB                 │ Para backups extra     │
+│ Autonomous Database        │ 2 instancias          │ Alternativa a Postgres │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+COMPARACIÓN CON TUS NECESIDADES:
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Tu necesidad                        │ Oracle Free Tier proporciona         │
+├─────────────────────────────────────┼──────────────────────────────────────┤
+│ Backend FastAPI                     │ ✓ 4 CPUs, 24GB RAM (sobrado)         │
+│ PostgreSQL central                  │ ✓ 200GB almacenamiento               │
+│ IP pública sin exponer la tuya      │ ✓ IP fija incluida                   │
+│ Transferencia de datos              │ ✓ 10 TB/mes (más que suficiente)     │
+│ Sin límite de tiempo                │ ✓ GRATIS PARA SIEMPRE                │
+│ SSL/HTTPS                           │ ✓ Let's Encrypt gratis               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+
+================================================================================
+PASO A PASO: CREAR VPS EN ORACLE CLOUD
+================================================================================
+
+PASO 1: CREAR CUENTA ORACLE CLOUD
+================================================================================
+
+1. Ve a: https://www.oracle.com/cloud/free/
+
+2. Clic en "Start for free"
+
+3. Completa el registro:
+   - Email válido
+   - Nombre completo
+   - País: Selecciona tu país
+   - Home Region: IMPORTANTE - Elige una región con disponibilidad ARM
+     Recomendadas: 
+       * US East (Ashburn)
+       * Germany Central (Frankfurt)
+       * UK South (London)
+       * Brazil East (Sao Paulo) ← Si estás en Latinoamérica
+   
+4. Verificación de identidad:
+   - Número de teléfono
+   - Tarjeta de crédito (NO TE COBRAN, solo verifican)
+   
+5. Espera confirmación por email (puede tardar 1-24 horas)
+
+NOTA: Oracle NO cobra si usas recursos "Always Free". La tarjeta es solo 
+para verificar que eres persona real.
+
+
+PASO 2: CREAR INSTANCIA VM (VPS)
+================================================================================
+
+1. Inicia sesión en: https://cloud.oracle.com
+
+2. Menú hamburguesa (☰) → Compute → Instances
+
+3. Clic en "Create Instance"
+
+4. Configurar:
+
+   a) Name: ARCA-Server
+   
+   b) Placement: 
+      - Availability Domain: AD-1 (o el disponible)
+   
+   c) Image and Shape:
+      - Clic en "Edit" → "Change Shape"
+      - Selecciona: "Ampere" (arquitectura ARM)
+      - Shape: VM.Standard.A1.Flex
+      - OCPUs: 4 (máximo gratis)
+      - Memory: 24 GB (máximo gratis)
+      - SO: Ubuntu 22.04 (Canonical)
+   
+   d) Networking:
+      - VCN: Crear nueva o usar existente
+      - Subnet: Public Subnet
+      - Marcar: "Assign a public IPv4 address"
+   
+   e) SSH Keys:
+      - Opción A: "Generate a key pair for me" (descarga las keys!)
+      - Opción B: "Paste public keys" (si ya tienes SSH key)
+      
+   f) Boot Volume:
+      - Size: 100 GB (o hasta 200 GB)
+      - Encryption: Por defecto
+
+5. Clic en "Create"
+
+6. Espera 2-5 minutos hasta que el estado sea "RUNNING"
+
+7. Anota la IP pública (ej: 129.151.xxx.xxx)
+
+POSIBLE ERROR: "Out of host capacity"
+Si aparece este error, significa que no hay capacidad ARM en esa región.
+Soluciones:
+- Intenta en otra Availability Domain (AD-2, AD-3)
+- Intenta en horario de baja demanda (madrugada UTC)
+- Prueba otra región
+- Usa scripts de reintento automático (buscar "OCI ARM retry script")
+
+
+PASO 3: ABRIR PUERTOS EN EL FIREWALL DE ORACLE
+================================================================================
+
+Por defecto, Oracle bloquea todo excepto SSH (22).
+Necesitas abrir: 80 (HTTP), 443 (HTTPS), 8000 (FastAPI)
+
+1. Menú (☰) → Networking → Virtual Cloud Networks
+
+2. Clic en tu VCN
+
+3. Clic en el Subnet público
+
+4. Clic en la Security List (ej: "Default Security List...")
+
+5. "Add Ingress Rules":
+
+   Regla 1 - HTTP:
+   - Source CIDR: 0.0.0.0/0
+   - IP Protocol: TCP
+   - Destination Port: 80
+   
+   Regla 2 - HTTPS:
+   - Source CIDR: 0.0.0.0/0
+   - IP Protocol: TCP
+   - Destination Port: 443
+
+   Regla 3 - FastAPI:
+   - Source CIDR: 0.0.0.0/0
+   - IP Protocol: TCP
+   - Destination Port: 8000
+
+6. Guardar cambios
+
+
+PASO 4: CONECTARSE AL VPS
+================================================================================
+
+Desde tu terminal local:
+
+# Si descargaste la key de Oracle:
+chmod 400 ~/Downloads/ssh-key-*.key
+ssh -i ~/Downloads/ssh-key-*.key ubuntu@TU_IP_PUBLICA
+
+# Si usaste tu propia key:
+ssh ubuntu@TU_IP_PUBLICA
+
+Una vez conectado, actualiza el sistema:
+
+sudo apt update && sudo apt upgrade -y
+
+
+PASO 5: INSTALAR SOFTWARE EN EL VPS
+================================================================================
+
+# 1. Instalar dependencias básicas
+sudo apt install -y python3-pip python3-venv git nginx certbot python3-certbot-nginx
+
+# 2. Instalar PostgreSQL
+sudo apt install -y postgresql postgresql-contrib
+sudo systemctl enable postgresql
+sudo systemctl start postgresql
+
+# 3. Configurar PostgreSQL
+sudo -u postgres psql
+CREATE USER arca WITH PASSWORD 'tu_password_seguro';
+CREATE DATABASE arca_db OWNER arca;
+GRANT ALL PRIVILEGES ON DATABASE arca_db TO arca;
+\q
+
+# 4. Permitir conexiones locales en PostgreSQL
+sudo nano /etc/postgresql/14/main/pg_hba.conf
+# Añadir línea:
+# local   all   arca   md5
+
+sudo systemctl restart postgresql
+
+# 5. Clonar tu proyecto
+cd /home/ubuntu
+git clone https://github.com/TU_USUARIO/Proyecto_ARCA.git
+cd Proyecto_ARCA
+
+# 6. Crear entorno virtual y dependencias
+python3 -m venv venv
+source venv/bin/activate
+pip install -r backend/requirements.txt
+
+# 7. Configurar variables de entorno
+cp backend/.env.example backend/.env
+nano backend/.env
+# Editar DATABASE_URL con los datos de PostgreSQL local
+
+# 8. Iniciar backend (para probar)
+cd backend
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+
+PASO 6: CONFIGURAR FIREWALL DE UBUNTU (iptables)
+================================================================================
+
+Oracle tiene su propio firewall, pero Ubuntu también tiene iptables.
+Necesitas abrir los puertos en ambos:
+
+sudo iptables -I INPUT 6 -m state --state NEW -p tcp --dport 80 -j ACCEPT
+sudo iptables -I INPUT 6 -m state --state NEW -p tcp --dport 443 -j ACCEPT
+sudo iptables -I INPUT 6 -m state --state NEW -p tcp --dport 8000 -j ACCEPT
+
+# Guardar reglas permanentemente
+sudo netfilter-persistent save
+
+
+PASO 7: CONFIGURAR NGINX COMO PROXY INVERSO
+================================================================================
+
+sudo nano /etc/nginx/sites-available/arca
+
+# Contenido:
+server {
+    listen 80;
+    server_name TU_IP_PUBLICA;  # O tu dominio si tienes
+
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+
+# Activar configuración
+sudo ln -s /etc/nginx/sites-available/arca /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl restart nginx
+
+
+PASO 8: CREAR SERVICIO SYSTEMD (PARA QUE INICIE AUTOMÁTICO)
+================================================================================
+
+sudo nano /etc/systemd/system/arca.service
+
+# Contenido:
+[Unit]
+Description=Proyecto ARCA Backend
+After=network.target postgresql.service
+
+[Service]
+User=ubuntu
+WorkingDirectory=/home/ubuntu/Proyecto_ARCA/backend
+Environment="PATH=/home/ubuntu/Proyecto_ARCA/venv/bin"
+ExecStart=/home/ubuntu/Proyecto_ARCA/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+
+# Activar servicio
+sudo systemctl daemon-reload
+sudo systemctl enable arca
+sudo systemctl start arca
+sudo systemctl status arca
+
+
+================================================================================
+MODIFICACIONES AL PROYECTO ARCA
+================================================================================
+
+CAMBIO 1: MIGRAR DE PostgreSQL A SQLite (LOCAL EN ESTACIONES)
+================================================================================
+
+Archivo: backend/app/core/database.py
+
+# Versión LOCAL (para estaciones sin internet):
+import os
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, declarative_base
+
+# Detectar si estamos en modo local o servidor
+IS_LOCAL = os.getenv("ARCA_MODE", "local") == "local"
+
+if IS_LOCAL:
+    # SQLite local para estaciones
+    DATABASE_URL = "sqlite:///./arca_local.db"
+    engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+else:
+    # PostgreSQL en servidor central
+    DATABASE_URL = os.getenv("DATABASE_URL")
+    engine = create_engine(DATABASE_URL)
+
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
+
+
+CAMBIO 2: CREAR SYNC_QUEUE PARA SINCRONIZACIÓN
+================================================================================
+
+Archivo: backend/app/modules/synoptic/sync_models.py
+
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text
+from app.core.database import Base
+from datetime import datetime
+
+class SyncQueue(Base):
+    __tablename__ = "sync_queue"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    station_code = Column(String(10), nullable=False)
+    fecha = Column(String(10), nullable=False)  # YYYY-MM-DD
+    json_path = Column(String(255), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    synced = Column(Boolean, default=False)
+    synced_at = Column(DateTime, nullable=True)
+    sync_error = Column(Text, nullable=True)
+
+
+CAMBIO 3: ENDPOINT DE SINCRONIZACIÓN EN SERVIDOR CENTRAL
+================================================================================
+
+Archivo: backend/app/modules/synoptic/router.py (añadir)
+
+@router.post("/sync")
+def sync_observation(
+    station_code: str,
+    fecha: str,
+    json_data: dict,
+    current_user = Depends(get_current_active_user)
+):
+    """
+    Recibe observaciones de estaciones locales y las guarda en el servidor central.
+    """
+    # Guardar en PostgreSQL central y/o como JSON
+    # ... lógica de guardado ...
+    return {"success": True, "message": "Observación sincronizada"}
+
+
+CAMBIO 4: SCRIPT DE SINCRONIZACIÓN EN ESTACIÓN LOCAL
+================================================================================
+
+Archivo: sync_to_server.py (nuevo, en raíz de Proyecto_ARCA)
+
+#!/usr/bin/env python3
+"""
+Script para sincronizar observaciones locales al servidor central.
+Ejecutar manualmente o via cron cuando hay internet.
+"""
+import os
+import json
+import requests
+from pathlib import Path
+
+SERVER_URL = "http://TU_IP_PUBLICA:8000/api/synoptic/sync"
+TOKEN = "TU_TOKEN_JWT"  # O usar login primero
+DATA_DIR = Path("backend/app/modules/synoptic/data")
+
+def sync_pending():
+    """Sincroniza todos los JSON no sincronizados."""
+    headers = {"Authorization": f"Bearer {TOKEN}"}
+    
+    for json_file in DATA_DIR.rglob("*.json"):
+        # Leer JSON local
+        with open(json_file, "r") as f:
+            data = json.load(f)
+        
+        # Extraer info
+        station_code = data["meta"]["estacion"]
+        fecha = data["meta"]["fecha"]
+        
+        # Enviar al servidor
+        try:
+            response = requests.post(SERVER_URL, json={
+                "station_code": station_code,
+                "fecha": fecha,
+                "json_data": data
+            }, headers=headers, timeout=30)
+            
+            if response.status_code == 200:
+                print(f"✓ Sincronizado: {json_file.name}")
+            else:
+                print(f"✗ Error {response.status_code}: {json_file.name}")
+        except requests.exceptions.RequestException as e:
+            print(f"✗ Sin conexión: {e}")
+            break
+
+if __name__ == "__main__":
+    sync_pending()
+
+
+================================================================================
+FLUJO DE TRABAJO FINAL
+================================================================================
+
+1. OBSERVADOR EN ESTACIÓN (Sin internet):
+   - Abre Electron con SQLite local
+   - Ingresa observaciones normalmente
+   - Los JSON se guardan en data/{station}/...
+   - Todo funciona offline
+
+2. CUANDO HAY INTERNET:
+   - Ejecuta: python sync_to_server.py
+   - O configura cron para ejecutar automáticamente
+   - Los JSON se envían al servidor Oracle
+
+3. CORRECTOR EN OFICINA CENTRAL:
+   - Accede a http://TU_IP_ORACLE:8000/docs
+   - Ve todas las observaciones sincronizadas
+   - Puede corregir y marcar como revisadas
+
+4. SUPERVISOR:
+   - Accede al panel de admin
+   - Ve estadísticas de todas las estaciones
+   - Genera reportes mensuales
+
+
+================================================================================
+COSTOS Y LIMITACIONES
+================================================================================
+
+COSTOS: $0 (CERO)
+- Oracle Cloud Always Free no tiene fecha de expiración
+- No te cobran mientras uses recursos "Always Free"
+- La tarjeta de crédito es solo para verificación
+
+LIMITACIONES A CONSIDERAR:
+1. Disponibilidad ARM: A veces hay que esperar por capacidad
+2. "Out of Host Capacity": Puede requerir varios intentos
+3. Requiere tarjeta de crédito para verificación (no cobran)
+4. Soporte limitado en tier gratuito (solo documentación)
+
+ALTERNATIVAS SI ORACLE NO FUNCIONA:
+1. Fly.io: Invoices menores a $5 se cancelan
+2. Render.com: Web service gratis (se duerme tras 15 min inactividad)
+3. Cloudflare Workers + D1: SQLite serverless, muy generoso gratis
+
+
+================================================================================
+PRÓXIMOS PASOS
+================================================================================
+
+1. ¿Quieres que implemente la migración a SQLite local?
+2. ¿Quieres que configure el script de sincronización?
+3. ¿Necesitas ayuda para crear la cuenta en Oracle Cloud?
+4. ¿Prefieres explorar alguna alternativa (Fly.io, Cloudflare)?
+
+Dime por dónde quieres empezar y lo implementamos paso a paso.

@@ -1,0 +1,53 @@
+version: 2
+# policy pines: tras la limpieza de 103 ramas dependabot y 152 PRs abiertos
+# (acumulados por bumps semanales nunca cerrados), el mantenimimiento pasa a
+# mensual + updates agrupados: menos PRs, más reviewables.
+updates:
+  # Rust dependencies
+  - package-ecosystem: "cargo"
+    directory: "/frontend/src-tauri"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 5
+    delete-branch-on-close: true
+    groups:
+      cargo-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
+    labels:
+      - "dependencies"
+      - "rust"
+    commit-message:
+      prefix: "build(cargo)"
+
+  # npm dependencies
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 5
+    delete-branch-on-close: true
+    groups:
+      npm-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
+    labels:
+      - "dependencies"
+      - "frontend"
+    commit-message:
+      prefix: "build(npm)"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 3
+    delete-branch-on-close: true
+    labels:
+      - "dependencies"
+      - "ci"
+    commit-message:
+      prefix: "ci(deps)"

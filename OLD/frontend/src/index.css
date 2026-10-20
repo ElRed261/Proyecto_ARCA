@@ -1,0 +1,219 @@
+@import "tailwindcss";
+
+/* Plus Jakarta Sans — embebida (offline-first: sin CDNs en runtime) */
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./assets/fonts/plus-jakarta-sans-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('./assets/fonts/plus-jakarta-sans-500.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('./assets/fonts/plus-jakarta-sans-600.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('./assets/fonts/plus-jakarta-sans-700.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url('./assets/fonts/plus-jakarta-sans-800.woff2') format('woff2');
+}
+
+@layer base {
+  /* Capa de controles nativos de app de escritorio ARCA:
+     unifica lo que cada OS/browser pinta distinto (selects, dates,
+     checkboxes, focus rings) sin tocar las clases de Tailwind de las páginas. */
+  :root {
+    color-scheme: light;
+    --arca-ring: #3b82f6;
+    --arca-text: #1e293b;
+  }
+
+  input,
+  select,
+  textarea,
+  button {
+    font-family: inherit;
+  }
+
+  /* SELECT: una sola flecha propia en toda la app (no la nativa del OS) */
+  select {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.65rem center;
+    padding-right: 2.25rem !important;
+    cursor: pointer;
+  }
+  select:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+
+  /* DATE: indicador de calendario teñido + sin inner-spin del OS */
+  input[type='date'] {
+    color-scheme: light;
+  }
+  input[type='date']::-webkit-calendar-picker-indicator {
+    opacity: 0.65;
+    cursor: pointer;
+    padding: 2px;
+    border-radius: 6px;
+  }
+  input[type='date']::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+    background: #f1f5f8;
+  }
+  input[type='number']::-webkit-inner-spin-button,
+  input[type='number']::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type='number'] {
+    appearance: textfield;
+    -moz-appearance: textfield;
+  }
+
+  /* CHECKBOX: tamaño táctil + color de marca */
+  input[type='checkbox'] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    min-width: 18px;
+    flex: none;
+    border: 1.5px solid #94a3b8;
+    border-radius: 6px;
+    background: #fff;
+    display: inline-grid;
+    place-content: center;
+    cursor: pointer;
+    vertical-align: middle;
+  }
+  input[type='checkbox']::before {
+    content: '';
+    width: 10px;
+    height: 10px;
+    transform: scale(0);
+    transition: transform 120ms ease-in-out;
+    clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+    background: #fff;
+  }
+  input[type='checkbox']:checked {
+    background: #2563eb;
+    border-color: #2563eb;
+  }
+  input[type='checkbox']:checked::before {
+    transform: scale(1);
+  }
+  input[type='checkbox']:focus-visible {
+    outline: 2px solid var(--arca-ring);
+    outline-offset: 2px;
+  }
+
+  /* FOCUS: anillo consistente solo cuando la página no define el suyo */
+  input:not([class*='focus:']):focus-visible,
+  select:not([class*='focus:']):focus-visible,
+  textarea:not([class*='focus:']):focus-visible {
+    outline: 2px solid var(--arca-ring);
+    outline-offset: 1px;
+  }
+
+  ::selection {
+    background: #bfdbfe;
+    color: #1e3a8a;
+  }
+
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+@layer base {
+  html {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* Estilos de Scrollbar Globales Premium */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+/* Scrollbar para tablas con scroll horizontal */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 8px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 8px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Estilos de impresión para reportes de auditoría */
+@media print {
+  body {
+    background-color: white !important;
+    color: black !important;
+    font-size: 12px !important;
+  }
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  .print\:hidden,
+  button,
+  select,
+  input[type="text"]:not(.font-mono),
+  form {
+    display: none !important;
+  }
+  .max-w-7xl {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+}
