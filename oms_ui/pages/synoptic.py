@@ -1247,10 +1247,21 @@ class SynopticPage(QWidget):
             self._cli_views[module_key] = view
             self._stack.addWidget(view)
         elif (view.station, view.fecha) != (self.station_id, self.fecha_iso):
+            # the cached view still holds the other day's pending autosave:
+            # flush it BEFORE the context moves, or the edit lands in the
+            # wrong day (or nowhere) — the exact 5074 data-loss the owner hit
+            self._flush_cli_views()
             view.station = self.station_id
             view.fecha = self.fecha_iso
             view.load_data()  # context moved: reload the stored sheet
         self._stack.setCurrentWidget(view)
+
+    def _flush_cli_views(self) -> None:
+        """Write every pending CLI autosave before the day/station changes."""
+        for view in getattr(self, "_cli_views", {}).values():
+            flush = getattr(view, "flush_pending", None)
+            if callable(flush):
+                flush()
 
     def _make_cli_view(self, module_key: str) -> QWidget:
         from oms_ui.pages import cli3074, cli4074, cli5074
@@ -1288,6 +1299,7 @@ class SynopticPage(QWidget):
           station, date, correction and remembered observer;
         - keeps the active hour between days; invalid drafts never revive.
         """
+        self._flush_cli_views()  # pending CLI edits belong to THIS day
         station = self.station_id
         fecha = self.fecha_iso
         if not station or not fecha:
@@ -1615,6 +1627,7 @@ class SynopticPage(QWidget):
         self._schedule_draft_autosave()
 
     def _on_station_changed(self) -> None:
+        self._flush_cli_views()  # the cached CLI views belong to the old one
         station = self._stations.get(self.station_id or "")
         ch = "" if station is None else str(station.ch)
         self.correc_alt_edit.setText(ch)
@@ -1641,6 +1654,7 @@ class SynopticPage(QWidget):
         """Read a day from the database into the form, without any side effect."""
         from oms_core.services import document as document_service
 
+        self._flush_cli_views()  # the CLI views still point at the old day
         self._loading_day = True
         try:
             day_doc = document_service.load_day_document(
@@ -2021,6 +2035,7 @@ class SynopticPage(QWidget):
     def _flush_draft(self) -> None:
         """Debounced background autosave: silent like the CLI saves — a
         timer that fires after the DB went away must never surface."""
+        self._flush_cli_views()  # pending CLI edits belong to THIS day
         station = self.station_id
         fecha = self.fecha_iso
         if not station or not fecha:

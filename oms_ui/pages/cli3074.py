@@ -653,6 +653,19 @@ class Cli3074View(QWidget):
                 )
                 self.set_row(row, data)
 
+    def flush_pending(self) -> None:
+        """Write whatever is still waiting on the autosave debounce.
+
+        The CLI views are cached across days (``SynopticPage._cli_views``), so
+        a context change reloads the same widgets: an edit typed 699 ms ago
+        would be written against the NEW day or silently dropped. Every
+        context change therefore flushes first.
+        """
+        timer = getattr(self, "_autosave_timer", None)
+        if timer is not None and timer.isActive():
+            timer.stop()
+            self.save_data()
+
     def save_data(self) -> None:
         """Transactional save via the service (autosave path, no button)."""
         try:
