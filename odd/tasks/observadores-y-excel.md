@@ -49,12 +49,12 @@ S7. «Si el Excel trae un día que ya existe en la base» → nunca sobrescribe:
 
 ## Tasks
 
-- [ ] T1 (S1) `oms_ui/pages/cli4074.py`: `ZERO_PLACEHOLDER_ROWS` sin 15 ni 16 · tests
-- [ ] T2 (S3) `oms_ui/observation_picker.py`: días ordenados numéricamente · tests
-- [ ] T3 (S4) `oms_ui/pages/synoptic.py`: el nombre del observador se pinta por hora · tests
-- [ ] T4 (S5) gate `iX ∈ {1,4,7}` en `oms_calc` + campo en `7` apagado conservando lo guardado · tests Rust/Python
-- [ ] T5 (S6) campo OBS por hora en 3074, uno solo en 5074, y carga/guardado en el JSON · tests
-- [ ] T6 (S2/S7) `oms_core/services/excel_import.py` (port de `excel_to_json.py` al schema 2) + botón en el selector + confirmación de reemplazo · tests
+- [x] T1 (S1) `oms_ui/pages/cli4074.py`: `ZERO_PLACEHOLDER_ROWS` sin 15 ni 16 · tests
+- [x] T2 (S3) `oms_ui/observation_picker.py`: días ordenados numéricamente · tests
+- [x] T3 (S4) `oms_ui/pages/synoptic.py`: el nombre del observador se pinta por hora · tests
+- [x] T4 (S5) gate `iX ∈ {1,4,7}` en `oms_calc` + campo en `7` apagado conservando lo guardado · tests Rust/Python
+- [x] T5 (S6) campo OBS por hora en 3074, uno solo en 5074, y carga/guardado en el JSON · tests
+- [x] T6 (S2/S7) `oms_core/services/excel_import.py` (port de `excel_to_json.py` al schema 2) + botón en el selector + confirmación de reemplazo · tests
 
 ## Log
 
@@ -85,3 +85,12 @@ Incluido · 2 Dotada de personal Omitido (ningún fenómeno significativo) ·
 4677 y 4561 · 5 Automática Omitido · 6 Automática Omitido · 7 Automática
 Incluido, tablas 4680 y 4531». El código tenía `matches!(ix, "1" | "4")`:
 faltaba el 7.
+
+L4 (implementación): T1-T4 en `3b8f15b`, T5 en `9b73acf`, T6 con el port en
+`oms_core/services/excel_import.py` (mapas de celdas y decodificadores
+verbatim del original; el destino son claves de formulario tomadas de
+`document_map`, nunca una segunda tabla). El libro se abre con
+`keep_vba=True` para `.xlsm` y **jamás se escribe**: las macros quedan
+intactas. Un día existente pide confirmación antes de reemplazarse (S7) y el
+libro roto se informa con el mensaje del parser. 21 tests con libros
+sintéticos construidos por openpyxl.

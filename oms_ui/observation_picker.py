@@ -20,10 +20,12 @@ from PySide6.QtCore import QSize, Qt
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QDialog,
+    QFileDialog,
     QHBoxLayout,
     QLabel,
     QListWidget,
     QListWidgetItem,
+    QMessageBox,
     QPushButton,
     QTreeWidget,
     QTreeWidgetItem,
@@ -84,6 +86,7 @@ class ObservationPickerDialog(QDialog):
         self.setMinimumSize(760, 520)
         self.setStyleSheet("QDialog { background-color: #f8fafc; }")
 
+        self._conn = conn
         self._days = self._load_days(conn)
         self._stations = [s for s in stations_repo.list_stations(conn)]
         self.selected_station: str | None = None
@@ -246,6 +249,20 @@ class ObservationPickerDialog(QDialog):
         self.total_label = QLabel("")
         self.total_label.setStyleSheet(f"color: {_FAINT}; font-size: 12px;")
         footer.addWidget(self.total_label, 1)
+        self.import_btn = QPushButton("Importar Excel")
+        self.import_btn.setMinimumHeight(32)
+        self.import_btn.setIcon(lucide_icon("upload", _INK, 15))
+        self.import_btn.setIconSize(QSize(15, 15))
+        self.import_btn.setToolTip(
+            "Leer una planilla .xlsm/.xlsx y cargar ese día de observación"
+        )
+        self.import_btn.setStyleSheet(
+            f"QPushButton {{ background: #ffffff; color: {_INK};"
+            f"border: 1px solid {_LINE}; border-radius: 8px;"
+            "padding: 6px 14px; font-weight: 600; }"
+        )
+        self.import_btn.clicked.connect(self._on_import_clicked)
+        footer.addWidget(self.import_btn, 0)
         self.cancel_btn = QPushButton("Cancelar")
         self.cancel_btn.setMinimumHeight(32)
         self.cancel_btn.clicked.connect(self.reject)
@@ -337,6 +354,87 @@ class ObservationPickerDialog(QDialog):
         data = item.data(0, Qt.ItemDataRole.UserRole)
         if data and data.get("fecha"):
             self._accept_selection()
+
+    # ------------------------------------------------ Excel (.xlsm) import
+
+    def _on_import_clicked(self) -> None:
+        path, _filter = QFileDialog.getOpenFileName(
+            self,
+            "Importar planilla de Excel",
+            "",
+            "Planillas de Excel (*.xlsm *.xlsx)",
+        )
+        if path:
+            self._import_from_path(path)
+
+    def _import_from_path(self, path: str) -> bool:
+        """Read one workbook and store its day; asks before replacing.
+
+        The owner's rule: an existing day is NEVER overwritten silently.
+        """
+        from oms_core.services import cli as cli_service
+        from oms_core.services import excel_import
+        from oms_core.services import synoptic as synoptic_service
+        from oms_core.services.document import day_document_from_stored
+
+        try:
+            document = excel_import.parse_excel(path, station=self._focus)
+        except (ValueError, OSError) as exc:
+            QMessageBox.warning(
+                self, "No se pudo leer la planilla", str(exc)
+            )
+            return False
+
+        estacion = str(document["meta"]["estacion"])
+        fecha = str(document["meta"]["fecha"])
+        if self._day_has_data(estacion, fecha):
+            answer = QMessageBox.question(
+                self,
+                "Ese día ya existe",
+                f"La estación {estacion} ya tiene observación del {fecha}.\n"
+                "¿Reemplazar lo guardado por la planilla?",
+                QMessageBox.StandardButton.Yes
+                | QMessageBox.StandardButton.Cancel,
+                QMessageBox.StandardButton.Cancel,
+            )
+            if answer != QMessageBox.StandardButton.Yes:
+                return False
+
+        day = day_document_from_stored(document, estacion, fecha)
+        for hora, hour_data in day.horas.items():
+            synoptic_service.save_hour(
+                self._conn, estacion, fecha, hora, hour_data
+            )
+        block = (document.get("cli") or {}).get("3074")
+        if block:
+            cli_service.save_cli(
+                self._conn, estacion, fecha, "cli3074", block
+            )
+
+        self._days = self._load_days(self._conn)
+        self._focus = estacion
+        self._select_station_item(estacion)
+        self._fill_tree(estacion)
+        self.selected_station = estacion
+        self.selected_fecha = fecha
+        self.accept()
+        return True
+
+    def _day_has_data(self, estacion: str, fecha: str) -> bool:
+        from oms_core.services.document import load_day_document
+
+        try:
+            day = load_day_document(self._conn, estacion, fecha)
+        except Exception:  # noqa: BLE001 - a read failure is "no data" here
+            return False
+        if day is None:
+            return False
+        return any(
+            value
+            for hour in day.horas.values()
+            for key, value in hour.items()
+            if key != "nombre_observador"
+        )
 
     def _accept_selection(self) -> None:
         item = self.tree.currentItem()
