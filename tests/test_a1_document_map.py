@@ -113,5 +113,6 @@ def test_groups_round_trip_for_valid_codes():
 
 
 def test_cli_surfaces_keep_only_the_manual_entries():
-    assert dm.OBSERVED_CLI3074 == ("viento_vel", "pres_alti", "fenomenos")
+    _CLI3074 = ("viento_vel", "pres_alti", "observador", "fenomenos")
+    assert dm.OBSERVED_CLI3074 == _CLI3074  # round 23: per-hour initials
     assert dm.OBSERVED_CLI4074 == ("observador", "fenomenos")

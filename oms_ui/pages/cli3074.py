@@ -52,6 +52,9 @@ SYNOP_ROWS: dict[str, int] = {
 }
 
 #: per-row fields in column order (field, sub-header text, read-only).
+#: column of the per-hour observer initials, after the phenomenon lanes
+_OBS_COLUMN: int = 25
+
 ROW_FIELDS: tuple[tuple[str, str, bool], ...] = (
     ("pres_est", "Esta.", False),
     ("pres_nmm", "NMM", False),
@@ -423,6 +426,15 @@ class Cli3074View(QWidget):
         for index, (_key, abbr, tooltip) in enumerate(FENOMENOS):
             grid.addWidget(_VerticalLabel(abbr, tooltip), 1, 15 + index)
 
+        # OBS.: the observer' initials of THIS hour (owner round 23). It goes
+        # after the phenomena lanes so no existing column moves.
+        obs_label = QLabel("OBS.")
+        obs_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        obs_label.setToolTip("Iniciales del observador de la hora")
+        obs_label.setWordWrap(True)
+        obs_label.setStyleSheet(_SUB_HEADER_QSS)
+        grid.addWidget(obs_label, 0, _OBS_COLUMN, 2, 1)
+
         for row in range(1, 25):
             self._build_data_row(grid, row)
         for col in range(1, 15):  # numeric + visibility columns share the stretch
@@ -434,6 +446,7 @@ class Cli3074View(QWidget):
             grid.setColumnMinimumWidth(col, 62)
         for index in range(len(FENOMENOS)):  # fixed checkbox lanes
             grid.setColumnMinimumWidth(15 + index, 32)
+        grid.setColumnMinimumWidth(_OBS_COLUMN, 62)
 
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
@@ -509,6 +522,14 @@ class Cli3074View(QWidget):
         self.row_inputs[row]["tiempo_presente"] = tp_edit
         grid.addWidget(tp_edit, row + 1, 14)
 
+        obs_edit = QLineEdit()
+        obs_edit.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        obs_edit.setStyleSheet(_MAIN_INPUT_QSS if main else INPUT_QSS)
+        obs_edit.setMinimumHeight(26)
+        obs_edit.setToolTip("Iniciales del observador de la hora")
+        self.row_inputs[row]["observador"] = obs_edit
+        grid.addWidget(obs_edit, row + 1, _OBS_COLUMN)
+
         self.row_checks.setdefault(row, {})
         for index, (key, _abbr, tooltip) in enumerate(FENOMENOS):
             check = QCheckBox()
@@ -576,6 +597,9 @@ class Cli3074View(QWidget):
             self.row_inputs[row]["tiempo_presente"].text().strip()
         )
         values["fenomenos"] = fenomenos
+        values["observador"] = (
+            self.row_inputs[row]["observador"].text().strip()
+        )
         return values
 
     def set_row(self, row: int, data: dict[str, Any]) -> None:
@@ -585,7 +609,7 @@ class Cli3074View(QWidget):
                 self.row_inputs[row][field].setText(str(value))
         # visibility and T.PRES. live outside ROW_FIELDS (they have their own
         # columns), so they must be painted explicitly
-        for field in ("visibilidad", "tiempo_presente"):
+        for field in ("visibilidad", "tiempo_presente", "observador"):
             value = data.get(field)
             widget = self.row_inputs[row].get(field)
             if value is not None and widget is not None:

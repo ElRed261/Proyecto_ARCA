@@ -92,7 +92,9 @@ SYNOP_FIELDS: tuple[tuple[str, str], ...] = (
 
 #: What each CLI persists. Everything else in those tables is derived from
 #: the synoptic hour (see the architecture document, section 4).
-OBSERVED_CLI3074: tuple[str, ...] = ("viento_vel", "pres_alti", "fenomenos")
+OBSERVED_CLI3074: tuple[str, ...] = (
+    "viento_vel", "pres_alti", "observador", "fenomenos"
+)
 OBSERVED_CLI4074: tuple[str, ...] = ("observador", "fenomenos")
 
 #: 9Sp lanes that the legacy files polluted with the ``555`` marker, the
@@ -181,8 +183,9 @@ def is_group_value(value: object) -> bool:
 def clean_cli_block(cli_key: str, block: object) -> dict:
     """Keep only what the operator types in that CLI (rules R2/R3).
 
-    Rows keep ``viento_vel``/``pres_alti`` and the phenomenon booleans in
-    3074, and the observer initials plus phenomena in 4074. The 5074 document
+    Rows keep ``viento_vel``/``pres_alti``, the observer initials and the
+    phenomenon booleans in 3074, and the observer initials plus phenomena in
+    4074. The 5074 document
     is stored whole by the owner's decision. Empty strings and ``False``
     booleans never survive.
     """
