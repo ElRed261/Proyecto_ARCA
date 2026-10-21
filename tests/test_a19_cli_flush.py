@@ -112,3 +112,25 @@ def test_the_flush_does_not_create_empty_days(page, fresh_db):
     _open(page, "cli5074")
     page.fecha_edit.setDate(QDate(2024, 4, 29))
     assert cli_service.load_cli(fresh_db, STATION, DAY_A, "cli5074") is None
+
+
+# ------------------------------------- the 5074 is stored whole (decision A)
+
+
+def test_the_5074_block_is_never_cleaned(fresh_db):
+    """Owner round 24: EVERY value of the 5074 must be stored, so the block is
+    persisted exactly as the window produced it — no field filtering."""
+    from oms_core.services import document_map as dm
+
+    block = {
+        "iniciales_obs": "YG",
+        "observaciones_manuales": "// sin novedad",
+        "hourly": {"2": {"lect_bar": "1012.1", "correc_temp": "0.0"}},
+        "subsuelo": {"d5": "24.1", "d100": "INAP"},
+        "evaporimetros": {"piche": "0", "tanque_c": "3.2"},
+        "fenomenos": [{"hora": "14", "fenomeno": "niebla"}],
+    }
+    assert dm.clean_cli_block("cli5074", block) == block
+
+    cli_service.save_cli(fresh_db, STATION, DAY_A, "cli5074", block)
+    assert cli_service.load_cli(fresh_db, STATION, DAY_A, "cli5074") == block

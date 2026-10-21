@@ -106,3 +106,17 @@ branch is still the owner's decision — see README):
 
 Each one is self-contained: tests and docs travel with the behaviour they
 describe, so any of them can be reviewed alone.
+
+L5 (decisión del dueño, ronda 24): ante el reporte «todo del CLI 5074 debe
+guardarse», la verificación dio 0 campos perdidos en seis escenarios (base,
+`save_hour` del día, export, import de Excel, merge de bloques y texto no
+numérico); el bloque `cli.5074` se guarda entero. El fallo real era de la
+ventana: el autosave con debounce de 700 ms no se volcaba al cambiar de día,
+navegar o cambiar de estación, y la vista cacheada se recargaba con los datos
+del otro día. Arreglado en `735c88e` con `flush_pending()` en las tres vistas y
+`_flush_cli_views()` antes de cada cambio de contexto.
+
+L6 (decisión del dueño): el almacenamiento del 5074 queda como está —
+**opción A**, dentro del documento del día (`cli.5074`), sin archivo aparte. Un
+solo dueño, una sola escritura atómica, versionado y respaldo ya cubiertos. El
+test `test_the_5074_block_is_never_cleaned` pinta ese invariante.
