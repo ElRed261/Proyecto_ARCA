@@ -258,3 +258,51 @@ def test_the_window_can_mark_every_auditable_field():
     from oms_ui.pages.audit_observation import FIELD_LABELS
 
     assert set(audit_service.AUDITABLE_FIELDS) == set(FIELD_LABELS)
+
+
+# ------------------------------------------------------ T5/T6: the report sheet
+
+
+@pytest.fixture
+def report_page(audited_day, qtbot):
+    from oms_ui.pages.audit_report import AuditReportPage
+
+    page = AuditReportPage(audited_day, role="admin")
+    qtbot.addWidget(page)
+    return page
+
+
+def test_the_observer_tab_leads_the_report(report_page):
+    assert report_page.tabs.count() == 3
+    assert report_page.tabs.tabText(0) == "Por observador"
+    # two named observers, the six hours nobody signed, and the TOTAL row
+    assert report_page.observer_table.rowCount() == 4
+
+
+def test_the_observer_sheet_adds_up(report_page):
+    table = report_page.observer_table
+    names = [table.item(row, 0).text() for row in range(table.rowCount())]
+    assert names[0] == "YASSER GALAN"     # errors desc
+    assert names[-1] == "TOTAL"
+    assert table.item(table.rowCount() - 1, 1).text() == "3"   # 2 + 1 errors
+
+
+def test_the_detail_tab_says_who_and_where(report_page):
+    table = report_page.detail_table
+    headers = [
+        table.horizontalHeaderItem(col).text() for col in range(table.columnCount())
+    ]
+    assert "Observador" in headers
+    assert "Grupo" in headers
+
+
+def test_the_pdf_carries_the_observer_sheet(report_page, tmp_path):
+    html = report_page._report_html()
+    assert "Reporte de errores por observador" in html
+    assert "YASSER GALAN" in html and "EDGAR ACOSTA" in html
+    assert "TOTAL" in html
+
+    path = report_page.export_pdf(str(tmp_path / "reporte.pdf"))
+    assert path.endswith(".pdf")
+    data = (tmp_path / "reporte.pdf").read_bytes()
+    assert data.startswith(b"%PDF") and len(data) > 1000

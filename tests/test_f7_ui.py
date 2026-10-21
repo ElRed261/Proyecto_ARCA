@@ -374,8 +374,8 @@ def test_main_window_shows_real_pages_for_admin(qtbot, fresh_db):
     assert window.visible_pages() == [
         "dashboard",
         "synoptic",
-        "summary",
         "audit",
+        "summary",
         "maintenance",
         "admin",
     ]

@@ -6,7 +6,7 @@ import pytest
 from oms_core.services import access
 
 ROLES = ["admin", "control_calidad", "encargado", "observador"]
-PAGES = ["dashboard", "synoptic", "summary", "audit", "maintenance", "admin"]
+PAGES = ["dashboard", "synoptic", "audit", "summary", "maintenance", "admin"]
 
 # F6-D1 enforced boundary: audit follows the App.jsx RoleRoute guard
 # (admin + control_calidad only), NOT the wider Sidebar.jsx MODULES list that

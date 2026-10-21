@@ -126,7 +126,7 @@ def test_rail_role_filtering_unchanged(qtbot, db):
     admin = MainWindow(role="admin", db_path=db)
     qtbot.addWidget(admin)
     assert admin.visible_pages() == [
-        "dashboard", "synoptic", "summary", "audit", "maintenance", "admin",
+        "dashboard", "synoptic", "audit", "summary", "maintenance", "admin",
     ]
     obs = MainWindow(role="observador", db_path=db)
     qtbot.addWidget(obs)
