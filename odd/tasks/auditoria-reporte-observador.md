@@ -47,13 +47,13 @@ S7. «Usado para marcar, corregir, y crear una Observación lo más correcta
 
 ## Tasks
 
-- [ ] T1 (S4) migración: columna `grupo` en `error_marks` + `group_for_field()` derivado de `document_map`
-- [ ] T2 (S4) tipos de error cerrados y validados en el servicio y en el diálogo
-- [ ] T3 (S2/S3) `get_observer_summary()` con errores, observaciones y campos auditados + tasas; `get_error_report()` con observador y grupo
-- [ ] T4 (S7) cierre de auditoría por día (`audit_days`) para el denominador y el badge «Sin auditar» honesto
-- [ ] T5 (S2/S3) pantalla del reporte: pestañas «Por observador» / «Detalle» / «Actividad del auditor», filtros y totales
-- [ ] T6 (S5) export PDF del reporte
-- [ ] T7 (S6) regresión del oráculo: marcar/desmarcar, cascada, export `_cor.json`, marca automática
+- [x] T1 (S4) migración: columna `grupo` en `error_marks` + `group_for_field()` derivado de `document_map`
+- [x] T2 (S4) tipos de error cerrados y validados en el servicio y en el diálogo
+- [x] T3 (S2/S3) `get_observer_summary()` con errores, observaciones y campos auditados + tasas; `get_error_report()` con observador y grupo
+- [x] T4 (S7) cierre de auditoría por día (`audit_days`) para el denominador y el badge «Sin auditar» honesto
+- [x] T5 (S2/S3) pantalla del reporte: pestañas «Por observador» / «Detalle» / «Actividad del auditor», filtros y totales
+- [x] T6 (S5) export PDF del reporte
+- [x] T7 (S6) regresión del oráculo: marcar/desmarcar, cascada, export `_cor.json`, marca automática
 
 ## Log
 
@@ -78,3 +78,18 @@ control_calidad en Rust; «Sin auditar» deducido de no tener marcas.
 L3 (dueño, respuestas): cuenta «Al observador que hizo la observación»; conteo
 «Cantidad, tasa por observación y por campos»; taxonomía «Tipo + grupo del dato
 afectado»; publicación «Pantalla más PDF».
+
+L4 (implementación, commits): `f53d685` orden del menú; `58f2f88` grupo derivado
+(`FIELD_GROUPS`/`group_for_field`) y tipos cerrados; `23784c7` `audit_days`
+(M007) + `close/reopen_audit_day` + `get_observer_summary` con las dos tasas +
+detalle con observador y grupo; `1663814` pestaña «Por observador», columnas
+nuevas del detalle y PDF con `QPdfWriter`/`QTextDocument`; `7f617f7` cierre y
+reapertura desde la ventana más el badge honesto del listado.
+
+L5 (decisiones de implementación): el grupo del dato **se deriva** del nombre del
+campo (no hay columna que pueda quedar vieja, R3); la unidad del denominador es
+la **hora-observación** y los campos auditados son `horas × 35` (los 35 campos
+marcables, los mismos que pinta la ventana — un test lo pinta); un día con
+marcas cuenta como auditado aunque no se haya cerrado, para que los días
+legados revisados antes de M007 no queden sin denominador; las horas sin
+observador se reportan como «Desconocido» en vez de esconderse.
