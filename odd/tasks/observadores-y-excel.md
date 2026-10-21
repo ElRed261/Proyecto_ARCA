@@ -94,3 +94,15 @@ verbatim del original; el destino son claves de formulario tomadas de
 intactas. Un día existente pide confirmación antes de reemplazarse (S7) y el
 libro roto se informa con el mensaje del parser. 21 tests con libros
 sintéticos construidos por openpyxl.
+
+## Slice boundary
+
+This feature's commits on `neo-arca` (the delivery strategy for the whole
+branch is still the owner's decision — see README):
+
+- `3b8f15b` T1-T4 (4074 rows, day order, per-hour observer, Table 1860 gate)
+- `9b73acf` T5 (observer initials in the CLI 3074 / already in 5074)
+- `96bb02d` T6 (Excel import module, window button, confirmation, tests)
+
+Each one is self-contained: tests and docs travel with the behaviour they
+describe, so any of them can be reviewed alone.
