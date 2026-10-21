@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import sqlite3
 from dataclasses import dataclass
+from typing import Any
 
 
 class MarkConflictError(Exception):
@@ -410,3 +411,106 @@ def get_person_summary(
             )
 
     return sorted(summary.values(), key=lambda r: r.errores_marcados, reverse=True)
+
+
+# ---------------------------------------------------------------------------
+# audit_days — a day an auditor finished reviewing (M007)
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class AuditDay:
+    station_id: str
+    fecha: str
+    auditado_por: str
+    auditado_en: str
+    nota: str | None = None
+
+
+def upsert_audit_day(
+    conn: sqlite3.Connection,
+    *,
+    station_id: str,
+    fecha: str,
+    auditado_por: str,
+    auditado_en: str,
+    nota: str | None = None,
+) -> None:
+    """Record (or refresh) that this station-day was audited."""
+    conn.execute(
+        "INSERT INTO audit_days (station_id, fecha, auditado_por, auditado_en, nota)"
+        " VALUES (?, ?, ?, ?, ?)"
+        " ON CONFLICT(station_id, fecha) DO UPDATE SET"
+        " auditado_por = excluded.auditado_por,"
+        " auditado_en = excluded.auditado_en,"
+        " nota = excluded.nota",
+        (station_id, fecha, auditado_por, auditado_en, nota),
+    )
+    conn.commit()
+
+
+def delete_audit_day(
+    conn: sqlite3.Connection, *, station_id: str, fecha: str
+) -> bool:
+    cursor = conn.execute(
+        "DELETE FROM audit_days WHERE station_id = ? AND fecha = ?",
+        (station_id, fecha),
+    )
+    conn.commit()
+    return cursor.rowcount > 0
+
+
+def get_audit_day(
+    conn: sqlite3.Connection, *, station_id: str, fecha: str
+) -> AuditDay | None:
+    row = conn.execute(
+        "SELECT station_id, fecha, auditado_por, auditado_en, nota"
+        " FROM audit_days WHERE station_id = ? AND fecha = ?",
+        (station_id, fecha),
+    ).fetchone()
+    return None if row is None else AuditDay(*tuple(row))
+
+
+def list_audit_days(
+    conn: sqlite3.Connection,
+    *,
+    station_id: str | None = None,
+    year: str = "",
+    month: str = "",
+) -> list[AuditDay]:
+    """Audited days of the period, oldest first."""
+    sql = "SELECT station_id, fecha, auditado_por, auditado_en, nota FROM audit_days WHERE 1=1"
+    args: list[str] = []
+    if station_id:
+        sql += " AND station_id = ?"
+        args.append(station_id)
+    like = _month_like_args(year, month)
+    if like is not None:
+        sql += " AND fecha LIKE ?"
+        args.append(like)
+    sql += " ORDER BY fecha ASC"
+    return [AuditDay(*tuple(row)) for row in conn.execute(sql, args).fetchall()]
+
+
+def marks_for_period(
+    conn: sqlite3.Connection,
+    *,
+    station_id: str | None = None,
+    year: str = "",
+    month: str = "",
+) -> list[dict[str, Any]]:
+    """Every mark of the period, as plain dicts (report aggregation input)."""
+    sql = (
+        "SELECT station_id, fecha, hora, campo, tipo_error, marcado_por"
+        " FROM error_marks WHERE 1=1"
+    )
+    args: list[str] = []
+    if station_id:
+        sql += " AND station_id = ?"
+        args.append(station_id)
+    like = _month_like_args(year, month)
+    if like is not None:
+        sql += " AND fecha LIKE ?"
+        args.append(like)
+    sql += " ORDER BY fecha ASC, hora ASC"
+    return [dict(row) for row in conn.execute(sql, args).fetchall()]

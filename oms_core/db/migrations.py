@@ -198,6 +198,18 @@ CREATE INDEX IF NOT EXISTS ix_document_versions_day
     ON document_versions(station_id, year, month, day);
 """
 
+M007_UP = """
+CREATE TABLE IF NOT EXISTS audit_days (
+    station_id TEXT NOT NULL,
+    fecha TEXT NOT NULL,
+    auditado_por TEXT NOT NULL,
+    auditado_en TEXT NOT NULL,
+    nota TEXT,
+    PRIMARY KEY (station_id, fecha)
+);
+CREATE INDEX IF NOT EXISTS ix_audit_days_fecha ON audit_days(fecha);
+"""
+
 MIGRATIONS: tuple[tuple[int, str, str], ...] = (
     (1, "initial schema (port of db.rs M1)", M001_UP),
     (2, "drop legacy audit tables (port of db.rs M2)", M002_UP),
@@ -205,6 +217,7 @@ MIGRATIONS: tuple[tuple[int, str, str], ...] = (
     (4, "sync_pending queue (sync_queue.rs MIGATION_SQL)", M004_UP),
     (5, "observations table + summary_logs doc columns", M005_UP),
     (6, "document_versions trail (rule R4)", M006_UP),
+    (7, "audit_days: a day closed by an auditor is the honest denominator", M007_UP),
 )
 
 LATEST_VERSION = MIGRATIONS[-1][0]

@@ -742,16 +742,180 @@ def approve_correction(
 # ---------------------------------------------------------------------------
 
 
+#: Every auditable slot of ONE hour-observation. The report's field rate uses
+#: it as the denominator, and it is the same list the window can mark.
+AUDITABLE_FIELDS: tuple[str, ...] = tuple(dm.FIELD_GROUPS)
+
+
+# ---------------------------------------------------------------------------
+# audit day closure (M007): the honest denominator
+# ---------------------------------------------------------------------------
+
+
+def close_audit_day(
+    conn: sqlite3.Connection,
+    *,
+    role: str | None,
+    station_id: str,
+    fecha: str,
+    auditado_por: str,
+    nota: str | None = None,
+) -> dict[str, Any]:
+    """Finish auditing one station-day: from now on it counts in the rates.
+
+    The oracle guessed "sin auditar" from "has no marks", so a day reviewed
+    without errors looked unaudited and the per-observer report had no honest
+    denominator.
+    """
+    _check_audit_role(role)
+    station = _validate_station(station_id)
+    _validate_fecha(fecha)
+    auditor = str(auditado_por or "").strip()
+    if not auditor:
+        raise AuditError("Falta el auditor que cierra la revisión")
+    audit_repo.upsert_audit_day(
+        conn,
+        station_id=station,
+        fecha=fecha,
+        auditado_por=auditor,
+        auditado_en=_now_local(),
+        nota=nota,
+    )
+    return get_audit_day(conn, station_id=station, fecha=fecha) or {}
+
+
+def reopen_audit_day(
+    conn: sqlite3.Connection, *, role: str | None, station_id: str, fecha: str
+) -> bool:
+    """Withdraw the closure (the day counts again as unaudited)."""
+    _check_audit_role(role)
+    station = _validate_station(station_id)
+    _validate_fecha(fecha)
+    return audit_repo.delete_audit_day(conn, station_id=station, fecha=fecha)
+
+
+def get_audit_day(
+    conn: sqlite3.Connection, *, station_id: str, fecha: str
+) -> dict[str, Any] | None:
+    day = audit_repo.get_audit_day(conn, station_id=station_id, fecha=fecha)
+    return None if day is None else day.__dict__
+
+
+def _observers_by_hour(
+    conn: sqlite3.Connection, station: str, fecha: str
+) -> dict[str, str]:
+    """Who observed each hour of that day ('' when unknown)."""
+    from oms_core.services.document import load_day_document
+
+    try:
+        day = load_day_document(conn, station, fecha)
+    except (sqlite3.Error, ValueError):
+        return {}
+    if day is None:
+        return {}
+    return {hora: str(name or "") for hora, name in day.observers().items()}
+
+
+def get_observer_summary(
+    conn: sqlite3.Connection,
+    *,
+    station_id: str | None = None,
+    year: str = "",
+    month: str = "",
+) -> list[dict[str, Any]]:
+    """Errors per OBSERVER, with the two rates the owner asked for (S2/S3).
+
+    Each mark is attributed to the observer of ITS hour (never to the auditor
+    who marked it). The denominator is the audited hour-observations: every
+    hour of a day that was closed (M007) or that carries marks, so a legacy day
+    reviewed before the closure existed still counts.
+    """
+    marks = audit_repo.marks_for_period(
+        conn, station_id=station_id, year=year, month=month
+    )
+    audited = audit_repo.list_audit_days(
+        conn, station_id=station_id, year=year, month=month
+    )
+    audited_keys = {(day.station_id, day.fecha) for day in audited}
+    audited_keys |= {(m["station_id"], m["fecha"]) for m in marks}
+
+    cache: dict[tuple[str, str], dict[str, str]] = {}
+
+    def observers(station: str, fecha: str) -> dict[str, str]:
+        key = (station, fecha)
+        if key not in cache:
+            cache[key] = _observers_by_hour(conn, station, fecha)
+        return cache[key]
+
+    buckets: dict[str, dict[str, Any]] = {}
+
+    def bucket(persona: str) -> dict[str, Any]:
+        name = persona.strip() or "Desconocido"
+        return buckets.setdefault(
+            name,
+            {
+                "persona": name,
+                "errores": 0,
+                "horas_auditadas": 0,
+                "campos_auditados": 0,
+                "tasa_por_observacion": 0.0,
+                "tasa_por_campos": 0.0,
+                "por_tipo": {},
+                "por_grupo": {},
+            },
+        )
+
+    for mark in marks:
+        persona = observers(mark["station_id"], mark["fecha"]).get(mark["hora"], "")
+        row = bucket(persona)
+        row["errores"] += 1
+        tipo = str(mark["tipo_error"] or "Otro")
+        row["por_tipo"][tipo] = row["por_tipo"].get(tipo, 0) + 1
+        grupo = dm.group_for_field(mark["campo"])
+        row["por_grupo"][grupo] = row["por_grupo"].get(grupo, 0) + 1
+
+    for station, fecha in audited_keys:
+        for persona in observers(station, fecha).values():
+            bucket(persona)["horas_auditadas"] += 1
+
+    per_hour = len(AUDITABLE_FIELDS) or 1
+    for row in buckets.values():
+        hours = row["horas_auditadas"]
+        row["campos_auditados"] = hours * per_hour
+        row["tasa_por_observacion"] = (
+            round(row["errores"] / hours, 2) if hours else 0.0
+        )
+        row["tasa_por_campos"] = (
+            round(100 * row["errores"] / row["campos_auditados"], 2)
+            if row["campos_auditados"] else 0.0
+        )
+    return sorted(
+        buckets.values(), key=lambda r: (-r["errores"], r["persona"])
+    )
+
+
 def get_error_report(
     conn: sqlite3.Connection, *, station_id: str | None = None, year: str = "", month: str = ""
 ) -> list[dict[str, Any]]:
-    """Detailed report rows (fecha DESC, hora ASC — oracle order)."""
-    return [
+    """Detailed report rows (fecha DESC, hora ASC — oracle order).
+
+    Each row carries the observer of its hour and the data group of the field
+    (spec S4): the report says WHO has the mistake and WHERE it is.
+    """
+    rows = [
         r.__dict__
         for r in audit_repo.get_error_report(
             conn, station_id=station_id, year=year or "", month=month or ""
         )
     ]
+    observers: dict[tuple[str, str], dict[str, str]] = {}
+    for row in rows:
+        key = (row["station_id"], row["fecha"])
+        if key not in observers:
+            observers[key] = _observers_by_hour(conn, *key)
+        row["observador"] = observers[key].get(row["hora"], "") or "Desconocido"
+        row["grupo"] = dm.group_for_field(row["campo"])
+    return rows
 
 
 def get_person_summary(

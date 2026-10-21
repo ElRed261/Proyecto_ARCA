@@ -69,6 +69,8 @@ FIELD_LABELS: dict[str, str] = {
     "meteo_8_1": "56 DL DM DH",
     "meteo_8_3": "6 RRR tr",
     "meteo_8_4": "7 R24 R24 R24 R24",
+    "tend_car": "Tendencia C.A.R",
+    "tend_dif": "Diferencia de Tendencia (Dif)",
     "pres_nmm": "Presión NMM",
     "punto_rocio": "Punto de Rocío (Td)",
     "tension_vapor": "Tensión de Vapor (Tv)",

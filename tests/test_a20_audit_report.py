@@ -88,3 +88,173 @@ def test_the_automatic_type_is_accepted(fresh_db):
         marcado_por="Sistema de Calidad",
     )
     assert mark["tipo_error"] == "Falta nombre de observador"
+
+
+# ------------------------------------------- T4: closing a day = denominator
+
+
+def test_closing_a_day_records_the_auditor(fresh_db):
+    closed = audit_service.close_audit_day(
+        fresh_db, role="admin", station_id="78486", fecha="2024-04-28",
+        auditado_por="qc@oms", nota="revisado",
+    )
+    assert closed["auditado_por"] == "qc@oms"
+    assert closed["nota"] == "revisado"
+    assert closed["auditado_en"]
+    assert audit_service.get_audit_day(
+        fresh_db, station_id="78486", fecha="2024-04-28"
+    )["auditado_por"] == "qc@oms"
+
+
+def test_closing_twice_updates_the_closure(fresh_db):
+    for auditor in ("qc@oms", "otro@oms"):
+        audit_service.close_audit_day(
+            fresh_db, role="admin", station_id="78486", fecha="2024-04-28",
+            auditado_por=auditor,
+        )
+    assert audit_service.get_audit_day(
+        fresh_db, station_id="78486", fecha="2024-04-28"
+    )["auditado_por"] == "otro@oms"
+
+
+def test_reopening_a_day_withdraws_the_closure(fresh_db):
+    audit_service.close_audit_day(
+        fresh_db, role="admin", station_id="78486", fecha="2024-04-28",
+        auditado_por="qc@oms",
+    )
+    assert audit_service.reopen_audit_day(
+        fresh_db, role="admin", station_id="78486", fecha="2024-04-28"
+    ) is True
+    assert audit_service.get_audit_day(
+        fresh_db, station_id="78486", fecha="2024-04-28"
+    ) is None
+
+
+def test_an_observer_cannot_close_an_audit(fresh_db):
+    with pytest.raises(PermissionError):
+        audit_service.close_audit_day(
+            fresh_db, role="observador", station_id="78486",
+            fecha="2024-04-28", auditado_por="x@y",
+        )
+
+
+def test_the_closure_needs_a_named_auditor(fresh_db):
+    with pytest.raises(audit_service.AuditError, match="auditor"):
+        audit_service.close_audit_day(
+            fresh_db, role="admin", station_id="78486", fecha="2024-04-28",
+            auditado_por="   ",
+        )
+
+
+# ------------------------------------- T3: the report that counts the observer
+
+
+@pytest.fixture
+def audited_day(fresh_db):
+    """One day, two observers, three marks, closed by quality control."""
+    from oms_core.services import synoptic as synoptic_service
+
+    synoptic_service.save_hour(fresh_db, "78486", "2024-04-28", "06Z",
+                               {"nombre_observador": "YASSER GALAN"})
+    synoptic_service.save_hour(fresh_db, "78486", "2024-04-28", "12Z",
+                               {"nombre_observador": "EDGAR ACOSTA"})
+    for hora, campo, tipo in (
+        ("06Z", "ts", "Sintaxis"),
+        ("06Z", "pres_est", "Consistencia"),
+        ("12Z", "meteo_4_1", "Falta de datos"),
+    ):
+        audit_service.mark_error(
+            fresh_db, role="admin", station_id="78486", fecha="2024-04-28",
+            hora=hora, campo=campo, tipo_error=tipo, marcado_por="qc@oms",
+        )
+    audit_service.close_audit_day(
+        fresh_db, role="admin", station_id="78486", fecha="2024-04-28",
+        auditado_por="qc@oms",
+    )
+    return fresh_db
+
+
+def test_the_summary_counts_the_observer_not_the_auditor(audited_day):
+    rows = {r["persona"]: r for r in audit_service.get_observer_summary(audited_day)}
+    assert "qc@oms" not in rows, "el auditor no aparece como observador"
+    assert rows["YASSER GALAN"]["errores"] == 2
+    assert rows["EDGAR ACOSTA"]["errores"] == 1
+
+
+def test_the_rates_use_the_audited_hours_of_each_observer(audited_day):
+    rows = {r["persona"]: r for r in audit_service.get_observer_summary(audited_day)}
+    galan = rows["YASSER GALAN"]
+    # the day is closed, so its eight hours count; each hour belongs to the
+    # observer who wrote it, and the six hours with nobody land in Desconocido
+    assert galan["horas_auditadas"] == 1
+    assert galan["campos_auditados"] == len(audit_service.AUDITABLE_FIELDS)
+    assert galan["tasa_por_observacion"] == 2.0        # 2 errores / 1 hora
+    assert galan["tasa_por_campos"] == round(
+        100 * 2 / len(audit_service.AUDITABLE_FIELDS), 2
+    )
+    assert rows["EDGAR ACOSTA"]["tasa_por_observacion"] == 1.0
+    # the hours nobody signed are reported, not hidden
+    assert rows["Desconocido"]["horas_auditadas"] == 6
+    assert rows["Desconocido"]["errores"] == 0
+
+
+def test_the_summary_breaks_the_errors_down_by_type_and_group(audited_day):
+    rows = {r["persona"]: r for r in audit_service.get_observer_summary(audited_day)}
+    galan = rows["YASSER GALAN"]
+    assert galan["por_tipo"] == {"Sintaxis": 1, "Consistencia": 1}
+    assert galan["por_grupo"] == {"temperatura": 1, "presión": 1}
+
+
+def test_a_day_with_marks_counts_even_without_closure(fresh_db):
+    """Legacy days reviewed before M007 still get a denominator."""
+    from oms_core.services import synoptic as synoptic_service
+
+    synoptic_service.save_hour(fresh_db, "78486", "2024-05-02", "09Z",
+                               {"nombre_observador": "MARTA"})
+    audit_service.mark_error(
+        fresh_db, role="admin", station_id="78486", fecha="2024-05-02",
+        hora="09Z", campo="ts", tipo_error="Sintaxis", marcado_por="qc@oms",
+    )
+    row = {r["persona"]: r for r in audit_service.get_observer_summary(fresh_db)}["MARTA"]
+    assert row["horas_auditadas"] >= 1
+    assert row["tasa_por_observacion"] > 0
+
+
+def test_an_unknown_observer_is_reported_as_desconocido(fresh_db):
+    audit_service.mark_error(
+        fresh_db, role="admin", station_id="78486", fecha="2024-06-01",
+        hora="06Z", campo="ts", tipo_error="Sintaxis", marcado_por="qc@oms",
+    )
+    rows = audit_service.get_observer_summary(fresh_db)
+    assert rows[0]["persona"] == "Desconocido"
+    assert rows[0]["errores"] == 1
+
+
+def test_the_summary_is_empty_when_nothing_was_audited(fresh_db):
+    assert audit_service.get_observer_summary(fresh_db) == []
+
+
+def test_the_summary_respects_station_and_month_filters(audited_day):
+    assert audit_service.get_observer_summary(audited_day, station_id="78486",
+                                              year="2024", month="04")
+    assert audit_service.get_observer_summary(audited_day, station_id="78486",
+                                              year="2024", month="05") == []
+
+
+# --------------------------------------------- T3: the detail says who and where
+
+
+def test_the_detail_rows_carry_the_observer_and_the_group(audited_day):
+    rows = audit_service.get_error_report(audited_day, station_id="78486")
+    by_field = {row["campo"]: row for row in rows}
+    assert by_field["ts"]["observador"] == "YASSER GALAN"
+    assert by_field["ts"]["grupo"] == "temperatura"
+    assert by_field["meteo_4_1"]["observador"] == "EDGAR ACOSTA"
+    assert by_field["meteo_4_1"]["grupo"] == "viento"
+
+
+def test_the_window_can_mark_every_auditable_field():
+    """The auditor must be able to mark anything the report knows about."""
+    from oms_ui.pages.audit_observation import FIELD_LABELS
+
+    assert set(audit_service.AUDITABLE_FIELDS) == set(FIELD_LABELS)
