@@ -56,11 +56,10 @@ _ROWSPAN_FIELDS: tuple[tuple[str, str, str], ...] = (
     ("observador", "OBS.", "#1e293b"),
 )
 _TEMPS: tuple[tuple[str, str], ...] = (("temp_max", "Máx"), ("temp_min", "Mín"))
-#: Rows that keep the grey "0" placeholder (owner's decision): the synoptic
-#: hours 2/5/8/11/14/17/20/23 plus the two rows that close the 18Z block. The
-#: rest of the sheet stays visually blank.
+#: Rows that keep the grey "0" placeholder: exactly the eight synoptic hours
+#: (rows 2/5/8/11/14/17/20/23). Every other row stays visually blank.
 ZERO_PLACEHOLDER_ROWS: frozenset[int] = frozenset(
-    {2, 5, 8, 11, 14, 15, 16, 17, 20, 23}
+    {2, 5, 8, 11, 14, 17, 20, 23}
 )
 #: main-hour rows tinted GREEN across the full row (IMG/CLI 4074.png).
 _MAIN_TINT = "#d1fae5"

@@ -144,12 +144,12 @@ def test_include_precipitation_false(ir):
     assert oms_calc.should_include_precipitation(ir) is False
 
 
-@pytest.mark.parametrize("ix", ["1", "4"])
+@pytest.mark.parametrize("ix", ["1", "4", "7"])
 def test_include_weather_true(ix):
     assert oms_calc.should_include_weather(ix) is True
 
 
-@pytest.mark.parametrize("ix", ["0", "2", ""])
+@pytest.mark.parametrize("ix", ["0", "2", "3", "5", "6", ""])
 def test_include_weather_false(ix):
     assert oms_calc.should_include_weather(ix) is False
 

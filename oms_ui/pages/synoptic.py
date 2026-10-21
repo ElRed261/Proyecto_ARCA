@@ -1503,11 +1503,28 @@ class SynopticPage(QWidget):
     def set_hour_value(self, hora: str, key: str, value: str) -> None:
         self.observations.setdefault(hora, {})[key] = value
 
+    @staticmethod
+    def _ix_of(hour_data: dict) -> str:
+        irixhv = str(hour_data.get("meteo_4_irixhvv") or "")
+        return irixhv[1:2] if len(irixhv) >= 2 else ""
+
+    def _weather_gate(self, hora: str) -> bool:
+        """Table 1860: the 7wwW1W2 group exists for iX 1, 4 and 7."""
+        return oms_calc.should_include_weather(
+            self._ix_of(self.observations.get(hora) or {})
+        )
+
     def active_hour_data(self) -> dict[str, str]:
         return dict(self.observations.get(self.active_hour) or {})
 
     def collect_day_data(self) -> dict[str, dict[str, str]]:
-        return {hora: dict(self.observations.get(hora) or {}) for hora in synoptic_service.HOURS}
+        # The "7" shown with the group omitted is a DISPLAY value: it is never
+        # written, so saving cannot invent data (R1) and cannot destroy what
+        # the observer already had stored (owner's call).
+        return {
+            hora: dict(self.observations.get(hora) or {})
+            for hora in synoptic_service.HOURS
+        }
 
     # ------------------------------------------------------------ state
 
@@ -1517,12 +1534,27 @@ class SynopticPage(QWidget):
 
     def _observer_prefill(self) -> None:
         """Remembered observer name for this station; a prefill is not a user edit."""
-        station = self.station_id
-        if not station:
+        self._paint_observer()
+
+    def _paint_observer(self) -> None:
+        """Show THIS hour's observer; fall back to the station's remembered one.
+
+        The name is stored per hour (rule R1/R3) but the window used to paint
+        only the remembered name, so opening a saved day showed an empty (or
+        foreign) observer.
+        """
+        widget = getattr(self, "observer_edit", None)
+        if widget is None:
             return
-        widget = self.observer_edit
+        name = str(
+            (self.observations.get(self.active_hour) or {}).get(
+                "nombre_observador"
+            ) or ""
+        )
+        if not name and self.station_id:
+            name = synoptic_service.observer_for(self._conn, self.station_id)
         widget.blockSignals(True)
-        widget.setText(synoptic_service.observer_for(self._conn, station))
+        widget.setText(name)
         widget.blockSignals(False)
 
     # ------------------------------------------------------------ field events
@@ -1661,6 +1693,8 @@ class SynopticPage(QWidget):
             widget.blockSignals(True)
             widget.setText(self.hour_value(self.active_hour, key))
             widget.blockSignals(False)
+        # the observer is per hour, so it repaints with the rest of the hour
+        self._paint_observer()
 
     def _refresh_hour_mode(self) -> None:
         even = self.active_hour in synoptic_service.EVEN_HOURS
@@ -1675,20 +1709,27 @@ class SynopticPage(QWidget):
     def _refresh_dynamic_states(self) -> None:
         data = self.observations.get(self.active_hour) or {}
 
-        irixhv = data.get("meteo_4_irixhvv") or ""
-        ix = irixhv[1:2] if len(irixhv) >= 2 else ""
-        weather_ok = oms_calc.should_include_weather(ix)
+        weather_ok = self._weather_gate(self.active_hour)
         widget_46 = self.field_widgets.get("meteo_4_6")
         if widget_46 is not None:
             widget_46.setEnabled(weather_ok)
+            widget_46.blockSignals(True)
+            if weather_ok:
+                widget_46.setText(str(data.get("meteo_4_6") or ""))
+            else:
+                # Table 1860: with the group omitted only the identification
+                # figure stays on screen. The stored value is NOT overwritten,
+                # so a save keeps whatever the observer had written.
+                widget_46.setText("7")
+            widget_46.blockSignals(False)
             widget_46.setToolTip(
                 "7wwW1W2: tiempo presente y pasado" if weather_ok
-                else "Omitido (iX≠1,4)"
+                else "Omitido (iX 2, 3, 5 o 6): sólo queda la cifra 7"
             )
 
         # 6RRRtr gated by Ir like the oracle (results.include_precipitation):
         # empty Ir disables, verbatim oracle behavior
-        ir = irixhv[0:1] if len(irixhv) >= 1 else ""
+        ir = str(data.get("meteo_4_irixhvv") or "")[0:1]
         precip_ok = bool(ir) and oms_calc.should_include_precipitation(ir)
         widget_83 = self.field_widgets.get("meteo_8_3")
         if widget_83 is not None:
@@ -1767,7 +1808,9 @@ class SynopticPage(QWidget):
         stored data: accepting it is still the observer's decision.
         """
         widget = self.field_widgets.get("meteo_4_6")
-        if widget is None or widget.text().strip():
+        if widget is None or widget.text().strip() or not self._weather_gate(
+            self.active_hour
+        ):
             return
         ww = str((derived or {}).get("tiempo_presente") or "")
         past = past_weather.compute_w1w2(

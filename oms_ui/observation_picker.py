@@ -131,7 +131,9 @@ class ObservationPickerDialog(QDialog):
         for years in tree.values():
             for months in years.values():
                 for days in months.values():
-                    days.sort()
+                    # the columns store '1', '2', ... '10': sorting as text
+                    # produced 1, 10, 11, 12 ... and lost the sequence
+                    days.sort(key=lambda value: int(value or 0))
         return tree
 
     def _count_days(self, station: str) -> int:

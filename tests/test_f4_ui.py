@@ -148,7 +148,11 @@ def test_even_only_fields_enabled_on_even_hours_only(page):
 
 
 def test_group_fields_capped_to_five_characters(qtbot, page):
+    # Table 1860: the group only exists while iX is 1, 4 or 7
+    page.select_hour("06Z")
+    page.field("meteo_4_irixhvv").setText("31566")
     group_field = page.field("meteo_4_6")
+    assert group_field.isEnabled()
     assert group_field.maxLength() == 5
     assert group_field.validator() is not None
     group_field.setText("123456")

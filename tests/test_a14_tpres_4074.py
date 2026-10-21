@@ -63,16 +63,17 @@ def test_the_group_digits_win_over_the_cloud_comparison(fresh_db):
 def test_the_4074_zeroes_only_the_rows_the_owner_marked():
     from oms_ui.pages.cli4074 import ZERO_PLACEHOLDER_ROWS
 
-    assert ZERO_PLACEHOLDER_ROWS == frozenset({2, 5, 8, 11, 14, 15, 16, 17, 20, 23})
-    # the fourteen blank rows the owner listed are exactly the rest
-    blank = {1, 3, 4, 6, 7, 9, 10, 12, 13, 18, 19, 21, 22, 24}
+    # round 23: the owner removed the zero from rows 15 and 16 as well
+    assert ZERO_PLACEHOLDER_ROWS == frozenset({2, 5, 8, 11, 14, 17, 20, 23})
+    # every other row stays blank
+    blank = {1, 3, 4, 6, 7, 9, 10, 12, 13, 15, 16, 18, 19, 21, 22, 24}
     assert set(range(1, 25)) - ZERO_PLACEHOLDER_ROWS == blank
 
 
 @pytest.mark.parametrize("row,expected", [
     (1, ""), (2, "0"), (3, ""), (4, ""), (5, "0"), (6, ""), (7, ""), (8, "0"),
-    (9, ""), (10, ""), (11, "0"), (12, ""), (13, ""), (14, "0"), (15, "0"),
-    (16, "0"), (17, "0"), (18, ""), (19, ""), (20, "0"), (21, ""), (22, ""),
+    (9, ""), (10, ""), (11, "0"), (12, ""), (13, ""), (14, "0"), (15, ""),
+    (16, ""), (17, "0"), (18, ""), (19, ""), (20, "0"), (21, ""), (22, ""),
     (23, "0"), (24, ""),
 ])
 def test_the_sheet_placeholders_per_row(qtbot, fresh_db, row, expected):

@@ -133,7 +133,7 @@ fn should_include_precipitation(ir: &str) -> bool {
     rs_should_include_precipitation(ir)
 }
 
-/// Present-weather group is included only for IX in {1, 4}.
+/// Present-weather group is included for IX in {1, 4, 7} (Table 1860).
 #[pyfunction]
 fn should_include_weather(ix: &str) -> bool {
     rs_should_include_weather(ix)

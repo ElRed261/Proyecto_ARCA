@@ -168,10 +168,15 @@ fn include_policies() {
     assert!(!should_include_precipitation("4"));
     assert!(!should_include_precipitation(""));
 
+    // Table 1860: 1, 4 and 7 include the group; 2, 3, 5 and 6 omit it
     assert!(should_include_weather("1"));
     assert!(should_include_weather("4"));
+    assert!(should_include_weather("7"));
     assert!(!should_include_weather("0"));
     assert!(!should_include_weather("2"));
+    assert!(!should_include_weather("3"));
+    assert!(!should_include_weather("5"));
+    assert!(!should_include_weather("6"));
     assert!(!should_include_weather(""));
 }
 

@@ -170,8 +170,13 @@ pub(crate) fn should_include_precipitation(ir: &str) -> bool {
     matches!(ir, "0" | "1" | "2")
 }
 
+/// Manual OMM N°306, Tabla de cifrado 1860: the group 7wwW1W2 (or
+/// 7wawaWa1Wa2) is INCLUDED with ix 1 (staffed), 4 (automatic, tables
+/// 4677/4561) and 7 (automatic, tables 4680/4531), and OMITTED with 2, 3, 5
+/// and 6. The gate used to accept only 1 and 4, so an automatic station
+/// reporting ix=7 lost its present-weather group.
 pub(crate) fn should_include_weather(ix: &str) -> bool {
-    matches!(ix, "1" | "4")
+    matches!(ix, "1" | "4" | "7")
 }
 
 // =============================================================================
