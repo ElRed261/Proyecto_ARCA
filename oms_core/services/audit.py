@@ -53,6 +53,7 @@ from oms_core.db.repositories import audit as audit_repo
 from oms_core.db.repositories import stations as stations_repo
 from oms_core.db.repositories import summaries as summaries_repo
 from oms_core.services import access
+from oms_core.services import document_map as dm
 from oms_core.services.synoptic import _recalc_derived
 
 #: Canonical synoptic hours inspected by the auto-mark rule (oracle order).
@@ -143,6 +144,20 @@ _MONTH_ES_EN = {
     "diciembre": "12",
     "december": "12",
 }
+
+
+#: The five types the oracle offers, now a CLOSED list (spec S4): a free-text
+#: type let the same mistake be written five ways and made counting useless.
+ERROR_TYPES: tuple[str, ...] = (
+    "Sintaxis",
+    "Cálculo",
+    "Consistencia",
+    "Falta de datos",
+    "Otro",
+)
+
+#: The one type the application itself writes (missing observer per hour).
+AUTO_ERROR_TYPE = "Falta nombre de observador"
 
 
 class AuditError(Exception):
@@ -591,6 +606,7 @@ def mark_error(
 ) -> dict[str, Any]:
     """Mark a slot (unique barrier speaks the oracle message)."""
     _check_audit_role(role)
+    _validate_error_type(tipo_error)
     new_id = audit_repo.mark_error(
         conn,
         station_id=station_id,
@@ -608,9 +624,21 @@ def mark_error(
         "hora": hora,
         "campo": campo,
         "tipo_error": tipo_error,
+        "grupo": dm.group_for_field(campo),
         "nota": nota,
         "marcado_por": marcado_por,
     }
+
+
+def _validate_error_type(tipo_error: object) -> str:
+    """Only the closed list (plus the automatic one) can be stored."""
+    text = str(tipo_error or "").strip()
+    if text in ERROR_TYPES or text == AUTO_ERROR_TYPE:
+        return text
+    raise AuditError(
+        "Tipo de error inválido: " + (text or "(vacío)")
+        + ". Valores permitidos: " + ", ".join(ERROR_TYPES)
+    )
 
 
 def unmark_error(conn: sqlite3.Connection, *, role: str | None, mark_id: int) -> bool:

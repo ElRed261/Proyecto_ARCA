@@ -238,6 +238,8 @@ def is_derived(form_key: str) -> bool:
 
 __all__ = [
     "DERIVED_DATOS",
+    "FIELD_GROUPS",
+    "GROUP_ORDER",
     "OBSERVED_CLI3074",
     "OBSERVED_CLI4074",
     "OBSERVED_DATOS",
@@ -249,8 +251,91 @@ __all__ = [
     "document_to_datos",
     "document_to_groups",
     "form_key_for_synop",
+    "group_for_field",
     "groups_to_document",
     "is_derived",
     "is_group_value",
     "synop_name_for",
 ]
+
+# ---------------------------------------------------------------------------
+# Audit: which group of the observation a marked field belongs to
+# ---------------------------------------------------------------------------
+
+#: Group of the observation each auditable field belongs to. The auditor marks
+#: a FIELD; the report groups those marks by the part of the observation they
+#: touch (owner round 25, spec S4: "tipo + grupo del dato afectado").
+FIELD_GROUPS: dict[str, str] = {
+    # identification of the message
+    "meteo_2_1": "identificación",
+    "meteo_4_irixhvv": "identificación",
+    # pressure and its tendency
+    "pres_est": "presión",
+    "pres_nmm": "presión",
+    "p3": "presión",
+    "p24": "presión",
+    "correc_alt": "presión",
+    "tend_car": "tendencia",
+    "tend_dif": "tendencia",
+    # temperature (dry, wet, extremes, the 1sn/2sn groups, the Ts-Th spread)
+    "ts": "temperatura",
+    "th": "temperatura",
+    "t_max": "temperatura",
+    "t_min": "temperatura",
+    "t_max_24h": "temperatura",
+    "t_min_24h": "temperatura",
+    "meteo_6_3": "temperatura",
+    "meteo_6_4": "temperatura",
+    "diferencia": "temperatura",
+    # humidity and its psychrometric derivatives
+    "punto_rocio": "humedad",
+    "tension_vapor": "humedad",
+    "humedad_relativa": "humedad",
+    # wind (Nddff carries dd/ff) and cloud cover
+    "viento_dir": "viento",
+    "viento_vel": "viento",
+    "meteo_4_1": "viento",
+    "meteo_6_0": "nubosidad",
+    # visibility and present/past weather
+    "visibilidad": "visibilidad",
+    "meteo_4_6": "tiempo presente",
+    # precipitation and evaporation
+    "ll": "precipitación",
+    "ll_24h": "precipitación",
+    "meteo_8_3": "precipitación",
+    "meteo_8_4": "precipitación",
+    "meteo_8_0": "evaporación",
+    # ground state and snow
+    "meteo_6_2": "suelo y nieve",
+    "meteo_8_1": "suelo y nieve",
+    # who wrote the observation
+    "observador": "observador",
+}
+
+#: Report order of the groups (the "otro" bucket always closes the list).
+GROUP_ORDER: tuple[str, ...] = (
+    "identificación",
+    "presión",
+    "tendencia",
+    "temperatura",
+    "humedad",
+    "viento",
+    "nubosidad",
+    "visibilidad",
+    "tiempo presente",
+    "precipitación",
+    "evaporación",
+    "suelo y nieve",
+    "observador",
+    "otro",
+)
+
+
+def group_for_field(campo: object) -> str:
+    """Group of an audited field; ``otro`` for anything unknown.
+
+    The group is DERIVED from the field name, never typed: a mark stores the
+    field and the report says which part of the observation it belongs to, so
+    a field renamed in the mapping cannot leave a stale group behind (rule R3).
+    """
+    return FIELD_GROUPS.get(str(campo or ""), "otro")

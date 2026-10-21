@@ -87,7 +87,8 @@ READONLY_FIELDS = frozenset(
     }
 )
 
-ERROR_TYPES = ("Sintaxis", "Cálculo", "Consistencia", "Falta de datos", "Otro")
+#: single source: the service validates against the same closed list
+ERROR_TYPES = audit_service.ERROR_TYPES
 
 
 class MarkDialog(QDialog):
