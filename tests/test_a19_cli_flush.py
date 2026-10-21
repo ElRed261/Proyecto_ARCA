@@ -134,3 +134,17 @@ def test_the_5074_block_is_never_cleaned(fresh_db):
 
     cli_service.save_cli(fresh_db, STATION, DAY_A, "cli5074", block)
     assert cli_service.load_cli(fresh_db, STATION, DAY_A, "cli5074") == block
+
+
+# ----------------------------------------- Auditoría right after Sinóptico
+
+
+def test_audit_sits_immediately_after_synoptic():
+    """Owner round 25: the auditor works next to the observation it marks."""
+    from oms_ui.main_window import _RAIL_MODULE_IDS, NAV_ENTRIES
+
+    entries = [entry[0] for entry in NAV_ENTRIES]
+    assert entries[:3] == ["dashboard", "synoptic", "audit"]
+    assert list(_RAIL_MODULE_IDS)[:2] == ["synoptic", "audit"]
+    # the rail lists the same modules as the nav, in the same order
+    assert list(_RAIL_MODULE_IDS) == [e for e in entries if e != "dashboard"]

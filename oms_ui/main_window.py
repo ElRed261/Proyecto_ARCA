@@ -36,13 +36,15 @@ from oms_ui.pages.stations_admin import StationsAdminPage
 #: Rail entries WITHOUT "Inicio": the dashboard is the program's default
 #: landing point, not a selectable module (owner round 11 — a logo will
 #: replace it once the owner picks one).
-_RAIL_MODULE_IDS = ("synoptic", "summary", "audit", "maintenance", "admin")
+#: Owner round 25: Auditoría sits RIGHT AFTER Sinóptico — the auditor works
+#: next to the observation it marks, before the monthly summary.
+_RAIL_MODULE_IDS = ("synoptic", "audit", "summary", "maintenance", "admin")
 
 NAV_ENTRIES = (
     ("dashboard", "Inicio", "#3b82f6", "IN"),
     ("synoptic", "Sinóptico", "#3b82f6", "SI"),
-    ("summary", "Resumen", "#a855f7", "RE"),
     ("audit", "Auditoría", "#f97316", "AU"),
+    ("summary", "Resumen", "#a855f7", "RE"),
     ("maintenance", "Configuración", "#0d9488", "CO"),
     ("admin", "Seguridad", "#64748b", "SE"),
 )
