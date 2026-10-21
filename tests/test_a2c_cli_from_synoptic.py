@@ -190,3 +190,49 @@ def test_the_directions_come_from_the_dldmdh_group(fresh_db):
     assert row["nb_direc"] == "1"
     assert row["nm_direc"] == "2"
     assert row["na_direc"] == "3"
+
+
+# ------------------------------------------- 3074: T.PRES. (regla del Excel)
+
+
+def test_tpres_copies_the_ww_when_the_group_carries_it(fresh_db):
+    synoptic_service.save_hour(fresh_db, STATION, FECHA, "12Z", {
+        "meteo_4_1": "50602", "meteo_4_6": "71020", "nombre_observador": "X"})
+    row = cli_service.load_cli3074(fresh_db, STATION, FECHA)["horas"]["8"]
+    assert row["tiempo_presente"] == "10"
+
+
+def test_tpres_falls_back_to_the_cloud_cover_comparison(fresh_db):
+    """Workbook FORMULAS!M3: previous N > current N -> 01 (fell), equal -> 02,
+    previous < current -> 03 (rose). The fallback needs BOTH hours."""
+    synoptic_service.save_hour(fresh_db, STATION, FECHA, "09Z",
+                               {"meteo_4_1": "50102", "meteo_4_6": "7"})
+    synoptic_service.save_hour(fresh_db, STATION, FECHA, "12Z",
+                               {"meteo_4_1": "30100", "meteo_4_6": "7"})
+    row = cli_service.load_cli3074(fresh_db, STATION, FECHA)["horas"]["8"]
+    assert row["tiempo_presente"] == "01"   # cover fell 5 -> 3
+
+
+def test_tpres_steady_sky_is_02(fresh_db):
+    synoptic_service.save_hour(fresh_db, STATION, FECHA, "09Z",
+                               {"meteo_4_1": "30100", "meteo_4_6": "7"})
+    synoptic_service.save_hour(fresh_db, STATION, FECHA, "12Z",
+                               {"meteo_4_1": "30100", "meteo_4_6": "7"})
+    assert cli_service.load_cli3074(
+        fresh_db, STATION, FECHA)["horas"]["8"]["tiempo_presente"] == "02"
+
+
+def test_tpres_rising_cover_is_03(fresh_db):
+    synoptic_service.save_hour(fresh_db, STATION, FECHA, "09Z",
+                               {"meteo_4_1": "30100", "meteo_4_6": "7"})
+    synoptic_service.save_hour(fresh_db, STATION, FECHA, "12Z",
+                               {"meteo_4_1": "50602", "meteo_4_6": "7"})
+    assert cli_service.load_cli3074(
+        fresh_db, STATION, FECHA)["horas"]["8"]["tiempo_presente"] == "03"
+
+
+def test_tpres_is_empty_without_weather_or_a_previous_hour(fresh_db):
+    synoptic_service.save_hour(fresh_db, STATION, FECHA, "12Z",
+                               {"meteo_4_1": "50602", "meteo_4_6": "7"})
+    row = cli_service.load_cli3074(fresh_db, STATION, FECHA)["horas"]["8"]
+    assert not row.get("tiempo_presente")   # no 09Z, nothing to compare

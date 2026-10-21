@@ -323,7 +323,9 @@ def _viento_dir_from_nddff(nddff: str) -> str:
     return ""
 
 
-def _overlay_from_synoptic(row: dict, hour: dict, ch: str) -> dict:
+def _overlay_from_synoptic(
+    row: dict, hour: dict, ch: str, *, nddff_prev: str = ""
+) -> dict:
     """Fill the row's derived fields from its synoptic hour (rule R3).
 
     One call to the calculation boundary returns every derived value, so the
@@ -337,7 +339,7 @@ def _overlay_from_synoptic(row: dict, hour: dict, ch: str) -> dict:
     raw = oms_calc.recalculate_derived_fields_json(
         None, ts, th, pres_est, str(hour.get("p3") or ""),
         str(hour.get("p24") or ""), "", str(hour.get("meteo_4_irixhvv") or ""),
-        str(hour.get("meteo_4_6") or ""), nddff, "", ch,
+        str(hour.get("meteo_4_6") or ""), nddff, nddff_prev, ch,
     )
     derived = json.loads(raw) if isinstance(raw, str) else (raw or {})
     values = {
@@ -351,6 +353,7 @@ def _overlay_from_synoptic(row: dict, hour: dict, ch: str) -> dict:
         "hum_hr": derived.get("humedad_relativa"),
         "hum_tvap": derived.get("tension_vapor"),
         "hum_ptor": derived.get("punto_rocio"),
+        "tiempo_presente": derived.get("tiempo_presente"),
     }
     for key, value in values.items():
         if value:
@@ -614,9 +617,14 @@ def load_cli3074(conn: sqlite3.Connection, station: str, fecha: str) -> dict | N
             hour = synoptic.get(hora)
             if not hour:
                 continue
+            # the ww fallback compares this hour's N with the PREVIOUS hour's
+            # (workbook FORMULAS!M3), so the previous Nddff must travel too
+            previous = synoptic.get(oms_calc.get_prev_hour(hora)) or {}
             existing = new_horas.get(row_key)
             new_horas[row_key] = _overlay_from_synoptic(
-                existing if isinstance(existing, dict) else {}, hour, ch)
+                existing if isinstance(existing, dict) else {}, hour, ch,
+                nddff_prev=str(previous.get("meteo_4_1") or ""),
+            )
 
     # a day with synoptic data yields rows even when no CLI block was stored:
     # the view is a projection of the form, not a separate record.
