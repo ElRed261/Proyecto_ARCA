@@ -226,7 +226,8 @@ def test_calc_tiempo_presente_from_ww_and_nddff_fallback():
     assert oms_calc.calc_tiempo_presente("", "/0102", "50102") == ""
     assert oms_calc.calc_tiempo_presente("", "50102", "/0102") == ""
     assert oms_calc.calc_tiempo_presente("", "", "") == ""
-    assert oms_calc.calc_tiempo_presente("71", "", "") == ""
+    assert oms_calc.calc_tiempo_presente("71", "", "") == "01"  # one-digit ww pads
+    assert oms_calc.calc_tiempo_presente("7", "", "") == ""       # no ww at all
 
 
 def test_prev_hour_chain():

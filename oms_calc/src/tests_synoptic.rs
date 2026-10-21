@@ -265,7 +265,12 @@ fn calc_tiempo_presente_from_ww_and_nddff_fallback() {
     // No inputs at all
     assert_eq!(calc_tiempo_presente("", "", ""), "");
     // Short ww and empty nddff -> empty
-    assert_eq!(calc_tiempo_presente("71", "", ""), "");
+    assert_eq!(calc_tiempo_presente("7", "", ""), "");
+    // A single-digit ww still reads as two digits in the T.PRES. column
+    assert_eq!(calc_tiempo_presente("71", "", ""), "01");
+    assert_eq!(calc_tiempo_presente("79", "", ""), "09");
+    // Whitespace inside the group is irrelevant
+    assert_eq!(calc_tiempo_presente("7 10 20", "", ""), "10");
 }
 
 #[test]

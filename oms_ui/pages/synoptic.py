@@ -1196,15 +1196,15 @@ class SynopticPage(QWidget):
         self.save_btn.setMinimumHeight(32)
         self.save_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.save_btn.clicked.connect(self.save_clicked)
-        self.cargar_btn = QPushButton("Cargar JSON")
+        self.cargar_btn = QPushButton("Cargar Observación")
         self.cargar_btn.setProperty("secondaryaction", True)  # marker
         self.cargar_btn.setStyleSheet(SECONDARY_BTN_QSS)
-        self.cargar_btn.setIcon(lucide_icon("upload", "#475569", 15))
+        self.cargar_btn.setIcon(lucide_icon("folder", "#475569", 15))
         self.cargar_btn.setIconSize(QSize(15, 15))
         self.cargar_btn.setMinimumHeight(28)
         self.cargar_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         # clicked carries checked=False: never let it become the path
-        self.cargar_btn.clicked.connect(lambda: self._load_json_file())
+        self.cargar_btn.clicked.connect(lambda: self._open_observation_picker())
         actions_l.addWidget(self.save_btn)
         actions_l.addWidget(self.cargar_btn)
         right.addWidget(actions_card)
@@ -1353,6 +1353,33 @@ class SynopticPage(QWidget):
         self.status_label.setText(
             f"Día: {target_date.toString('dd/MM/yyyy')}"
         )
+
+    def _open_observation_picker(self) -> None:
+        """Browse the stored observations: station -> year -> month -> day.
+
+        The owner replaced the file explorer with this window (round 22); a
+        day picked here loads exactly like choosing its date by hand. The raw
+        JSON import stays available through ``_load_json_file`` for the
+        maintenance/ingest path.
+        """
+        from oms_ui.observation_picker import ObservationPickerDialog
+
+        dialog = ObservationPickerDialog(
+            self._conn,
+            station=self.station_id,
+            show_stations=self.station_combo.count() > 1,
+            parent=self,
+        )
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        station, fecha = dialog.selection()
+        if not fecha:
+            return
+        if station and station != self.station_id:
+            self.set_station(station)
+        target = QDate.fromString(fecha, "yyyy-MM-dd")
+        if target.isValid():
+            self.fecha_edit.setDate(target)
 
     def _load_json_file(self, path: str | None = None) -> None:
         """Load a diario JSON file into the form (OBS Cargar JSON)."""

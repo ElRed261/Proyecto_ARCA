@@ -104,6 +104,28 @@ _DOWNLOAD_INNER = (
     '<path d="M12 15V3" />\n  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />\n  <path d="m7 10 5 5 5-5" />'
 )
 
+#: inner SVG elements of lucide calendar-days (lucide-static v1.57.0, ISC)
+_CALENDAR_DAYS_INNER = (
+    '<path d="M8 2v4" />\n  <path d="M16 2v4" />\n  <rect width="18" height="18" x="3" y="4" rx="2" />'
+    '\n  <path d="M3 10h18" />\n  <path d="M8 14h.01" />\n  <path d="M12 14h.01" />'
+    '\n  <path d="M16 14h.01" />\n  <path d="M8 18h.01" />\n  <path d="M12 18h.01" />'
+    '\n  <path d="M16 18h.01" />'
+)
+
+#: inner SVG elements of lucide calendar (lucide-static v1.57.0, ISC)
+_CALENDAR_INNER = (
+    '<path d="M8 2v4" />\n  <path d="M16 2v4" />\n  <rect width="18" height="18" x="3" y="4" rx="2" />'
+    '\n  <path d="M3 10h18" />'
+)
+
+#: inner SVG elements of lucide folder (lucide-static v1.57.0, ISC)
+_FOLDER_INNER = (
+    '<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />'
+)
+
+#: inner SVG elements of lucide chevron-right (lucide-static v1.57.0, ISC)
+_CHEVRON_RIGHT_INNER = '<path d="m9 18 6-6-6-6" />'
+
 _CACHE: dict[tuple[str, str, int], QIcon] = {}
 
 
@@ -132,6 +154,10 @@ def lucide_icon(name: str, color: str, size: int = 16) -> QIcon:
         "bar-chart-3": _BAR_CHART_3_INNER,
         "table": _TABLE_INNER,
         "download": _DOWNLOAD_INNER,
+        "calendar": _CALENDAR_INNER,
+        "calendar-days": _CALENDAR_DAYS_INNER,
+        "folder": _FOLDER_INNER,
+        "chevron-right": _CHEVRON_RIGHT_INNER,
     }.get(name)
     if inner is None:
         raise LookupError(f"unknown lucide icon: {name}")

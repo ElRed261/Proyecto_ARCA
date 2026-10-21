@@ -588,37 +588,34 @@ def test_cargar_json_populates_hour(page, tmp_path):
     assert "1 horas" in page.status_label.text()
 
 
-def test_cargar_json_button_opens_the_dialog(page, qtbot, monkeypatch, tmp_path):
-    """Round 17: clicking the button must OPEN the file dialog.
+def test_cargar_observacion_button_opens_the_picker(page, qtbot, monkeypatch):
+    """Round 22: the button browses the stored days, it no longer opens a
+    file explorer. ``clicked`` still carries a ``checked`` argument, so the
+    slot must ignore it (it used to arrive as the file path)."""
+    from PySide6.QtWidgets import QDialog
 
-    ``clicked`` carries a ``checked`` argument; the slot used to receive it as
-    its ``path`` parameter, so ``open(False)`` read file descriptor 0 (stdin)
-    and every click ended in a bogus "JSON inválido".
-    """
-    from PySide6.QtWidgets import QFileDialog
-
-    payload = {
-        "meta": {"estacion": STATION, "fecha": "08122025"},
-        "horarias": [
-            {"hora": "06Z", "datos": {"ts": "19.5"}, "observador": "Dialogo"},
-        ],
-    }
-    path = tmp_path / "clic.json"
-    path.write_text(json.dumps(payload), encoding="utf-8")
+    from oms_ui import observation_picker
 
     calls: dict[str, object] = {}
 
-    def fake_dialog(parent, caption, directory, filt):
-        calls["caption"] = caption
-        return str(path), "JSON (*.json)"
+    def fake_exec(self):
+        calls["station"] = self._focus
+        calls["days"] = self.tree.topLevelItemCount()
+        calls["caption"] = self.windowTitle()
+        self.selected_station = STATION
+        self.selected_fecha = "2024-04-28"
+        return QDialog.DialogCode.Accepted
 
-    monkeypatch.setattr(QFileDialog, "getOpenFileName", staticmethod(fake_dialog))
+    monkeypatch.setattr(
+        observation_picker.ObservationPickerDialog, "exec", fake_exec
+    )
     qtbot.mouseClick(page.cargar_btn, Qt.LeftButton)
 
-    assert calls.get("caption") == "Cargar JSON", "el botón no abrió el diálogo"
+    assert page.cargar_btn.text() == "Cargar Observación"
+    assert calls.get("caption") == "Cargar observación"
+    assert calls.get("station") == STATION
+    assert page.fecha_iso == "2024-04-28", "el día elegido no se cargó"
     assert page.error_label.text() == ""
-    assert page.observations["06Z"]["ts"] == "19.5"
-    assert "JSON cargado" in page.status_label.text()
 
 
 def test_cargar_json_accepts_the_document_the_app_writes(page, tmp_path):

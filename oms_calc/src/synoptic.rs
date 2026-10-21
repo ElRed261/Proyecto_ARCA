@@ -331,10 +331,19 @@ pub(crate) fn calc_car(pres_est: &str, p3: &str) -> String {
 }
 
 pub(crate) fn calc_tiempo_presente(seven_ww: &str, nddff_current: &str, nddff_prev: &str) -> String {
-    if seven_ww.len() >= 3 {
-        let ww_chars = &seven_ww[1..3];
-        if !ww_chars.contains('/') {
-            return ww_chars.to_string();
+    // The T.PRES. column always reads as TWO digits: the group 7wwW1W2 gives
+    // them from its second and third characters, and a single-digit ww ("71")
+    // still reads "01" — it must not fall through to the cloud comparison.
+    let group: Vec<char> = seven_ww.chars().filter(|c| !c.is_whitespace()).collect();
+    if group.len() >= 3 {
+        let ww = [group[1], group[2]];
+        if ww.iter().all(|c| c.is_ascii_digit()) {
+            return ww.iter().collect();
+        }
+    } else if group.len() == 2 {
+        let digit = group[1];
+        if digit.is_ascii_digit() {
+            return format!("0{digit}");
         }
     }
     if !nddff_current.is_empty() && !nddff_prev.is_empty() {

@@ -56,6 +56,12 @@ _ROWSPAN_FIELDS: tuple[tuple[str, str, str], ...] = (
     ("observador", "OBS.", "#1e293b"),
 )
 _TEMPS: tuple[tuple[str, str], ...] = (("temp_max", "Máx"), ("temp_min", "Mín"))
+#: Rows that keep the grey "0" placeholder (owner's decision): the synoptic
+#: hours 2/5/8/11/14/17/20/23 plus the two rows that close the 18Z block. The
+#: rest of the sheet stays visually blank.
+ZERO_PLACEHOLDER_ROWS: frozenset[int] = frozenset(
+    {2, 5, 8, 11, 14, 15, 16, 17, 20, 23}
+)
 #: main-hour rows tinted GREEN across the full row (IMG/CLI 4074.png).
 _MAIN_TINT = "#d1fae5"
 _MAIN_STICKY = "#a7f3d0"
@@ -248,9 +254,10 @@ class Cli4074View(QWidget):
             for cindex, (field, _text) in enumerate(self._all_fields()):
                 edit = QLineEdit()
                 edit.setAlignment(Qt.AlignmentFlag.AlignCenter)
-                if field != "observador":
+                if field != "observador" and row in ZERO_PLACEHOLDER_ROWS:
                     # the sheet looks empty with only a few values; a grey 0
-                    # marks "no data" without inventing stored zeros (R1)
+                    # marks "no data" without inventing stored zeros (R1).
+                    # Only the rows the owner marked keep it.
                     edit.setPlaceholderText("0")
                 edit.setStyleSheet(
                     _MAIN_INPUT_QSS if main else INPUT_QSS
