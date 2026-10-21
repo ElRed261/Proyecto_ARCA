@@ -219,9 +219,10 @@ def test_calc_car_uses_raw_difference_no_rounding():
 def test_calc_tiempo_presente_from_ww_and_nddff_fallback():
     assert oms_calc.calc_tiempo_presente("71020", "", "") == "10"
     assert oms_calc.calc_tiempo_presente("71/20", "", "") == ""
-    assert oms_calc.calc_tiempo_presente("", "50102", "30100") == "01"
+    # workbook FORMULAS!M3: cover falling -> 01, steady -> 02, rising -> 03
+    assert oms_calc.calc_tiempo_presente("", "30100", "50102") == "01"
     assert oms_calc.calc_tiempo_presente("", "50102", "50102") == "02"
-    assert oms_calc.calc_tiempo_presente("", "30100", "50102") == "03"
+    assert oms_calc.calc_tiempo_presente("", "50102", "30100") == "03"
     assert oms_calc.calc_tiempo_presente("", "/0102", "50102") == ""
     assert oms_calc.calc_tiempo_presente("", "50102", "/0102") == ""
     assert oms_calc.calc_tiempo_presente("", "", "") == ""

@@ -341,7 +341,9 @@ pub(crate) fn calc_tiempo_presente(seven_ww: &str, nddff_current: &str, nddff_pr
         let curr = nddff_current.chars().next().unwrap_or('0');
         let prev = nddff_prev.chars().next().unwrap_or('0');
         if curr != '/' && prev != '/' {
-            return if curr > prev {
+            // Workbook FORMULAS!M3: a DECREASING cloud cover is 01, a steady
+            // sky is 02 and an INCREASING cover is 03 (they were inverted).
+            return if curr < prev {
                 "01".to_string()
             } else if curr == prev {
                 "02".to_string()

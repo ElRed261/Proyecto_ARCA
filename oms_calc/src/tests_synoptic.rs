@@ -254,10 +254,11 @@ fn calc_tiempo_presente_from_ww_and_nddff_fallback() {
     // ww digits present -> copied
     assert_eq!(calc_tiempo_presente("71020", "", ""), "10");
     assert_eq!(calc_tiempo_presente("71/20", "", ""), ""); // contains '/'
-    // Fallback on Nddff cloud-cover digit evolution
-    assert_eq!(calc_tiempo_presente("", "50102", "30100"), "01"); // rising
+    // Fallback on the Nddff cloud-cover digit evolution, as the station's
+    // workbook computes it (FORMULAS!M3): less cover -> 01, same -> 02, more -> 03
+    assert_eq!(calc_tiempo_presente("", "30100", "50102"), "01"); // cover fell
     assert_eq!(calc_tiempo_presente("", "50102", "50102"), "02"); // steady
-    assert_eq!(calc_tiempo_presente("", "30100", "50102"), "03"); // falling
+    assert_eq!(calc_tiempo_presente("", "50102", "30100"), "03"); // cover rose
     // '/' in the Nddff digit blocks the fallback
     assert_eq!(calc_tiempo_presente("", "/0102", "50102"), "");
     assert_eq!(calc_tiempo_presente("", "50102", "/0102"), "");

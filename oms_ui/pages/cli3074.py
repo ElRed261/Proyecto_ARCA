@@ -282,8 +282,8 @@ class Cli3074View(QWidget):
             tab.setStyleSheet(
                 f"QPushButton {{ background-color: {'#ffffff' if active else 'transparent'};"
                 f"color: {'#0369a1' if active else '#475569'}; border: none;"
-                "border-radius: 5px; padding: 3px 9px; font-size: 11px;"
-                "font-weight: bold; }"
+                "border-radius: 6px; padding: 6px 14px; font-size: 12px;"
+                "font-weight: bold; min-height: 24px; }"
                 "QPushButton:hover { background-color: #f0f9ff; }"
             )
             tab.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -306,12 +306,13 @@ class Cli3074View(QWidget):
         )
         hour_row.addWidget(hour_hint)
         self._hour_buttons: dict[str, QPushButton] = {}
-        for hour in ("00Z", "03Z", "06Z", "09Z", "12Z", "15Z", "18Z", "21Z"):
+        for hour in ("06Z", "09Z", "12Z", "15Z", "18Z", "21Z",
+                      "00Z", "03Z"):  # the day starts at 06Z
             button = QPushButton(hour)
             button.setStyleSheet(
                 "QPushButton { background-color: #ffffff; color: #475569;"
-                "border: none; border-radius: 5px; padding: 3px 7px;"
-                "font-size: 11px; font-weight: bold; }"
+                "border: none; border-radius: 6px; padding: 6px 12px;"
+                "font-size: 12px; font-weight: bold; min-height: 24px; }"
                 "QPushButton:hover { color: #0369a1; background-color: #f0f9ff; }"
             )
             button.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -582,6 +583,13 @@ class Cli3074View(QWidget):
             value = data.get(field)
             if value is not None:
                 self.row_inputs[row][field].setText(str(value))
+        # visibility and T.PRES. live outside ROW_FIELDS (they have their own
+        # columns), so they must be painted explicitly
+        for field in ("visibilidad", "tiempo_presente"):
+            value = data.get(field)
+            widget = self.row_inputs[row].get(field)
+            if value is not None and widget is not None:
+                widget.setText(str(value))
         fenomenos = data.get("fenomenos") or {}
         if isinstance(fenomenos, dict):
             for key, _abbr, _tip in FENOMENOS:

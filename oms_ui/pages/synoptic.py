@@ -493,6 +493,7 @@ class SynopticPage(QWidget):
         super().__init__(parent)
         self._conn = conn
         self._config_dir = config_dir
+        self._loading_day = False
         self._role = role  # oracle: Cargar JSON is admin-only
         self.observations = _initial_observations()
         self.active_hour = "06Z"
@@ -1563,8 +1564,55 @@ class SynopticPage(QWidget):
         self._update_readouts()
 
     def _on_date_changed(self) -> None:
+        """Picking a date in the editor loads that day, silently.
+
+        It used to only refresh the readouts, so choosing a date showed the
+        previous day's data (and the group fields never arrived). This path
+        never saves and never opens a dialog, so it cannot disturb the draft.
+        """
+        if self.station_id and not self._loading_day:
+            self._load_day_silently(self.fecha_iso)
         self._refresh_dynamic_states()
         self._schedule_draft_autosave()
+
+    def _load_day_silently(self, target: str) -> None:
+        """Read a day from the database into the form, without any side effect."""
+        from oms_core.services import document as document_service
+
+        self._loading_day = True
+        try:
+            day_doc = document_service.load_day_document(
+                self._conn, self.station_id, target
+            )
+            base = {
+                "station_id": self.station_id,
+                "fecha": target,
+                "correc_alt": self.correc_alt_edit.text(),
+            }
+            if day_doc is None:
+                remembered = synoptic_service.observer_for(self._conn, self.station_id)
+                self.observations = {
+                    hora: dict(base) for hora in synoptic_service.HOURS
+                }
+                if remembered:
+                    for hour_data in self.observations.values():
+                        hour_data["nombre_observador"] = remembered
+            else:
+                self.observations = {}
+                for hora in synoptic_service.HOURS:
+                    merged = dict(base)
+                    merged.update(day_doc.horas.get(hora) or {})
+                    self.observations[hora] = merged
+            self._load_hour_into_fields()
+            self._refresh_hour_mode()
+            self.refresh_progress()
+            self._update_readouts()
+            self._dirty = False
+            _LOGGER.debug("día cargado por fecha: %s %s", self.station_id, target)
+        except synoptic_service.SaveError as exc:
+            self.error_label.setText(f"Error al cargar el día: {exc}")
+        finally:
+            self._loading_day = False
 
     def _on_save_shortcut(self) -> None:
         self.save_clicked()

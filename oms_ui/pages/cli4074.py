@@ -248,6 +248,10 @@ class Cli4074View(QWidget):
             for cindex, (field, _text) in enumerate(self._all_fields()):
                 edit = QLineEdit()
                 edit.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                if field != "observador":
+                    # the sheet looks empty with only a few values; a grey 0
+                    # marks "no data" without inventing stored zeros (R1)
+                    edit.setPlaceholderText("0")
                 edit.setStyleSheet(
                     _MAIN_INPUT_QSS if main else INPUT_QSS
                 )
@@ -298,8 +302,8 @@ class Cli4074View(QWidget):
             tab.setStyleSheet(
                 f"QPushButton {{ background-color: {'#ffffff' if active else 'transparent'};"
                 f"color: {'#0369a1' if active else '#475569'}; border: none;"
-                "border-radius: 5px; padding: 3px 9px; font-size: 11px;"
-                "font-weight: bold; }"
+                "border-radius: 6px; padding: 6px 14px; font-size: 12px;"
+                "font-weight: bold; min-height: 24px; }"
                 "QPushButton:hover { background-color: #f0f9ff; }"
             )
             tab.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -322,12 +326,13 @@ class Cli4074View(QWidget):
             "background: transparent;"
         )
         hour_row.addWidget(hint)
-        for hour in ("00Z", "03Z", "06Z", "09Z", "12Z", "15Z", "18Z", "21Z"):
+        for hour in ("06Z", "09Z", "12Z", "15Z", "18Z", "21Z",
+                      "00Z", "03Z"):  # the day starts at 06Z
             button = QPushButton(hour)
             button.setStyleSheet(
                 "QPushButton { background-color: #ffffff; color: #475569;"
-                "border: none; border-radius: 5px; padding: 3px 7px;"
-                "font-size: 11px; font-weight: bold; }"
+                "border: none; border-radius: 6px; padding: 6px 12px;"
+                "font-size: 12px; font-weight: bold; min-height: 24px; }"
                 "QPushButton:hover { color: #0369a1; background-color: #f0f9ff; }"
             )
             button.setCursor(Qt.CursorShape.PointingHandCursor)

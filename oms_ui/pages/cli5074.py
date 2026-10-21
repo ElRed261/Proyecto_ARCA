@@ -454,8 +454,8 @@ class Cli5074View(QWidget):
             tab.setStyleSheet(
                 f"QPushButton {{ background-color: {'#ffffff' if active else 'transparent'};"
                 f"color: {'#e11d48' if active else '#475569'}; border: none;"
-                "border-radius: 5px; padding: 3px 9px; font-size: 11px;"
-                "font-weight: bold; }"
+                "border-radius: 6px; padding: 6px 14px; font-size: 12px;"
+                "font-weight: bold; min-height: 24px; }"
                 "QPushButton:hover { background-color: #ecfdf5; }"
             )
             tab.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -478,12 +478,13 @@ class Cli5074View(QWidget):
             "background: transparent;"
         )
         hour_row.addWidget(hint)
-        for hour in ("00Z", "03Z", "06Z", "09Z", "12Z", "15Z", "18Z", "21Z"):
+        for hour in ("06Z", "09Z", "12Z", "15Z", "18Z", "21Z",
+                      "00Z", "03Z"):  # the day starts at 06Z
             button = QPushButton(hour)
             button.setStyleSheet(
                 "QPushButton { background-color: #ffffff; color: #475569;"
-                "border: none; border-radius: 5px; padding: 3px 7px;"
-                "font-size: 11px; font-weight: bold; }"
+                "border: none; border-radius: 6px; padding: 6px 12px;"
+                "font-size: 12px; font-weight: bold; min-height: 24px; }"
                 "QPushButton:hover { color: #e11d48; background-color: #fff1f2; }"
             )
             button.setCursor(Qt.CursorShape.PointingHandCursor)
