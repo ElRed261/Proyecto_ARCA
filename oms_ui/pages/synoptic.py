@@ -71,6 +71,7 @@ from PySide6.QtWidgets import (
 
 import oms_calc
 from oms_core.db.repositories import stations as stations_repo
+from oms_core.services import past_weather
 from oms_core.services import synoptic as synoptic_service
 from oms_ui.icons import icon_pixmap, lucide_icon
 from oms_ui.widgets import StyledComboBox
@@ -494,6 +495,7 @@ class SynopticPage(QWidget):
         self._conn = conn
         self._config_dir = config_dir
         self._loading_day = False
+        self._cli_phenomena: dict[str, object] = {}
         self._role = role  # oracle: Cargar JSON is admin-only
         self.observations = _initial_observations()
         self.active_hour = "06Z"
@@ -1340,6 +1342,7 @@ class SynopticPage(QWidget):
                 merged.update(loaded.get(hora) or {})  # stored data wins
                 self.observations[hora] = merged
         # 4) repaint the form for the new day (active hour is preserved)
+        self._refresh_cli_phenomena()
         self.fecha_edit.setDate(target_date)
         _LOGGER.debug("día cargado: estación %s fecha %s", station, target)
         self._load_hour_into_fields()
@@ -1608,11 +1611,13 @@ class SynopticPage(QWidget):
             self.refresh_progress()
             self._update_readouts()
             self._dirty = False
+            self._refresh_cli_phenomena()
             _LOGGER.debug("día cargado por fecha: %s %s", self.station_id, target)
         except synoptic_service.SaveError as exc:
             self.error_label.setText(f"Error al cargar el día: {exc}")
         finally:
             self._loading_day = False
+        self._cli_phenomena: dict[str, object] = {}
 
     def _on_save_shortcut(self) -> None:
         self.save_clicked()
@@ -1719,12 +1724,57 @@ class SynopticPage(QWidget):
 
     def _update_readouts(self) -> None:
         derived = self._derive_active()
+        self._refresh_w1w2_suggestion(derived)
         self.results_per_hour[self.active_hour] = derived
         for key, widget in self.readouts.items():
             widget.blockSignals(True)
             widget.setText(derived.get(key, ""))
             widget.blockSignals(False)
         self._update_autos()
+
+    def _refresh_w1w2_suggestion(self, derived: dict) -> None:
+        """Show the computed 7wwW1W2 as a hint while the field is empty.
+
+        Regla 12.2.6.6.1 fixes the window per hour; the figures come from the
+        phenomena marked in the CLI 3074 within it. It is a placeholder, never
+        stored data: accepting it is still the observer's decision.
+        """
+        widget = self.field_widgets.get("meteo_4_6")
+        if widget is None or widget.text().strip():
+            return
+        ww = str((derived or {}).get("tiempo_presente") or "")
+        past = past_weather.compute_w1w2(
+            self.active_hour, self.observations, self._cli_phenomena
+        )
+        if past == "//" and not ww:
+            # nothing to suggest: keep the oracle's placeholder
+            widget.setPlaceholderText(_PLACEHOLDERS.get("meteo_4_6", "7"))
+            return
+        widget.setPlaceholderText(f"7{ww or '//'}{past}")
+
+    def _refresh_cli_phenomena(self) -> None:
+        """Per synoptic hour, the phenomena marked in the CLI 3074 sheet."""
+        self._cli_phenomena = {}
+        if not self.station_id or not self.fecha_iso:
+            return
+        try:
+            from oms_core.services import cli as cli_service
+
+            doc = cli_service.load_cli(
+                self._conn, self.station_id, self.fecha_iso, "cli3074"
+            )
+        except Exception:  # noqa: BLE001 - a hint must never break the page
+            _LOGGER.debug("sin fenómenos del CLI 3074 para la sugerencia")
+            return
+        if not isinstance(doc, dict):
+            return
+        rows = doc.get("horas") if isinstance(doc.get("horas"), dict) else doc
+        if not isinstance(rows, dict):
+            return
+        for hora, row_key in cli_service.SYNOP_ROWS:
+            row = rows.get(row_key)
+            if isinstance(row, dict):
+                self._cli_phenomena[hora] = row.get("fenomenos") or {}
 
     def _update_autos(self) -> None:
         """Fill the readonly SYNOP group cells (oracle row 4/8/16 autos)."""
