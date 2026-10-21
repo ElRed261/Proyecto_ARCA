@@ -385,3 +385,51 @@ def test_a_clean_day_still_reads_as_audited_once_closed(fresh_db):
         auditado_por="qc@oms",
     )
     assert "auditado" in day_badge(fresh_db, "78486", day)
+
+
+# --------------------------- the audit view reads the schema 2 day (round 25)
+
+
+def test_the_audit_view_loads_a_schema2_day(fresh_db):
+    """Migrated days store {synop{...}}; the oracle shape is flat."""
+    from oms_core.services import synoptic as synoptic_service
+
+    synoptic_service.save_hour(fresh_db, "78486", "2024-04-28", "06Z", {
+        "ts": "28.4", "meteo_4_1": "50602", "meteo_4_6": "70311",
+        "nombre_observador": "YASSER GALAN",
+    })
+    data = audit_service.load_observation_with_audit(fresh_db, "78486", "2024-04-28")
+    hour = data["observation"]["06Z"]
+    assert hour["ts"] == "28.4"
+    assert hour["meteo_4_1"] == "50602"
+    assert hour["observador"] == "YASSER GALAN"
+
+
+def test_the_audit_view_still_reads_a_legacy_day(fresh_db):
+    """The old {horas{...}} documents keep working."""
+    import json
+
+    fresh_db.execute(
+        "INSERT INTO summary_logs (station_id, year, month, day, kind, data)"
+        " VALUES ('78486', 2024, 5, 9, 'diario', ?)",
+        (json.dumps({
+            "meta": {"estacion": "78486", "fecha": "09052024", "observador": "MARTA"},
+            "horas": {"09Z": {"datos": {"ts": "25.1"},
+                              "synop": {"Nddff": "40102"},
+                              "observador": "MARTA"}},
+        }),),
+    )
+    fresh_db.commit()
+    data = audit_service.load_observation_with_audit(fresh_db, "78486", "2024-05-09")
+    assert data["observation"]["09Z"]["ts"] == "25.1"
+    assert data["observation"]["09Z"]["meteo_4_1"] == "40102"
+
+
+def test_a_schema2_hour_without_observer_is_auto_marked(fresh_db):
+    from oms_core.services import synoptic as synoptic_service
+
+    synoptic_service.save_hour(fresh_db, "78486", "2024-04-30", "12Z", {"ts": "27.0"})
+    data = audit_service.load_observation_with_audit(fresh_db, "78486", "2024-04-30")
+    marks = [m for m in data["error_marks"] if m["campo"] == "observador"]
+    assert [m["hora"] for m in marks] == ["12Z"]
+    assert marks[0]["marcado_por"] == "Sistema de Calidad"

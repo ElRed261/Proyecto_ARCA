@@ -488,9 +488,25 @@ def load_observation_with_audit(
         "observador": meta_observador,
     }
     horas = doc.get("horas") if isinstance(doc.get("horas"), dict) else {}
-    for hora_key, hora_val in horas.items():
-        if isinstance(hora_val, dict):
-            observation[hora_key] = _flatten_hora(hora_val, meta_observador, station)
+    if horas:
+        for hora_key, hora_val in horas.items():
+            if isinstance(hora_val, dict):
+                observation[hora_key] = _flatten_hora(hora_val, meta_observador, station)
+    elif isinstance(doc.get("synop"), dict):
+        # Schema 2 (what the application writes today) stores the hours under
+        # ``synop`` with the FORM keys already; the audit view wants exactly
+        # that flat shape, so no second mapping is needed. Without this branch
+        # every migrated day opened as an empty observation.
+        from oms_core.services.document import day_document_from_stored
+
+        day = day_document_from_stored(doc, station, fecha)
+        for hora, hour_data in day.horas.items():
+            flat: dict[str, Any] = dict(hour_data)
+            flat["station_id"] = station
+            flat["observador"] = (
+                str(flat.get("nombre_observador") or "") or meta_observador
+            )
+            observation[hora] = flat
 
     corrections = audit_repo.get_corrections(conn, station, fecha)
     error_marks = audit_repo.get_error_marks(conn, station, fecha)
