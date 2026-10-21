@@ -306,3 +306,82 @@ def test_the_pdf_carries_the_observer_sheet(report_page, tmp_path):
     assert path.endswith(".pdf")
     data = (tmp_path / "reporte.pdf").read_bytes()
     assert data.startswith(b"%PDF") and len(data) > 1000
+
+
+# ------------------------------------- T4-UI: closing from the observation page
+
+
+def _observation_page(conn, qtbot, role="admin"):
+    from oms_ui.pages.audit_observation import AuditObservationPage
+
+    page = AuditObservationPage(
+        conn, _tmp_dir(), "78486", "2024-04-28", role=role, user_email="qc@oms"
+    )
+    qtbot.addWidget(page)
+    return page
+
+
+def _tmp_dir():
+    import tempfile
+    from pathlib import Path
+
+    return Path(tempfile.mkdtemp())
+
+
+def test_the_button_closes_the_day_and_the_report_counts_it(fresh_db, qtbot):
+    from oms_core.services import synoptic as synoptic_service
+
+    synoptic_service.save_hour(fresh_db, "78486", "2024-04-28", "06Z",
+                               {"nombre_observador": "YASSER GALAN"})
+    page = _observation_page(fresh_db, qtbot)
+    assert page.close_button.text() == "Terminar auditoría"
+
+    page.toggle_audit_day()
+
+    assert audit_service.get_audit_day(
+        fresh_db, station_id="78486", fecha="2024-04-28"
+    )["auditado_por"] == "qc@oms"
+    assert page.close_button.text() == "Reabrir auditoría"
+    assert "qc@oms" in page.state_label.text()
+
+
+def test_the_button_reopens_a_closed_day(fresh_db, qtbot):
+    audit_service.close_audit_day(
+        fresh_db, role="admin", station_id="78486", fecha="2024-04-28",
+        auditado_por="qc@oms",
+    )
+    page = _observation_page(fresh_db, qtbot)
+    assert page.close_button.text() == "Reabrir auditoría"
+    page.toggle_audit_day()
+    assert audit_service.get_audit_day(
+        fresh_db, station_id="78486", fecha="2024-04-28"
+    ) is None
+
+
+def test_the_day_badge_says_sin_auditar_until_the_day_is_closed(fresh_db):
+    from oms_ui.pages.audit import day_badge
+
+    day = {"date": "2024-04-28", "error_count": 2, "correction_count": 1}
+    assert "sin auditar" in day_badge(fresh_db, "78486", day)
+    assert "2 errores" in day_badge(fresh_db, "78486", day)
+    assert "1 corrección" in day_badge(fresh_db, "78486", day)
+
+    audit_service.close_audit_day(
+        fresh_db, role="admin", station_id="78486", fecha="2024-04-28",
+        auditado_por="qc@oms",
+    )
+    assert "auditado" in day_badge(fresh_db, "78486", day)
+    assert "sin auditar" not in day_badge(fresh_db, "78486", day)
+
+
+def test_a_clean_day_still_reads_as_audited_once_closed(fresh_db):
+    """The oracle called a zero-error day 'not audited'; that was wrong."""
+    from oms_ui.pages.audit import day_badge
+
+    day = {"date": "2024-05-01", "error_count": 0, "correction_count": 0}
+    assert "sin auditar" in day_badge(fresh_db, "78486", day)
+    audit_service.close_audit_day(
+        fresh_db, role="admin", station_id="78486", fecha="2024-05-01",
+        auditado_por="qc@oms",
+    )
+    assert "auditado" in day_badge(fresh_db, "78486", day)

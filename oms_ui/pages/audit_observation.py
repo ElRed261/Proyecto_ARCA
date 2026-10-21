@@ -185,6 +185,13 @@ class AuditObservationPage(QWidget):
         self.export_button = QPushButton("Guardar Correcciones")
         self.export_button.clicked.connect(self.export_corrected)
         header.addWidget(self.export_button)
+        # owner round 25 (S7): the auditor closes the day here; that closure is
+        # what feeds the per-observer rates and the honest "sin auditar" badge
+        self.close_button = QPushButton("Terminar auditoría")
+        self.close_button.clicked.connect(self.toggle_audit_day)
+        header.addWidget(self.close_button)
+        self.state_label = QLabel("")
+        header.addWidget(self.state_label)
         layout.addLayout(header)
 
         hours_row = QHBoxLayout()
@@ -234,6 +241,9 @@ class AuditObservationPage(QWidget):
 
     def reload(self) -> None:
         """Reload the flattened view + marks from the service."""
+        # the closure state is database-only, so it paints even when the day
+        # file is missing from the archive (the grid below cannot load then)
+        self._refresh_audit_state()
         try:
             self._data = audit_service.load_observation_with_audit(
                 self.conn, self.station, self.fecha
@@ -423,6 +433,44 @@ class AuditObservationPage(QWidget):
         self.correction_dialog.hide()
         self.status_label.setText("Corrección aplicada (overlay activo).")
         self.reload()
+
+    def toggle_audit_day(self) -> None:
+        """Close (or reopen) this day's audit; the report counts on it."""
+        closed = audit_service.get_audit_day(
+            self.conn, station_id=self.station, fecha=self.fecha
+        )
+        try:
+            if closed is None:
+                audit_service.close_audit_day(
+                    self.conn,
+                    role=self.role,
+                    station_id=self.station,
+                    fecha=self.fecha,
+                    auditado_por=self.user_email,
+                )
+            else:
+                audit_service.reopen_audit_day(
+                    self.conn, role=self.role, station_id=self.station,
+                    fecha=self.fecha,
+                )
+        except _UI_ERRORS as exc:
+            self.state_label.setText(str(exc))
+            return
+        self._refresh_audit_state()
+
+    def _refresh_audit_state(self) -> None:
+        """Paint the closure state and the button that toggles it."""
+        closed = audit_service.get_audit_day(
+            self.conn, station_id=self.station, fecha=self.fecha
+        )
+        if closed is None:
+            self.state_label.setText("Día sin terminar")
+            self.close_button.setText("Terminar auditoría")
+            return
+        self.state_label.setText(
+            f"Auditado por {closed['auditado_por']} · {closed['auditado_en']}"
+        )
+        self.close_button.setText("Reabrir auditoría")
 
     def export_corrected(self) -> None:
         """Write the corrected copy next to the original (never overwrites)."""

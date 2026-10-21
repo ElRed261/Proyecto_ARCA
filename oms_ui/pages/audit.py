@@ -31,6 +31,26 @@ from oms_core.services import audit as audit_service
 from oms_core.services.audit import AuditError
 
 
+def day_badge(conn, station_id: str, day: dict) -> str:
+    """The day's badge: its counts plus whether the audit was closed.
+
+    The closure is the truth: a day reviewed with zero errors IS audited, and
+    a day with marks but no closure is still unfinished (owner round 25, S7).
+    """
+    closed = audit_service.get_audit_day(
+        conn, station_id=station_id, fecha=day["date"]
+    )
+    badges = []
+    if day.get("error_count"):
+        count = day["error_count"]
+        badges.append(f"{count} error" + ("" if count == 1 else "es"))
+    if day.get("correction_count"):
+        count = day["correction_count"]
+        badges.append(f"{count} corrección" + ("" if count == 1 else "es"))
+    badges.append("auditado" if closed is not None else "sin auditar")
+    return f" ({', '.join(badges)})"
+
+
 class AuditPage(QWidget):
     """Stations -> years -> months -> days drill-down."""
 
@@ -169,12 +189,7 @@ class AuditPage(QWidget):
         for day in audit_service.browse_days(
             self.base_dir, self.conn, self.selected_station, self.selected_year, self.selected_month
         ):
-            badges = []
-            if day["error_count"]:
-                badges.append(f"{day['error_count']} errors")
-            if day["correction_count"]:
-                badges.append(f"{day['correction_count']} corrections")
-            suffix = f" ({', '.join(badges)})" if badges else " (not audited)"
+            suffix = day_badge(self.conn, self.selected_station, day)
             self.days_list.addItem(f"{day['date']}{suffix}")
         self._set_step(4)
 
