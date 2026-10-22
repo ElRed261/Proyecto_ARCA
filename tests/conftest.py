@@ -25,6 +25,20 @@ FIXTURES = Path(__file__).resolve().parent / "fixtures"
 IMPORTER_FIXTURES = FIXTURES / "importer"
 
 
+@pytest.fixture(autouse=True)
+def _cheap_bcrypt(monkeypatch):
+    """Hash passwords at the bcrypt minimum during tests.
+
+    Production keeps cost 12 (~0.24 s per hash, deliberately slow against
+    brute force), but the suite hashed hundreds of passwords and that single
+    constant was the whole cost of the auth module. A hash made here still
+    verifies normally, so the login paths stay real.
+    """
+    from oms_core.services import auth
+
+    monkeypatch.setattr(auth, "DEFAULT_BCRYPT_COST", 4, raising=False)
+
+
 @pytest.fixture()
 def fresh_db(tmp_path):
     """Open a WAL connection and migrate it to the latest version."""

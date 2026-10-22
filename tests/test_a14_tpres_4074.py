@@ -70,19 +70,20 @@ def test_the_4074_zeroes_only_the_rows_the_owner_marked():
     assert set(range(1, 25)) - ZERO_PLACEHOLDER_ROWS == blank
 
 
-@pytest.mark.parametrize("row,expected", [
-    (1, ""), (2, "0"), (3, ""), (4, ""), (5, "0"), (6, ""), (7, ""), (8, "0"),
-    (9, ""), (10, ""), (11, "0"), (12, ""), (13, ""), (14, "0"), (15, ""),
-    (16, ""), (17, "0"), (18, ""), (19, ""), (20, "0"), (21, ""), (22, ""),
-    (23, "0"), (24, ""),
-])
-def test_the_sheet_placeholders_per_row(qtbot, fresh_db, row, expected):
-    from oms_ui.pages.cli4074 import Cli4074View
+def test_the_sheet_placeholders_per_row(qtbot, fresh_db):
+    """The zeroes live on the eight synoptic rows and nowhere else.
+
+    One view answers all 24 rows: building a Cli4074View per row cost ~0.55 s
+    each (360 widgets) and made this file the second slowest of the suite.
+    """
+    from oms_ui.pages.cli4074 import ZERO_PLACEHOLDER_ROWS, Cli4074View
 
     page = Cli4074View(fresh_db, station=STATION, fecha=FECHA)
     qtbot.addWidget(page)
-    for field, widget in page.row_inputs[row].items():
-        if field == "observador":
-            assert widget.placeholderText() == ""
-        else:
-            assert widget.placeholderText() == expected, (row, field)
+    for row in range(1, 25):
+        expected = "0" if row in ZERO_PLACEHOLDER_ROWS else ""
+        for field, widget in page.row_inputs[row].items():
+            if field == "observador":
+                assert widget.placeholderText() == "", (row, field)
+            else:
+                assert widget.placeholderText() == expected, (row, field)
