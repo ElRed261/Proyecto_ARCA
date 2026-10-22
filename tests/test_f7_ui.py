@@ -158,6 +158,7 @@ def _broken_transport(source, target):
     raise OSError("drive asleep")
 
 
+@pytest.mark.slow  # waits on the real sync thread: 0.17s idle, 38s under load
 def test_maintenance_retry_now_goes_through_the_thread(qtbot, fresh_db, tmp_path):
     offline = tmp_path / "off"
     online = tmp_path / "on"
@@ -206,6 +207,7 @@ def _seed_rows(conn, offline, count, payload=b"x" * 4096):
         _seed_pending(conn, offline, relative, payload)
 
 
+@pytest.mark.slow  # waits on the real sync thread: flaky under load
 def test_worker_stop_flag_cancels_a_slow_sync(qtbot, fresh_db, tmp_path):
     offline = tmp_path / "off"
     online = tmp_path / "on"

@@ -28,18 +28,28 @@ STATION = "78485"
 
 
 def _wait_timer(timer, timeout_ms: int = 8000) -> None:
-    """qtbot.waitSignal is BROKEN in this environment (pytest-qt x
-    PySide6 6.12 / py3.14t returns instantly without waiting) — spin a
-    QEventLoop until the timer fires. Proven working: the real timer
-    fires and the loop exits (probe: 5s timer -> fired at 4.75s)."""
-    from PySide6.QtCore import QEventLoop
+    """Pump the event loop until the timer fires, with a hard deadline.
+
+    Two environment faults are worked around here, both documented by
+    measurement rather than theory:
+    * ``qtbot.waitSignal`` returns instantly without waiting (pytest-qt x
+      PySide6 6.12), so it cannot be used;
+    * a NESTED ``QEventLoop`` sometimes never returns — the timer fires (or
+      is aborted mid-emission) and the loop's ``quit`` slot never runs, which
+      hung whole suite runs. Pumping ``processEvents`` has a deadline, so a
+      missed timer fails the test instead of hanging the run.
+    """
+    import time
+
     from PySide6.QtWidgets import QApplication
 
-    loop = QEventLoop()
-    timer.timeout.connect(loop.quit)
-    timer.start()
-    loop.exec()
-    QApplication.instance().processEvents()
+    if not timer.isActive():
+        timer.start()
+    deadline = time.monotonic() + timeout_ms / 1000
+    while timer.isActive() and time.monotonic() < deadline:
+        QApplication.processEvents()
+        time.sleep(0.005)
+    QApplication.processEvents()
 FECHA = "2025-12-08"
 
 
