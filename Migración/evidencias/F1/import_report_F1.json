@@ -1,0 +1,529 @@
+{
+ "corpus": {
+  "diario_root": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json",
+  "resumen_root": "OLD/Resumen_Mensual_Synop"
+ },
+ "passes": [
+  {
+   "ok": true,
+   "files": [
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/Estacion Central/2025/05/Estacion Central 01052025.json",
+     "kind": "diario",
+     "sha256": "d8441d9e2f7535918053fc0dc85852b782f113b6393b9d0db4bd08c2aafb5b67",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/Estacion Central/2025/05/Estacion Central 02052025.json",
+     "kind": "diario",
+     "sha256": "af54898f07bea4597bb946f0de9f2608d3eaaf05f5dce110eb564c2ed4b7ea36",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/Estacion Central/2025/05/Estacion Central 07052025.json",
+     "kind": "diario",
+     "sha256": "f0cd9ad20e3770756c617d942fa2fc0fdb6996a1d757e51a6c21ebc2d0ee75f4",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/Estacion Central/2025/05/Estacion Central 08052025.json",
+     "kind": "diario",
+     "sha256": "d8b972b59f5628ebde7bc1ea08a2e905cbc36bdddd4883d7822c9512a84bc04b",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/Estación Central/2025/05/Estación Central 03052025.json",
+     "kind": "diario",
+     "sha256": "fa159b8c08cef54a4bb672e06d2612b2b952498829e8d4305d61dbcb67c7edf8",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/Estación Central/2025/05/Estación Central 04052025.json",
+     "kind": "diario",
+     "sha256": "b47de4162c63ae1bd8aa4e3be05f3257b081b6e629b46e65ec9fa5949839ab16",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/Estación Central/2025/05/Estación Central 05052025.json",
+     "kind": "diario",
+     "sha256": "0ef87ada37f9846ddc8d9625c6667fe39efdb63b1e1c8937b8a85cbad8825fe6",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/Estación Central/2025/05/Estación Central 06052025.json",
+     "kind": "diario",
+     "sha256": "e065e27cf0344c7ded6a3000879e8bc668af904beb663efdb863cc43abe257c8",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/Estación Central/2025/05/Estación Central 09052025.json",
+     "kind": "diario",
+     "sha256": "cab9d5ae33c0da189fe71d721dc0f65a9c6ac46ea9e96fe719b3704d094f8ffe",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/Estación Central/2025/05/Estación Central 10052025.json",
+     "kind": "diario",
+     "sha256": "0363daf3882b23f6c7e9b2d76c0736f9dab95d02e6301d077eec503260924c18",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/Estación Central/2025/05/Estación Central 11052025.json",
+     "kind": "diario",
+     "sha256": "b87758c1f729991b6fc76b0da0d91c47c514185167edb49ec854605fed985e60",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/Estación Central/2025/05/Estación Central 12052025.json",
+     "kind": "diario",
+     "sha256": "88cbbc737198f7b723236be0274dbc5affeb12ee28dd1eab9a2cb02ad048a455",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/Estación Central/2025/05/Estación Central 13052025.json",
+     "kind": "diario",
+     "sha256": "04d4f548d9d969b445781dd89ddb8431672e4b9f8ed88950546a597320039c62",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/Estación Central/2025/05/Estación Central 14052025.json",
+     "kind": "diario",
+     "sha256": "12bd57bfeaa8a1e64e41776171cc4b27c671c9ed54b09df10d1fee510478ecb9",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/Estación Central/2025/05/Estación Central 15052025.json",
+     "kind": "diario",
+     "sha256": "bf7d4d5c540cd4fbb09186ca0c71837751934b838b9ba743358c5b7cf7b9db15",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/Estación Central/2025/05/Estación Central 16052025.json",
+     "kind": "diario",
+     "sha256": "1b656ffe4ba62de96c0efdab3d2379f0e9fedd63e363b21c8646570aee2ec1d4",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/Estación Central/2025/05/Estación Central 17052025.json",
+     "kind": "diario",
+     "sha256": "eb117328b0561fc9b4034a4a8cd90d70026ebba3a2452d048bb948e0db61de2c",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/Estación Central/2025/05/Estación Central 18052025.json",
+     "kind": "diario",
+     "sha256": "37adb841defc7f5c49615aaec7934c44b79979c6a4fda1fc9f1e2230ff615fc2",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/Estación Central/2025/05/Estación Central 19052025.json",
+     "kind": "diario",
+     "sha256": "dec2642ae9b67c07356b7597a0b555ada165907dfe49d5759d7202a65aa7cad9",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/Estación Central/2025/05/Estación Central 20052025.json",
+     "kind": "diario",
+     "sha256": "1f0bd62b04fae5156b9f09a783ce800490d8bed71fed1b077e2649d9a1c332cb",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/Estación Central/2025/05/Estación Central 21052025.json",
+     "kind": "diario",
+     "sha256": "a0354010a3add85093c3f3a440367b5d2e19b052e9a26c12ed7ce795ac9184d2",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/Estación Central/2025/05/Estación Central 22052025.json",
+     "kind": "diario",
+     "sha256": "9d7a02bfdc58ffa590b2b385c68c699167e514bda23cbafd9dd395409657be0d",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/Estación Central/2025/05/Estación Central 23052025.json",
+     "kind": "diario",
+     "sha256": "0fdc549c39c22b4a0f89f41466ae09abe270c4cfb32c1b6bcf5db56a338e8dd3",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/Estación Central/2025/05/Estación Central 24052025.json",
+     "kind": "diario",
+     "sha256": "c708046ee62a0d2fb94172f298e2ce6447fa522702667380c4d99e86ed63355a",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/Estación Central/2025/05/Estación Central 25052025.json",
+     "kind": "diario",
+     "sha256": "619b911fe0c12609526cd63079d9ddd5abf309b672ec7eac8a4ffedd108b774b",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/Estación Central/2025/05/Estación Central 26052025.json",
+     "kind": "diario",
+     "sha256": "9f1934cfedc6b0904efb50c3d71d3e9c1ae92ddcdf40269a8e44662712d70cf2",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/Estación Central/2025/05/Estación Central 27052025.json",
+     "kind": "diario",
+     "sha256": "93626bb4e9844aac7f958c3ec6904f9fe16d8a3266508eabbdcb484b74907c00",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/Estación Central/2025/05/Estación Central 28052025.json",
+     "kind": "diario",
+     "sha256": "f18e9fd4cdf64242a81d070e2ecdf050ab5d0d18f8ae2e228b1c46a5719c56c5",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/Estación Central/2025/05/Estación Central 29052025.json",
+     "kind": "diario",
+     "sha256": "df8a33acd7b54d366b22a939496204ce9407e781d7b93f0a960f6d444ec56ea8",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/Estación Central/2025/05/Estación Central 30052025.json",
+     "kind": "diario",
+     "sha256": "14e7f8f23d0a51643a883b4e59b301aafe1b867965728c6cef5c265eea29ebbe",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/Estación Central/2025/05/Estación Central 31052025.json",
+     "kind": "diario",
+     "sha256": "c9f9b8ea2c7a9c2491837a318ef64440e61a3abbc04d6b1966c9628eaa29349f",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/MDJB/2025/06/MDJB 01062025.json",
+     "kind": "diario",
+     "sha256": "c633b261163d2a76b79b73dc82c2a19f47e1397cd4f0980d45a927ecbf7ab492",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/MDJB/2025/06/MDJB 02062025.json",
+     "kind": "diario",
+     "sha256": "aaac7e1d9c121d0c8d48c3945400879272845ae208c29858dde1612aae1f293a",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/MDJB/2025/06/MDJB 03062025.json",
+     "kind": "diario",
+     "sha256": "955ad1a132cf51ffdceb015b57da1da1104684427c371b3b88d842eef9a24560",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/MDJB/2025/06/MDJB 04062025.json",
+     "kind": "diario",
+     "sha256": "995be88b3a04b2a0b728c87f9a5b4fe0c670c6e074b95b5dbbbd9a2237191a4a",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/MDJB/2025/06/MDJB 05062025.json",
+     "kind": "diario",
+     "sha256": "1c0a3286be6f987225798fa8350ea76d8a62225bcda2fa8e526784755a1e9a49",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/MDJB/2025/06/MDJB 06062025.json",
+     "kind": "diario",
+     "sha256": "63322003ccee9c9eb5682289ed0c32a79c1dd2a87a6f21559487f2b081956c98",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/MDJB/2025/06/MDJB 07062025.json",
+     "kind": "diario",
+     "sha256": "17fb67fa18e9d10e088dd0921b1e28fe163948578e421567e0410d7ab71ab4fc",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/MDJB/2025/06/MDJB 08062025.json",
+     "kind": "diario",
+     "sha256": "a58326a54cc6db8a6e7ddcc4eb45f908754354ef6ea9c4901326ebf16e3ab79b",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/MDJB/2025/06/MDJB 09062025.json",
+     "kind": "diario",
+     "sha256": "fec8c055d9e6dd61bc21536dce71ce1c2c8dc26656252eec6c2b863f7ed08bca",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/MDJB/2025/06/MDJB 10062025.json",
+     "kind": "diario",
+     "sha256": "871d073d5390816d5bc3317a584f51196d931c1f18aedcc53482e2acef9225c5",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/MDJB/2025/06/MDJB 11062025.json",
+     "kind": "diario",
+     "sha256": "2425fb2cab7d261ff84e491f555b8f32aa09de0b6c932b5a2be4055b08a8e806",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/MDJB/2025/06/MDJB 12062025.json",
+     "kind": "diario",
+     "sha256": "492f498a5e44fef257ddd7037ae4db989068cb59d478a3e8e57f1bf559cdb216",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/MDJB/2025/06/MDJB 13062025.json",
+     "kind": "diario",
+     "sha256": "566ab6bb8e9f4791be3d2d83ba4ef6c72ecae9b0fcb060bd3392b49bc704a9b5",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/MDJB/2025/06/MDJB 14062025.json",
+     "kind": "diario",
+     "sha256": "b518c430dcdd992440206644afa4708ca5d9f849f676e067f00dabee2cbe77bc",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/MDJB/2025/06/MDJB 15062025.json",
+     "kind": "diario",
+     "sha256": "e7b60666eba200348ee17d808149c82be25cd26d4cbf48edc1e34acfd1bafd26",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/MDJB/2025/06/MDJB 16062025.json",
+     "kind": "diario",
+     "sha256": "ea65ca96d11d995eb72f10c80f1ee1bd136f9122e206716e54dc874b8574a9e3",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/MDJB/2025/06/MDJB 17062025.json",
+     "kind": "diario",
+     "sha256": "3f98178a269b12fe8c2806d2900dc4e71ea25f14cc4242c94492b20d604933cc",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/MDJB/2025/06/MDJB 18062025.json",
+     "kind": "diario",
+     "sha256": "2ef20e16d272bbbf8adc3b8523a44340cfde7a026b14f9c186a510385e120449",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/MDJB/2025/06/MDJB 19062025.json",
+     "kind": "diario",
+     "sha256": "3d117e6d98ed0231373322ed740eca8c3fd9cefb8ea4f76c8d21e74d0c1947e0",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/MDJB/2025/06/MDJB 20062025.json",
+     "kind": "diario",
+     "sha256": "b97c0d37781973d3c9744ff4c86e4b3df87a097eae11b04d8373c41c1110d57b",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/MDJB/2025/06/MDJB 21062025.json",
+     "kind": "diario",
+     "sha256": "ac1a86dc533be8ac81e9f7efcda01b5efec32124d5394070e80d0d4b130ab23d",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/MDJB/2025/06/MDJB 22062025.json",
+     "kind": "diario",
+     "sha256": "52565f61d269b75d68c7ea8ae2ae2b4a87510a58638adb558859befd11d7ff2e",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/MDJB/2025/06/MDJB 23062025.json",
+     "kind": "diario",
+     "sha256": "5274870b079150f9a2f15e8849b7c29a28dc4254bc7c6f60637295b728cf44e0",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/MDJB/2025/06/MDJB 24062025.json",
+     "kind": "diario",
+     "sha256": "d71ce637d6311e50b687343923ce4c3582815e328debdf8873a9af9846afc810",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/MDJB/2025/06/MDJB 25062025.json",
+     "kind": "diario",
+     "sha256": "d43382c6c9f3c8701a32ff4dbc0c30f7541e37a8589b952be481a78944898ad0",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/MDJB/2025/06/MDJB 26062025.json",
+     "kind": "diario",
+     "sha256": "2314d20ec30dbb4d8d90efa9c99b714acd4dbd8e813fb26a8224a4e8463538e7",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/MDJB/2025/06/MDJB 27062025.json",
+     "kind": "diario",
+     "sha256": "d7c625be6e8c13c7ebe4c83fd68da1e59419d5a44784a35377153da22efbd1b8",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/MDJB/2025/06/MDJB 28062025.json",
+     "kind": "diario",
+     "sha256": "3f4f2b4d6af96025241d5caa53c375a4a707e4cae714311c668cf6a7676ee39d",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/MDJB/2025/06/MDJB 29062025.json",
+     "kind": "diario",
+     "sha256": "04f4e3972ea1ed44c4763ea0ce217d8caaa1b6e4bc27b76eb628fe674ebcd347",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/miscelaneos/base_para_modulos/Resumen_Mensual_Synop/data/json/MDJB/2025/06/MDJB 30062025.json",
+     "kind": "diario",
+     "sha256": "b2b00d1cb2f248f12144d35703f0da3251150d4fe655510497b7cb10aa27d3e7",
+     "status": "imported",
+     "detail": ""
+    }
+   ],
+   "stations_provisioned": [
+    "Estacion Central",
+    "Estación Central",
+    "MDJB"
+   ],
+   "row_counts": {
+    "observations": [
+     488,
+     488
+    ],
+    "summary_docs": [
+     61,
+     61
+    ]
+   },
+   "sample_comparisons": 55,
+   "sample_mismatches": [],
+   "errors": [],
+   "preexisting_keys": 0
+  },
+  {
+   "ok": true,
+   "files": [
+    {
+     "path": "OLD/Resumen_Mensual_Synop/resumen_78485_102025.json",
+     "kind": "resumen",
+     "sha256": "4c9267cb2df5363a05a8f668d94beb47aa60c770bd397489ce23c5e2ac584de8",
+     "status": "imported",
+     "detail": ""
+    },
+    {
+     "path": "OLD/Resumen_Mensual_Synop/resumen_78486_102025.json",
+     "kind": "resumen",
+     "sha256": "9e089c779161d8f302e93881dce7cc89728264f3ffebe66187cd4789517b132a",
+     "status": "imported",
+     "detail": ""
+    }
+   ],
+   "stations_provisioned": [],
+   "row_counts": {
+    "observations": [
+     0,
+     0
+    ],
+    "summary_docs": [
+     2,
+     2
+    ]
+   },
+   "sample_comparisons": 1,
+   "sample_mismatches": [],
+   "errors": [],
+   "preexisting_keys": 549
+  }
+ ],
+ "rerun": {
+  "diario_ok": true,
+  "diario_row_counts": {
+   "observations": [
+    488,
+    488
+   ],
+   "summary_docs": [
+    61,
+    61
+   ]
+  },
+  "resumen_ok": true,
+  "resumen_row_counts": {
+   "observations": [
+    0,
+    0
+   ],
+   "summary_docs": [
+    2,
+    2
+   ]
+  },
+  "diario_sample_mismatches": [],
+  "resumen_sample_mismatches": []
+ },
+ "totals": {
+  "observations": 488,
+  "summary_docs": 63,
+  "stations_total": 18,
+  "provisioned_inactive": [
+   "Estacion Central",
+   "Estación Central",
+   "MDJB"
+  ]
+ }
+}

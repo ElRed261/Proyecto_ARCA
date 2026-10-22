@@ -4,6 +4,8 @@ __pycache__/
 *$py.class
 venv/
 .venv/
+.venv-gil/
+dev/
 .env
 
 # --- NODE / REACT ---
@@ -16,3 +18,30 @@ dist/
 .vscode/
 .idea/
 *.swp
+
+# --- RUST / TAURI ---
+target/
+frontend/src-tauri/target/
+
+# --- LOCAL DATABASE & ARTIFACTS ---
+*.db
+*.log
+*.bak
+*.xlsm
+
+# --- AGENT TEAMS LITE ---
+.atl/
+.agent/
+
+# --- CODEBASE MEMORY (local graph artifact) ---
+.codebase-memory/
+miscelaneos/base_para_modulos/Resumen_Mensual_Synop/
+!pipeline/tests/fixtures/
+!pipeline/tests/fixtures/*.xlsm
+
+# --- editor swap files ---
+*.swp
+*.kate-swp
+
+# El oráculo vive FUERA del repo (movido por el dueño a ../OLD)
+OLD/

@@ -1,0 +1,36 @@
+[project]
+name = "neoarca"
+version = "0.1.0"
+description = "OMS — Observations Management System (Neo Arca)"
+requires-python = ">=3.13"
+dependencies = [
+    "openpyxl>=3.1",
+    "platformdirs>=4.0",
+    "jsonschema>=4.20",
+    "keyring>=24.0",
+]
+
+[build-system]
+requires = ["maturin>=1.0,<2.0"]
+build-backend = "maturin"
+
+[tool.maturin]
+manifest-path = "oms_calc/Cargo.toml"
+module-name = "oms_calc"
+bindings = "pyo3"
+
+[project.optional-dependencies]
+dev = ["pytest", "ruff", "maturin"]
+ui = ["PySide6"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "slow: real-time waits or full-window builds (excluded from fast runs: -m 'not slow')",
+    "smoke: fast structural humo tests",
+]
+addopts = "-ra"
+
+[tool.ruff]
+target-version = "py313"
+line-length = 100

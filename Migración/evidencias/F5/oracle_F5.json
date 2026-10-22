@@ -1,0 +1,6421 @@
+{
+  "months": [
+    {
+      "month": "2025-05",
+      "station_keys": [
+        "Estacion Central",
+        "Estación Central"
+      ],
+      "comparable": true,
+      "non_comparable_reason": "",
+      "stored_meta": {
+        "estacion": "Estacion Central",
+        "periodo": "052025",
+        "registros": 31
+      },
+      "stored_rows": 31,
+      "regen_rows": 31,
+      "compared_days": 31,
+      "cells": 651,
+      "counts": {
+        "exact": 570,
+        "rain_shift": 23,
+        "nub_artifact": 55,
+        "input_version": 1,
+        "wind_tie": 1,
+        "rounding": 1
+      },
+      "diffs": [
+        {
+          "day": "2025-05-01",
+          "dup": 0,
+          "column": "Lluvia",
+          "stored": 7.7,
+          "regen": null,
+          "class": "rain_shift"
+        },
+        {
+          "day": "2025-05-01",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 5.5,
+          "regen": 4.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-05-01",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 7.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-05-02",
+          "dup": 0,
+          "column": "Lluvia",
+          "stored": 0.0,
+          "regen": 7.7,
+          "class": "rain_shift"
+        },
+        {
+          "day": "2025-05-02",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 5.7,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-05-03",
+          "dup": 0,
+          "column": "Lluvia",
+          "stored": 15.0,
+          "regen": 0.0,
+          "class": "rain_shift"
+        },
+        {
+          "day": "2025-05-03",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 5.2,
+          "regen": 4.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-05-03",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 6.3,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-05-04",
+          "dup": 0,
+          "column": "Lluvia",
+          "stored": 1.1,
+          "regen": 15.0,
+          "class": "rain_shift"
+        },
+        {
+          "day": "2025-05-04",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 3.5,
+          "regen": 2.3,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-05-04",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 4.7,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-05-05",
+          "dup": 0,
+          "column": "Lluvia",
+          "stored": 1.9,
+          "regen": 1.1,
+          "class": "rain_shift"
+        },
+        {
+          "day": "2025-05-05",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 4.5,
+          "regen": 3.3,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-05-05",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 5.7,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-05-06",
+          "dup": 0,
+          "column": "Lluvia",
+          "stored": null,
+          "regen": 1.9,
+          "class": "rain_shift"
+        },
+        {
+          "day": "2025-05-06",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 6.5,
+          "regen": 6.3,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-05-06",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 6.7,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-05-07",
+          "dup": 0,
+          "column": "Lluvia",
+          "stored": 0.0,
+          "regen": null,
+          "class": "rain_shift"
+        },
+        {
+          "day": "2025-05-07",
+          "dup": 0,
+          "column": "Dirección del viento",
+          "stored": "VRB",
+          "regen": null,
+          "class": "input_version"
+        },
+        {
+          "day": "2025-05-08",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 3.3,
+          "regen": 2.7,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-05-08",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 4.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-05-09",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 2.5,
+          "regen": 1.7,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-05-09",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 3.3,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-05-10",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 3.3,
+          "regen": 3.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-05-10",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 3.7,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-05-11",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 3.8,
+          "regen": 3.3,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-05-11",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 4.3,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-05-12",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 4.7,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-05-13",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 2.7,
+          "regen": 2.3,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-05-13",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 3.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-05-14",
+          "dup": 0,
+          "column": "Lluvia",
+          "stored": 5.0,
+          "regen": 0.0,
+          "class": "rain_shift"
+        },
+        {
+          "day": "2025-05-14",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 4.3,
+          "regen": 3.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-05-14",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 5.7,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-05-15",
+          "dup": 0,
+          "column": "Lluvia",
+          "stored": 18.7,
+          "regen": 5.0,
+          "class": "rain_shift"
+        },
+        {
+          "day": "2025-05-15",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 7.0,
+          "regen": 6.7,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-05-15",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 7.3,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-05-16",
+          "dup": 0,
+          "column": "Lluvia",
+          "stored": 34.9,
+          "regen": 18.7,
+          "class": "rain_shift"
+        },
+        {
+          "day": "2025-05-16",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 7.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-05-17",
+          "dup": 0,
+          "column": "Lluvia",
+          "stored": 8.8,
+          "regen": 34.9,
+          "class": "rain_shift"
+        },
+        {
+          "day": "2025-05-17",
+          "dup": 0,
+          "column": "Velocidad máxima y direccion",
+          "stored": "CALMA 7,2",
+          "regen": "NNW 7,2",
+          "class": "wind_tie"
+        },
+        {
+          "day": "2025-05-17",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 3.8,
+          "regen": 2.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-05-17",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 5.7,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-05-18",
+          "dup": 0,
+          "column": "Lluvia",
+          "stored": 0.0,
+          "regen": 8.8,
+          "class": "rain_shift"
+        },
+        {
+          "day": "2025-05-18",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 2.3,
+          "regen": 2.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-05-18",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 2.7,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-05-19",
+          "dup": 0,
+          "column": "Lluvia",
+          "stored": 0.4,
+          "regen": 0.0,
+          "class": "rain_shift"
+        },
+        {
+          "day": "2025-05-19",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 2.5,
+          "regen": 2.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-05-19",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 3.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-05-20",
+          "dup": 0,
+          "column": "Lluvia",
+          "stored": 0.0,
+          "regen": 0.4,
+          "class": "rain_shift"
+        },
+        {
+          "day": "2025-05-20",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 2.2,
+          "regen": 2.7,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-05-20",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 1.7,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-05-21",
+          "dup": 0,
+          "column": "Media temperatura",
+          "stored": 29.3,
+          "regen": 29.4,
+          "class": "rounding"
+        },
+        {
+          "day": "2025-05-21",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 2.5,
+          "regen": 2.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-05-21",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 3.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-05-22",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 4.5,
+          "regen": 3.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-05-22",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 6.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-05-23",
+          "dup": 0,
+          "column": "Lluvia",
+          "stored": 2.3,
+          "regen": 0.0,
+          "class": "rain_shift"
+        },
+        {
+          "day": "2025-05-23",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 2.5,
+          "regen": 3.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-05-23",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 2.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-05-24",
+          "dup": 0,
+          "column": "Lluvia",
+          "stored": 0.0,
+          "regen": 2.3,
+          "class": "rain_shift"
+        },
+        {
+          "day": "2025-05-24",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 2.0,
+          "regen": 1.7,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-05-24",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 2.3,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-05-25",
+          "dup": 0,
+          "column": "Lluvia",
+          "stored": null,
+          "regen": 0.0,
+          "class": "rain_shift"
+        },
+        {
+          "day": "2025-05-25",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 5.5,
+          "regen": 4.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-05-25",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 7.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-05-26",
+          "dup": 0,
+          "column": "Lluvia",
+          "stored": 0.0,
+          "regen": null,
+          "class": "rain_shift"
+        },
+        {
+          "day": "2025-05-26",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 4.2,
+          "regen": 4.3,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-05-26",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 4.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-05-27",
+          "dup": 0,
+          "column": "Lluvia",
+          "stored": 0.3,
+          "regen": 0.0,
+          "class": "rain_shift"
+        },
+        {
+          "day": "2025-05-27",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 4.3,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-05-28",
+          "dup": 0,
+          "column": "Lluvia",
+          "stored": 0.7,
+          "regen": 0.3,
+          "class": "rain_shift"
+        },
+        {
+          "day": "2025-05-28",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 5.3,
+          "regen": 4.7,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-05-28",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 6.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-05-29",
+          "dup": 0,
+          "column": "Lluvia",
+          "stored": 1.0,
+          "regen": 0.7,
+          "class": "rain_shift"
+        },
+        {
+          "day": "2025-05-29",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 6.7,
+          "regen": 7.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-05-29",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 6.3,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-05-30",
+          "dup": 0,
+          "column": "Lluvia",
+          "stored": 0.6,
+          "regen": 1.0,
+          "class": "rain_shift"
+        },
+        {
+          "day": "2025-05-30",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 6.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-05-31",
+          "dup": 0,
+          "column": "Lluvia",
+          "stored": null,
+          "regen": 0.6,
+          "class": "rain_shift"
+        },
+        {
+          "day": "2025-05-31",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 3.3,
+          "regen": 2.7,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-05-31",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 4.0,
+          "class": "nub_artifact"
+        }
+      ],
+      "structural": [
+        "meta shape {estacion, periodo MMYYYY, registros} vs neo {estacion, periodo MM/YYYY, total_dias, generado}",
+        "periodo stored '052025' vs regen '05/2025' (slash format)",
+        "total_dias stored registros=31 vs regen 31 (files-count vs calendar-complete)"
+      ]
+    },
+    {
+      "month": "2025-06-mdjb",
+      "station_keys": [
+        "MDJB"
+      ],
+      "comparable": true,
+      "non_comparable_reason": "",
+      "stored_meta": {
+        "estacion": "MDJB",
+        "periodo": "062025",
+        "registros": 30
+      },
+      "stored_rows": 30,
+      "regen_rows": 30,
+      "compared_days": 30,
+      "cells": 630,
+      "counts": {
+        "exact": 531,
+        "nub_artifact": 90,
+        "rain_shift": 9
+      },
+      "diffs": [
+        {
+          "day": "2025-06-01",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 3.2,
+          "regen": 2.7,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-01",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 2.7,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-01",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 3.2,
+          "regen": 2.7,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-02",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 3.6,
+          "regen": 3.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-02",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 3.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-02",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 3.6,
+          "regen": 3.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-03",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 4.0,
+          "regen": 3.3,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-03",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 3.3,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-03",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 4.0,
+          "regen": 3.3,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-04",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 5.6,
+          "regen": 2.3,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-04",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 7.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-04",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 5.6,
+          "regen": 4.7,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-05",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 4.6,
+          "regen": 1.7,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-05",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 6.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-05",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 4.6,
+          "regen": 3.8,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-06",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 4.0,
+          "regen": 2.7,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-06",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 4.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-06",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 4.0,
+          "regen": 3.3,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-07",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 4.8,
+          "regen": 2.7,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-07",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 5.3,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-07",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 4.8,
+          "regen": 4.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-08",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 4.8,
+          "regen": 3.3,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-08",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 4.7,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-08",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 4.8,
+          "regen": 4.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-09",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 6.6,
+          "regen": 4.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-09",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 7.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-09",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 6.6,
+          "regen": 5.5,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-10",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 6.8,
+          "regen": 3.7,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-10",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 7.7,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-10",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 6.8,
+          "regen": 5.7,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-11",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 6.4,
+          "regen": 3.7,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-11",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 7.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-11",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 6.4,
+          "regen": 5.3,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-12",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 5.2,
+          "regen": 3.3,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-12",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 5.3,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-12",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 5.2,
+          "regen": 4.3,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-13",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 4.2,
+          "regen": 2.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-13",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 5.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-13",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 4.2,
+          "regen": 3.5,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-14",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 6.6,
+          "regen": 4.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-14",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 7.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-14",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 6.6,
+          "regen": 5.5,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-15",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 6.6,
+          "regen": 4.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-15",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 7.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-15",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 6.6,
+          "regen": 5.5,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-16",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 7.4,
+          "regen": 5.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-16",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 7.3,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-16",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 7.4,
+          "regen": 6.2,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-17",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 6.8,
+          "regen": 4.3,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-17",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 7.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-17",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 6.8,
+          "regen": 5.7,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-18",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 7.8,
+          "regen": 5.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-18",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 8.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-18",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 7.8,
+          "regen": 6.5,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-19",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 4.6,
+          "regen": 2.7,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-19",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 5.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-19",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 4.6,
+          "regen": 3.8,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-20",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 6.8,
+          "regen": 4.3,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-20",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 7.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-20",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 6.8,
+          "regen": 5.7,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-21",
+          "dup": 0,
+          "column": "Lluvia",
+          "stored": 0.0,
+          "regen": null,
+          "class": "rain_shift"
+        },
+        {
+          "day": "2025-06-21",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 5.2,
+          "regen": 4.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-21",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 4.7,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-21",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 5.2,
+          "regen": 4.3,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-22",
+          "dup": 0,
+          "column": "Lluvia",
+          "stored": null,
+          "regen": 0.0,
+          "class": "rain_shift"
+        },
+        {
+          "day": "2025-06-22",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 6.6,
+          "regen": 3.7,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-22",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 7.3,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-22",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 6.6,
+          "regen": 5.5,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-23",
+          "dup": 0,
+          "column": "Lluvia",
+          "stored": 0.0,
+          "regen": null,
+          "class": "rain_shift"
+        },
+        {
+          "day": "2025-06-23",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 5.0,
+          "regen": 2.7,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-23",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 5.7,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-23",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 5.0,
+          "regen": 4.2,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-24",
+          "dup": 0,
+          "column": "Lluvia",
+          "stored": null,
+          "regen": 0.0,
+          "class": "rain_shift"
+        },
+        {
+          "day": "2025-06-24",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 7.2,
+          "regen": 4.7,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-24",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 7.3,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-24",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 7.2,
+          "regen": 6.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-25",
+          "dup": 0,
+          "column": "Lluvia",
+          "stored": 0.0,
+          "regen": null,
+          "class": "rain_shift"
+        },
+        {
+          "day": "2025-06-25",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 4.8,
+          "regen": 3.7,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-25",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 4.3,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-25",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 4.8,
+          "regen": 4.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-26",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 4.2,
+          "regen": 3.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-26",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 4.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-26",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 4.2,
+          "regen": 3.5,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-27",
+          "dup": 0,
+          "column": "Lluvia",
+          "stored": 15.6,
+          "regen": 0.0,
+          "class": "rain_shift"
+        },
+        {
+          "day": "2025-06-27",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 4.2,
+          "regen": 2.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-27",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 5.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-27",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 4.2,
+          "regen": 3.5,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-28",
+          "dup": 0,
+          "column": "Lluvia",
+          "stored": 29.7,
+          "regen": 15.6,
+          "class": "rain_shift"
+        },
+        {
+          "day": "2025-06-28",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 5.8,
+          "regen": 3.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-28",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 6.7,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-28",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 5.8,
+          "regen": 4.8,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-29",
+          "dup": 0,
+          "column": "Lluvia",
+          "stored": 30.8,
+          "regen": 29.7,
+          "class": "rain_shift"
+        },
+        {
+          "day": "2025-06-29",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 5.4,
+          "regen": 2.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-29",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 7.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-29",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 5.4,
+          "regen": 4.5,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-30",
+          "dup": 0,
+          "column": "Lluvia",
+          "stored": null,
+          "regen": 30.8,
+          "class": "rain_shift"
+        },
+        {
+          "day": "2025-06-30",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 5.4,
+          "regen": 4.7,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-30",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 4.3,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-30",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 5.4,
+          "regen": 4.5,
+          "class": "nub_artifact"
+        }
+      ],
+      "structural": [
+        "periodo stored '062025' vs regen '06/2025'",
+        "total_dias stored registros=30 vs regen 30"
+      ]
+    },
+    {
+      "month": "2025-06-central-xlsm",
+      "station_keys": [
+        "INSTITUTO  DOMINICANO DE METEOROLOGÍA (INDOMET)"
+      ],
+      "comparable": false,
+      "non_comparable_reason": "the corpus *.xlsm books are one template revision newer than the frozen oracle ExcelConfig: data sits in C..N (B = hour sub-index) while config.rs reads B..M, so the verbatim port decodes absurd values (p_est 12.5, v 252 m/s, nub 8/17). The stored June resumen was built from older-template books no longer in the corpus.",
+      "stored_meta": {
+        "estacion": "Estacion Central",
+        "periodo": "062025",
+        "registros": 31
+      },
+      "stored_rows": 31,
+      "regen_rows": 30,
+      "compared_days": 30,
+      "cells": 630,
+      "counts": {
+        "exact": 49,
+        "template_drift": 485,
+        "rain_shift": 24,
+        "nub_artifact": 93
+      },
+      "diffs": [
+        {
+          "day": "2025-06-01",
+          "dup": 0,
+          "column": "Mayor temperatura máxima",
+          "stored": 34.4,
+          "regen": 0.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-01",
+          "dup": 0,
+          "column": "Menor temperatura minima",
+          "stored": 25.6,
+          "regen": 28.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-01",
+          "dup": 0,
+          "column": "Media temperatura",
+          "stored": 30.0,
+          "regen": 14.3,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-01",
+          "dup": 0,
+          "column": "MAxima presión nivel medio del mar",
+          "stored": 1019.1,
+          "regen": 1017.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-01",
+          "dup": 0,
+          "column": "Minima presión nivel medio del mar",
+          "stored": 1016.7,
+          "regen": 1015.1,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-01",
+          "dup": 0,
+          "column": "Media presión nivel medio del mar",
+          "stored": 1017.9,
+          "regen": 1016.3,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-01",
+          "dup": 0,
+          "column": "Media presion en la estación",
+          "stored": 1016.2,
+          "regen": 12.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-01",
+          "dup": 0,
+          "column": "Lluvia",
+          "stored": null,
+          "regen": 0.6,
+          "class": "rain_shift"
+        },
+        {
+          "day": "2025-06-01",
+          "dup": 0,
+          "column": "Dirección del viento",
+          "stored": "VRB",
+          "regen": "E",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-01",
+          "dup": 0,
+          "column": "Velocidad media del viento",
+          "stored": 4.3,
+          "regen": 252.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-01",
+          "dup": 0,
+          "column": "Velocidad máxima y direccion",
+          "stored": "SSE 10,1",
+          "regen": "ENE 576,0",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-01",
+          "dup": 0,
+          "column": "Recorrido del viento",
+          "stored": 34.2,
+          "regen": 2016.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-01",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 4.0,
+          "regen": 8.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-01",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 17.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-01",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 4.0,
+          "regen": 12.5,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-01",
+          "dup": 0,
+          "column": "Humedad maxima",
+          "stored": 91.0,
+          "regen": 34.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-01",
+          "dup": 0,
+          "column": "Humedad minima",
+          "stored": 63.0,
+          "regen": 30.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-01",
+          "dup": 0,
+          "column": "Humedad media",
+          "stored": 78.5,
+          "regen": 32.3,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-01",
+          "dup": 0,
+          "column": "Punto de rocio",
+          "stored": 25.4,
+          "regen": 26.4,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-01",
+          "dup": 0,
+          "column": "Tensión de vapor",
+          "stored": 32.3,
+          "regen": 25.4,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-02",
+          "dup": 0,
+          "column": "Mayor temperatura máxima",
+          "stored": 36.1,
+          "regen": 0.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-02",
+          "dup": 0,
+          "column": "Menor temperatura minima",
+          "stored": 26.2,
+          "regen": 30.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-02",
+          "dup": 0,
+          "column": "Media temperatura",
+          "stored": 31.2,
+          "regen": 15.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-02",
+          "dup": 0,
+          "column": "MAxima presión nivel medio del mar",
+          "stored": 1019.6,
+          "regen": 1018.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-02",
+          "dup": 0,
+          "column": "Minima presión nivel medio del mar",
+          "stored": 1017.5,
+          "regen": 1015.9,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-02",
+          "dup": 0,
+          "column": "Media presión nivel medio del mar",
+          "stored": 1018.6,
+          "regen": 1017.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-02",
+          "dup": 0,
+          "column": "Media presion en la estación",
+          "stored": 1016.8,
+          "regen": 12.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-02",
+          "dup": 0,
+          "column": "Dirección del viento",
+          "stored": "VRB",
+          "regen": "E",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-02",
+          "dup": 0,
+          "column": "Velocidad media del viento",
+          "stored": 7.9,
+          "regen": 342.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-02",
+          "dup": 0,
+          "column": "Velocidad máxima y direccion",
+          "stored": "SE 13,3",
+          "regen": "ENE 540,0",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-02",
+          "dup": 0,
+          "column": "Recorrido del viento",
+          "stored": 63.4,
+          "regen": 2736.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-02",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 3.2,
+          "regen": 8.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-02",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 17.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-02",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 3.2,
+          "regen": 12.5,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-02",
+          "dup": 0,
+          "column": "Humedad maxima",
+          "stored": 88.0,
+          "regen": 33.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-02",
+          "dup": 0,
+          "column": "Humedad minima",
+          "stored": 69.0,
+          "regen": 31.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-02",
+          "dup": 0,
+          "column": "Humedad media",
+          "stored": 78.1,
+          "regen": 31.7,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-02",
+          "dup": 0,
+          "column": "Punto de rocio",
+          "stored": 25.1,
+          "regen": 26.1,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-02",
+          "dup": 0,
+          "column": "Tensión de vapor",
+          "stored": 31.7,
+          "regen": 25.1,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-03",
+          "dup": 0,
+          "column": "Mayor temperatura máxima",
+          "stored": 34.6,
+          "regen": 0.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-03",
+          "dup": 0,
+          "column": "Menor temperatura minima",
+          "stored": 27.5,
+          "regen": 29.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-03",
+          "dup": 0,
+          "column": "Media temperatura",
+          "stored": 31.1,
+          "regen": 14.8,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-03",
+          "dup": 0,
+          "column": "MAxima presión nivel medio del mar",
+          "stored": 1019.1,
+          "regen": 1017.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-03",
+          "dup": 0,
+          "column": "Minima presión nivel medio del mar",
+          "stored": 1015.6,
+          "regen": 1014.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-03",
+          "dup": 0,
+          "column": "Media presión nivel medio del mar",
+          "stored": 1017.4,
+          "regen": 1015.8,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-03",
+          "dup": 0,
+          "column": "Media presion en la estación",
+          "stored": 1015.8,
+          "regen": 12.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-03",
+          "dup": 0,
+          "column": "Lluvia",
+          "stored": 0.0,
+          "regen": null,
+          "class": "rain_shift"
+        },
+        {
+          "day": "2025-06-03",
+          "dup": 0,
+          "column": "Dirección del viento",
+          "stored": "NNE",
+          "regen": "ENE",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-03",
+          "dup": 0,
+          "column": "Velocidad media del viento",
+          "stored": 7.5,
+          "regen": 261.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-03",
+          "dup": 0,
+          "column": "Velocidad máxima y direccion",
+          "stored": "SE 10,4",
+          "regen": "ENE 540,0",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-03",
+          "dup": 0,
+          "column": "Recorrido del viento",
+          "stored": 60.1,
+          "regen": 2088.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-03",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 5.2,
+          "regen": 8.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-03",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 17.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-03",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 5.2,
+          "regen": 12.5,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-03",
+          "dup": 0,
+          "column": "Humedad maxima",
+          "stored": 85.0,
+          "regen": 31.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-03",
+          "dup": 0,
+          "column": "Humedad minima",
+          "stored": 63.0,
+          "regen": 28.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-03",
+          "dup": 0,
+          "column": "Humedad media",
+          "stored": 72.9,
+          "regen": 30.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-03",
+          "dup": 0,
+          "column": "Punto de rocio",
+          "stored": 24.2,
+          "regen": 25.6,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-03",
+          "dup": 0,
+          "column": "Tensión de vapor",
+          "stored": 30.0,
+          "regen": 24.2,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-04",
+          "dup": 0,
+          "column": "Mayor temperatura máxima",
+          "stored": 34.5,
+          "regen": 0.4,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-04",
+          "dup": 0,
+          "column": "Menor temperatura minima",
+          "stored": 25.0,
+          "regen": 28.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-04",
+          "dup": 0,
+          "column": "Media temperatura",
+          "stored": 29.8,
+          "regen": 14.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-04",
+          "dup": 0,
+          "column": "MAxima presión nivel medio del mar",
+          "stored": 1017.6,
+          "regen": 1016.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-04",
+          "dup": 0,
+          "column": "Minima presión nivel medio del mar",
+          "stored": 1015.0,
+          "regen": 1013.4,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-04",
+          "dup": 0,
+          "column": "Media presión nivel medio del mar",
+          "stored": 1016.3,
+          "regen": 1014.7,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-04",
+          "dup": 0,
+          "column": "Media presion en la estación",
+          "stored": 1015.0,
+          "regen": 12.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-04",
+          "dup": 0,
+          "column": "Lluvia",
+          "stored": null,
+          "regen": 0.0,
+          "class": "rain_shift"
+        },
+        {
+          "day": "2025-06-04",
+          "dup": 0,
+          "column": "Dirección del viento",
+          "stored": "N",
+          "regen": "E",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-04",
+          "dup": 0,
+          "column": "Velocidad media del viento",
+          "stored": 8.2,
+          "regen": 481.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-04",
+          "dup": 0,
+          "column": "Velocidad máxima y direccion",
+          "stored": "ESE 14,0",
+          "regen": "E 1296,0",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-04",
+          "dup": 0,
+          "column": "Recorrido del viento",
+          "stored": 65.5,
+          "regen": 3852.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-04",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 4.7,
+          "regen": 8.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-04",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 17.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-04",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 4.7,
+          "regen": 12.5,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-04",
+          "dup": 0,
+          "column": "Humedad maxima",
+          "stored": 91.0,
+          "regen": 30.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-04",
+          "dup": 0,
+          "column": "Humedad minima",
+          "stored": 57.0,
+          "regen": 25.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-04",
+          "dup": 0,
+          "column": "Humedad media",
+          "stored": 74.5,
+          "regen": 28.2,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-04",
+          "dup": 0,
+          "column": "Punto de rocio",
+          "stored": 23.1,
+          "regen": 24.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-04",
+          "dup": 0,
+          "column": "Tensión de vapor",
+          "stored": 28.2,
+          "regen": 23.1,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-05",
+          "dup": 0,
+          "column": "Mayor temperatura máxima",
+          "stored": 33.6,
+          "regen": 5.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-05",
+          "dup": 0,
+          "column": "Menor temperatura minima",
+          "stored": 24.4,
+          "regen": 30.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-05",
+          "dup": 0,
+          "column": "Media temperatura",
+          "stored": 29.0,
+          "regen": 17.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-05",
+          "dup": 0,
+          "column": "MAxima presión nivel medio del mar",
+          "stored": 1017.6,
+          "regen": 1016.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-05",
+          "dup": 0,
+          "column": "Minima presión nivel medio del mar",
+          "stored": 1015.0,
+          "regen": 1013.4,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-05",
+          "dup": 0,
+          "column": "Media presión nivel medio del mar",
+          "stored": 1016.3,
+          "regen": 1014.7,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-05",
+          "dup": 0,
+          "column": "Media presion en la estación",
+          "stored": 1014.9,
+          "regen": 12.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-05",
+          "dup": 0,
+          "column": "Lluvia",
+          "stored": 42.5,
+          "regen": null,
+          "class": "rain_shift"
+        },
+        {
+          "day": "2025-06-05",
+          "dup": 0,
+          "column": "Dirección del viento",
+          "stored": "N",
+          "regen": "E",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-05",
+          "dup": 0,
+          "column": "Velocidad media del viento",
+          "stored": 3.8,
+          "regen": 508.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-05",
+          "dup": 0,
+          "column": "Velocidad máxima y direccion",
+          "stored": "N 10,1",
+          "regen": "E 1296,0",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-05",
+          "dup": 0,
+          "column": "Recorrido del viento",
+          "stored": 30.6,
+          "regen": 4068.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-05",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 4.7,
+          "regen": 8.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-05",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 17.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-05",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 4.7,
+          "regen": 12.5,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-05",
+          "dup": 0,
+          "column": "Humedad maxima",
+          "stored": 97.0,
+          "regen": 31.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-05",
+          "dup": 0,
+          "column": "Humedad minima",
+          "stored": 66.0,
+          "regen": 27.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-05",
+          "dup": 0,
+          "column": "Humedad media",
+          "stored": 84.9,
+          "regen": 29.1,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-05",
+          "dup": 0,
+          "column": "Punto de rocio",
+          "stored": 23.6,
+          "regen": 24.4,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-05",
+          "dup": 0,
+          "column": "Tensión de vapor",
+          "stored": 29.1,
+          "regen": 23.6,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-06",
+          "dup": 0,
+          "column": "Mayor temperatura máxima",
+          "stored": 33.5,
+          "regen": 0.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-06",
+          "dup": 0,
+          "column": "Menor temperatura minima",
+          "stored": 24.0,
+          "regen": 27.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-06",
+          "dup": 0,
+          "column": "Media temperatura",
+          "stored": 28.8,
+          "regen": 13.8,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-06",
+          "dup": 0,
+          "column": "MAxima presión nivel medio del mar",
+          "stored": 1017.6,
+          "regen": 1016.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-06",
+          "dup": 0,
+          "column": "Minima presión nivel medio del mar",
+          "stored": 1016.0,
+          "regen": 1014.4,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-06",
+          "dup": 0,
+          "column": "Media presión nivel medio del mar",
+          "stored": 1016.8,
+          "regen": 1015.2,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-06",
+          "dup": 0,
+          "column": "Media presion en la estación",
+          "stored": 1015.2,
+          "regen": 12.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-06",
+          "dup": 0,
+          "column": "Lluvia",
+          "stored": 0.0,
+          "regen": 42.5,
+          "class": "rain_shift"
+        },
+        {
+          "day": "2025-06-06",
+          "dup": 0,
+          "column": "Dirección del viento",
+          "stored": "N",
+          "regen": "E",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-06",
+          "dup": 0,
+          "column": "Velocidad media del viento",
+          "stored": 7.7,
+          "regen": 495.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-06",
+          "dup": 0,
+          "column": "Velocidad máxima y direccion",
+          "stored": "NE 11,2",
+          "regen": "E 1296,0",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-06",
+          "dup": 0,
+          "column": "Recorrido del viento",
+          "stored": 61.6,
+          "regen": 3960.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-06",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 3.5,
+          "regen": 8.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-06",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 17.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-06",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 3.5,
+          "regen": 12.5,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-06",
+          "dup": 0,
+          "column": "Humedad maxima",
+          "stored": 97.0,
+          "regen": 30.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-06",
+          "dup": 0,
+          "column": "Humedad minima",
+          "stored": 59.0,
+          "regen": 28.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-06",
+          "dup": 0,
+          "column": "Humedad media",
+          "stored": 80.2,
+          "regen": 28.6,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-06",
+          "dup": 0,
+          "column": "Punto de rocio",
+          "stored": 23.4,
+          "regen": 24.4,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-06",
+          "dup": 0,
+          "column": "Tensión de vapor",
+          "stored": 28.6,
+          "regen": 23.4,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-07",
+          "dup": 0,
+          "column": "Mayor temperatura máxima",
+          "stored": 32.0,
+          "regen": 0.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-07",
+          "dup": 0,
+          "column": "Menor temperatura minima",
+          "stored": 24.2,
+          "regen": 26.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-07",
+          "dup": 0,
+          "column": "Media temperatura",
+          "stored": 28.1,
+          "regen": 13.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-07",
+          "dup": 0,
+          "column": "MAxima presión nivel medio del mar",
+          "stored": 1017.7,
+          "regen": 1016.1,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-07",
+          "dup": 0,
+          "column": "Minima presión nivel medio del mar",
+          "stored": 1015.2,
+          "regen": 1013.6,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-07",
+          "dup": 0,
+          "column": "Media presión nivel medio del mar",
+          "stored": 1016.5,
+          "regen": 1014.9,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-07",
+          "dup": 0,
+          "column": "Media presion en la estación",
+          "stored": 1015.0,
+          "regen": 12.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-07",
+          "dup": 0,
+          "column": "Dirección del viento",
+          "stored": "VRB",
+          "regen": "E",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-07",
+          "dup": 0,
+          "column": "Velocidad media del viento",
+          "stored": 4.9,
+          "regen": 508.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-07",
+          "dup": 0,
+          "column": "Velocidad máxima y direccion",
+          "stored": "SSE 8,6",
+          "regen": "E 1296,0",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-07",
+          "dup": 0,
+          "column": "Recorrido del viento",
+          "stored": 39.2,
+          "regen": 4068.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-07",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 4.5,
+          "regen": 8.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-07",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 17.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-07",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 4.5,
+          "regen": 12.5,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-07",
+          "dup": 0,
+          "column": "Humedad maxima",
+          "stored": 89.0,
+          "regen": 30.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-07",
+          "dup": 0,
+          "column": "Humedad minima",
+          "stored": 67.0,
+          "regen": 27.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-07",
+          "dup": 0,
+          "column": "Humedad media",
+          "stored": 76.2,
+          "regen": 28.4,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-07",
+          "dup": 0,
+          "column": "Punto de rocio",
+          "stored": 23.3,
+          "regen": 24.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-07",
+          "dup": 0,
+          "column": "Tensión de vapor",
+          "stored": 28.4,
+          "regen": 23.3,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-08",
+          "dup": 0,
+          "column": "Mayor temperatura máxima",
+          "stored": 33.3,
+          "regen": 0.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-08",
+          "dup": 0,
+          "column": "Menor temperatura minima",
+          "stored": 25.0,
+          "regen": 28.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-08",
+          "dup": 0,
+          "column": "Media temperatura",
+          "stored": 29.2,
+          "regen": 14.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-08",
+          "dup": 0,
+          "column": "MAxima presión nivel medio del mar",
+          "stored": 1018.4,
+          "regen": 1016.8,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-08",
+          "dup": 0,
+          "column": "Minima presión nivel medio del mar",
+          "stored": 1014.6,
+          "regen": 1013.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-08",
+          "dup": 0,
+          "column": "Media presión nivel medio del mar",
+          "stored": 1016.5,
+          "regen": 1014.9,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-08",
+          "dup": 0,
+          "column": "Media presion en la estación",
+          "stored": 1014.9,
+          "regen": 12.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-08",
+          "dup": 0,
+          "column": "Dirección del viento",
+          "stored": "N",
+          "regen": "ENE",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-08",
+          "dup": 0,
+          "column": "Velocidad media del viento",
+          "stored": 9.0,
+          "regen": 589.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-08",
+          "dup": 0,
+          "column": "Velocidad máxima y direccion",
+          "stored": "SSE 18,7",
+          "regen": "ENE 1296,0",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-08",
+          "dup": 0,
+          "column": "Recorrido del viento",
+          "stored": 71.6,
+          "regen": 4716.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-08",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 6.3,
+          "regen": 8.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-08",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 17.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-08",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 6.3,
+          "regen": 12.5,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-08",
+          "dup": 0,
+          "column": "Humedad maxima",
+          "stored": 84.0,
+          "regen": 32.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-08",
+          "dup": 0,
+          "column": "Humedad minima",
+          "stored": 66.0,
+          "regen": 27.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-08",
+          "dup": 0,
+          "column": "Humedad media",
+          "stored": 76.4,
+          "regen": 29.1,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-08",
+          "dup": 0,
+          "column": "Punto de rocio",
+          "stored": 23.6,
+          "regen": 24.8,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-08",
+          "dup": 0,
+          "column": "Tensión de vapor",
+          "stored": 29.1,
+          "regen": 23.6,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-09",
+          "dup": 0,
+          "column": "Mayor temperatura máxima",
+          "stored": 31.0,
+          "regen": 0.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-09",
+          "dup": 0,
+          "column": "Menor temperatura minima",
+          "stored": 26.0,
+          "regen": 27.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-09",
+          "dup": 0,
+          "column": "Media temperatura",
+          "stored": 28.5,
+          "regen": 13.8,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-09",
+          "dup": 0,
+          "column": "MAxima presión nivel medio del mar",
+          "stored": 1018.1,
+          "regen": 1016.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-09",
+          "dup": 0,
+          "column": "Minima presión nivel medio del mar",
+          "stored": 1016.1,
+          "regen": 1014.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-09",
+          "dup": 0,
+          "column": "Media presión nivel medio del mar",
+          "stored": 1017.1,
+          "regen": 1015.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-09",
+          "dup": 0,
+          "column": "Media presion en la estación",
+          "stored": 1015.4,
+          "regen": 12.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-09",
+          "dup": 0,
+          "column": "Lluvia",
+          "stored": 4.2,
+          "regen": 0.0,
+          "class": "rain_shift"
+        },
+        {
+          "day": "2025-06-09",
+          "dup": 0,
+          "column": "Dirección del viento",
+          "stored": "VRB",
+          "regen": "E",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-09",
+          "dup": 0,
+          "column": "Velocidad media del viento",
+          "stored": 7.7,
+          "regen": 252.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-09",
+          "dup": 0,
+          "column": "Velocidad máxima y direccion",
+          "stored": "ESE 15,1",
+          "regen": "ENE 468,0",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-09",
+          "dup": 0,
+          "column": "Recorrido del viento",
+          "stored": 61.6,
+          "regen": 2016.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-09",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 6.3,
+          "regen": 8.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-09",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 17.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-09",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 6.3,
+          "regen": 12.5,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-09",
+          "dup": 0,
+          "column": "Humedad maxima",
+          "stored": 85.0,
+          "regen": 32.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-09",
+          "dup": 0,
+          "column": "Humedad minima",
+          "stored": 69.0,
+          "regen": 28.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-09",
+          "dup": 0,
+          "column": "Humedad media",
+          "stored": 78.5,
+          "regen": 29.6,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-09",
+          "dup": 0,
+          "column": "Punto de rocio",
+          "stored": 23.9,
+          "regen": 25.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-09",
+          "dup": 0,
+          "column": "Tensión de vapor",
+          "stored": 29.6,
+          "regen": 23.9,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-10",
+          "dup": 0,
+          "column": "Mayor temperatura máxima",
+          "stored": 32.0,
+          "regen": 0.3,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-10",
+          "dup": 0,
+          "column": "Menor temperatura minima",
+          "stored": 25.2,
+          "regen": 27.2,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-10",
+          "dup": 0,
+          "column": "Media temperatura",
+          "stored": 28.6,
+          "regen": 13.8,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-10",
+          "dup": 0,
+          "column": "MAxima presión nivel medio del mar",
+          "stored": 1019.4,
+          "regen": 1017.8,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-10",
+          "dup": 0,
+          "column": "Minima presión nivel medio del mar",
+          "stored": 1017.1,
+          "regen": 1015.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-10",
+          "dup": 0,
+          "column": "Media presión nivel medio del mar",
+          "stored": 1018.3,
+          "regen": 1016.7,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-10",
+          "dup": 0,
+          "column": "Media presion en la estación",
+          "stored": 1016.4,
+          "regen": 12.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-10",
+          "dup": 0,
+          "column": "Lluvia",
+          "stored": 2.7,
+          "regen": 4.2,
+          "class": "rain_shift"
+        },
+        {
+          "day": "2025-06-10",
+          "dup": 0,
+          "column": "Dirección del viento",
+          "stored": "N",
+          "regen": "E",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-10",
+          "dup": 0,
+          "column": "Velocidad media del viento",
+          "stored": 7.1,
+          "regen": 931.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-10",
+          "dup": 0,
+          "column": "Velocidad máxima y direccion",
+          "stored": "SE 12,2",
+          "regen": "E 1296,0",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-10",
+          "dup": 0,
+          "column": "Recorrido del viento",
+          "stored": 50.0,
+          "regen": 7452.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-10",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 6.3,
+          "regen": 8.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-10",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 17.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-10",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 6.3,
+          "regen": 12.5,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-10",
+          "dup": 0,
+          "column": "Humedad maxima",
+          "stored": 92.0,
+          "regen": 33.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-10",
+          "dup": 0,
+          "column": "Humedad minima",
+          "stored": 70.0,
+          "regen": 28.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-10",
+          "dup": 0,
+          "column": "Humedad media",
+          "stored": 80.5,
+          "regen": 30.1,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-10",
+          "dup": 0,
+          "column": "Punto de rocio",
+          "stored": 24.2,
+          "regen": 25.2,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-10",
+          "dup": 0,
+          "column": "Tensión de vapor",
+          "stored": 30.1,
+          "regen": 24.2,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-11",
+          "dup": 0,
+          "column": "Mayor temperatura máxima",
+          "stored": 32.5,
+          "regen": 0.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-11",
+          "dup": 0,
+          "column": "Menor temperatura minima",
+          "stored": 24.5,
+          "regen": 27.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-11",
+          "dup": 0,
+          "column": "Media temperatura",
+          "stored": 28.5,
+          "regen": 13.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-11",
+          "dup": 0,
+          "column": "MAxima presión nivel medio del mar",
+          "stored": 1019.6,
+          "regen": 1018.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-11",
+          "dup": 0,
+          "column": "Minima presión nivel medio del mar",
+          "stored": 1016.6,
+          "regen": 1015.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-11",
+          "dup": 0,
+          "column": "Media presión nivel medio del mar",
+          "stored": 1018.1,
+          "regen": 1016.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-11",
+          "dup": 0,
+          "column": "Media presion en la estación",
+          "stored": 1016.7,
+          "regen": 12.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-11",
+          "dup": 0,
+          "column": "Lluvia",
+          "stored": null,
+          "regen": 2.7,
+          "class": "rain_shift"
+        },
+        {
+          "day": "2025-06-11",
+          "dup": 0,
+          "column": "Dirección del viento",
+          "stored": "VRB",
+          "regen": "E",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-11",
+          "dup": 0,
+          "column": "Velocidad media del viento",
+          "stored": 5.4,
+          "regen": 396.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-11",
+          "dup": 0,
+          "column": "Velocidad máxima y direccion",
+          "stored": "NE 9,0",
+          "regen": "E 1296,0",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-11",
+          "dup": 0,
+          "column": "Recorrido del viento",
+          "stored": 43.6,
+          "regen": 3168.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-11",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 5.0,
+          "regen": 8.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-11",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 17.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-11",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 5.0,
+          "regen": 12.5,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-11",
+          "dup": 0,
+          "column": "Humedad maxima",
+          "stored": 92.0,
+          "regen": 31.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-11",
+          "dup": 0,
+          "column": "Humedad minima",
+          "stored": 64.0,
+          "regen": 28.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-11",
+          "dup": 0,
+          "column": "Humedad media",
+          "stored": 82.4,
+          "regen": 29.7,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-11",
+          "dup": 0,
+          "column": "Punto de rocio",
+          "stored": 24.0,
+          "regen": 24.8,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-11",
+          "dup": 0,
+          "column": "Tensión de vapor",
+          "stored": 29.7,
+          "regen": 24.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-12",
+          "dup": 0,
+          "column": "Mayor temperatura máxima",
+          "stored": 32.4,
+          "regen": 5.8,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-12",
+          "dup": 0,
+          "column": "Menor temperatura minima",
+          "stored": 24.0,
+          "regen": 27.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-12",
+          "dup": 0,
+          "column": "Media temperatura",
+          "stored": 28.2,
+          "regen": 16.4,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-12",
+          "dup": 0,
+          "column": "MAxima presión nivel medio del mar",
+          "stored": 1019.1,
+          "regen": 1017.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-12",
+          "dup": 0,
+          "column": "Minima presión nivel medio del mar",
+          "stored": 1016.1,
+          "regen": 1014.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-12",
+          "dup": 0,
+          "column": "Media presión nivel medio del mar",
+          "stored": 1017.6,
+          "regen": 1016.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-12",
+          "dup": 0,
+          "column": "Media presion en la estación",
+          "stored": 1016.3,
+          "regen": 12.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-12",
+          "dup": 0,
+          "column": "Lluvia",
+          "stored": 0.0,
+          "regen": null,
+          "class": "rain_shift"
+        },
+        {
+          "day": "2025-06-12",
+          "dup": 0,
+          "column": "Dirección del viento",
+          "stored": "VRB",
+          "regen": "E",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-12",
+          "dup": 0,
+          "column": "Velocidad media del viento",
+          "stored": 8.8,
+          "regen": 531.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-12",
+          "dup": 0,
+          "column": "Velocidad máxima y direccion",
+          "stored": "SE 12,6",
+          "regen": "ENE 1296,0",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-12",
+          "dup": 0,
+          "column": "Recorrido del viento",
+          "stored": 70.2,
+          "regen": 4248.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-12",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 5.3,
+          "regen": 8.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-12",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 17.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-12",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 5.3,
+          "regen": 12.5,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-12",
+          "dup": 0,
+          "column": "Humedad maxima",
+          "stored": 91.0,
+          "regen": 30.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-12",
+          "dup": 0,
+          "column": "Humedad minima",
+          "stored": 62.0,
+          "regen": 28.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-12",
+          "dup": 0,
+          "column": "Humedad media",
+          "stored": 77.4,
+          "regen": 29.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-12",
+          "dup": 0,
+          "column": "Punto de rocio",
+          "stored": 23.6,
+          "regen": 24.8,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-12",
+          "dup": 0,
+          "column": "Tensión de vapor",
+          "stored": 29.0,
+          "regen": 23.6,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-13",
+          "dup": 0,
+          "column": "Mayor temperatura máxima",
+          "stored": 32.5,
+          "regen": 1.2,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-13",
+          "dup": 0,
+          "column": "Menor temperatura minima",
+          "stored": 24.7,
+          "regen": 26.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-13",
+          "dup": 0,
+          "column": "Media temperatura",
+          "stored": 28.6,
+          "regen": 13.9,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-13",
+          "dup": 0,
+          "column": "MAxima presión nivel medio del mar",
+          "stored": 1019.6,
+          "regen": 1018.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-13",
+          "dup": 0,
+          "column": "Minima presión nivel medio del mar",
+          "stored": 1016.6,
+          "regen": 1015.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-13",
+          "dup": 0,
+          "column": "Media presión nivel medio del mar",
+          "stored": 1018.1,
+          "regen": 1016.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-13",
+          "dup": 0,
+          "column": "Media presion en la estación",
+          "stored": 1016.4,
+          "regen": 12.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-13",
+          "dup": 0,
+          "column": "Lluvia",
+          "stored": 1.2,
+          "regen": 0.0,
+          "class": "rain_shift"
+        },
+        {
+          "day": "2025-06-13",
+          "dup": 0,
+          "column": "Dirección del viento",
+          "stored": "N",
+          "regen": "E",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-13",
+          "dup": 0,
+          "column": "Velocidad media del viento",
+          "stored": 7.5,
+          "regen": 792.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-13",
+          "dup": 0,
+          "column": "Velocidad máxima y direccion",
+          "stored": "ENE 11,5",
+          "regen": "E 1296,0",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-13",
+          "dup": 0,
+          "column": "Recorrido del viento",
+          "stored": 59.8,
+          "regen": 6336.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-13",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 4.7,
+          "regen": 8.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-13",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 17.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-13",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 4.7,
+          "regen": 12.5,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-13",
+          "dup": 0,
+          "column": "Humedad maxima",
+          "stored": 90.0,
+          "regen": 31.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-13",
+          "dup": 0,
+          "column": "Humedad minima",
+          "stored": 64.0,
+          "regen": 27.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-13",
+          "dup": 0,
+          "column": "Humedad media",
+          "stored": 78.6,
+          "regen": 28.8,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-13",
+          "dup": 0,
+          "column": "Punto de rocio",
+          "stored": 23.5,
+          "regen": 24.6,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-13",
+          "dup": 0,
+          "column": "Tensión de vapor",
+          "stored": 28.8,
+          "regen": 23.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-14",
+          "dup": 0,
+          "column": "Mayor temperatura máxima",
+          "stored": 32.2,
+          "regen": 0.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-14",
+          "dup": 0,
+          "column": "Menor temperatura minima",
+          "stored": 24.5,
+          "regen": 25.8,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-14",
+          "dup": 0,
+          "column": "Media temperatura",
+          "stored": 28.4,
+          "regen": 12.9,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-14",
+          "dup": 0,
+          "column": "MAxima presión nivel medio del mar",
+          "stored": 1020.0,
+          "regen": 1018.4,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-14",
+          "dup": 0,
+          "column": "Minima presión nivel medio del mar",
+          "stored": 1018.2,
+          "regen": 1016.6,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-14",
+          "dup": 0,
+          "column": "Media presión nivel medio del mar",
+          "stored": 1019.1,
+          "regen": 1017.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-14",
+          "dup": 0,
+          "column": "Media presion en la estación",
+          "stored": 1017.6,
+          "regen": 12.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-14",
+          "dup": 0,
+          "column": "Lluvia",
+          "stored": 0.0,
+          "regen": 1.2,
+          "class": "rain_shift"
+        },
+        {
+          "day": "2025-06-14",
+          "dup": 0,
+          "column": "Dirección del viento",
+          "stored": "N",
+          "regen": "E",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-14",
+          "dup": 0,
+          "column": "Velocidad media del viento",
+          "stored": 5.2,
+          "regen": 612.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-14",
+          "dup": 0,
+          "column": "Velocidad máxima y direccion",
+          "stored": "N 9,4",
+          "regen": "E 1296,0",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-14",
+          "dup": 0,
+          "column": "Recorrido del viento",
+          "stored": 41.8,
+          "regen": 4896.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-14",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 6.2,
+          "regen": 8.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-14",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 17.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-14",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 6.2,
+          "regen": 12.5,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-14",
+          "dup": 0,
+          "column": "Humedad maxima",
+          "stored": 87.0,
+          "regen": 29.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-14",
+          "dup": 0,
+          "column": "Humedad minima",
+          "stored": 64.0,
+          "regen": 26.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-14",
+          "dup": 0,
+          "column": "Humedad media",
+          "stored": 75.8,
+          "regen": 27.9,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-14",
+          "dup": 0,
+          "column": "Punto de rocio",
+          "stored": 23.0,
+          "regen": 24.2,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-14",
+          "dup": 0,
+          "column": "Tensión de vapor",
+          "stored": 27.9,
+          "regen": 23.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-15",
+          "dup": 0,
+          "column": "Mayor temperatura máxima",
+          "stored": 31.4,
+          "regen": 0.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-15",
+          "dup": 0,
+          "column": "Menor temperatura minima",
+          "stored": 24.6,
+          "regen": 27.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-15",
+          "dup": 0,
+          "column": "Media temperatura",
+          "stored": 28.0,
+          "regen": 13.8,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-15",
+          "dup": 0,
+          "column": "MAxima presión nivel medio del mar",
+          "stored": 1021.1,
+          "regen": 1019.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-15",
+          "dup": 0,
+          "column": "Minima presión nivel medio del mar",
+          "stored": 1018.6,
+          "regen": 1017.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-15",
+          "dup": 0,
+          "column": "Media presión nivel medio del mar",
+          "stored": 1019.9,
+          "regen": 1018.3,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-15",
+          "dup": 0,
+          "column": "Media presion en la estación",
+          "stored": 1018.0,
+          "regen": 12.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-15",
+          "dup": 0,
+          "column": "Lluvia",
+          "stored": 0.2,
+          "regen": 0.0,
+          "class": "rain_shift"
+        },
+        {
+          "day": "2025-06-15",
+          "dup": 0,
+          "column": "Dirección del viento",
+          "stored": "VRB",
+          "regen": "ENE",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-15",
+          "dup": 0,
+          "column": "Velocidad media del viento",
+          "stored": 7.4,
+          "regen": 531.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-15",
+          "dup": 0,
+          "column": "Velocidad máxima y direccion",
+          "stored": "ESE 11,5",
+          "regen": "E 1296,0",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-15",
+          "dup": 0,
+          "column": "Recorrido del viento",
+          "stored": 59.0,
+          "regen": 4248.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-15",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 6.8,
+          "regen": 8.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-15",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 17.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-15",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 6.8,
+          "regen": 12.5,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-15",
+          "dup": 0,
+          "column": "Humedad maxima",
+          "stored": 85.0,
+          "regen": 30.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-15",
+          "dup": 0,
+          "column": "Humedad minima",
+          "stored": 68.0,
+          "regen": 24.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-15",
+          "dup": 0,
+          "column": "Humedad media",
+          "stored": 74.9,
+          "regen": 28.1,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-15",
+          "dup": 0,
+          "column": "Punto de rocio",
+          "stored": 23.1,
+          "regen": 24.3,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-15",
+          "dup": 0,
+          "column": "Tensión de vapor",
+          "stored": 28.1,
+          "regen": 23.1,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-16",
+          "dup": 0,
+          "column": "Mayor temperatura máxima",
+          "stored": 32.4,
+          "regen": 11.6,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-16",
+          "dup": 0,
+          "column": "Menor temperatura minima",
+          "stored": 24.0,
+          "regen": 27.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-16",
+          "dup": 0,
+          "column": "Media temperatura",
+          "stored": 28.2,
+          "regen": 19.6,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-16",
+          "dup": 0,
+          "column": "MAxima presión nivel medio del mar",
+          "stored": 1019.5,
+          "regen": 1017.9,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-16",
+          "dup": 0,
+          "column": "Minima presión nivel medio del mar",
+          "stored": 1017.5,
+          "regen": 1015.9,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-16",
+          "dup": 0,
+          "column": "Media presión nivel medio del mar",
+          "stored": 1018.5,
+          "regen": 1016.9,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-16",
+          "dup": 0,
+          "column": "Media presion en la estación",
+          "stored": 1016.9,
+          "regen": 12.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-16",
+          "dup": 0,
+          "column": "Lluvia",
+          "stored": 11.9,
+          "regen": 0.2,
+          "class": "rain_shift"
+        },
+        {
+          "day": "2025-06-16",
+          "dup": 0,
+          "column": "Dirección del viento",
+          "stored": "N",
+          "regen": "E",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-16",
+          "dup": 0,
+          "column": "Velocidad media del viento",
+          "stored": 5.6,
+          "regen": 382.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-16",
+          "dup": 0,
+          "column": "Velocidad máxima y direccion",
+          "stored": "NNE 8,3",
+          "regen": "E 1296,0",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-16",
+          "dup": 0,
+          "column": "Recorrido del viento",
+          "stored": 44.6,
+          "regen": 3060.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-16",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 7.3,
+          "regen": 8.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-16",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 17.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-16",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 7.3,
+          "regen": 12.5,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-16",
+          "dup": 0,
+          "column": "Humedad maxima",
+          "stored": 91.0,
+          "regen": 31.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-16",
+          "dup": 0,
+          "column": "Humedad minima",
+          "stored": 71.0,
+          "regen": 28.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-16",
+          "dup": 0,
+          "column": "Humedad media",
+          "stored": 84.7,
+          "regen": 29.1,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-16",
+          "dup": 0,
+          "column": "Punto de rocio",
+          "stored": 23.6,
+          "regen": 24.4,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-16",
+          "dup": 0,
+          "column": "Tensión de vapor",
+          "stored": 29.1,
+          "regen": 23.6,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-17",
+          "dup": 0,
+          "column": "Mayor temperatura máxima",
+          "stored": 32.0,
+          "regen": 0.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-17",
+          "dup": 0,
+          "column": "Menor temperatura minima",
+          "stored": 24.2,
+          "regen": 27.6,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-17",
+          "dup": 0,
+          "column": "Media temperatura",
+          "stored": 28.1,
+          "regen": 13.8,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-17",
+          "dup": 0,
+          "column": "MAxima presión nivel medio del mar",
+          "stored": 1019.6,
+          "regen": 1018.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-17",
+          "dup": 0,
+          "column": "Minima presión nivel medio del mar",
+          "stored": 1017.6,
+          "regen": 1016.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-17",
+          "dup": 0,
+          "column": "Media presión nivel medio del mar",
+          "stored": 1018.6,
+          "regen": 1017.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-17",
+          "dup": 0,
+          "column": "Media presion en la estación",
+          "stored": 1016.9,
+          "regen": 12.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-17",
+          "dup": 0,
+          "column": "Lluvia",
+          "stored": 0.0,
+          "regen": 11.9,
+          "class": "rain_shift"
+        },
+        {
+          "day": "2025-06-17",
+          "dup": 0,
+          "column": "Dirección del viento",
+          "stored": "VRB",
+          "regen": "E",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-17",
+          "dup": 0,
+          "column": "Velocidad media del viento",
+          "stored": 5.4,
+          "regen": 468.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-17",
+          "dup": 0,
+          "column": "Velocidad máxima y direccion",
+          "stored": "SSE 8,6",
+          "regen": "E 1296,0",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-17",
+          "dup": 0,
+          "column": "Recorrido del viento",
+          "stored": 43.2,
+          "regen": 3744.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-17",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 6.8,
+          "regen": 8.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-17",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 17.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-17",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 6.8,
+          "regen": 12.5,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-17",
+          "dup": 0,
+          "column": "Humedad maxima",
+          "stored": 91.0,
+          "regen": 32.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-17",
+          "dup": 0,
+          "column": "Humedad minima",
+          "stored": 69.0,
+          "regen": 28.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-17",
+          "dup": 0,
+          "column": "Humedad media",
+          "stored": 79.9,
+          "regen": 30.1,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-17",
+          "dup": 0,
+          "column": "Punto de rocio",
+          "stored": 24.2,
+          "regen": 25.2,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-17",
+          "dup": 0,
+          "column": "Tensión de vapor",
+          "stored": 30.1,
+          "regen": 24.2,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-18",
+          "dup": 0,
+          "column": "Mayor temperatura máxima",
+          "stored": 31.1,
+          "regen": 0.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-18",
+          "dup": 0,
+          "column": "Menor temperatura minima",
+          "stored": 25.4,
+          "regen": 28.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-18",
+          "dup": 0,
+          "column": "Media temperatura",
+          "stored": 28.3,
+          "regen": 14.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-18",
+          "dup": 0,
+          "column": "MAxima presión nivel medio del mar",
+          "stored": 1019.6,
+          "regen": 1018.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-18",
+          "dup": 0,
+          "column": "Minima presión nivel medio del mar",
+          "stored": 1017.5,
+          "regen": 1015.9,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-18",
+          "dup": 0,
+          "column": "Media presión nivel medio del mar",
+          "stored": 1018.6,
+          "regen": 1017.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-18",
+          "dup": 0,
+          "column": "Media presion en la estación",
+          "stored": 1016.9,
+          "regen": 12.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-18",
+          "dup": 0,
+          "column": "Dirección del viento",
+          "stored": "VRB",
+          "regen": "E",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-18",
+          "dup": 0,
+          "column": "Velocidad media del viento",
+          "stored": 7.1,
+          "regen": 531.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-18",
+          "dup": 0,
+          "column": "Velocidad máxima y direccion",
+          "stored": "ENE 8,3",
+          "regen": "E 1296,0",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-18",
+          "dup": 0,
+          "column": "Recorrido del viento",
+          "stored": 56.5,
+          "regen": 4248.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-18",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 6.8,
+          "regen": 8.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-18",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 17.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-18",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 6.8,
+          "regen": 12.5,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-18",
+          "dup": 0,
+          "column": "Humedad maxima",
+          "stored": 86.0,
+          "regen": 33.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-18",
+          "dup": 0,
+          "column": "Humedad minima",
+          "stored": 66.0,
+          "regen": 28.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-18",
+          "dup": 0,
+          "column": "Humedad media",
+          "stored": 78.3,
+          "regen": 29.6,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-18",
+          "dup": 0,
+          "column": "Punto de rocio",
+          "stored": 23.9,
+          "regen": 25.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-18",
+          "dup": 0,
+          "column": "Tensión de vapor",
+          "stored": 29.6,
+          "regen": 23.9,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-19",
+          "dup": 0,
+          "column": "Mayor temperatura máxima",
+          "stored": 32.2,
+          "regen": 0.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-19",
+          "dup": 0,
+          "column": "Menor temperatura minima",
+          "stored": 25.4,
+          "regen": 26.8,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-19",
+          "dup": 0,
+          "column": "Media temperatura",
+          "stored": 28.8,
+          "regen": 13.4,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-19",
+          "dup": 0,
+          "column": "MAxima presión nivel medio del mar",
+          "stored": 1018.8,
+          "regen": 1017.2,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-19",
+          "dup": 0,
+          "column": "Minima presión nivel medio del mar",
+          "stored": 1017.1,
+          "regen": 1015.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-19",
+          "dup": 0,
+          "column": "Media presión nivel medio del mar",
+          "stored": 1018.0,
+          "regen": 1016.4,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-19",
+          "dup": 0,
+          "column": "Media presion en la estación",
+          "stored": 1016.4,
+          "regen": 12.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-19",
+          "dup": 0,
+          "column": "Dirección del viento",
+          "stored": "N",
+          "regen": "E",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-19",
+          "dup": 0,
+          "column": "Velocidad media del viento",
+          "stored": 7.2,
+          "regen": 481.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-19",
+          "dup": 0,
+          "column": "Velocidad máxima y direccion",
+          "stored": "ENE 11,9",
+          "regen": "E 1296,0",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-19",
+          "dup": 0,
+          "column": "Recorrido del viento",
+          "stored": 57.2,
+          "regen": 3852.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-19",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 4.7,
+          "regen": 8.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-19",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 17.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-19",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 4.7,
+          "regen": 12.5,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-19",
+          "dup": 0,
+          "column": "Humedad maxima",
+          "stored": 90.0,
+          "regen": 32.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-19",
+          "dup": 0,
+          "column": "Humedad minima",
+          "stored": 65.0,
+          "regen": 28.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-19",
+          "dup": 0,
+          "column": "Humedad media",
+          "stored": 77.8,
+          "regen": 29.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-19",
+          "dup": 0,
+          "column": "Punto de rocio",
+          "stored": 23.9,
+          "regen": 25.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-19",
+          "dup": 0,
+          "column": "Tensión de vapor",
+          "stored": 29.5,
+          "regen": 23.9,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-20",
+          "dup": 0,
+          "column": "Mayor temperatura máxima",
+          "stored": 31.4,
+          "regen": 0.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-20",
+          "dup": 0,
+          "column": "Menor temperatura minima",
+          "stored": 25.5,
+          "regen": 26.9,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-20",
+          "dup": 0,
+          "column": "Media temperatura",
+          "stored": 28.5,
+          "regen": 13.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-20",
+          "dup": 0,
+          "column": "MAxima presión nivel medio del mar",
+          "stored": 1018.7,
+          "regen": 1017.1,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-20",
+          "dup": 0,
+          "column": "Minima presión nivel medio del mar",
+          "stored": 1016.8,
+          "regen": 1015.2,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-20",
+          "dup": 0,
+          "column": "Media presión nivel medio del mar",
+          "stored": 1017.8,
+          "regen": 1016.2,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-20",
+          "dup": 0,
+          "column": "Media presion en la estación",
+          "stored": 1016.1,
+          "regen": 12.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-20",
+          "dup": 0,
+          "column": "Lluvia",
+          "stored": null,
+          "regen": 0.0,
+          "class": "rain_shift"
+        },
+        {
+          "day": "2025-06-20",
+          "dup": 0,
+          "column": "Dirección del viento",
+          "stored": "VRB",
+          "regen": "E",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-20",
+          "dup": 0,
+          "column": "Velocidad media del viento",
+          "stored": 6.4,
+          "regen": 391.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-20",
+          "dup": 0,
+          "column": "Velocidad máxima y direccion",
+          "stored": "ESE 14,0",
+          "regen": "E 1296,0",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-20",
+          "dup": 0,
+          "column": "Recorrido del viento",
+          "stored": 51.1,
+          "regen": 3132.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-20",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 7.0,
+          "regen": 8.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-20",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 17.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-20",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 7.0,
+          "regen": 12.5,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-20",
+          "dup": 0,
+          "column": "Humedad maxima",
+          "stored": 91.0,
+          "regen": 32.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-20",
+          "dup": 0,
+          "column": "Humedad minima",
+          "stored": 67.0,
+          "regen": 28.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-20",
+          "dup": 0,
+          "column": "Humedad media",
+          "stored": 79.7,
+          "regen": 29.9,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-20",
+          "dup": 0,
+          "column": "Punto de rocio",
+          "stored": 24.1,
+          "regen": 25.1,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-20",
+          "dup": 0,
+          "column": "Tensión de vapor",
+          "stored": 29.9,
+          "regen": 24.1,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-21",
+          "dup": 0,
+          "column": "Mayor temperatura máxima",
+          "stored": 32.0,
+          "regen": 0.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-21",
+          "dup": 0,
+          "column": "Menor temperatura minima",
+          "stored": 26.0,
+          "regen": 27.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-21",
+          "dup": 0,
+          "column": "Media temperatura",
+          "stored": 29.0,
+          "regen": 13.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-21",
+          "dup": 0,
+          "column": "MAxima presión nivel medio del mar",
+          "stored": 1019.1,
+          "regen": 1017.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-21",
+          "dup": 0,
+          "column": "Minima presión nivel medio del mar",
+          "stored": 1017.1,
+          "regen": 1015.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-21",
+          "dup": 0,
+          "column": "Media presión nivel medio del mar",
+          "stored": 1018.1,
+          "regen": 1016.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-21",
+          "dup": 0,
+          "column": "Media presion en la estación",
+          "stored": 1016.1,
+          "regen": 12.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-21",
+          "dup": 0,
+          "column": "Lluvia",
+          "stored": 0.3,
+          "regen": null,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-21",
+          "dup": 0,
+          "column": "Dirección del viento",
+          "stored": "VRB",
+          "regen": "E",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-21",
+          "dup": 0,
+          "column": "Velocidad media del viento",
+          "stored": 6.8,
+          "regen": 238.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-21",
+          "dup": 0,
+          "column": "Velocidad máxima y direccion",
+          "stored": "SSE 11,5",
+          "regen": "ENE 612,0",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-21",
+          "dup": 0,
+          "column": "Recorrido del viento",
+          "stored": 54.0,
+          "regen": 1908.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-21",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 6.0,
+          "regen": 8.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-21",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 17.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-21",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 6.0,
+          "regen": 12.5,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-21",
+          "dup": 0,
+          "column": "Humedad maxima",
+          "stored": 86.0,
+          "regen": 31.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-21",
+          "dup": 0,
+          "column": "Humedad minima",
+          "stored": 66.0,
+          "regen": 29.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-21",
+          "dup": 0,
+          "column": "Humedad media",
+          "stored": 77.1,
+          "regen": 29.6,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-21",
+          "dup": 0,
+          "column": "Punto de rocio",
+          "stored": 23.9,
+          "regen": 25.1,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-21",
+          "dup": 0,
+          "column": "Tensión de vapor",
+          "stored": 29.6,
+          "regen": 23.9,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-22",
+          "dup": 0,
+          "column": "Mayor temperatura máxima",
+          "stored": 32.0,
+          "regen": 0.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-22",
+          "dup": 0,
+          "column": "Menor temperatura minima",
+          "stored": 24.8,
+          "regen": null,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-22",
+          "dup": 0,
+          "column": "Media temperatura",
+          "stored": 28.4,
+          "regen": null,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-22",
+          "dup": 0,
+          "column": "MAxima presión nivel medio del mar",
+          "stored": 1018.1,
+          "regen": null,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-22",
+          "dup": 0,
+          "column": "Minima presión nivel medio del mar",
+          "stored": 1015.6,
+          "regen": null,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-22",
+          "dup": 0,
+          "column": "Media presión nivel medio del mar",
+          "stored": 1016.9,
+          "regen": null,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-22",
+          "dup": 0,
+          "column": "Media presion en la estación",
+          "stored": 1015.5,
+          "regen": 12.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-22",
+          "dup": 0,
+          "column": "Dirección del viento",
+          "stored": "N",
+          "regen": null,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-22",
+          "dup": 0,
+          "column": "Velocidad media del viento",
+          "stored": 8.3,
+          "regen": null,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-22",
+          "dup": 0,
+          "column": "Velocidad máxima y direccion",
+          "stored": "E 19,1",
+          "regen": "N/A",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-22",
+          "dup": 0,
+          "column": "Recorrido del viento",
+          "stored": 66.2,
+          "regen": null,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-22",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 5.8,
+          "regen": 8.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-22",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 17.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-22",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 5.8,
+          "regen": 12.5,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-22",
+          "dup": 0,
+          "column": "Humedad maxima",
+          "stored": 95.0,
+          "regen": null,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-22",
+          "dup": 0,
+          "column": "Humedad minima",
+          "stored": 64.0,
+          "regen": null,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-22",
+          "dup": 0,
+          "column": "Humedad media",
+          "stored": 84.5,
+          "regen": null,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-22",
+          "dup": 0,
+          "column": "Punto de rocio",
+          "stored": 23.7,
+          "regen": 0.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-22",
+          "dup": 0,
+          "column": "Tensión de vapor",
+          "stored": 29.3,
+          "regen": null,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-22",
+          "dup": 1,
+          "column": "Mayor temperatura máxima",
+          "stored": null,
+          "regen": 0.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-22",
+          "dup": 1,
+          "column": "Media presion en la estación",
+          "stored": null,
+          "regen": 12.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-22",
+          "dup": 1,
+          "column": "Lluvia",
+          "stored": 13.6,
+          "regen": null,
+          "class": "rain_shift"
+        },
+        {
+          "day": "2025-06-22",
+          "dup": 1,
+          "column": "Dirección del viento",
+          "stored": "VRB",
+          "regen": null,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-22",
+          "dup": 1,
+          "column": "Nuvocidad dia",
+          "stored": null,
+          "regen": 8.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-22",
+          "dup": 1,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 17.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-22",
+          "dup": 1,
+          "column": "Media de nuvocidad",
+          "stored": null,
+          "regen": 12.5,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-22",
+          "dup": 1,
+          "column": "Punto de rocio",
+          "stored": null,
+          "regen": 0.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-23",
+          "dup": 0,
+          "column": "Mayor temperatura máxima",
+          "stored": 32.4,
+          "regen": 0.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-23",
+          "dup": 0,
+          "column": "Menor temperatura minima",
+          "stored": 24.0,
+          "regen": 25.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-23",
+          "dup": 0,
+          "column": "Media temperatura",
+          "stored": 28.2,
+          "regen": 12.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-23",
+          "dup": 0,
+          "column": "MAxima presión nivel medio del mar",
+          "stored": 1018.6,
+          "regen": 1017.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-23",
+          "dup": 0,
+          "column": "Minima presión nivel medio del mar",
+          "stored": 1015.6,
+          "regen": 1014.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-23",
+          "dup": 0,
+          "column": "Media presión nivel medio del mar",
+          "stored": 1017.1,
+          "regen": 1015.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-23",
+          "dup": 0,
+          "column": "Media presion en la estación",
+          "stored": 1015.1,
+          "regen": 12.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-23",
+          "dup": 0,
+          "column": "Lluvia",
+          "stored": 1.1,
+          "regen": 13.6,
+          "class": "rain_shift"
+        },
+        {
+          "day": "2025-06-23",
+          "dup": 0,
+          "column": "Dirección del viento",
+          "stored": "N",
+          "regen": "E",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-23",
+          "dup": 0,
+          "column": "Velocidad media del viento",
+          "stored": 8.5,
+          "regen": 796.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-23",
+          "dup": 0,
+          "column": "Velocidad máxima y direccion",
+          "stored": "S 10,8",
+          "regen": "E 1296,0",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-23",
+          "dup": 0,
+          "column": "Recorrido del viento",
+          "stored": 68.0,
+          "regen": 6372.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-23",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 5.8,
+          "regen": 8.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-23",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 17.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-23",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 5.8,
+          "regen": 12.5,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-23",
+          "dup": 0,
+          "column": "Humedad maxima",
+          "stored": 96.0,
+          "regen": 32.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-23",
+          "dup": 0,
+          "column": "Humedad minima",
+          "stored": 64.0,
+          "regen": 27.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-23",
+          "dup": 0,
+          "column": "Humedad media",
+          "stored": 80.8,
+          "regen": 29.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-23",
+          "dup": 0,
+          "column": "Punto de rocio",
+          "stored": 23.8,
+          "regen": 24.8,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-23",
+          "dup": 0,
+          "column": "Tensión de vapor",
+          "stored": 29.5,
+          "regen": 23.8,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-24",
+          "dup": 0,
+          "column": "Mayor temperatura máxima",
+          "stored": 32.6,
+          "regen": 0.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-24",
+          "dup": 0,
+          "column": "Menor temperatura minima",
+          "stored": 25.5,
+          "regen": 26.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-24",
+          "dup": 0,
+          "column": "Media temperatura",
+          "stored": 29.1,
+          "regen": 13.3,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-24",
+          "dup": 0,
+          "column": "MAxima presión nivel medio del mar",
+          "stored": 1019.6,
+          "regen": 1018.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-24",
+          "dup": 0,
+          "column": "Minima presión nivel medio del mar",
+          "stored": 1016.5,
+          "regen": 1014.9,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-24",
+          "dup": 0,
+          "column": "Media presión nivel medio del mar",
+          "stored": 1018.1,
+          "regen": 1016.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-24",
+          "dup": 0,
+          "column": "Media presion en la estación",
+          "stored": 1016.0,
+          "regen": 12.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-24",
+          "dup": 0,
+          "column": "Lluvia",
+          "stored": null,
+          "regen": 1.1,
+          "class": "rain_shift"
+        },
+        {
+          "day": "2025-06-24",
+          "dup": 0,
+          "column": "Dirección del viento",
+          "stored": "ESE",
+          "regen": "E",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-24",
+          "dup": 0,
+          "column": "Velocidad media del viento",
+          "stored": 7.1,
+          "regen": 634.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-24",
+          "dup": 0,
+          "column": "Velocidad máxima y direccion",
+          "stored": "ESE 13,0",
+          "regen": "E 1296,0",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-24",
+          "dup": 0,
+          "column": "Recorrido del viento",
+          "stored": 56.9,
+          "regen": 5076.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-24",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 6.2,
+          "regen": 8.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-24",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 17.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-24",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 6.2,
+          "regen": 12.5,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-24",
+          "dup": 0,
+          "column": "Humedad maxima",
+          "stored": 88.0,
+          "regen": 35.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-24",
+          "dup": 0,
+          "column": "Humedad minima",
+          "stored": 67.0,
+          "regen": 28.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-24",
+          "dup": 0,
+          "column": "Humedad media",
+          "stored": 79.6,
+          "regen": 30.1,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-24",
+          "dup": 0,
+          "column": "Punto de rocio",
+          "stored": 24.2,
+          "regen": 25.2,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-24",
+          "dup": 0,
+          "column": "Tensión de vapor",
+          "stored": 30.1,
+          "regen": 24.2,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-25",
+          "dup": 0,
+          "column": "Mayor temperatura máxima",
+          "stored": 33.2,
+          "regen": 0.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-25",
+          "dup": 0,
+          "column": "Menor temperatura minima",
+          "stored": 23.9,
+          "regen": 27.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-25",
+          "dup": 0,
+          "column": "Media temperatura",
+          "stored": 28.6,
+          "regen": 13.8,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-25",
+          "dup": 0,
+          "column": "MAxima presión nivel medio del mar",
+          "stored": 1019.1,
+          "regen": 1017.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-25",
+          "dup": 0,
+          "column": "Minima presión nivel medio del mar",
+          "stored": 1016.1,
+          "regen": 1014.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-25",
+          "dup": 0,
+          "column": "Media presión nivel medio del mar",
+          "stored": 1017.6,
+          "regen": 1016.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-25",
+          "dup": 0,
+          "column": "Media presion en la estación",
+          "stored": 1016.1,
+          "regen": 12.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-25",
+          "dup": 0,
+          "column": "Lluvia",
+          "stored": 0.0,
+          "regen": null,
+          "class": "rain_shift"
+        },
+        {
+          "day": "2025-06-25",
+          "dup": 0,
+          "column": "Dirección del viento",
+          "stored": "ESE",
+          "regen": "E",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-25",
+          "dup": 0,
+          "column": "Velocidad media del viento",
+          "stored": 8.9,
+          "regen": 297.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-25",
+          "dup": 0,
+          "column": "Velocidad máxima y direccion",
+          "stored": "ESE 14,0",
+          "regen": "ENE 540,0",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-25",
+          "dup": 0,
+          "column": "Recorrido del viento",
+          "stored": 71.3,
+          "regen": 2376.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-25",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 4.0,
+          "regen": 8.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-25",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 17.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-25",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 4.0,
+          "regen": 12.5,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-25",
+          "dup": 0,
+          "column": "Humedad maxima",
+          "stored": 97.0,
+          "regen": 33.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-25",
+          "dup": 0,
+          "column": "Humedad minima",
+          "stored": 59.0,
+          "regen": 27.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-25",
+          "dup": 0,
+          "column": "Humedad media",
+          "stored": 77.2,
+          "regen": 30.2,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-25",
+          "dup": 0,
+          "column": "Punto de rocio",
+          "stored": 24.3,
+          "regen": 25.4,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-25",
+          "dup": 0,
+          "column": "Tensión de vapor",
+          "stored": 30.2,
+          "regen": 24.3,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-26",
+          "dup": 0,
+          "column": "Mayor temperatura máxima",
+          "stored": 33.0,
+          "regen": 0.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-26",
+          "dup": 0,
+          "column": "Menor temperatura minima",
+          "stored": 26.0,
+          "regen": 28.6,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-26",
+          "dup": 0,
+          "column": "Media temperatura",
+          "stored": 29.5,
+          "regen": 14.3,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-26",
+          "dup": 0,
+          "column": "MAxima presión nivel medio del mar",
+          "stored": 1019.2,
+          "regen": 1017.6,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-26",
+          "dup": 0,
+          "column": "Minima presión nivel medio del mar",
+          "stored": 1016.2,
+          "regen": 1014.6,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-26",
+          "dup": 0,
+          "column": "Media presión nivel medio del mar",
+          "stored": 1017.7,
+          "regen": 1016.1,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-26",
+          "dup": 0,
+          "column": "Media presion en la estación",
+          "stored": 1016.0,
+          "regen": 12.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-26",
+          "dup": 0,
+          "column": "Lluvia",
+          "stored": 34.0,
+          "regen": 0.0,
+          "class": "rain_shift"
+        },
+        {
+          "day": "2025-06-26",
+          "dup": 0,
+          "column": "Dirección del viento",
+          "stored": "VRB",
+          "regen": "E",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-26",
+          "dup": 0,
+          "column": "Velocidad media del viento",
+          "stored": 7.3,
+          "regen": 292.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-26",
+          "dup": 0,
+          "column": "Velocidad máxima y direccion",
+          "stored": "SE 11,9",
+          "regen": "ENE 540,0",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-26",
+          "dup": 0,
+          "column": "Recorrido del viento",
+          "stored": 58.7,
+          "regen": 2340.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-26",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 3.3,
+          "regen": 8.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-26",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 17.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-26",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 3.3,
+          "regen": 12.5,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-26",
+          "dup": 0,
+          "column": "Humedad maxima",
+          "stored": 94.0,
+          "regen": 31.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-26",
+          "dup": 0,
+          "column": "Humedad minima",
+          "stored": 64.0,
+          "regen": 29.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-26",
+          "dup": 0,
+          "column": "Humedad media",
+          "stored": 76.4,
+          "regen": 30.2,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-26",
+          "dup": 0,
+          "column": "Punto de rocio",
+          "stored": 24.3,
+          "regen": 25.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-26",
+          "dup": 0,
+          "column": "Tensión de vapor",
+          "stored": 30.2,
+          "regen": 24.3,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-27",
+          "dup": 0,
+          "column": "Mayor temperatura máxima",
+          "stored": 31.5,
+          "regen": 15.4,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-27",
+          "dup": 0,
+          "column": "Menor temperatura minima",
+          "stored": 24.0,
+          "regen": 26.6,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-27",
+          "dup": 0,
+          "column": "Media temperatura",
+          "stored": 27.8,
+          "regen": 21.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-27",
+          "dup": 0,
+          "column": "MAxima presión nivel medio del mar",
+          "stored": 1018.6,
+          "regen": 1017.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-27",
+          "dup": 0,
+          "column": "Minima presión nivel medio del mar",
+          "stored": 1016.8,
+          "regen": 1015.2,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-27",
+          "dup": 0,
+          "column": "Media presión nivel medio del mar",
+          "stored": 1017.7,
+          "regen": 1016.1,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-27",
+          "dup": 0,
+          "column": "Media presion en la estación",
+          "stored": 1016.2,
+          "regen": 12.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-27",
+          "dup": 0,
+          "column": "Lluvia",
+          "stored": 0.0,
+          "regen": 34.0,
+          "class": "rain_shift"
+        },
+        {
+          "day": "2025-06-27",
+          "dup": 0,
+          "column": "Dirección del viento",
+          "stored": "N",
+          "regen": "E",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-27",
+          "dup": 0,
+          "column": "Velocidad media del viento",
+          "stored": 7.9,
+          "regen": 832.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-27",
+          "dup": 0,
+          "column": "Velocidad máxima y direccion",
+          "stored": "N 11,2",
+          "regen": "E 1296,0",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-27",
+          "dup": 0,
+          "column": "Recorrido del viento",
+          "stored": 63.4,
+          "regen": 6660.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-27",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 5.2,
+          "regen": 8.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-27",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 17.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-27",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 5.2,
+          "regen": 12.5,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-27",
+          "dup": 0,
+          "column": "Humedad maxima",
+          "stored": 95.0,
+          "regen": 30.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-27",
+          "dup": 0,
+          "column": "Humedad minima",
+          "stored": 63.0,
+          "regen": 27.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-27",
+          "dup": 0,
+          "column": "Humedad media",
+          "stored": 83.9,
+          "regen": 28.2,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-27",
+          "dup": 0,
+          "column": "Punto de rocio",
+          "stored": 23.1,
+          "regen": 23.9,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-27",
+          "dup": 0,
+          "column": "Tensión de vapor",
+          "stored": 28.2,
+          "regen": 23.1,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-28",
+          "dup": 0,
+          "column": "Mayor temperatura máxima",
+          "stored": 33.0,
+          "regen": 16.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-28",
+          "dup": 0,
+          "column": "Menor temperatura minima",
+          "stored": 25.8,
+          "regen": 27.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-28",
+          "dup": 0,
+          "column": "Media temperatura",
+          "stored": 29.4,
+          "regen": 22.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-28",
+          "dup": 0,
+          "column": "MAxima presión nivel medio del mar",
+          "stored": 1019.0,
+          "regen": 1017.4,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-28",
+          "dup": 0,
+          "column": "Minima presión nivel medio del mar",
+          "stored": 1017.0,
+          "regen": 1015.4,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-28",
+          "dup": 0,
+          "column": "Media presión nivel medio del mar",
+          "stored": 1018.0,
+          "regen": 1016.4,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-28",
+          "dup": 0,
+          "column": "Media presion en la estación",
+          "stored": 1016.5,
+          "regen": 12.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-28",
+          "dup": 0,
+          "column": "Lluvia",
+          "stored": 22.7,
+          "regen": 0.0,
+          "class": "rain_shift"
+        },
+        {
+          "day": "2025-06-28",
+          "dup": 0,
+          "column": "Dirección del viento",
+          "stored": "N",
+          "regen": "E",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-28",
+          "dup": 0,
+          "column": "Velocidad media del viento",
+          "stored": 8.0,
+          "regen": 409.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-28",
+          "dup": 0,
+          "column": "Velocidad máxima y direccion",
+          "stored": "NE 13,7",
+          "regen": "E 1296,0",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-28",
+          "dup": 0,
+          "column": "Recorrido del viento",
+          "stored": 63.7,
+          "regen": 3276.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-28",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 4.3,
+          "regen": 8.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-28",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 17.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-28",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 4.3,
+          "regen": 12.5,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-28",
+          "dup": 0,
+          "column": "Humedad maxima",
+          "stored": 92.0,
+          "regen": 33.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-28",
+          "dup": 0,
+          "column": "Humedad minima",
+          "stored": 65.0,
+          "regen": 28.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-28",
+          "dup": 0,
+          "column": "Humedad media",
+          "stored": 80.6,
+          "regen": 29.8,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-28",
+          "dup": 0,
+          "column": "Punto de rocio",
+          "stored": 24.0,
+          "regen": 25.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-28",
+          "dup": 0,
+          "column": "Tensión de vapor",
+          "stored": 29.8,
+          "regen": 24.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-29",
+          "dup": 0,
+          "column": "Mayor temperatura máxima",
+          "stored": 33.5,
+          "regen": 16.9,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-29",
+          "dup": 0,
+          "column": "Menor temperatura minima",
+          "stored": 23.5,
+          "regen": 25.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-29",
+          "dup": 0,
+          "column": "Media temperatura",
+          "stored": 28.5,
+          "regen": 21.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-29",
+          "dup": 0,
+          "column": "MAxima presión nivel medio del mar",
+          "stored": 1018.3,
+          "regen": 1016.7,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-29",
+          "dup": 0,
+          "column": "Minima presión nivel medio del mar",
+          "stored": 1016.5,
+          "regen": 1014.9,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-29",
+          "dup": 0,
+          "column": "Media presión nivel medio del mar",
+          "stored": 1017.4,
+          "regen": 1015.8,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-29",
+          "dup": 0,
+          "column": "Media presion en la estación",
+          "stored": 1015.9,
+          "regen": 12.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-29",
+          "dup": 0,
+          "column": "Lluvia",
+          "stored": 23.1,
+          "regen": 22.7,
+          "class": "rain_shift"
+        },
+        {
+          "day": "2025-06-29",
+          "dup": 0,
+          "column": "Dirección del viento",
+          "stored": "N",
+          "regen": "E",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-29",
+          "dup": 0,
+          "column": "Velocidad media del viento",
+          "stored": 6.3,
+          "regen": 553.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-29",
+          "dup": 0,
+          "column": "Velocidad máxima y direccion",
+          "stored": "ENE 13,0",
+          "regen": "E 1296,0",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-29",
+          "dup": 0,
+          "column": "Recorrido del viento",
+          "stored": 50.0,
+          "regen": 4428.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-29",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 4.5,
+          "regen": 8.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-29",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 17.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-29",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 4.5,
+          "regen": 12.5,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-29",
+          "dup": 0,
+          "column": "Humedad maxima",
+          "stored": 92.0,
+          "regen": 32.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-29",
+          "dup": 0,
+          "column": "Humedad minima",
+          "stored": 66.0,
+          "regen": 27.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-29",
+          "dup": 0,
+          "column": "Humedad media",
+          "stored": 86.2,
+          "regen": 29.2,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-29",
+          "dup": 0,
+          "column": "Punto de rocio",
+          "stored": 23.7,
+          "regen": 24.4,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-29",
+          "dup": 0,
+          "column": "Tensión de vapor",
+          "stored": 29.2,
+          "regen": 23.7,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-30",
+          "dup": 0,
+          "column": "Mayor temperatura máxima",
+          "stored": 32.8,
+          "regen": 0.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-30",
+          "dup": 0,
+          "column": "Menor temperatura minima",
+          "stored": 25.0,
+          "regen": 26.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-30",
+          "dup": 0,
+          "column": "Media temperatura",
+          "stored": 28.9,
+          "regen": 13.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-30",
+          "dup": 0,
+          "column": "MAxima presión nivel medio del mar",
+          "stored": 1019.0,
+          "regen": 1017.4,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-30",
+          "dup": 0,
+          "column": "Minima presión nivel medio del mar",
+          "stored": 1017.1,
+          "regen": 1015.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-30",
+          "dup": 0,
+          "column": "Media presión nivel medio del mar",
+          "stored": 1018.1,
+          "regen": 1016.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-30",
+          "dup": 0,
+          "column": "Media presion en la estación",
+          "stored": 1016.4,
+          "regen": 12.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-30",
+          "dup": 0,
+          "column": "Lluvia",
+          "stored": null,
+          "regen": 23.1,
+          "class": "rain_shift"
+        },
+        {
+          "day": "2025-06-30",
+          "dup": 0,
+          "column": "Dirección del viento",
+          "stored": "VRB",
+          "regen": "E",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-30",
+          "dup": 0,
+          "column": "Velocidad media del viento",
+          "stored": 8.0,
+          "regen": 328.5,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-30",
+          "dup": 0,
+          "column": "Velocidad máxima y direccion",
+          "stored": "SE 11,2",
+          "regen": "E 720,0",
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-30",
+          "dup": 0,
+          "column": "Recorrido del viento",
+          "stored": 64.1,
+          "regen": 2628.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-30",
+          "dup": 0,
+          "column": "Nuvocidad dia",
+          "stored": 4.5,
+          "regen": 8.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-30",
+          "dup": 0,
+          "column": "Nuvocidad noche",
+          "stored": null,
+          "regen": 17.0,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-30",
+          "dup": 0,
+          "column": "Media de nuvocidad",
+          "stored": 4.5,
+          "regen": 12.5,
+          "class": "nub_artifact"
+        },
+        {
+          "day": "2025-06-30",
+          "dup": 0,
+          "column": "Humedad maxima",
+          "stored": 91.0,
+          "regen": 34.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-30",
+          "dup": 0,
+          "column": "Humedad minima",
+          "stored": 64.0,
+          "regen": 28.0,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-30",
+          "dup": 0,
+          "column": "Humedad media",
+          "stored": 80.4,
+          "regen": 30.6,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-30",
+          "dup": 0,
+          "column": "Punto de rocio",
+          "stored": 24.5,
+          "regen": 25.4,
+          "class": "template_drift"
+        },
+        {
+          "day": "2025-06-30",
+          "dup": 0,
+          "column": "Tensión de vapor",
+          "stored": 30.6,
+          "regen": 24.5,
+          "class": "template_drift"
+        }
+      ],
+      "structural": [
+        "station key from B3-or-filename: ['INSTITUTO  DOMINICANO DE METEOROLOGÍA (INDOMET)'] (old tool used the same extraction)",
+        "periodo stored '062025' vs regen '06/2025'",
+        "stored has 31 rows with 2025-06-22 duplicated (two accent-variant books); regen has 30 calendar rows (dup fecha upserts once)",
+        "total_dias stored registros=31 vs regen 30"
+      ],
+      "sources": [
+        "Estacion Central 01062025.xlsm",
+        "Estacion Central 02062025.xlsm",
+        "Estacion Central 03062025.xlsm",
+        "Estacion Central 04062025.xlsm",
+        "Estacion Central 05062025.xlsm",
+        "Estacion Central 06062025.xlsm",
+        "Estacion Central 07062025.xlsm",
+        "Estacion Central 08062025.xlsm",
+        "Estacion Central 09062025.xlsm",
+        "Estacion Central 10062025.xlsm",
+        "Estacion Central 22062025.xlsm",
+        "Estacion Central 23062025.xlsm",
+        "Estacion Central 24062025.xlsm",
+        "Estacion Central 25062025.xlsm",
+        "Estacion Central 26062025.xlsm",
+        "Estacion Central 27062025.xlsm",
+        "Estacion Central 28062025.xlsm",
+        "Estación Central 11062025.xlsm",
+        "Estación Central 12062025.xlsm",
+        "Estación Central 13062025.xlsm",
+        "Estación Central 14062025.xlsm",
+        "Estación Central 15062025.xlsm",
+        "Estación Central 16062025.xlsm",
+        "Estación Central 17062025.xlsm",
+        "Estación Central 18062025.xlsm",
+        "Estación Central 19062025.xlsm",
+        "Estación Central 20062025.xlsm",
+        "Estación Central 21062025.xlsm",
+        "Estación Central 22062025.xlsm",
+        "Estación Central 29062025.xlsm",
+        "Estación Central 30062025.xlsm"
+      ]
+    }
+  ],
+  "excel_check": {
+    "file": "oracle_mdjb_062025.xlsx",
+    "headers": [
+      "Dias",
+      "Mayor temperatura máxima",
+      "Menor temperatura minima",
+      "Media temperatura",
+      "MAxima presión nivel medio del mar",
+      "Minima presión nivel medio del mar",
+      "Media presión nivel medio del mar",
+      "Media presion en la estación",
+      "Lluvia",
+      "Dirección del viento",
+      "Velocidad media del viento",
+      "Velocidad máxima y direccion",
+      "Recorrido del viento",
+      "Nuvocidad dia",
+      "Nuvocidad noche",
+      "Media de nuvocidad",
+      "Humedad maxima",
+      "Humedad minima",
+      "Humedad media",
+      "Punto de rocio",
+      "Tensión de vapor"
+    ],
+    "headers_verbatim": true,
+    "headers_bold": true,
+    "rows": 31,
+    "day1": "2025-06-01",
+    "day1_tmax": 33.5,
+    "day1_tmax_is_number": true,
+    "day1_dir": "VRB",
+    "day1_dir_is_string": true
+  },
+  "verdict": "ok",
+  "unexplained_cells": 0
+}

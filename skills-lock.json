@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "skills": {
+    "impeccable": {
+      "source": "pbakaus/impeccable",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/impeccable/SKILL.md",
+      "computedHash": "9843172fa7aa2283d04f8bf17ea345c44f6d1a51b69716d5d8444a02a17d6874"
+    },
+    "pyside6-engineer": {
+      "source": "vosslab/vosslab-skills",
+      "sourceType": "github",
+      "skillPath": "skills/experts/pyside6-engineer/SKILL.md",
+      "computedHash": "cdcf6d243b013a30cecf39bc93f801fcbbe8f9b85d0eee266a02636534a53922"
+    }
+  }
+}
