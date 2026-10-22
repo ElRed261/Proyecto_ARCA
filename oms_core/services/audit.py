@@ -171,7 +171,16 @@ MANDATORY_FIELDS: tuple[tuple[str, str], ...] = (
     ("meteo_4_irixhvv", "Falta de datos"),  # Ir iX H VV
     ("meteo_4_1", "Falta de datos"),        # N dd ff
     ("meteo_6_0", "Falta de datos"),        # 8Nh CL CM CH
+    ("meteo_6_3", "Falta de datos"),        # 1sn Tx Tx Tx
+    ("meteo_6_4", "Falta de datos"),        # 2sn Tn Tn Tn
+    ("ts", "Falta de datos"),               # instrumentales
+    ("th", "Falta de datos"),
+    ("pres_est", "Falta de datos"),
 )
+
+#: The precipitation group is mandatory only when the Ir digit says the station
+#: reports rain (owner round 30: "agregar la lluvia cuando el Ir indique").
+MANDATORY_PRECIP_FIELD = ("meteo_8_3", "Falta de datos")  # 6 RRR tr
 
 
 class AuditError(Exception):
@@ -544,8 +553,15 @@ def load_observation_with_audit(
                 break
         if not tiene_datos:
             continue
-        # extended rule: every mandatory group that is empty gets its mark
-        for campo, tipo in MANDATORY_FIELDS:
+        # extended rule: every mandatory group that is empty gets its mark.
+        # 6RRRtr joins them only when Ir (0, 1 or 2) says the station reports
+        # precipitation, exactly the gate the group itself has.
+        mandatory = list(MANDATORY_FIELDS)
+        irixhv = str(hora_val.get("meteo_4_irixhvv") or "")
+        ir = irixhv[0:1] if irixhv else ""
+        if oms_calc.should_include_precipitation(ir):
+            mandatory.append(MANDATORY_PRECIP_FIELD)
+        for campo, tipo in mandatory:
             value = hora_val.get(campo)
             if isinstance(value, str) and value.strip():
                 continue
@@ -1086,7 +1102,15 @@ def export_corrected_json(
     if isinstance(meta, dict):
         meta["ultima_actualizacion"] = _now_local()
 
-    corr_dir = dir_path / "correcciones"
+    # option B (owner round 30): metadata stays in the database, and the
+    # corrected observation goes to its own tree `correcciones/<año>/<mes>/`,
+    # never inside synop/ and never overwriting the original day file
+    # base_dir is the synoptic archive root (…/OMS/synop): the corrections tree
+    # is its SIBLING, so nothing lands inside the original archive
+    corr_dir = (
+        Path(base_dir).parent / paths_mod.SECTION_CORRECTIONS
+        / str(year) / str(month)
+    )
     corr_dir.mkdir(parents=True, exist_ok=True)
     corr_path = corr_dir / f"{station_id}{filename_date}_cor.json"
     payload = json.dumps(root, ensure_ascii=False, indent=2)

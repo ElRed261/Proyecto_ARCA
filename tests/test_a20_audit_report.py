@@ -6,6 +6,8 @@ S3 it shows errors, audited observations and both rates;
 S4 the taxonomy is the five closed types plus the derived data group.
 """
 
+from pathlib import Path
+
 import pytest
 
 from oms_core.services import audit as audit_service
@@ -536,3 +538,86 @@ def test_the_correction_dialog_takes_the_corrector_name(audit_page):
     dialog = CorrectionDialog()
     dialog.corrector_edit.setText("qc@oms")
     assert dialog.corrector_edit.text() == "qc@oms"
+
+
+# ------------------------------- round 30: extended automatic marks + storage
+
+
+def _hour_marks(fresh_db, fecha="2024-04-28", hora="06Z"):
+    data = audit_service.load_observation_with_audit(fresh_db, "78486", fecha)
+    return [m for m in data["error_marks"] if m["hora"] == hora]
+
+
+def test_the_extended_mandatory_groups_are_marked(fresh_db):
+    """Owner round 30: extreme temperatures and the instrumentals join the
+    automatic marks (besides YYGGiw, IrIXHVV, Nddff and 8NhCLCMCH)."""
+    from oms_core.services import synoptic as synoptic_service
+
+    synoptic_service.save_hour(fresh_db, "78486", "2024-04-28", "06Z",
+                               {"nombre_observador": "YG", "ts": "28.0"})
+    marks = _hour_marks(fresh_db)
+    marked = {m["campo"] for m in marks}
+    for campo in ("meteo_6_3", "meteo_6_4", "th", "pres_est"):
+        assert campo in marked, campo
+    # the ones the hour does carry are not marked
+    assert "ts" not in marked
+    assert "observador" not in marked
+    assert all(m["marcado_por"] == audit_service.AUTO_AUTHOR for m in marks)
+
+
+def test_the_rain_group_is_marked_only_when_ir_reports_precipitation(fresh_db):
+    from oms_core.services import synoptic as synoptic_service
+
+    synoptic_service.save_hour(fresh_db, "78486", "2024-04-29", "06Z", {
+        "meteo_4_irixhvv": "31566",   # Ir = 3: no precipitation reported
+        "ts": "1", "th": "1", "pres_est": "1010.0",
+        "meteo_2_1": "1", "meteo_4_1": "1", "meteo_6_0": "1",
+        "meteo_6_3": "1", "meteo_6_4": "1", "nombre_observador": "YG",
+    })
+    marked = {m["campo"] for m in _hour_marks(fresh_db, "2024-04-29")}
+    assert "meteo_8_3" not in marked, "Ir=3 no reporta lluvia"
+
+    synoptic_service.save_hour(fresh_db, "78486", "2024-04-30", "06Z", {
+        "meteo_4_irixhvv": "01566",   # Ir = 0: reports rain
+        "ts": "1", "th": "1", "pres_est": "1010.0",
+        "meteo_2_1": "1", "meteo_4_1": "1", "meteo_6_0": "1",
+        "meteo_6_3": "1", "meteo_6_4": "1", "nombre_observador": "YG",
+    })
+    marked = {m["campo"] for m in _hour_marks(fresh_db, "2024-04-30")}
+    assert "meteo_8_3" in marked, "Ir=0 reporta lluvia: falta el grupo"
+
+
+def test_the_corrected_copy_goes_to_its_own_tree(fresh_db, tmp_path):
+    """Option B: metadata in the DB, the corrected observation in
+    ``correcciones/<year>/<month>/`` — never inside the synoptic archive."""
+    from oms_core.services import synoptic as synoptic_service
+
+    base = tmp_path / "OMS" / "synop"
+    month_dir = base / "78486" / "2024" / "04"
+    month_dir.mkdir(parents=True)
+    original = month_dir / "7848628042024.json"
+    original.write_text('{"meta": {"estacion": "78486"}, "horas": {}}')
+
+    synoptic_service.save_hour(fresh_db, "78486", "2024-04-28", "06Z",
+                               {"ts": "28.0", "nombre_observador": "YG"})
+    audit_service.mark_error(
+        fresh_db, role="admin", station_id="78486", fecha="2024-04-28",
+        hora="06Z", campo="ts", tipo_error="Sintaxis", marcado_por="qc@oms",
+    )
+    corr = audit_service.propose_correction(
+        fresh_db, role="admin", station_id="78486", fecha="2024-04-28",
+        hora="06Z", campo="ts", valor_original="28.0", valor_corregido="28.4",
+        justificacion="revisado", corregido_por="qc@oms",
+    )
+    audit_service.approve_correction(
+        fresh_db, role="admin", correction_id=corr["id"], aprobado_por="qc@oms"
+    )
+    path = audit_service.export_corrected_json(
+        fresh_db, base, "78486", "2024-04-28", role="admin"
+    )
+    written = Path(path)
+    assert written.parent == tmp_path / "OMS" / "correcciones" / "2024" / "04"
+    assert written.name == "7848628042024_cor.json"
+    # the original is byte-identical, and nothing was written inside synop/
+    assert original.read_text() == '{"meta": {"estacion": "78486"}, "horas": {}}'
+    assert sorted(p.name for p in month_dir.iterdir()) == [original.name]

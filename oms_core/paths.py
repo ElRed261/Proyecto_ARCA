@@ -52,8 +52,13 @@ SECTION_SYNOP = "synop"
 SECTION_SUMMARIES = "resumenes"
 SECTION_EXPORTS = "exportaciones"
 SECTION_BACKUPS = "respaldos"
+#: Corrections live in their own tree, never inside ``synop/``: the owner keeps
+#: the audited copy away from the original archive (round 30, option B).
+SECTION_CORRECTIONS: str = "correcciones"
+
 SECTIONS: tuple[str, ...] = (
     SECTION_SYNOP, SECTION_SUMMARIES, SECTION_EXPORTS, SECTION_BACKUPS,
+    SECTION_CORRECTIONS,
 )
 
 

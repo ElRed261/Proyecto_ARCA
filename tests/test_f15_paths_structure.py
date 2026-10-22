@@ -52,7 +52,10 @@ def test_default_root_exists_after_ensure(monkeypatch, tmp_path, conn):
 
 
 def test_sections_are_the_closed_set():
-    assert SECTIONS == ("synop", "resumenes", "exportaciones", "respaldos")
+    # round 30: the corrected observations get their own tree (owner option B)
+    assert SECTIONS == (
+        "synop", "resumenes", "exportaciones", "respaldos", "correcciones",
+    )
 
 
 def test_section_dir_returns_the_child():

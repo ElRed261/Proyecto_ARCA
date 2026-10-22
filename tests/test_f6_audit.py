@@ -388,9 +388,11 @@ def test_mark_propose_approve_export_roundtrip(fresh_db, tmp_path):
     assert exported["horas"]["06Z"]["datos"]["ts"] == "23.5"
     # original file untouched on disk
     assert (base / STATION.lower() / "2025" / "12" / FILENAME).read_bytes() == original_bytes
-    # exported file lives next to the original, never overwriting it
+    # round 30 (owner option B): the corrected copy lives in its own tree,
+    # correcciones/<year>/<month>/, never inside the synoptic archive
     assert Path(out).name == f"{STATION}08122025_cor.json"
-    assert Path(out).parent.name == "correcciones"
+    assert Path(out).parent.parent.parent.name == "correcciones"
+    assert Path(out).parent.name == "12"
 
 
 # ---------------------------------------------------------------- reports (hand-computed oracle)
