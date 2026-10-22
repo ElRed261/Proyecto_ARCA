@@ -218,6 +218,9 @@ class CorrectionDialog(QDialog):
         layout.addRow("Valor original", self.original_label)
         self.value_edit = QLineEdit()
         layout.addRow("Valor corregido", self.value_edit)
+        self.corrector_edit = QLineEdit()
+        self.corrector_edit.setPlaceholderText("Quién corrige (corrector)")
+        layout.addRow("Corrector", self.corrector_edit)
         self.justification_edit = QTextEdit()
         layout.addRow("Justificación", self.justification_edit)
         box = QDialogButtonBox()
@@ -227,6 +230,68 @@ class CorrectionDialog(QDialog):
 
 
 ERROR_TYPES = audit_service.ERROR_TYPES
+
+
+def cli_reference_html(conn: sqlite3.Connection, station: str, fecha: str,
+                       module: str) -> str:
+    """The stored CLI sheet as an HTML table (read-only reference view).
+
+    The oracle put a "Ver CLI 3074/4074/5074" button next to the grid so the
+    auditor could compare the observation with the instrumental sheets without
+    leaving the page.
+    """
+    from oms_core.services import cli as cli_service
+
+    block = cli_service.load_cli(conn, station, fecha, f"cli{module}")
+    if not isinstance(block, dict) or not block:
+        return "<p style='color:#64748b;'>Sin datos guardados para este CLI.</p>"
+    rows = block.get("horas") if isinstance(block.get("horas"), dict) else block
+    if not isinstance(rows, dict):
+        return "<p style='color:#64748b;'>Formato de CLI no reconocido.</p>"
+    columns: list[str] = []
+    for row in rows.values():
+        if isinstance(row, dict):
+            for key, value in row.items():
+                if value not in ("", None, False) and key not in columns:
+                    columns.append(key)
+    if not columns:
+        return "<p style='color:#64748b;'>Sin datos guardados para este CLI.</p>"
+    header = "".join(f"<th align='left'>{col}</th>" for col in columns)
+    body = []
+    for row_key in sorted(rows, key=lambda k: int(k) if str(k).isdigit() else 0):
+        row = rows[row_key]
+        if not isinstance(row, dict):
+            continue
+        cells = []
+        for col in columns:
+            value = row.get(col, "")
+            if isinstance(value, dict):
+                value = ", ".join(f"{k}" for k, v in value.items() if v)
+            cells.append(f"<td>{'' if value in (None, False) else value}</td>")
+        body.append(f"<tr><td><b>{row_key}</b></td>{''.join(cells)}</tr>")
+    return (
+        "<table border='1' cellspacing='0' cellpadding='4' width='100%'>"
+        f"<thead><tr><th>Fila</th>{header}</tr></thead>"
+        f"<tbody>{''.join(body)}</tbody></table>"
+    )
+
+
+class CliPeekDialog(QDialog):
+    """Read-only view of a stored CLI sheet."""
+
+    def __init__(self, conn: sqlite3.Connection, station: str, fecha: str,
+                 module: str, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setWindowTitle(f"CLI {module} — {station} · {fecha}")
+        self.resize(760, 520)
+        box = QVBoxLayout(self)
+        viewer = QTextEdit()
+        viewer.setReadOnly(True)
+        viewer.setHtml(cli_reference_html(conn, station, fecha, module))
+        box.addWidget(viewer)
+        close = QPushButton("Cerrar")
+        close.clicked.connect(self.accept)
+        box.addWidget(close)
 
 
 def sections() -> list[tuple[str, str, list[str]]]:
@@ -293,6 +358,13 @@ class AuditObservationPage(QWidget):
         self._build_header(layout)
         self._build_hours(layout)
         self._build_body(layout)
+        self.observer_banner = QLabel("")
+        self.observer_banner.setStyleSheet(
+            "background: #fef2f2; color: #991b1b; border: 1px solid #fecaca;"
+            "border-radius: 8px; padding: 6px 10px; font-weight: 700;"
+        )
+        self.observer_banner.setVisible(False)
+        layout.addWidget(self.observer_banner)
         self.status_label = QLabel("")
         self.status_label.setStyleSheet("color: #64748b; font-size: 12px;")
         layout.addWidget(self.status_label)
@@ -468,6 +540,7 @@ class AuditObservationPage(QWidget):
 
         actions = QVBoxLayout()
         actions.setSpacing(6)
+        self.cli_dialog: CliPeekDialog | None = None
         self.to_correction_button = QPushButton("Aplicar Corrección")
         self.to_correction_button.setObjectName("primary")
         self.to_correction_button.clicked.connect(self.open_correction_dialog)
@@ -482,7 +555,23 @@ class AuditObservationPage(QWidget):
         marks_title.setObjectName("panelTitle")
         box.addWidget(marks_title)
         self.error_list = QListWidget()
+        self.error_list.currentRowChanged.connect(self._on_mark_selected)
         box.addWidget(self.error_list, 1)
+        remove_row = QPushButton("Quitar marca seleccionada")
+        remove_row.setObjectName("ghost")
+        remove_row.clicked.connect(self.remove_selected_mark)
+        box.addWidget(remove_row)
+        cli_row = QHBoxLayout()
+        self.cli_buttons: dict[str, QPushButton] = {}
+        for module in ("3074", "4074", "5074"):
+            button = QPushButton(f"Ver {module}")
+            button.setObjectName("ghost")
+            button.clicked.connect(
+                lambda _=False, m=module: self.show_cli_reference(m)
+            )
+            cli_row.addWidget(button)
+            self.cli_buttons[module] = button
+        box.addLayout(cli_row)
 
         note_title = QLabel("NOTA DE LA MARCA")
         note_title.setObjectName("panelTitle")
@@ -578,6 +667,22 @@ class AuditObservationPage(QWidget):
             _repolish(cell)
         self._refresh_hour_buttons()
         self._select_hour_button()
+        self._refresh_observer_banner()
+
+    def _refresh_observer_banner(self) -> None:
+        """Red banner when the hour has data but nobody signed it (oracle)."""
+        view = self._hour_view()
+        has_data = any(
+            key not in ("station_id", "observador", "nombre_observador")
+            and value not in ("", None)
+            for key, value in view.items()
+        )
+        observer = str(view.get("observador") or "").strip()
+        missing = has_data and not observer
+        self.observer_banner.setText(
+            "⚠ Observador no identificado: marcar el nombre de la hora."
+        )
+        self.observer_banner.setVisible(missing)
 
     def _refresh_hour_buttons(self) -> None:
         """A dot per hour: red with marks, green only corrected, grey clean."""
@@ -762,7 +867,10 @@ class AuditObservationPage(QWidget):
                 valor_original="" if current is None else str(current),
                 valor_corregido=self.correction_dialog.value_edit.text(),
                 justificacion=self.correction_dialog.justification_edit.toPlainText(),
-                corregido_por=self.user_email,
+                corregido_por=(
+                    self.correction_dialog.corrector_edit.text().strip()
+                    or self.user_email
+                ),
             )
             audit_service.approve_correction(
                 self.conn,
@@ -790,6 +898,41 @@ class AuditObservationPage(QWidget):
             self.status_label.setText(str(exc))
             return
         self.status_label.setText(f"Correcciones exportadas: {path}")
+
+    def show_cli_reference(self, module: str) -> None:
+        """Open the stored CLI sheet read-only (oracle 'Ver CLI' button)."""
+        self.cli_dialog = CliPeekDialog(
+            self.conn, self.station, self.fecha, module, self
+        )
+        self.cli_dialog.show()
+
+    def _on_mark_selected(self, row: int) -> None:
+        """Selecting a list row selects its cell, so the panel acts on it."""
+        if self._data is None or row < 0:
+            return
+        marks = self._data["error_marks"]
+        if row >= len(marks):
+            return
+        mark = marks[row]
+        self.active_hour = mark["hora"]
+        self.selected_campo = mark["campo"]
+        self.note_edit.setPlainText(mark.get("nota") or "")
+        self._refresh_grid()
+
+    def remove_selected_mark(self) -> None:
+        """Delete the mark chosen in the list (oracle per-row delete)."""
+        row = self.error_list.currentRow()
+        if self._data is None or row < 0 or row >= len(self._data["error_marks"]):
+            self.status_label.setText("Elegí una marca de la lista.")
+            return
+        mark = self._data["error_marks"][row]
+        try:
+            audit_service.unmark_error(self.conn, role=self.role, mark_id=mark["id"])
+        except _UI_ERRORS as exc:
+            self.status_label.setText(str(exc))
+            return
+        self.status_label.setText("Marca quitada.")
+        self.reload()
 
     # -------------------------------------------------------------- closure
 

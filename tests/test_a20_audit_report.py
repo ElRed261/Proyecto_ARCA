@@ -433,3 +433,88 @@ def test_a_schema2_hour_without_observer_is_auto_marked(fresh_db):
     marks = [m for m in data["error_marks"] if m["campo"] == "observador"]
     assert [m["hora"] for m in marks] == ["12Z"]
     assert marks[0]["marcado_por"] == "Sistema de Calidad"
+
+
+# ------------------------------- round 27: the four behaviours the OLD has
+
+
+@pytest.fixture
+def audit_page(fresh_db, qtbot):
+    from oms_ui.pages.audit_observation import AuditObservationPage
+
+    return AuditObservationPage(
+        fresh_db, _tmp_dir(), "78486", "2024-04-28", role="admin", user_email="qc@oms"
+    )
+
+
+def test_the_page_shows_the_stored_cli_sheets(fresh_db, qtbot):
+    """The oracle had 'Ver CLI 3074/4074/5074' next to the grid."""
+    from oms_core.services import cli as cli_service
+    from oms_ui.pages.audit_observation import cli_reference_html
+
+    cli_service.save_cli(fresh_db, "78486", "2024-04-28", "cli3074", {
+        "horas": {"2": {"pres_alti": "1012.7", "viento_vel": "4"}},
+    })
+    html = cli_reference_html(fresh_db, "78486", "2024-04-28", "3074")
+    assert "1012.7" in html and "pres_alti" in html
+    assert "Sin datos" in cli_reference_html(fresh_db, "78486", "2024-04-28", "5074")
+
+
+def test_the_page_has_a_button_per_cli(audit_page):
+    assert sorted(audit_page.cli_buttons) == ["3074", "4074", "5074"]
+    for button in audit_page.cli_buttons.values():
+        assert button.text().startswith("Ver ")
+
+
+def test_selecting_a_mark_in_the_list_selects_its_cell(fresh_db, qtbot, audit_page):
+    from oms_core.services import synoptic as synoptic_service
+
+    synoptic_service.save_hour(fresh_db, "78486", "2024-04-28", "12Z",
+                               {"ts": "27.0", "nombre_observador": "MARTA"})
+    audit_service.mark_error(
+        fresh_db, role="admin", station_id="78486", fecha="2024-04-28",
+        hora="12Z", campo="ts", tipo_error="Sintaxis", marcado_por="qc@oms",
+        nota="valor dudoso",
+    )
+    audit_page.reload()
+    audit_page.error_list.setCurrentRow(0)
+    assert audit_page.active_hour == "12Z"
+    assert audit_page.selected_campo == "ts"
+    assert audit_page.note_edit.toPlainText() == "valor dudoso"
+
+
+def test_a_mark_can_be_deleted_from_the_list(fresh_db, qtbot, audit_page):
+    from oms_core.services import synoptic as synoptic_service
+
+    synoptic_service.save_hour(fresh_db, "78486", "2024-04-28", "06Z",
+                               {"ts": "28.0", "nombre_observador": "YG"})
+    audit_service.mark_error(
+        fresh_db, role="admin", station_id="78486", fecha="2024-04-28",
+        hora="06Z", campo="ts", tipo_error="Sintaxis", marcado_por="qc@oms",
+    )
+    audit_page.reload()
+    audit_page.error_list.setCurrentRow(0)
+    audit_page.remove_selected_mark()
+    assert audit_service.load_observation_with_audit(
+        fresh_db, "78486", "2024-04-28"
+    )["error_marks"] == []
+
+
+def test_a_missing_observer_raises_the_red_banner(fresh_db, qtbot, audit_page):
+    from oms_core.services import synoptic as synoptic_service
+
+    # data with nobody signed: the oracle warned about exactly this
+    synoptic_service.save_hour(fresh_db, "78486", "2024-04-28", "06Z",
+                               {"ts": "28.0"})
+    audit_page.reload()
+    audit_page.set_hour("06Z")
+    # isVisible() is False while the page itself is not shown; ask the widget
+    assert audit_page.observer_banner.isHidden() is False
+
+
+def test_the_correction_dialog_takes_the_corrector_name(audit_page):
+    from oms_ui.pages.audit_observation import CorrectionDialog
+
+    dialog = CorrectionDialog()
+    dialog.corrector_edit.setText("qc@oms")
+    assert dialog.corrector_edit.text() == "qc@oms"
