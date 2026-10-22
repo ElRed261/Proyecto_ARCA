@@ -68,26 +68,33 @@ AUDIT_HOURS: tuple[str, ...] = (
     "06Z", "09Z", "12Z", "15Z", "18Z", "21Z", "00Z", "03Z",
 )
 
-#: The oracle's row layout for the SYNOP card: same groupings, same titles,
-#: mapped onto the fields this application actually stores and audits.
-SYNOP_ROWS: tuple[tuple[tuple[str, str], ...], ...] = (
+#: The SYNOP groups in the order the OMM manual prints them (Manual N°306,
+#: FM 12 SYNOP): Sección 1 carries the main observation —
+#: ``iRixhVV Nddff 1snTTT 2snTdTdTd 4PPPP 5appp 6RRRtR 7wwW1W2 8NhCLCMCH`` — and
+#: Sección 3 (``333``) the supplementary groups. Auditing in that order is
+#: auditing the message as the observer wrote it.
+SYNOP_SECTIONS: tuple[tuple[str, tuple[tuple[str, str], ...]], ...] = (
     (
-        ("meteo_2_1", "YYGG Iw (Grupo 2)"),
-        ("meteo_4_irixhvv", "Ir iX H VV (Grupo 4)"),
-        ("meteo_4_1", "N dd ff (Grupo 4)"),
+        "SECCIÓN 1 · OBSERVACIÓN PRINCIPAL",
+        (
+            ("meteo_2_1", "YYGG Iw"),
+            ("meteo_4_irixhvv", "Ir iX H VV"),
+            ("meteo_4_1", "N dd ff"),
+            ("meteo_6_3", "1sn Tx Tx Tx"),
+            ("meteo_6_4", "2sn Tn Tn Tn"),
+            ("meteo_6_0", "8Nh CL CM CH"),
+            ("meteo_4_6", "7 ww W1 W2"),
+            ("meteo_8_3", "6 RRR tr"),
+        ),
     ),
     (
-        ("meteo_6_0", "8Nh CL CM CH"),
-        ("meteo_6_2", "0CS DL DM DH"),
-        ("meteo_6_3", "1sn Tx Tx Tx"),
-        ("meteo_6_4", "2sn Tn Tn Tn"),
-        ("meteo_4_6", "7 ww W1 W2"),
-    ),
-    (
-        ("meteo_8_0", "5n Fn Fn Fn"),
-        ("meteo_8_1", "56 DL DM DH"),
-        ("meteo_8_3", "6 RRR tr"),
-        ("meteo_8_4", "7 R24 R24 R24 R24"),
+        "SECCIÓN 3 · 333 SUPLEMENTARIOS",
+        (
+            ("meteo_6_2", "0CS DL DM DH"),
+            ("meteo_8_0", "5n Fn Fn Fn"),
+            ("meteo_8_1", "56 DL DM DH"),
+            ("meteo_8_4", "7 R24 R24 R24 R24"),
+        ),
     ),
 )
 
@@ -122,16 +129,23 @@ INSTRUMENT_ROWS: tuple[tuple[tuple[str, str], ...], ...] = (
     ),
     (
         ("visibilidad", "Visibilidad (VV)"),
-        ("observador", "Nombre del Observador"),
         ("tend_dif", "Tendencia Dif."),
         ("tend_car", "Tendencia Car"),
     ),
 )
 
-#: Field label -> the title the oracle prints.
+#: Field label -> the title the oracle prints. The observer is NOT a group: it
+#: heads the SYNOP card on its own (owner round 31), because it is the datum the
+#: auditor checks first.
 FIELD_LABELS: dict[str, str] = {
-    campo: title for row in SYNOP_ROWS + INSTRUMENT_ROWS for campo, title in row
+    campo: title
+    for _section, rows in SYNOP_SECTIONS
+    for campo, title in rows
 }
+FIELD_LABELS.update(
+    {campo: title for row in INSTRUMENT_ROWS for campo, title in row}
+)
+FIELD_LABELS["observador"] = "Nombre del Observador"
 
 #: Derived values render read-only (recomputed by the service on load).
 READONLY_FIELDS = frozenset(
@@ -606,6 +620,7 @@ class AuditObservationPage(QWidget):
         column.setSpacing(3)
         label = QLabel(title)
         label.setObjectName("fieldLabel")
+        label.setVisible(bool(title))
         cell = QLineEdit()
         cell.setProperty("state", "plain")
         cell.setReadOnly(campo not in READONLY_FIELDS)
@@ -648,7 +663,24 @@ class AuditObservationPage(QWidget):
             "Secciones SYNOP OMM",
             "Hacer click en un campo para marcar error o corregir",
         )
-        column.addWidget(self._rows_grid(SYNOP_ROWS))
+        # the observer heads the card: it is what the auditor checks first and
+        # the automatic mark depends on it (owner round 31)
+        observer_row = QHBoxLayout()
+        observer_row.setSpacing(10)
+        observer_label = QLabel("NOMBRE DEL OBSERVADOR")
+        observer_label.setObjectName("fieldLabel")
+        observer_label.setMinimumWidth(190)
+        observer_row.addWidget(observer_label)
+        observer_row.addWidget(self._field("observador", ""), 1)
+        column.addLayout(observer_row)
+        for section_title, rows in SYNOP_SECTIONS:
+            caption = QLabel(section_title)
+            caption.setStyleSheet(
+                "color: #f97316; font-size: 10px; font-weight: 800;"
+                "letter-spacing: 1px; padding-top: 4px;"
+            )
+            column.addWidget(caption)
+            column.addWidget(self._rows_grid((rows,)))
         return card
 
     def _instrument_card(self) -> QFrame:
@@ -1108,10 +1140,14 @@ class AuditObservationPage(QWidget):
         view = classes[module](
             self.conn, station=self.station, fecha=self.fecha
         )
+        # opened FROM the audit: the sheet's own "back" closes this window and
+        # there is no extra close button underneath (owner round 31)
+        back = getattr(view, "back_button", None)
+        if back is not None:
+            back.show()
+            back.setText("← Cerrar CLI")
+        view.back_requested.connect(dialog.accept)
         box.addWidget(view, 1)
-        close = QPushButton("Cerrar")
-        close.clicked.connect(dialog.accept)
-        box.addWidget(close)
         self.cli_dialog = dialog
         dialog.show()
 

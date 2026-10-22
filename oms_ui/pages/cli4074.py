@@ -170,6 +170,8 @@ class Cli4074View(QWidget):
 
         top = QHBoxLayout()
         back_btn = QPushButton()
+        # exposed so an embedding window (audit) can repurpose it as "close"
+        self.back_button = back_btn
         back_btn.setFixedSize(40, 40)
         back_btn.setIcon(lucide_icon("arrow-left", "#0369a1", 18))
         back_btn.setIconSize(QSize(18, 18))
