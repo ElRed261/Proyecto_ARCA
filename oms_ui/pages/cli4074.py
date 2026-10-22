@@ -55,6 +55,21 @@ _ROWSPAN_FIELDS: tuple[tuple[str, str, str], ...] = (
     ("estado_suelo", "EST. SUELO", "#1e293b"),
     ("observador", "OBS.", "#1e293b"),
 )
+#: ONE stylesheet for the sheet: each cell carries ``row`` ("main"/"sub") and
+#: ``ro`` so Qt parses the rules once instead of ~350 times.
+_SHEET_QSS = """
+QLineEdit[row="sub"] { background-color: #ffffff; border: 1px solid #e2e8f0;
+    color: #1e293b; font-size: 12px; padding: 3px 4px; }
+QLineEdit[row="sub"]:focus { border-color: #38bdf8; background-color: #f0f9ff; }
+QLineEdit[row="main"] { background-color: #d1fae5; border: 1px solid #a7f3d0;
+    color: #1e293b; font-size: 12px; padding: 3px 4px; }
+QLineEdit[row="main"]:focus { border-color: #10b981; background-color: white; }
+QLineEdit[row="main"][ro="true"] { background-color: #a7f3d0;
+    border: 1px solid #6ee7b7; color: #065f46; font-weight: 600; }
+QLineEdit[row="sub"][ro="true"] { background-color: #f8fafc;
+    border: 1px solid #e2e8f0; color: #475569; }
+"""
+
 _TEMPS: tuple[tuple[str, str], ...] = (("temp_max", "Máx"), ("temp_min", "Mín"))
 #: Rows that keep the grey "0" placeholder: exactly the eight synoptic hours
 #: (rows 2/5/8/11/14/17/20/23). Every other row stays visually blank.
@@ -148,7 +163,7 @@ class Cli4074View(QWidget):
 
     def _build(self) -> None:
         central = QWidget()
-        central.setStyleSheet("background: transparent;")
+        central.setStyleSheet(_SHEET_QSS)
         outer = QVBoxLayout(central)
         outer.setContentsMargins(16, 12, 16, 12)
         outer.setSpacing(10)
@@ -258,9 +273,7 @@ class Cli4074View(QWidget):
                     # marks "no data" without inventing stored zeros (R1).
                     # Only the rows the owner marked keep it.
                     edit.setPlaceholderText("0")
-                edit.setStyleSheet(
-                    _MAIN_INPUT_QSS if main else INPUT_QSS
-                )
+                edit.setProperty("row", "main" if main else "sub")
                 edit.setMinimumHeight(26)
                 edit.editingFinished.connect(
                     lambda w=edit, f=field: self._normalize_edit(w, f)

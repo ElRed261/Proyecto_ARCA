@@ -134,6 +134,44 @@ _MAIN_CHECKBOX_QSS = (
     "border-color: #0369a1; }"
     "QCheckBox { background-color: transparent; }"
 )
+#: ONE stylesheet for the whole sheet. The cells carry a ``row`` property
+#: ("main"/"sub") and ``ro`` for read-only, so Qt parses the rules once instead
+#: of 400 times: per-widget setStyleSheet measured 48% of the build time.
+_SHEET_QSS = """
+QLineEdit[row="sub"] { background-color: #ffffff; border: 1px solid #e2e8f0;
+    color: #1e293b; font-size: 12px; padding: 3px 4px; }
+QLineEdit[row="sub"]:focus { border-color: #38bdf8; background-color: #f0f9ff; }
+QLineEdit[row="sub"][ro="true"] { background-color: #eff6ff;
+    border: 1px solid #dbeafe; color: #0369a1; font-weight: bold;
+    font-size: 12px; padding: 3px 4px; }
+QLineEdit[row="main"] { background-color: #eff6ff; border: 1px solid #dbeafe;
+    color: #1e293b; font-size: 12px; padding: 3px 4px; }
+QLineEdit[row="main"]:focus { border-color: #38bdf8; background-color: white; }
+QLineEdit[row="main"][ro="true"] { background-color: #dbeafe;
+    border: 1px solid #bfdbfe; color: #075985; font-weight: bold;
+    font-size: 12px; padding: 3px 4px; }
+/* base rules first, attribute overrides after: Qt matches the subcontrol
+   rules only when the base `::indicator` block exists */
+QCheckBox { background-color: transparent; }
+QCheckBox::indicator { width: 17px; height: 17px;
+    border: 2px solid #64748b; border-radius: 4px; background-color: #ffffff; }
+QCheckBox::indicator:hover { border-color: #0369a1; }
+QCheckBox::indicator:checked { background-color: #0ea5e9;
+    border-color: #0369a1; }
+QCheckBox#checkMain::indicator { background-color: #eff6ff; }
+QCheckBox#checkMain::indicator:checked { background-color: #0ea5e9; }
+/* object names, not attributes: QLabel attribute selectors did not match
+   here while they do on QLineEdit, and a silently unstyled header is worse
+   than a slightly longer selector */
+QLabel { background: transparent; }
+QLabel#hourMain { background-color: #e0f2fe; color: #0c4a6e;
+    font-weight: bold; font-size: 12px; padding: 4px 6px;
+    border-radius: 4px; }
+QLabel#hourSub { background-color: #f1f5f9; color: #475569;
+    font-weight: bold; font-size: 12px; padding: 4px 6px;
+    border-radius: 4px; }
+"""
+
 _SAVE_QSS = (
     "QPushButton { background-color: #0ea5e9; color: #ffffff;"
     "border: none; border-radius: 8px; padding: 7px 14px;"
@@ -225,6 +263,7 @@ class Cli3074View(QWidget):
         self._autosave_timer.setSingleShot(True)
         self._autosave_timer.setInterval(AUTOSAVE_MS)
         self._autosave_timer.timeout.connect(self.save_data)
+        self.setStyleSheet(_SHEET_QSS)  # ONE sheet: cells carry row/ro properties
         self._build()
         for row_map in self.row_inputs.values():
             for edit in row_map.values():
@@ -238,7 +277,9 @@ class Cli3074View(QWidget):
 
     def _build(self) -> None:
         central = QWidget()
-        central.setStyleSheet("background: transparent;")
+        # the NEAREST ancestor sheet wins, so the sheet lives here: a
+        # "background: transparent" here used to swallow every child rule
+        central.setStyleSheet(_SHEET_QSS)
         outer = QVBoxLayout(central)
         outer.setContentsMargins(16, 12, 16, 12)
         outer.setSpacing(10)
@@ -414,7 +455,7 @@ class Cli3074View(QWidget):
             sub = QLabel(text)
             sub.setAlignment(Qt.AlignmentFlag.AlignCenter)
             sub.setWordWrap(True)
-            sub.setStyleSheet(_SUB_HEADER_QSS)
+            sub.setStyleSheet(_SUB_HEADER_QSS)  # 14 labels: direct rule is fine
             grid.addWidget(sub, 1, 1 + index)
 
         tp_label = QLabel("T. PRES.")
@@ -482,22 +523,16 @@ class Cli3074View(QWidget):
         main = (row - 2) % 3 == 0
         hour_label = QLabel(str(row))
         hour_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        hour_label.setStyleSheet(
-            f"background-color: {_MAIN_STICKY_TINT if main else '#f1f5f9'};"
-            f"color: {'#0c4a6e' if main else '#475569'}; font-weight: bold;"
-            "font-size: 12px; padding: 4px 6px;"
-        )
+        hour_label.setObjectName("hourMain" if main else "hourSub")
         grid.addWidget(hour_label, row + 1, 0)
 
         self.row_inputs.setdefault(row, {})
         for index, (field, _text, read_only) in enumerate(ROW_FIELDS):
             edit = QLineEdit()
             edit.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            edit.setStyleSheet(
-                _MAIN_RO_QSS if (read_only and main)
-                else _MAIN_INPUT_QSS if main and not read_only
-                else (_RO_QSS if read_only else INPUT_QSS)
-            )
+            edit.setProperty("row", "main" if main else "sub")
+            if read_only:
+                edit.setProperty("ro", "true")
             edit.setMinimumHeight(26)
             if read_only:
                 edit.setReadOnly(True)
@@ -510,21 +545,21 @@ class Cli3074View(QWidget):
 
         vis_edit = QLineEdit()
         vis_edit.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        vis_edit.setStyleSheet(_MAIN_INPUT_QSS if main else INPUT_QSS)
+        vis_edit.setProperty("row", "main" if main else "sub")
         vis_edit.setMinimumHeight(26)
         self.row_inputs[row]["visibilidad"] = vis_edit
         grid.addWidget(vis_edit, row + 1, 13)
 
         tp_edit = QLineEdit()
         tp_edit.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        tp_edit.setStyleSheet(_MAIN_INPUT_QSS if main else INPUT_QSS)
+        tp_edit.setProperty("row", "main" if main else "sub")
         tp_edit.setMinimumHeight(26)
         self.row_inputs[row]["tiempo_presente"] = tp_edit
         grid.addWidget(tp_edit, row + 1, 14)
 
         obs_edit = QLineEdit()
         obs_edit.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        obs_edit.setStyleSheet(_MAIN_INPUT_QSS if main else INPUT_QSS)
+        obs_edit.setProperty("row", "main" if main else "sub")
         obs_edit.setMinimumHeight(26)
         obs_edit.setToolTip("Iniciales del observador de la hora")
         self.row_inputs[row]["observador"] = obs_edit
@@ -535,7 +570,7 @@ class Cli3074View(QWidget):
             check = QCheckBox()
             check.setToolTip(tooltip)
             check.setCursor(Qt.CursorShape.PointingHandCursor)
-            check.setStyleSheet(_MAIN_CHECKBOX_QSS if main else _CHECKBOX_QSS)
+            check.setObjectName("checkMain" if main else "checkSub")
             self.row_checks[row][key] = check
             grid.addWidget(
                 check, row + 1, 15 + index, 1, 1, Qt.AlignmentFlag.AlignCenter

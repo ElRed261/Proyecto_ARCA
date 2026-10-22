@@ -1063,12 +1063,14 @@ def test_cli_rows_highlight_full_width(cli3074_page, qtbot):
 
     cli3074_page._open_cli("cli3074")
     view = cli3074_page._stack.currentWidget()
-    assert "#eff6ff" in view.row_inputs[2]["pres_est"].styleSheet()
-    assert "#eff6ff" not in view.row_inputs[3]["pres_est"].styleSheet()
+    assert view.row_inputs[2]["pres_est"].property("row") == "main"
+    assert view.row_inputs[3]["pres_est"].property("row") == "sub"
     cli3074_page._open_cli("cli4074")
     v40 = cli3074_page._stack.currentWidget()
-    assert "#d1fae5" in v40.row_inputs[2]["nb_cant"].styleSheet()
-    assert "#d1fae5" not in v40.row_inputs[3]["nb_cant"].styleSheet()
+    # round 26: the tint moved from a per-widget stylesheet into one sheet
+    # selected by the ``row`` property (measured: 48% of the build time)
+    assert v40.row_inputs[2]["nb_cant"].property("row") == "main"
+    assert v40.row_inputs[3]["nb_cant"].property("row") == "sub"
 
 
 # ---------------------------------------------------------------- round 7 details
@@ -1079,8 +1081,8 @@ def test_cli3074_visibilidad_and_tpres_tinted_on_main_rows(cli3074_page, qtbot):
     cli3074_page._open_cli("cli3074")
     view = cli3074_page._stack.currentWidget()
     for key in ("visibilidad", "tiempo_presente"):
-        assert "#eff6ff" in view.row_inputs[2][key].styleSheet(), key
-        assert "#eff6ff" not in view.row_inputs[3][key].styleSheet(), key
+        assert view.row_inputs[2][key].property("row") == "main", key
+        assert view.row_inputs[3][key].property("row") == "sub", key
 
 
 def test_cli3074_tpres_header_matches_visibilidad_height(cli3074_page, qtbot):
