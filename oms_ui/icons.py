@@ -126,6 +126,35 @@ _FOLDER_INNER = (
 #: inner SVG elements of lucide chevron-right (lucide-static v1.57.0, ISC)
 _CHEVRON_RIGHT_INNER = '<path d="m9 18 6-6-6-6" />'
 
+#: inner SVG elements of lucide radio (lucide-static v1.57.0, ISC)
+_RADIO_INNER = (
+    '<path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9" />\n  <path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5" />'
+    '\n  <circle cx="12" cy="12" r="2" />\n  <path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5" />'
+    '\n  <path d="M19.1 4.9C23 8.8 23 15.1 19.1 19" />'
+)
+
+#: inner SVG elements of lucide user (lucide-static v1.57.0, ISC)
+_USER_INNER = (
+    '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />'
+    '\n  <circle cx="12" cy="7" r="4" />'
+)
+
+#: inner SVG elements of lucide alert-triangle (lucide-static v1.57.0, ISC)
+_ALERT_TRIANGLE_INNER = (
+    '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />'
+    '\n  <path d="M12 9v4" />\n  <path d="M12 17h.01" />'
+)
+
+#: inner SVG elements of lucide check-circle (lucide-static v1.57.0, ISC)
+_CHECK_CIRCLE_INNER = (
+    '<path d="M21.801 10A10 10 0 1 1 17 3.335" />\n  <path d="m9 11 3 3L22 4" />'
+)
+
+#: inner SVG elements of lucide book-open (lucide-static v1.57.0, ISC)
+_BOOK_OPEN_INNER = (
+    '<path d="M12 7v14" />\n  <path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z" />'
+)
+
 _CACHE: dict[tuple[str, str, int], QIcon] = {}
 
 
@@ -158,6 +187,11 @@ def lucide_icon(name: str, color: str, size: int = 16) -> QIcon:
         "calendar-days": _CALENDAR_DAYS_INNER,
         "folder": _FOLDER_INNER,
         "chevron-right": _CHEVRON_RIGHT_INNER,
+        "radio": _RADIO_INNER,
+        "user": _USER_INNER,
+        "alert-triangle": _ALERT_TRIANGLE_INNER,
+        "check-circle": _CHECK_CIRCLE_INNER,
+        "book-open": _BOOK_OPEN_INNER,
     }.get(name)
     if inner is None:
         raise LookupError(f"unknown lucide icon: {name}")

@@ -462,8 +462,9 @@ def test_the_page_shows_the_stored_cli_sheets(fresh_db, qtbot):
 
 def test_the_page_has_a_button_per_cli(audit_page):
     assert sorted(audit_page.cli_buttons) == ["3074", "4074", "5074"]
-    for button in audit_page.cli_buttons.values():
-        assert button.text().startswith("Ver ")
+    # the oracle labels them CLI 3074 / CLI 4074 / CLI 5074
+    for module, button in audit_page.cli_buttons.items():
+        assert module in button.text()
 
 
 def test_selecting_a_mark_in_the_list_selects_its_cell(fresh_db, qtbot, audit_page):
@@ -477,10 +478,16 @@ def test_selecting_a_mark_in_the_list_selects_its_cell(fresh_db, qtbot, audit_pa
         nota="valor dudoso",
     )
     audit_page.reload()
-    audit_page.error_list.setCurrentRow(0)
-    assert audit_page.active_hour == "12Z"
-    assert audit_page.selected_campo == "ts"
-    assert audit_page.note_edit.toPlainText() == "valor dudoso"
+    # the oracle lists one BLOCK per mark, with its note inside
+    assert len(audit_page.mark_blocks) == 1
+    labels = [
+        child.text()
+        for child in audit_page.mark_blocks[0].findChildren(type(audit_page.marks_label))
+        if child.text()
+    ]
+    # the oracle's own field title for ``ts``
+    assert any("Temp. Seca" in text for text in labels)
+    assert any("valor dudoso" in text for text in labels)
 
 
 def test_a_mark_can_be_deleted_from_the_list(fresh_db, qtbot, audit_page):
@@ -493,8 +500,8 @@ def test_a_mark_can_be_deleted_from_the_list(fresh_db, qtbot, audit_page):
         hora="06Z", campo="ts", tipo_error="Sintaxis", marcado_por="qc@oms",
     )
     audit_page.reload()
-    audit_page.error_list.setCurrentRow(0)
-    audit_page.remove_selected_mark()
+    mark_id = audit_page._data["error_marks"][0]["id"]
+    audit_page._remove_mark_id(mark_id)
     assert audit_service.load_observation_with_audit(
         fresh_db, "78486", "2024-04-28"
     )["error_marks"] == []

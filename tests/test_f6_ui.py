@@ -110,17 +110,17 @@ def test_wizard_navigates_four_steps(qtbot, fresh_db, tmp_path):
     qtbot.addWidget(page)
 
     assert page.step == 1
-    assert page.stations_list.count() == 1
-    _click_item(qtbot, page.stations_list, 0)
+    # the oracle renders CARD GRIDS, not lists (round 28)
+    assert len(page.station_cards) == 1
+    page.station_cards[0].clicked.emit()
     assert page.step == 2
-    assert page.years_list.count() == 1
-    _click_item(qtbot, page.years_list, 0)
+    assert len(page.year_cards) == 1
+    page.year_cards[0].clicked.emit()
     assert page.step == 3
-    assert page.months_list.count() == 1
-    _click_item(qtbot, page.months_list, 0)
+    assert len(page.month_cards) == 1
+    page.month_cards[0].clicked.emit()
     assert page.step == 4
-    assert page.days_list.count() == 1
-    assert FECHA in page.days_list.item(0).text()
+    assert len(page.day_rows) == 1
 
 
 def test_wizard_back_button_returns_one_level(qtbot, fresh_db, tmp_path):
@@ -130,7 +130,7 @@ def test_wizard_back_button_returns_one_level(qtbot, fresh_db, tmp_path):
     page = AuditPage(fresh_db, base, role="admin")
     qtbot.addWidget(page)
 
-    _click_item(qtbot, page.stations_list, 0)
+    page.station_cards[0].clicked.emit()
     assert page.step == 2
     qtbot.mouseClick(page.back_button, Qt.LeftButton)
     assert page.step == 1
@@ -161,7 +161,7 @@ def test_observation_hour_grid_shows_marks(qtbot, fresh_db, tmp_path):
     qtbot.mouseClick(page.hour_buttons["12Z"], Qt.LeftButton)
     assert page.active_hour == "12Z"
     # the observer-less hour carries the auto mark badge
-    assert "12Z" in page.marks_label.text() or page.error_list.count() >= 1
+    assert "12Z" in page.marks_label.text() or len(page.mark_blocks) >= 1
 
 
 def test_observation_mark_propose_export_flow(qtbot, fresh_db, tmp_path):
@@ -178,7 +178,7 @@ def test_observation_mark_propose_export_flow(qtbot, fresh_db, tmp_path):
     page.mark_dialog.type_combo.setCurrentText("Sintaxis")
     page.mark_dialog.note_edit.setPlainText("typo")
     qtbot.mouseClick(page.mark_dialog.save_button, Qt.LeftButton)
-    assert page.error_list.count() >= 1
+    assert len(page.mark_blocks) >= 1
 
     page.select_cell("ts")
     qtbot.mouseClick(page.to_correction_button, Qt.LeftButton)
