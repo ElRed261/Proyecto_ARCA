@@ -226,8 +226,8 @@ def test_report_tabs_filters_and_notes(qtbot, fresh_db):
     # round 25: the observer's sheet comes first — it is the published report
     assert page.tabs.count() == 3
     assert page.tabs.tabText(0) == "Por observador"
-    assert page.tabs.tabText(1) == "Detalle"
-    assert page.tabs.tabText(2) == "Actividad del auditor"
+    assert page.tabs.tabText(1) == "Detalle de Inconsistencias"
+    assert page.tabs.tabText(2) == "Resumen por Persona"
     assert page.detail_table.rowCount() == 1
     # the observer row plus the TOTAL row the published sheet needs
     assert page.observer_table.rowCount() == 2

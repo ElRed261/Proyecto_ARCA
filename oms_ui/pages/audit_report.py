@@ -41,10 +41,13 @@ OBSERVER_HEADERS = (
     "Campos auditados", "Tasa por campos (%)", "Tipos", "Grupos",
 )
 DETAIL_HEADERS = (
-    "Estación", "Fecha", "Hora", "Observador", "Campo", "Grupo", "Tipo",
-    "Original", "Corregido", "Nota",
+    "Estación", "Fecha / Hora", "Observador", "Campo", "Grupo",
+    "Tipo de Error", "Datos Orig. → Corr.", "Nota",
 )
-PERSON_HEADERS = ("Auditor", "Errores", "Propuestas", "Aprobadas")
+PERSON_HEADERS = (
+    "Usuario/Auditor", "Errores Marcados", "Correcciones Propuestas",
+    "Correcciones Aprobadas",
+)
 
 
 def _table(headers: tuple[str, ...]) -> QTableWidget:
@@ -114,8 +117,8 @@ class AuditReportPage(QWidget):
         self.detail_table = _table(DETAIL_HEADERS)
         self.person_table = _table(PERSON_HEADERS)
         self.tabs.addTab(self.observer_table, "Por observador")
-        self.tabs.addTab(self.detail_table, "Detalle")
-        self.tabs.addTab(self.person_table, "Actividad del auditor")
+        self.tabs.addTab(self.detail_table, "Detalle de Inconsistencias")
+        self.tabs.addTab(self.person_table, "Resumen por Persona")
         layout.addWidget(self.tabs)
 
         export_row = QHBoxLayout()
@@ -181,14 +184,12 @@ class AuditReportPage(QWidget):
         for row_idx, row in enumerate(self._rows):
             cells = (
                 row["station_id"],
-                row["fecha"],
-                row["hora"],
+                f"{row['fecha']} · {row['hora']}",
                 row["observador"],
                 row["campo"],
                 row["grupo"],
                 row["tipo_error"],
-                row["valor_original"] or "",
-                row["valor_corregido"] or "",
+                f"{row['valor_original'] or ''} → {row['valor_corregido'] or ''}",
                 row["nota"] or "",
             )
             for col_idx, value in enumerate(cells):
