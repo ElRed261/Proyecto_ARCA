@@ -478,11 +478,19 @@ def test_selecting_a_mark_in_the_list_selects_its_cell(fresh_db, qtbot, audit_pa
         nota="valor dudoso",
     )
     audit_page.reload()
-    # the oracle lists one BLOCK per mark, with its note inside
-    assert len(audit_page.mark_blocks) == 1
+    # one BLOCK per mark; the hour also carries the automatic marks for the
+    # mandatory groups it does not have (round 29), so look for the manual one
+    manual = [
+        block
+        for block in audit_page.mark_blocks
+        if "Temp. Seca" in " ".join(
+            child.text() for child in block.findChildren(type(audit_page.marks_label))
+        )
+    ]
+    assert len(manual) == 1
     labels = [
         child.text()
-        for child in audit_page.mark_blocks[0].findChildren(type(audit_page.marks_label))
+        for child in manual[0].findChildren(type(audit_page.marks_label))
         if child.text()
     ]
     # the oracle's own field title for ``ts``
@@ -500,11 +508,14 @@ def test_a_mark_can_be_deleted_from_the_list(fresh_db, qtbot, audit_page):
         hora="06Z", campo="ts", tipo_error="Sintaxis", marcado_por="qc@oms",
     )
     audit_page.reload()
-    mark_id = audit_page._data["error_marks"][0]["id"]
-    audit_page._remove_mark_id(mark_id)
-    assert audit_service.load_observation_with_audit(
+    marks = audit_page._data["error_marks"]
+    manual = [m for m in marks if m["campo"] == "ts"]
+    assert manual, "la marca manual debe estar"
+    audit_page._remove_mark_id(manual[0]["id"])
+    rest = audit_service.load_observation_with_audit(
         fresh_db, "78486", "2024-04-28"
-    )["error_marks"] == []
+    )["error_marks"]
+    assert all(m["campo"] != "ts" for m in rest), "la marca manual se quitó"
 
 
 def test_a_missing_observer_raises_the_red_banner(fresh_db, qtbot, audit_page):

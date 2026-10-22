@@ -270,6 +270,19 @@ class MainWindow(QMainWindow):
         )
         tabs.addTab(wizard, "Revisar")
         tabs.addTab(AuditReportPage(conn, role=self.role), "Reporte")
+        # the module's orange, not the application default: the switch between
+        # reviewing and reporting is part of the audit screen (owner round 29)
+        tabs.setStyleSheet(
+            "QTabWidget::pane { border: none; background: #f8fafc; }"
+            "QTabBar::tab { background: #ffffff; color: #475569;"
+            " border: 1px solid #e2e8f0; border-bottom: none;"
+            " border-top-left-radius: 10px; border-top-right-radius: 10px;"
+            " padding: 9px 22px; margin-right: 4px; font-weight: 700;"
+            " font-size: 13px; }"
+            "QTabBar::tab:hover { color: #c2410c; }"
+            "QTabBar::tab:selected { background: #f97316; color: #ffffff;"
+            " border-color: #f97316; }"
+        )
         return tabs
 
     def _build_page(self, page_id: str) -> QWidget:

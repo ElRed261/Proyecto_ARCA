@@ -191,10 +191,11 @@ class AuditPage(QWidget):
 
     def _build_header(self, outer: QVBoxLayout) -> None:
         header = QHBoxLayout()
+        # the owner did not want a back button here: the rail and the
+        # breadcrumbs already move you
         self.back_button = QPushButton("← Volver al Dashboard")
-        self.back_button.setObjectName("backButton")
+        self.back_button.hide()
         self.back_button.clicked.connect(self._on_back)
-        header.addWidget(self.back_button, 0, Qt.AlignmentFlag.AlignVCenter)
 
         titles = QVBoxLayout()
         titles.setSpacing(0)

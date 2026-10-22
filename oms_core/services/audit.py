@@ -159,6 +159,20 @@ ERROR_TYPES: tuple[str, ...] = (
 #: The one type the application itself writes (missing observer per hour).
 AUTO_ERROR_TYPE = "Falta nombre de observador"
 
+#: Author the automatic marks are filed under (oracle wording).
+AUTO_AUTHOR = "Sistema de Calidad"
+
+#: Groups an observation MUST carry whenever the hour holds any data at all.
+#: The oracle only auto-marked the observer; the owner asked to extend the same
+#: mechanism to the groups a synoptic hour cannot legally omit (round 29).
+#: Order matters only for the message of each mark.
+MANDATORY_FIELDS: tuple[tuple[str, str], ...] = (
+    ("meteo_2_1", "Falta de datos"),        # YYGGiw, identification of the message
+    ("meteo_4_irixhvv", "Falta de datos"),  # Ir iX H VV
+    ("meteo_4_1", "Falta de datos"),        # N dd ff
+    ("meteo_6_0", "Falta de datos"),        # 8Nh CL CM CH
+)
+
 
 class AuditError(Exception):
     """Structured audit failure (validation, missing day, missing correction)."""
@@ -530,6 +544,43 @@ def load_observation_with_audit(
                 break
         if not tiene_datos:
             continue
+        # extended rule: every mandatory group that is empty gets its mark
+        for campo, tipo in MANDATORY_FIELDS:
+            value = hora_val.get(campo)
+            if isinstance(value, str) and value.strip():
+                continue
+            if value not in (None, "") and not isinstance(value, str):
+                continue
+            if any(m.hora == hora and m.campo == campo for m in error_marks):
+                continue
+            wmo = dm.synop_name_for(campo) or campo
+            try:
+                new_id = audit_repo.mark_error(
+                    conn,
+                    station_id=station,
+                    fecha=fecha,
+                    hora=hora,
+                    campo=campo,
+                    tipo_error=tipo,
+                    marcado_por=AUTO_AUTHOR,
+                    nota=f"Generado automáticamente: {wmo} sin dato en el turno.",
+                )
+            except audit_repo.MarkConflictError:
+                continue
+            error_marks.append(
+                audit_repo.ErrorMark(
+                    id=new_id,
+                    station_id=station,
+                    fecha=fecha,
+                    hora=hora,
+                    campo=campo,
+                    tipo_error=tipo,
+                    nota=f"Generado automáticamente: {wmo} sin dato en el turno.",
+                    marcado_por=AUTO_AUTHOR,
+                    created_at=_now_local(),
+                )
+            )
+
         obs_name = hora_val.get("observador")
         obs_name = obs_name.strip() if isinstance(obs_name, str) else ""
         if obs_name and obs_name != "Desconocido":

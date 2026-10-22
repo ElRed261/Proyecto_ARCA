@@ -14,6 +14,7 @@ import sqlite3
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QFileDialog,
+    QFrame,
     QHBoxLayout,
     QHeaderView,
     QLabel,
@@ -76,6 +77,23 @@ class AuditReportPage(QWidget):
         self._rows: list[dict] = []
         self._observers: list[dict] = []
 
+        self.setObjectName("auditReport")
+        self.setStyleSheet(
+            "QWidget#auditReport { background: #f8fafc; }"
+            "QFrame#reportCard { background: #ffffff; border: 1px solid #e2e8f0;"
+            " border-radius: 14px; }"
+            "QLabel#reportTitle { color: #0f172a; font-size: 22px;"
+            " font-weight: 900; }"
+            "QLabel#reportSubtitle { color: #64748b; font-size: 12px; }"
+            "QLabel#reportLabel { color: #475569; font-size: 11px;"
+            " font-weight: 700; }"
+            "QPushButton#reportPrimary { background: #f97316; color: #ffffff;"
+            " border: none; border-radius: 9px; padding: 8px 16px;"
+            " font-weight: 700; }"
+            "QPushButton#reportGhost { background: #ffffff; color: #334155;"
+            " border: 1px solid #cbd5e1; border-radius: 9px;"
+            " padding: 7px 14px; }"
+        )
         layout = QVBoxLayout(self)
         if self.denied:
             layout.addWidget(
@@ -84,7 +102,24 @@ class AuditReportPage(QWidget):
             self._denied_widgets()
             return
 
-        filters = QHBoxLayout()
+        header = QHBoxLayout()
+        titles = QVBoxLayout()
+        titles.setSpacing(0)
+        title = QLabel("Reporte General de Errores")
+        title.setObjectName("reportTitle")
+        subtitle = QLabel(
+            "Detalle de inconsistencias, resumen por persona y conteo por observador"
+        )
+        subtitle.setObjectName("reportSubtitle")
+        titles.addWidget(title)
+        titles.addWidget(subtitle)
+        header.addLayout(titles, 1)
+        layout.addLayout(header)
+
+        filters_card = QFrame()
+        filters_card.setObjectName("reportCard")
+        filters = QHBoxLayout(filters_card)
+        filters.setContentsMargins(12, 10, 12, 10)
         self.station_filter = QLineEdit()
         self.station_filter.setPlaceholderText("Código de estación (opcional)")
         self.year_filter = QLineEdit()
@@ -101,16 +136,24 @@ class AuditReportPage(QWidget):
         filters.addWidget(self.year_filter)
         filters.addWidget(QLabel("Mes"))
         filters.addWidget(self.month_filter)
+        self.filter_button.setObjectName("reportPrimary")
         filters.addWidget(self.filter_button)
-        layout.addLayout(filters)
+        layout.addWidget(filters_card)
 
-        layout.addWidget(QLabel("Notas Generales del Reporte"))
+        notes_card = QFrame()
+        notes_card.setObjectName("reportCard")
+        notes_box = QVBoxLayout(notes_card)
+        notes_box.setContentsMargins(12, 10, 12, 10)
+        notes_label = QLabel("Notas Generales del Reporte")
+        notes_label.setObjectName("reportLabel")
         self.notes_edit = QTextEdit()
         self.notes_edit.setPlaceholderText(
             "Notas generales del reporte (salen en el PDF)"
         )
-        self.notes_edit.setMaximumHeight(70)
-        layout.addWidget(self.notes_edit)
+        self.notes_edit.setMaximumHeight(60)
+        notes_box.addWidget(notes_label)
+        notes_box.addWidget(self.notes_edit)
+        layout.addWidget(notes_card)
 
         self.tabs = QTabWidget()
         self.observer_table = _table(OBSERVER_HEADERS)
@@ -119,10 +162,20 @@ class AuditReportPage(QWidget):
         self.tabs.addTab(self.observer_table, "Por observador")
         self.tabs.addTab(self.detail_table, "Detalle de Inconsistencias")
         self.tabs.addTab(self.person_table, "Resumen por Persona")
-        layout.addWidget(self.tabs)
+        self.tabs.setStyleSheet(
+            "QTabBar::tab { background: #ffffff; color: #475569;"
+            " border: 1px solid #e2e8f0; border-bottom: none;"
+            " border-top-left-radius: 9px; border-top-right-radius: 9px;"
+            " padding: 8px 18px; margin-right: 4px; font-weight: 700; }"
+            "QTabBar::tab:selected { background: #f97316; color: #ffffff;"
+            " border-color: #f97316; }"
+            "QTabWidget::pane { border: none; background: #f8fafc; }"
+        )
+        layout.addWidget(self.tabs, 1)
 
         export_row = QHBoxLayout()
         self.pdf_button = QPushButton("Exportar PDF")
+        self.pdf_button.setObjectName("reportPrimary")
         self.pdf_button.clicked.connect(lambda: self.export_pdf())
         export_row.addStretch(1)
         export_row.addWidget(self.pdf_button)
@@ -132,6 +185,7 @@ class AuditReportPage(QWidget):
         note_row.addWidget(QLabel("Nota de la fila"))
         self.note_edit = QLineEdit()
         self.note_save_button = QPushButton("Guardar Nota")
+        self.note_save_button.setObjectName("reportGhost")
         self.note_save_button.clicked.connect(self.save_note)
         note_row.addWidget(self.note_edit)
         note_row.addWidget(self.note_save_button)
@@ -154,6 +208,7 @@ class AuditReportPage(QWidget):
         self.person_table = QTableWidget(0, len(PERSON_HEADERS))
         self.note_edit = QLineEdit()
         self.note_save_button = QPushButton("Guardar Nota")
+        self.note_save_button.setObjectName("reportGhost")
         self.pdf_button = QPushButton("Exportar PDF")
         self.status_label = QLabel("")
 

@@ -62,6 +62,12 @@ _UI_ERRORS = (audit_service.AuditError, MarkConflictError, OSError, sqlite3.Erro
 
 ERROR_TYPES = audit_service.ERROR_TYPES
 
+#: The synoptic day starts at 06Z (the owner's own hour order, the same one the
+#: observation sheet uses): auditing must not start at midnight.
+AUDIT_HOURS: tuple[str, ...] = (
+    "06Z", "09Z", "12Z", "15Z", "18Z", "21Z", "00Z", "03Z",
+)
+
 #: The oracle's row layout for the SYNOP card: same groupings, same titles,
 #: mapped onto the fields this application actually stores and audits.
 SYNOP_ROWS: tuple[tuple[tuple[str, str], ...], ...] = (
@@ -461,6 +467,7 @@ class AuditObservationPage(QWidget):
 
         self.back_button = QPushButton("← Volver al Selector")
         self.back_button.setObjectName("backButton")
+        self.back_button.hide()  # owner round 29: the module needs no back button
         row = QHBoxLayout()
         row.addWidget(self.back_button)
         row.addLayout(left, 1)
@@ -532,7 +539,7 @@ class AuditObservationPage(QWidget):
         row = QHBoxLayout(bar)
         row.setContentsMargins(8, 8, 8, 8)
         row.setSpacing(6)
-        for hora in audit_service.HOURS:
+        for hora in AUDIT_HOURS:
             holder = QWidget()
             column = QHBoxLayout(holder)
             column.setContentsMargins(0, 0, 0, 0)
@@ -612,16 +619,26 @@ class AuditObservationPage(QWidget):
         self.cells[campo] = cell
         return holder
 
-    def _rows_grid(self, rows, group_holder: QWidget | None = None) -> QWidget:
-        holder = group_holder or QWidget()
+    def _rows_grid(self, rows, columns: int = 4) -> QWidget:
+        """A tidy grid: every row is a fixed number of equal columns.
+
+        The oracle used per-row ``grid-cols-N`` counts (4, 7, 5...), which left
+        the sheet ragged: fields of a 5-field row were narrower than the ones
+        above them. Wrapping the same ORIGINAL ORDER into a constant column
+        count keeps the sequence and makes the columns line up.
+        """
+        holder = QWidget()
         grid = QGridLayout(holder)
         grid.setContentsMargins(0, 0, 0, 0)
-        grid.setHorizontalSpacing(10)
-        grid.setVerticalSpacing(8)
-        for row_index, row in enumerate(rows):
-            for column_index, (campo, title) in enumerate(row):
-                grid.addWidget(self._field(campo, title), row_index, column_index)
-        columns = max(len(row) for row in rows)
+        grid.setHorizontalSpacing(12)
+        grid.setVerticalSpacing(10)
+        index = 0
+        for row in rows:
+            for campo, title in row:
+                grid.addWidget(
+                    self._field(campo, title), index // columns, index % columns
+                )
+                index += 1
         for column_index in range(columns):
             grid.setColumnStretch(column_index, 1)
         return holder
@@ -641,10 +658,7 @@ class AuditObservationPage(QWidget):
 
     def _state_card(self) -> QFrame:
         card = QFrame()
-        card.setStyleSheet(
-            "background: qlineargradient(x1:0, y1:0, x2:1, y2:1,"
-            f" stop:0 {ORANGE}, stop:1 #d97706); border-radius: 14px;"
-        )
+        card.setStyleSheet(f"background: {ORANGE}; border-radius: 14px;")
         column = QVBoxLayout(card)
         column.setContentsMargins(14, 12, 14, 12)
         column.setSpacing(8)
@@ -730,7 +744,7 @@ class AuditObservationPage(QWidget):
             return
         hours = [
             h
-            for h in audit_service.HOURS
+            for h in AUDIT_HOURS
             if isinstance(self._data["observation"].get(h), dict)
             and any(
                 k not in ("station_id", "observador", "nombre_observador")
@@ -1074,10 +1088,32 @@ class AuditObservationPage(QWidget):
         self.status_label.setText(f"Correcciones exportadas: {path}")
 
     def show_cli_reference(self, module: str) -> None:
-        self.cli_dialog = CliPeekDialog(
-            self.conn, self.station, self.fecha, module, self
+        """Open the project's REAL CLI sheet for this day (owner round 29).
+
+        The oracle navigated to the CLI pages; embedding the actual views here
+        gives the auditor the same sheet, with its own formatting and data.
+        """
+        from oms_ui.pages import cli3074, cli4074, cli5074
+
+        classes = {
+            "3074": cli3074.Cli3074View,
+            "4074": cli4074.Cli4074View,
+            "5074": cli5074.Cli5074View,
+        }
+        dialog = QDialog(self)
+        dialog.setWindowTitle(f"CLI {module} — {self.station} · {self.fecha}")
+        dialog.resize(1500, 760)
+        box = QVBoxLayout(dialog)
+        box.setContentsMargins(8, 8, 8, 8)
+        view = classes[module](
+            self.conn, station=self.station, fecha=self.fecha
         )
-        self.cli_dialog.show()
+        box.addWidget(view, 1)
+        close = QPushButton("Cerrar")
+        close.clicked.connect(dialog.accept)
+        box.addWidget(close)
+        self.cli_dialog = dialog
+        dialog.show()
 
     # -------------------------------------------------------------- closure
 
