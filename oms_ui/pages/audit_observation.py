@@ -128,6 +128,7 @@ INSTRUMENT_ROWS: tuple[tuple[tuple[str, str], ...], ...] = (
         ("viento_vel", "Viento Velocidad"),
     ),
     (
+        ("observador", "Nombre del Observador"),
         ("visibilidad", "Visibilidad (VV)"),
         ("tend_dif", "Tendencia Dif."),
         ("tend_car", "Tendencia Car"),
@@ -663,16 +664,6 @@ class AuditObservationPage(QWidget):
             "Secciones SYNOP OMM",
             "Hacer click en un campo para marcar error o corregir",
         )
-        # the observer heads the card: it is what the auditor checks first and
-        # the automatic mark depends on it (owner round 31)
-        observer_row = QHBoxLayout()
-        observer_row.setSpacing(10)
-        observer_label = QLabel("NOMBRE DEL OBSERVADOR")
-        observer_label.setObjectName("fieldLabel")
-        observer_label.setMinimumWidth(190)
-        observer_row.addWidget(observer_label)
-        observer_row.addWidget(self._field("observador", ""), 1)
-        column.addLayout(observer_row)
         for section_title, rows in SYNOP_SECTIONS:
             caption = QLabel(section_title)
             caption.setStyleSheet(
