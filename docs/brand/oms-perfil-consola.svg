@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 220" width="900" height="220" role="img" aria-label="Andry Emiliano - Data and Analytics Engineer">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#050a14"/><stop offset="1" stop-color="#0f172a"/>
+    </linearGradient>
+    <linearGradient id="scan" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#22c55e" stop-opacity="0.06"/>
+      <stop offset="0.5" stop-color="#22c55e" stop-opacity="0.02"/>
+      <stop offset="1" stop-color="#22c55e" stop-opacity="0.06"/>
+    </linearGradient>
+    <pattern id="grid" width="4" height="4" patternUnits="userSpaceOnUse">
+      <rect width="4" height="4" fill="none"/>
+    </pattern>
+    <style>
+      @media (prefers-reduced-motion: reduce) { animate, animateTransform { display: none } }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+      .sans { font-family: 'Segoe UI', Inter, system-ui, -apple-system, sans-serif; }
+      .prompt { fill: #22c55e; font-size: 12px; font-weight: 700; }
+      .cmd    { fill: #e2e8f0; font-size: 12px; font-weight: 600; }
+      .out    { fill: #94a3b8; font-size: 12px; }
+      .ok     { fill: #22c55e; font-size: 12px; font-weight: 700; }
+      .title  { font-size: 40px; font-weight: 900; fill: #f8fafc; letter-spacing: 2px; }
+      .role   { font-size: 17px; font-weight: 600; fill: #ff6b6b; }
+      .foot   { font-size: 11.5px; fill: #64748b; letter-spacing: .6px; }
+    </style>
+  </defs>
+
+  <rect width="900" height="220" fill="url(#bg)"/>
+  <rect width="900" height="3" fill="#22c55e" opacity="0.85"/>
+  <rect width="900" height="220" fill="url(#scan)"/>
+
+  <!-- ventana tipo terminal -->
+  <rect x="24" y="24" width="236" height="172" rx="8" fill="#0a1018" stroke="#1e293b" stroke-width="1.5"/>
+  <rect x="24" y="24" width="236" height="20" rx="8" fill="#111827"/>
+  <circle cx="38" cy="34" r="4" fill="#ef4444"/>
+  <circle cx="52" cy="34" r="4" fill="#f59e0b"/>
+  <circle cx="66" cy="34" r="4" fill="#22c55e"/>
+  <text class="mono" x="84" y="38" fill="#475569" font-size="10">oms-terminal</text>
+
+  <!-- líneas que se escriben -->
+  <g transform="translate(32 60)">
+    <text class="mono prompt" y="0" opacity="0">~ $ oms --station 78486 --date 2023-10-14
+      <animate attributeName="opacity" values="0;1;1;0;0" keyTimes="0;0.03;0.16;0.19;1" dur="22s" repeatCount="indefinite"/>
+    </text>
+    <text class="mono out" y="18" opacity="0">loading observation ... 8 hours
+      <animate attributeName="opacity" values="0;1;1;0;0" keyTimes="0;0.08;0.20;0.23;1" dur="22s" repeatCount="indefinite"/>
+    </text>
+    <text class="mono out" y="36" opacity="0">calculating dew point (Magnus-Tetens) ... ok
+      <animate attributeName="opacity" values="0;1;1;0;0" keyTimes="0;0.14;0.26;0.29;1" dur="22s" repeatCount="indefinite"/>
+    </text>
+    <text class="mono out" y="54" opacity="0">SYNOP 06Z: 06Z 78486 06... 32566
+      <animate attributeName="opacity" values="0;1;1;0;0" keyTimes="0;0.20;0.32;0.35;1" dur="22s" repeatCount="indefinite"/>
+    </text>
+    <text class="mono out" y="72" opacity="0">SYNOP 12Z: 12Z 78486 12... 50602
+      <animate attributeName="opacity" values="0;1;1;0;0" keyTimes="0;0.26;0.38;0.41;1" dur="22s" repeatCount="indefinite"/>
+    </text>
+    <text class="mono out" y="90" opacity="0">audit: 2 marks, 1 correction
+      <animate attributeName="opacity" values="0;1;1;0;0" keyTimes="0;0.32;0.44;0.47;1" dur="22s" repeatCount="indefinite"/>
+    </text>
+    <text class="mono ok" y="108" opacity="0">ready.
+      <animate attributeName="opacity" values="0;1;1;0;0" keyTimes="0;0.38;0.50;0.53;1" dur="22s" repeatCount="indefinite"/>
+    </text>
+    <rect width="6" height="12" fill="#22c55e" y="112" opacity="0">
+      <animate attributeName="opacity" values="0;1;0;1;0;1;0;0" keyTimes="0;0.38;0.39;0.40;0.41;0.42;0.43;1" dur="22s" repeatCount="indefinite"/>
+    </rect>
+  </g>
+
+  <text class="sans title" x="286" y="92">ANDRY EMILIANO</text>
+  <text class="sans role" x="288" y="122">Data &amp; Analytics Engineer</text>
+  <text class="sans tag" x="288" y="150" fill="#94a3b8">Python · Rust · SQL · data pipelines</text>
+  <text class="sans tag" x="288" y="172" fill="#64748b">lbo.red · Santo Domingo, DO · Spanish and English</text>
+  <text class="sans tag" x="288" y="194" fill="#475569" font-size="11.5">WMO No. 306 / SYNOP · OMS in production</text>
+
+  <g stroke="#22c55e" stroke-width="1.5" fill="none" opacity="0.4">
+    <path d="M266 32v156"/>
+  </g>
+  <g stroke="#1e293b" stroke-width="1.5">
+    <line x1="286" y1="194" x2="856" y2="194"/>
+  </g>
+</svg>
