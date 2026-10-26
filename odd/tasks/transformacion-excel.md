@@ -158,3 +158,54 @@ el archivo real:
   archivo viejo que encontré **no tiene esa hoja**. Falta la ruta de un archivo
   que sí la tenga en versión vieja; si no existe, el 5074 viejo se declara
   inexistente y queda vacío.
+
+## Barrido completo del corpus (3.757 Excel, no una muestra)
+
+Escaneadas las hojas de **todos** los archivos de
+`~/Documentos/Trabajo-INDOMET/Datos-Brutos` leyendo `xl/workbook.xml` de cada
+paquete (sin abrir el libro), excluyendo la carpeta `Estaciones  - Json`:
+
+| Grupo | Archivos | Qué significa |
+|---|---|---|
+| Con `3074` + `4074` + `5074` | **2.715** | traen los tres CLI |
+| Solo hojas Z, sin CLI | **434** | Central 89 · Higuero 129 · Las Américas 216 |
+| Binarios `.xls` (formato viejo de Excel) | **607** | Barahona 1 · Central 132 · Higuero 263 · Las Américas 211 |
+| Corrupto / ilegible | 1 | |
+
+Los `.xls` binarios no se pueden leer con openpyxl: hace falta convertirlos o un
+lector aparte (`xlrd`), así que quedan **pendientes de decisión**.
+
+### Desde cuándo existen los CLI (primera fecha por estación)
+
+| Estación | Primera observación con CLI |
+|---|---|
+| Central | 2021-04-15 |
+| Arroyo Barril | 2021-10-20 |
+| Barahona | 2023-10-17 |
+| Higuero | 2024-01-25 |
+| Las Américas | 2024-10-17 |
+| Santiago | 2025-02 |
+| Punta Cana | 2025-04-07 |
+| El Catey | 2025-08-26 |
+| Cabrera | 2025-08-27 |
+| La Romana | 2025-10-23 |
+| Monte Cristi | 2026-03-28 |
+| Puerto Plata | 2026-04-01 |
+| Sabana de la Mar | 2026-07-10 |
+| Jimaní | 2026-09-04 |
+
+El uso de los CLI **se generaliza a partir de 2024** (243 archivos en 2024, 760
+en 2025 y 1.704 en 2026). Antes de 2024 la mayoría de las observaciones solo
+tiene hojas Z.
+
+### Regla acordada
+
+En las observaciones que **no** traen hojas CLI, el documento se escribe igual
+con `cli["3074"]`, `cli["4074"]` y `cli["5074"]` presentes y **todos sus valores
+vacíos**. No se inventa nada.
+
+### Anomalías detectadas en los nombres de archivo
+
+Tres archivos no siguen el patrón `DDMMYYYY` y hay que resolverlos por contenido
+o pidiendo la fecha: `MDSD013052024.xlsm`, `Estacion Central 154042025.xlsm`,
+`120072025.xlsx`.
