@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 from pathlib import Path
 
 import pytest
@@ -42,6 +43,32 @@ def test_the_document_template_carries_the_frozen_schema():
         "iniciales_obs", "iniciales_grupos", "fenomenos"}
     assert set(doc["cli"]["5074"]["subsuelo"]) == {
         "5", "10", "15", "20", "25", "50", "100"}
+
+
+def test_the_date_is_inferred_from_the_file_name_when_metadata_missing():
+    """Reglas del dueño para los nombres raros (dígito sobrante)."""
+    from oms_core.services.excel_transform import fecha_del_nombre
+
+    assert fecha_del_nombre("MDBH17092026") == "2026-09-17"
+    assert fecha_del_nombre("MDSD013052024") == "2024-05-13"
+    assert fecha_del_nombre("Estacion Central 154042025") == "2025-04-15"
+    assert fecha_del_nombre("250820251") == "2025-08-25"
+    assert fecha_del_nombre("07122023") == "2023-12-07"
+    assert fecha_del_nombre("sin fecha") == ""
+
+
+def test_the_station_comes_from_the_folder_when_content_missing():
+    from oms_core.services.excel_transform import buscador_estaciones
+
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3.Row
+    from oms_core.db.migrations import migrate
+    migrate(conn)
+    busca = buscador_estaciones(conn)
+    assert busca("Barahona") == "78482"
+    assert busca("Central-Descargas") == "78486"
+    assert busca("El Catey") == "MDCY"
+    assert busca("No Existe") == ""
 
 
 def test_ruta_destino_follows_the_synop_section(tmp_path):

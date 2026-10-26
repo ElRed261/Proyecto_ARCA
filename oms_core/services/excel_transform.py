@@ -112,6 +112,51 @@ def documento_vacio(estacion: str = "", fecha: str = "") -> dict[str, Any]:
     }
 
 
+import datetime as _dt
+import sqlite3
+
+
+def fecha_del_nombre(nombre: str) -> str:
+    """La fecha del NOMBRE del archivo, sin adivinarla a ojillo.
+
+    Reglas del dueño: los nombres raros traen un dígito de más (``MDSD013052024``
+    → 13/05/2024, ``154042025`` → 15/04/2025, ``MDBH17092026`` → 17/09/2026).
+    Con 8 dígitos se valida directo; con 9 se prueba quitando UN dígito (de
+    derecha a izquierda porque el sobrante suele ir al final) y entre las
+    fecha real-mente válidas (año 1990-2100) se prefiere la de día ambiguo
+    resuelto (dígito de día ≥ 13 no puede ser un mes), y luego el año mayor.
+    """
+    cifras = "".join(re.findall(r"\d", Path(nombre).stem))
+
+    def valida(crudo: str) -> str | None:
+        if len(crudo) != 8:
+            return None
+        dia, mes, anio = int(crudo[:2]), int(crudo[2:4]), int(crudo[4:])
+        try:
+            fecha = _dt.date(anio, mes, dia)
+        except ValueError:
+            return None
+        if not 1990 <= anio <= 2100:
+            return None
+        return fecha.isoformat()
+
+    directo = valida(cifras[-8:])
+    if directo:
+        return directo
+    if len(cifras) == 9:
+        primera_validez = ""
+        for i in range(8, -1, -1):                  # el sobrante suele ir al final
+            iso = valida(cifras[:i] + cifras[i + 1:])
+            if not iso:
+                continue
+            dia = int(iso[8:10])
+            primera_validez = primera_validez or iso
+            if dia >= 13:               # un día >12 no puede ser un mes: sin ambigüedad
+                return iso
+        return primera_validez
+    return ""
+
+
 def _debajo(hoja: list[list[Any]], fila: int, col: int) -> str:
     """El valor vive en la celda inmediatamente debajo del rótulo."""
     if fila + 1 >= len(hoja) or col >= len(hoja[fila + 1]):
@@ -195,6 +240,40 @@ def read_synop(bases: dict[str, list[list[Any]]],
 # ==========================================================================
 # Proceso B — hojas CLI (modelo por cabecera)
 # ==========================================================================
+
+
+def buscador_estaciones(conn: sqlite3.Connection) -> Any:
+    """Carpeta → código de estación, de la lista de estaciones del OMS.
+
+    Barahona, Higuero / El Higüero, Las Americas / Las américas, Central /
+    Central-Descargas, El Catey / Catey… La comparación se libera de acentos y
+    cap yHO tolera que la carpeta lleve palabra extra ("Central-Descargas"→
+    Central, "El Catey"→ Catey).
+    """
+    import unicodedata
+    def norm(texto: str) -> str:
+        sin = unicodedata.normalize("NFD", texto.lower())
+        return "".join(c for c in sin if unicodedata.category(c) != "Mn")
+    conn.row_factory = sqlite3.Row  # el repo espera filas con nombre
+    from oms_core.services.stations import get_stations
+    candidatos = sorted(
+        ((norm(st.name), st.id, len(norm(st.name)))
+         for st in get_stations(conn, include_inactive=True)),
+        key=lambda par: -par[2])
+    conn.row_factory = None
+    def _busca(carpeta: str) -> str:
+        clave = norm(carpeta)
+        for nombre, codigo, _largo in candidatos:
+            if clave == nombre:
+                return codigo
+        for nombre, codigo, _largo in candidatos:
+            if nombre in clave:
+                return codigo
+        for nombre, codigo, _largo in candidatos:
+            if clave in nombre:
+                return codigo
+        return ""
+    return _busca
 
 
 def _pos_hora_local(hoja: list[list[Any]]) -> tuple[int, int]:
@@ -386,7 +465,8 @@ def _elegir(cli: dict[str, list[list[Any]]], base: str, detector) -> tuple[Any, 
 # ==========================================================================
 
 
-def analizar(ruta: str | Path) -> dict[str, Any]:
+def analizar(ruta: str | Path, *,
+             estaciones: Any = None) -> dict[str, Any]:
     rep: dict[str, Any] = {"archivo": Path(ruta).name, "ruta": str(ruta)}
     if Path(ruta).suffix.lower() not in (".xlsm", ".xlsx", ".xls", ".xltm"):
         rep["resultado"] = "descartado: no es un Excel"
@@ -424,6 +504,20 @@ def analizar(ruta: str | Path) -> dict[str, Any]:
 
     doc = documento_vacio()
     estacion, fecha = read_synop(bases, doc)
+    rep["metadatos"] = "contenido"
+    if not estacion and estaciones is not None:
+        # La estación vive en los nombres de carpeta (Barahona → 78482…),
+        # desde la carpeta del archivo hacia arriba.
+        for padre in ruta.parents[:6]:
+            codigo = estaciones(padre.name)
+            if codigo:
+                estacion = codigo
+                rep["metadatos"] = "carpeta de estación"
+                break
+    if not fecha:
+        fecha = fecha_del_nombre(ruta.name)
+        if fecha:
+            rep["metadatos"] = "nombre del archivo"
     rep["estacion"] = estacion
     rep["fecha"] = fecha
     if not estacion or not fecha:
@@ -503,7 +597,8 @@ def ruta_destino(doc: dict[str, Any], destino_root: Path) -> Path | None:
 
 
 def convertir_carpeta(carpeta: str | Path, destino_root: str | Path,
-                      *, sobrescribir: bool = False) -> dict[str, Any]:
+                      *, sobrescribir: bool = False,
+                      estaciones: Any = None) -> dict[str, Any]:
     """Convierte los Excel de ``carpeta`` a documentos v3 en ``destino_root``.
 
     Recorre ``*.xlsm/.xlsx/.xls/.xltm`` recursivamente (las copias
@@ -530,7 +625,7 @@ def convertir_carpeta(carpeta: str | Path, destino_root: str | Path,
     resumen["total"] = len(candidatos)
     destino_root = Path(destino_root)
     for ruta in candidatos:
-        rep = analizar(ruta)
+        rep = analizar(ruta, estaciones=estaciones)
         doc = rep.get("documento")
         fila = {
             "archivo": ruta.name,

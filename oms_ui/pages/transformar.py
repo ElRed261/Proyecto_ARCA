@@ -46,9 +46,13 @@ QLabel#tTitle { font-size: 20px; font-weight: 800; color: #0f172a; }
 QLabel#tSub { color: #64748b; }
 QLabel#tChip { background: #f1f5f9; border-radius: 8px; padding: 4px 10px;
                color: #334155; font-weight: 700; }
-QLineEdit, QTreeWidget { background: #ffffff; border: 1px solid #e2e8f0;
-                         border-radius: 6px; padding: 4px 8px; color: #0f172a; }
-QTreeWidget { border-top: none; }
+QLineEdit { background: #ffffff; border: 1px solid #e2e8f0;
+            border-radius: 6px; padding: 4px 8px; color: #0f172a; }
+QTreeWidget { background: #ffffff; color: #1e293b; font-size: 12px;
+              border: 1px solid #e2e8f0; border-radius: 6px;
+              alternate-background-color: #f8fafc;
+              selection-background-color: #0f172a; selection-color: #ffffff; }
+QTreeWidget::item { padding: 3px; }
 QPushButton#tPrimary { background: #0f172a; color: #ffffff; border: none;
                        border-radius: 7px; padding: 9px 20px; font-weight: 700; }
 QPushButton#tPrimary:hover { background: #1e293b; }
@@ -171,9 +175,11 @@ class TransformarPage(QWidget):
             return
         self.estado.setText("Convirtiendo…")
         QApplication.processEvents()
+        buscador = excel_transform.buscador_estaciones(self._conn)
         reporte = excel_transform.convertir_carpeta(
             carpeta, destino_synop(self._conn),
-            sobrescribir=self.overwrite.isChecked())
+            sobrescribir=self.overwrite.isChecked(),
+            estaciones=buscador)
         self.mostrar_reporte(reporte)
         QApplication.processEvents()
 
