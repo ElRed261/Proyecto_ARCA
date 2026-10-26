@@ -1,9 +1,9 @@
 {
- "schema_version": "ESQUEMA-NUEVO-v2",
+ "schema_version": "ESQUEMA-NUEVO-v3",
  "meta": {
   "estacion": "78485",
   "fecha": "2025-10-01",
-  "actualizado": "2026-10-26T12:00:00-04:00"
+  "actualizado": "2026-10-26T12:30:00-04:00"
  },
  "synop": {
   "06Z": {
@@ -23,9 +23,9 @@
    },
    "grupos": {
     "YYGGiw": "01061",
-    "IrIXHVV": "31464",
+    "IrIXHVV": "32466",
     "Nddff": "21602",
-    "7wwW1W2": "70600",
+    "7wwW1W2": "70601",
     "8NhCLCMCH": "82816",
     "0CSDLDMDH": "02000",
     "1snTxTxTx": "10259",
@@ -36,7 +36,7 @@
     "56DLDMDH": "02000",
     "6RRRtr": "",
     "7R24R24R24R24": "7",
-    "8NsChshs_1": "92816",
+    "8NsChshs_1": "82816",
     "8NsChshs_2": "82800",
     "8NsChshs_3": "81200",
     "8NsChshs_4": "82000",
@@ -52,8 +52,53 @@
     "9spspsp_8": "98864"
    }
   },
+  "12Z": {
+   "observador": "PEDRO RUIZ",
+   "datos": {
+    "ts": "29.8",
+    "th": "25.1",
+    "pres_est": "1012.9",
+    "p3": "1011.8",
+    "p24": "",
+    "Tmax": "31.0",
+    "Tmin": "25.4",
+    "Tmax_24h": "",
+    "Tmin_24h": "",
+    "LL": "2.0",
+    "LL_24h": ""
+   },
+   "grupos": {
+    "YYGGiw": "02121",
+    "IrIXHVV": "32466",
+    "Nddff": "21602",
+    "7wwW1W2": "170916",
+    "8NhCLCMCH": "82816",
+    "0CSDLDMDH": "02000",
+    "1snTxTxTx": "10305",
+    "2snTnTnTn": "20235",
+    "3Ejjj": "30///",
+    "5EEEjE": "",
+    "5nFnFnFn": "",
+    "56DLDMDH": "02000",
+    "6RRRtr": "60112",
+    "7R24R24R24R24": "7",
+    "8NsChshs_1": "92816",
+    "8NsChshs_2": "82800",
+    "8NsChshs_3": "",
+    "8NsChshs_4": "",
+    "8NsChshs_5": "",
+    "8NsChshs_6": "",
+    "9spspsp_1": "91023",
+    "9spspsp_2": "92500",
+    "9spspsp_3": "93000",
+    "9spspsp_4": "93500",
+    "9spspsp_5": "94000",
+    "9spspsp_6": "94500",
+    "9spspsp_7": "95000",
+    "9spspsp_8": "95500"
+   }
+  },
   "09Z": null,
-  "12Z": null,
   "15Z": null,
   "18Z": null,
   "21Z": null,
@@ -201,18 +246,17 @@
    }
   },
   "4074": {
-   "_nota": "todo lo demás derivado del synop (nubes bajas, Tmax/Tmin, cb_tipo=9 del 3er dígito de 8Ns); aquí solo las iniciales por hora",
    "2": {
     "observador": "EMM"
    },
    "5": {
-    "observador": ""
+    "observador": "EMM"
    },
    "8": {
-    "observador": ""
+    "observador": "PR"
    },
    "11": {
-    "observador": ""
+    "observador": "PR"
    },
    "14": {
     "observador": ""
@@ -229,9 +273,9 @@
   },
   "5074": {
    "_nota": "entrada manual; presiones/lecturas NO se guardan (salen del synop)",
-   "piche": "",
-   "tanque_c": "",
-   "evaporigrafo": "",
+   "piche": "1.2",
+   "tanque_c": "0.8",
+   "evaporigrafo": "0.5",
    "subsuelo": {
     "5": {
      "f1": "25.2",
@@ -269,36 +313,58 @@
      "f3": "28.2"
     }
    },
-   "notas": "Condiciones estables durante la mañana; ligera brisa del SSE.",
-   "iniciales_obs": "KMM",
+   "notas": "Durante la madrugada cielo cubierto con llovizna; a partir de las 09:00 se abrió a nubes dispersas y se registró tormenta eléctrica local entre las 16:10 y 16:45 con ráfagas de viento del sureste.",
+   "iniciales_obs": "KMC",
    "iniciales_grupos": {
     "2": "KMM",
-    "8": "",
-    "14": "",
-    "20": ""
+    "8": "PR",
+    "14": "PR",
+    "20": "KMC"
    },
    "fenomenos": [
     {
-     "hora": "04:00",
+     "hora": "00:15",
      "raf_dir": "",
      "raf_vel": "",
      "intensidad": "",
      "fenomeno": "RA",
-     "inicio": "04:00",
-     "final": "04:15",
-     "duracion": "15",
+     "inicio": "00:10",
+     "final": "00:40",
+     "duracion": "30",
      "iniciales": "KMM"
     },
     {
-     "hora": "06:20",
+     "hora": "14:30",
+     "raf_dir": "",
+     "raf_vel": "",
+     "intensidad": "F",
+     "fenomeno": "DZ",
+     "inicio": "14:20",
+     "final": "15:05",
+     "duracion": "45",
+     "iniciales": "PR"
+    },
+    {
+     "hora": "16:20",
      "raf_dir": "16",
      "raf_vel": "4.0",
      "intensidad": "F",
      "fenomeno": "TS",
-     "inicio": "06:10",
-     "final": "06:45",
+     "inicio": "16:10",
+     "final": "16:45",
      "duracion": "35",
-     "iniciales": "KMM"
+     "iniciales": "PR"
+    },
+    {
+     "hora": "19:00",
+     "raf_dir": "",
+     "raf_vel": "",
+     "intensidad": "",
+     "fenomeno": "V",
+     "inicio": "18:50",
+     "final": "19:10",
+     "duracion": "20",
+     "iniciales": "KMC"
     }
    ]
   }
