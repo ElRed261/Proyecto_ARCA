@@ -1,7 +1,7 @@
 # ESQUEMA DEL DOCUMENTO DE OBSERVACIÓN — v3 (CONGELADO)
 
-> **Estado: congelado por el dueño (2026-10-26).** Este documento es el contrato
-> decad `schema_version = "ESQUEMA-NUEVO-v3"`. Cualquier herramienta
+> **Estado: congelado por el dueño (2026-10-26).** Este documento es el
+> contrato de `schema_version = "ESQUEMA-NUEVO-v3"`. Cualquier herramienta
 > (transformador de Excel, importador, UI, auditoría, resumen o IA) que escriba
 > o lea observaciones tiene que respetarlo. Si este archivo y una
 > implementación discrepan, **discrepa la implementación**.
@@ -25,9 +25,11 @@
 4. **Solo entradas manuales se guardan.** Los valores calculados
    (presión NMM, humedad, punto de rocío, tensión de vapor, temperaturas
    derivadas) **no se almacenan**: el sistema los recalcula (regla R2 del dato).
-5. **Garantía de calidad**: la extensión (transformador) solo escribe con el dueño
-   revisando; sin datos en una celda, esa celda del JSON va vacía. Lector R1: los
-   Excel que no traen hojas Z NO se procesan.
+5. **El procesamiento exige hojas Z.** Los Excel que no traen hojas Z NO se
+   procesan (solo CLI, ni Z ni CLI: descartados con motivo). Con Z sin CLI,
+   los tres bloques `cli` se escriben con sus estructuras vacías.
+6. **La IA nunca borra datos**: si una celda del Excel no trae valor, esa clave
+   del JSON queda vacía. Nunca se inventa un valor.
 6. **Lecturas extremas** (Humedad maxima/minima): enteros. El promedio, un decimal.
 
 ## Estructura
@@ -897,7 +899,7 @@ exactamente esta forma** a partir de un Excel válido:
 }
 ```
 
-## Contexto de transformación (por si la IA retoma el hilo)
+## Contexto de transformación (resumen del hilo de trabajo)
 
 - El convertidor es **dos procesos independientes**: Proceso A lee las **hojas
   Z** (`0006Z…0003Z`) y arma `synop` + `datos`; Proceso B lee las **hojas CLI**
@@ -909,6 +911,7 @@ exactamente esta forma** a partir de un Excel válido:
 - Estación y fecha salen del **contenido** (fila 3 de una hoja del día: col 3
   estación, col 4 fecha ISO). Lectura desde 06Z/12Z, porque 00Z/03Z
   pertenecen al día anterior (cierre a las 06Z).
-- Presión en formato viejo (4 celdas): `int(dígitos)/10` y si da menos de
-  1000 se le suma 1000 (el decodificador del oráculo estaba mal).
+- Presión en formato viejo (4 celdas): `int(dígitos)/10` y si da menos de 1000
+  se le suma 1000 (el decodificador del oráculo estaba mal para valores por
+  debajo de 1000).
 - Especificaciones y decisiones en `odd/tasks/transformacion-excel.md`.
