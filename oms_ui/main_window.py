@@ -38,7 +38,8 @@ from oms_ui.pages.stations_admin import StationsAdminPage
 #: replace it once the owner picks one).
 #: Owner round 25: Auditoría sits RIGHT AFTER Sinóptico — the auditor works
 #: next to the observation it marks, before the monthly summary.
-_RAIL_MODULE_IDS = ("synoptic", "audit", "summary", "maintenance", "admin")
+_RAIL_MODULE_IDS = ("synoptic", "audit", "summary", "maintenance",
+                   "transform", "admin")
 
 NAV_ENTRIES = (
     ("dashboard", "Inicio", "#3b82f6", "IN"),
@@ -46,6 +47,7 @@ NAV_ENTRIES = (
     ("audit", "Auditoría", "#f97316", "AU"),
     ("summary", "Resumen", "#a855f7", "RE"),
     ("maintenance", "Configuración", "#0d9488", "CO"),
+    ("transform", "Transformar", "#0ea5e9", "TR"),
     ("admin", "Seguridad", "#64748b", "SE"),
 )
 
@@ -312,6 +314,10 @@ class MainWindow(QMainWindow):
             from oms_ui.pages.maintenance import MaintenancePage
 
             return MaintenancePage(conn, role=self.role, db_path=self._db_path)
+        if page_id == "transform":
+            from oms_ui.pages.transformar import TransformarPage
+
+            return TransformarPage(conn)
         raise AssertionError(f"unknown page id: {page_id!r} (no placeholders remain)")
 
     def _on_nav(self, row: int) -> None:

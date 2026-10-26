@@ -77,8 +77,10 @@ def test_login_fallido_error_en_linea_sin_popup(qtbot, db):
 @pytest.mark.parametrize(
     ("role", "expected"),
     [
-        ("admin", ["dashboard", "synoptic", "audit", "summary", "maintenance", "admin"]),
-        ("administrador", ["dashboard", "synoptic", "audit", "summary", "maintenance", "admin"]),
+        ("admin", ["dashboard", "synoptic", "audit", "summary", "maintenance",
+                   "transform", "admin"]),
+        ("administrador", ["dashboard", "synoptic", "audit", "summary", "maintenance",
+                           "transform", "admin"]),
         ("control_calidad", ["dashboard", "synoptic", "audit", "summary", "maintenance"]),
         ("encargado", ["dashboard", "synoptic", "summary", "maintenance"]),
         ("observador", ["dashboard", "synoptic", "summary", "maintenance"]),

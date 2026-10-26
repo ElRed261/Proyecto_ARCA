@@ -485,3 +485,91 @@ def escribir(reporte: dict[str, Any], destino: Path) -> Path | None:
     ruta.write_text(json.dumps(doc, ensure_ascii=False, indent=1),
                     encoding="utf-8")
     return ruta
+
+
+# ==========================================================================
+# Conversión por carpeta (submódulo admin)
+# ==========================================================================
+
+
+def ruta_destino(doc: dict[str, Any], destino_root: Path) -> Path | None:
+    """El path donde escribiría ``escribir()`` sin escribir."""
+    fecha = doc["meta"]["fecha"]
+    if not doc["meta"]["estacion"] or not fecha:
+        return None
+    nombre = (doc["meta"]["estacion"] + fecha[8:10] + fecha[5:7] + fecha[:4]
+              + ".json")
+    return destino_root / doc["meta"]["estacion"] / fecha[:4] / fecha[5:7] / nombre
+
+
+def convertir_carpeta(carpeta: str | Path, destino_root: str | Path,
+                      *, sobrescribir: bool = False) -> dict[str, Any]:
+    """Convierte los Excel de ``carpeta`` a documentos v3 en ``destino_root``.
+
+    Recorre ``*.xlsm/.xlsx/.xls/.xltm`` recursivamente (las copias
+    ``.pdf``/``.txt`` se ignoran de raíz), aplica el árbol de identificación a
+    cada uno y escribe en ``{destino_root}/synop/<estación>/<año>/<mes>/``.
+
+    Sin ``sobrescribir``, un día que ya existe se reporta como ``ya_existía``
+    y no se toca (nunca se reemplaza a ciegas). Un archivo malo nunca lanza:
+    su fila del reporte lleva el motivo.
+    """
+    carpeta = Path(carpeta)
+    resumen = {"procesados": 0, "sin_cli_yaml": 0, "descartados": 0,
+               "ya_existia": 0, "total": 0}
+    del resumen["sin_cli_yaml"]
+    resumen["sin_cli"] = 0
+    sin_cli = 0
+    filas: list[dict[str, Any]] = []
+    if not carpeta.is_dir():
+        resumen["error"] = f"la carpeta no existe: {carpeta}"
+        return {"resumen": resumen, "filas": filas}
+    extensiones = {".xlsm", ".xlsx", ".xls", ".xltm"}
+    candidatos = sorted(ruta for ruta in carpeta.rglob("*")
+                        if ruta.is_file() and ruta.suffix.lower() in extensiones)
+    resumen["total"] = len(candidatos)
+    destino_root = Path(destino_root)
+    for ruta in candidatos:
+        rep = analizar(ruta)
+        doc = rep.get("documento")
+        fila = {
+            "archivo": ruta.name,
+            "resultado": rep["resultado"],
+            "estacion": rep.get("estacion") or "",
+            "fecha": rep.get("fecha") or "",
+            "modelo": rep.get("modelo_3074") or ("—" if rep.get("documento")
+                                                 and not rep.get("modelo_3074")
+                                                 else ""),
+            "json": "",
+        }
+        if not doc:
+            resumen["descartados"] += 1
+            filas.append(fila)
+            continue
+        objetivo = ruta_destino(doc, destino_root)
+        if objetivo is not None and objetivo.exists() and not sobrescribir:
+            fila["resultado"] = "ya_existía: no se tocó"
+            fila["json"] = str(objetivo)
+            resumen["ya_existia"] += 1
+            filas.append(fila)
+            continue
+        bloque = len(_bloques_cli_vacios(doc))
+        if not bloque:
+            sin_cli += 1
+        escribir(rep, destino_root)
+        fila["json"] = str(objetivo or "")
+        resumen["procesados"] += 1
+        filas.append(fila)
+    resumen["sin_cli"] = sin_cli
+    return {"resumen": resumen, "filas": filas}
+
+
+def _bloques_cli_vacios(doc: dict[str, Any]) -> list[str]:
+    """Los bloques CLI que quedaron vacíos (advertencia del reporte)."""
+    def lleno(bloque: Any) -> bool:
+        if isinstance(bloque, dict):
+            return any(lleno(v) for v in bloque.values())
+        if isinstance(bloque, list):
+            return len(bloque) > 0
+        return bloque is True or bloque not in ("", None, False)
+    return [k for k, v in doc["cli"].items() if not lleno(v)]

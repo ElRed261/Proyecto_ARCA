@@ -368,6 +368,7 @@ def test_main_window_shows_real_pages_for_admin(qtbot, fresh_db):
     from oms_ui.pages.audit_report import AuditReportPage
     from oms_ui.pages.stations_admin import StationsAdminPage
     from oms_ui.pages.summary import SummaryPage
+    from oms_ui.pages.transformar import TransformarPage
     from oms_ui.pages.synoptic import SynopticPage
 
     window = MainWindow(role="admin", db_path=fresh_db)
@@ -379,6 +380,7 @@ def test_main_window_shows_real_pages_for_admin(qtbot, fresh_db):
         "audit",
         "summary",
         "maintenance",
+        "transform",
         "admin",
     ]
     assert isinstance(window._pages["dashboard"], DashboardPage)
@@ -386,6 +388,7 @@ def test_main_window_shows_real_pages_for_admin(qtbot, fresh_db):
     assert isinstance(window._pages["summary"], SummaryPage)
     assert isinstance(window._pages["admin"], StationsAdminPage)
     assert isinstance(window._pages["maintenance"], MaintenancePage)
+    assert isinstance(window._pages["transform"], TransformarPage)
     audit_tabs = window._pages["audit"]
     assert isinstance(audit_tabs, QTabWidget)
     assert isinstance(audit_tabs.widget(0), AuditPage)
@@ -400,6 +403,7 @@ def test_main_window_shows_real_pages_for_observador(qtbot, fresh_db):
     assert window.visible_pages() == ["dashboard", "synoptic", "summary", "maintenance"]
     assert isinstance(window._pages["dashboard"], DashboardPage)
     assert isinstance(window._pages["maintenance"], MaintenancePage)
+    assert "transform" not in window.visible_pages()  # submódulo de admin
     _assert_no_placeholders(window)
 
 

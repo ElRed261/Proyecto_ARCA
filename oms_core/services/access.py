@@ -15,7 +15,8 @@ from __future__ import annotations
 from oms_core.services.auth import normalize_role
 
 #: Pages of the main window (Sidebar MODULES ids).
-PAGES = ("dashboard", "synoptic", "summary", "audit", "maintenance", "admin")
+PAGES = ("dashboard", "synoptic", "summary", "audit", "maintenance",
+         "transform", "admin")
 
 #: Roles required per page; ``None`` means visible to every role.
 #:
@@ -30,6 +31,7 @@ _PAGE_ROLES: dict[str, tuple[str, ...] | None] = {
     "summary": None,
     "audit": ("admin", "control_calidad"),
     "maintenance": None,
+    "transform": ("admin",),
     "admin": ("admin",),
 }
 
