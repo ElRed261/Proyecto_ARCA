@@ -813,6 +813,25 @@ class SynopticPage(QWidget):
         )
         self.fecha_edit.setMinimumHeight(32)
 
+        # Elegir el día de entre las observaciones guardadas, como en la
+        # Auditoría (estación -> año -> mes -> día), en vez de teclear una fecha
+        # a ciegas. Es el mismo selector que el botón "Cargar Observación".
+        self.date_picker_button = QPushButton()
+        self.date_picker_button.setToolTip("Elegir de las observaciones guardadas")
+        self.date_picker_button.setIcon(lucide_icon("calendar", "#475569", 15))
+        self.date_picker_button.setIconSize(QSize(15, 15))
+        self.date_picker_button.setFixedWidth(34)
+        self.date_picker_button.setMinimumHeight(32)
+        self.date_picker_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.date_picker_button.setAccessibleName("Elegir día de las observaciones guardadas")
+        self.date_picker_button.clicked.connect(lambda: self._open_observation_picker())
+        self.date_row = QWidget()
+        date_row_l = QHBoxLayout(self.date_row)
+        date_row_l.setContentsMargins(0, 0, 0, 0)
+        date_row_l.setSpacing(6)
+        date_row_l.addWidget(self.fecha_edit, 1)
+        date_row_l.addWidget(self.date_picker_button)
+
         self.correc_alt_edit = QLineEdit()
         self.correc_alt_edit.setReadOnly(True)
         self.correc_alt_edit.setStyleSheet(RO_QSS)
@@ -827,7 +846,7 @@ class SynopticPage(QWidget):
         self._grid_const(grid, 1, 0, "AAXX")
         self._grid_field(grid, 1, 1, "meteo_2_1")
         grid.addWidget(self.station_combo, 1, 2)
-        grid.addWidget(self.fecha_edit, 1, 3, 1, 4)
+        grid.addWidget(self.date_row, 1, 3, 1, 4)
         self._grid_header(grid, 2, [("IrIXHVV", 1), ("Nddff", 1),
                                     ("1snTTT", 1), ("2snTdTdTd", 1),
                                     ("4PPPP", 1), ("5aPPP", 1),

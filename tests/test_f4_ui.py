@@ -1447,3 +1447,35 @@ def test_admin_can_correct_a_closed_day(fresh_db, tmp_path, qtbot):
     assert summaries_repo.get_summary_doc(
         fresh_db, STATION, 2025, 12, "diario", day=8) is not None
     assert versions_service.count(fresh_db, STATION, 2025, 12, 8) >= 1
+
+
+# ---------------------------------------- day picker like the audit (ronda 32)
+
+
+def test_the_date_is_chosen_from_the_stored_observations(page, qtbot, monkeypatch):
+    """S9: the date is not typed blind; the calendar button opens the same
+    station -> year -> month -> day selector the audit page drills through, and
+    picking a day moves the page to that station and date."""
+    import oms_ui.observation_picker as picker_module
+
+    calls = {}
+
+    class _StubPicker:
+        def __init__(self, conn, station=None, show_stations=False, parent=None):
+            calls["station"] = station
+            calls["show_stations"] = show_stations
+
+        def exec(self):
+            from PySide6.QtWidgets import QDialog
+            return QDialog.DialogCode.Accepted
+
+        def selection(self):
+            return (None, "2025-10-02")
+
+    monkeypatch.setattr(picker_module, "ObservationPickerDialog", _StubPicker)
+    qtbot.mouseClick(page.date_picker_button, Qt.LeftButton)
+
+    assert calls["station"] == page.station_id, "el selector arranca en la estación actual"
+    # el selector recibe la estación de la página y decide si la ofrece
+    assert calls["show_stations"] == (page.station_combo.count() > 1)
+    assert page.fecha_edit.date().toString("yyyy-MM-dd") == "2025-10-02"

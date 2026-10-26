@@ -94,7 +94,7 @@ Oráculo de comportamiento: `OLD/frontend/src/features/summary/pages/SummaryPage
 | T1 | S15, S14, S13 | adaptador schema 2 en `oms_core/services/summary.py` | hecho (d6e0a43) |
 | T2 | S12 | lluvia en su día: corrimiento del oráculo **no** portado (desviación F5) | hecho |
 | T3 | S11 | verificación día×columna contra los dos oráculos 10/2025 | en curso |
-| T4 | S9 | selector de día tipo Auditoría para el Sinóptico | pendiente |
+| T4 | S9 | selector de día tipo Auditoría para el Sinóptico | hecho (f4 UI 79/79) |
 | T5 | S10 | mismo selector en Auditoría y Resumen | pendiente |
 | T6 | S11 | fijar la paridad con tests (no debilitar asserts) | pendiente |
 | T7 | S16 | enteros en HR max/min y 1 decimal en la media (tabla + Excel) | hecho |
@@ -155,3 +155,9 @@ Oráculo de comportamiento: `OLD/frontend/src/features/summary/pages/SummaryPage
   presentación, que mostraba `97.0`. Se añadió `INTEGER_HEADERS` +
   `summary_service.display_value()` (tabla) y `number_format = "0"` en el
   export. Tests nuevos con RED observado antes del cambio y GREEN después.
+- **L12** S9 entregado: el campo de fecha del Sinóptico ya no se teclea a
+  ciegas. Se añadió un botón de calendario junto al campo que abre el mismo
+  selector estación → año → mes → día que usa "Cargar Observación" (el drill-down
+  de la Auditoría). El `QDateEdit` sigue funcionando igual, así que los 78 tests
+  previos de f4 no cambian; el test nuevo falla sin el botón (`git stash`) y
+  pasa con él.
