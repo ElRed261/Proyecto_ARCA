@@ -375,3 +375,49 @@ buscaba la hora en la columna A no la encontraba.
 No se adivina por el nombre del archivo ni por la estación: se lee la cabecera y
 se compara el número de columnas ocupadas y la etiqueta de la celda que debería
 tener la hora (A o B). El reporte de la ventana deja anotado qué modelo se usó.
+
+## Dos procesos independientes
+
+El dueño pidió separar la transformación en dos procesos que no se estorben: uno
+lleva las **hojas Z** al bloque `synop` y otro lleva los **CLI** a
+`cli["3074"] / ["4074"] / ["5074"]`. Cada uno detecta su propia estructura y
+puede fallar por separado: si el CLI no se reconoce, el documento se escribe
+igual con `synop` completo y los CLI vacíos, y viceversa.
+
+### Proceso A — hojas Z → `synop` (por ETIQUETA, no por coordenada)
+
+Las cuatro alturas de hoja Z (37, 31, 30 y 32 filas) mueven las filas, y los
+carriles `9spspsp` cambian de cantidad con el tiempo. Leer por coordenada fija
+rompe con la primera variante nueva, así que se lee **por etiqueta**:
+
+1. Buscar en las filas 5-25 las celdas cuyo texto coincide con las etiquetas
+   conocidas de los grupos (`AA XX`, `YY GG iw`, `lliii`, `Ir iX H VV`,
+   `N dd ff`, `1sn T T T`, `2sn Td Td T`, `4 P P P P`, `5 a P P P`,
+   `7 ww W1 W2`, `8Nh CL CM C`, `333`, `0CS DL DM D`, `1sn Tx Tx T`,
+   `2sn Tn Tn T`, `3E j j j`, `5 EEEjE`, `5n Fn Fn Fn`, `56DL DM DH`,
+   `58/59 P24P2`, `6 RRR tr`, `7R24R24R24R`, `8NsChS hs`, `8NsChs hs`,
+   `9sp sp sp s`, `555`, `29 UUU`).
+2. El **valor** de cada grupo es la celda inmediatamente debajo de su etiqueta
+   (la grilla es etiqueta arriba, valor abajo).
+3. Los `9sp sp sp s` se numeran en el orden en que aparecen; los carriles que el
+   archivo no trae quedan vacíos (no se inventan).
+4. `YY GG iw` da también la hora del bloque; `lliii` y la fecha se contrastan
+   con la fila 3.
+5. Los valores `9`, `'9 '` y `0` sueltos —los que el formulario deja por
+   defecto— se guardan como vacíos, igual que hacía el oráculo.
+6. Los cálculos de estación (Ts, Th, Pr, Tv, Pres. Est., P3, P24, T Máx.,
+   T Mín.) están en la grilla de abajo y son **derivados**: no se guardan, se
+   recalculan (regla R2).
+
+### Proceso B — CLI → `cli[...]`
+
+1. Elegir la hoja por nombre exacto y, si no existe, la sufijada
+   (`3074` > `3074(1)` > `3074 (2)`), anotándolo.
+2. Detectar el modelo por la cabecera (V1/V2, V3 o V4). Si no coincide ninguno,
+   el bloque queda vacío y el archivo se reporta.
+3. Leer cada hora y cada campo con el modelo correspondiente.
+
+Mismo criterio por etiqueta para el `4074` y el `5074`: se localizan los rótulos
+(`Estación`, `NMM`, `Altímetro`, `3 H. TEND`, `PTO R`, `T VAP`, `HR`, `DIR.`,
+`VEL.`, los fenómenos) y se toma el valor de la celda siguiente o de la misma
+columna, según la disposición.
