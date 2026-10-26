@@ -254,13 +254,19 @@ def buscador_estaciones(conn: sqlite3.Connection) -> Any:
     def norm(texto: str) -> str:
         sin = unicodedata.normalize("NFD", texto.lower())
         return "".join(c for c in sin if unicodedata.category(c) != "Mn")
-    conn.row_factory = sqlite3.Row  # el repo espera filas con nombre
-    from oms_core.services.stations import get_stations
-    candidatos = sorted(
-        ((norm(st.name), st.id, len(norm(st.name)))
-         for st in get_stations(conn, include_inactive=True)),
-        key=lambda par: -par[2])
-    conn.row_factory = None
+    # El repo espera filas con nombre; se restaura LA FÁBRICA ORIGINAL del
+    # llamador al salir (la app tiene conexiones con sqlite3.Row y romperla
+    # mató el Cargar Observación en caliente).
+    original = conn.row_factory
+    try:
+        conn.row_factory = sqlite3.Row
+        from oms_core.services.stations import get_stations
+        candidatos = sorted(
+            ((norm(st.name), st.id, len(norm(st.name)))
+             for st in get_stations(conn, include_inactive=True)),
+            key=lambda par: -par[2])
+    finally:
+        conn.row_factory = original
     def _busca(carpeta: str) -> str:
         clave = norm(carpeta)
         for nombre, codigo, _largo in candidatos:

@@ -62,9 +62,12 @@ def test_the_station_comes_from_the_folder_when_content_missing():
 
     conn = sqlite3.connect(":memory:")
     conn.row_factory = sqlite3.Row
+    original = conn.row_factory
     from oms_core.db.migrations import migrate
     migrate(conn)
     busca = buscador_estaciones(conn)
+    # la fábrica de filas del llamador queda como estaba (sqlite3.Row aquí)
+    assert conn.row_factory is original
     assert busca("Barahona") == "78482"
     assert busca("Central-Descargas") == "78486"
     assert busca("El Catey") == "MDCY"
