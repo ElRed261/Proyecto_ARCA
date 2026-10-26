@@ -81,3 +81,46 @@ Referencia: `OLD/pipeline/src/arca_pipeline/transform/excel_to_json.py`
 - **L5** Pausa pedida: el Resumen mensual no se retoma hasta tener el dato
   rehecho. La desviación R32 queda firmada y medida; el adaptador ya lee los
   tres layouts.
+
+## Mapa de la hoja 5074 (verificado en `docs/Estación Central 01032026.xlsm`)
+
+La hoja es un formulario ancho (`A1:BE55`). Lo que quedó **confirmado** leyendo
+el archivo real:
+
+| Bloque | Celdas | Contenido real encontrado |
+|---|---|---|
+| Cabecera del día | `B2`..`B5`, `AU5` | República Dominicana / INDOMET / título / año |
+| Temperatura del aire | `B9` máx, `E9` mín | 31 / 23 |
+| Humedad relativa | `R9` máx, `T9` mín | 88.5 / 62.3 |
+| Presión de estación | `V9` máx, `AB9` mín | 1017.1 / 1014.1 |
+| Hora local por grupo | `I13`=2, `N13`=8, `S13`=14, `X13`=20 | 4 grupos de 5 columnas (I-M, N-R, S-W, X-AB) = 06Z, 12Z, 18Z, 00Z |
+| Presión por grupo | fila `17` estación, `18` corrección de altitud, `19` NMM | `I17`=1014.2, `I18`=1.6, `I19`=1015.8 (y lo mismo en N, S, X) |
+| Temperatura del subsuelo | `AF13:AV15` | 4 grupos (AF, AL, AQ, AT) × 3 filas: 25.2/25.4/29.4/28 … |
+| Piche / Tanque C / Evaporígrafo | rótulos `AF18`/`AH18`/`AL18`, unidades fila `19` | sin valores en este archivo (fila de valores vacía) |
+| Iniciales del observador | `AM19` | `KMC` |
+| Notas | `B22:Y35` | vacío en este archivo |
+| Fenómenos (cabecera) | fila `22`: `Z` hora local, `AD` ráfagas, `AH` intensidad, `AI` fenómeno, `AK` inicio, `AM` final, `AP` duración, `AT` iniciales | |
+| Fenómenos (sub-cabecera) | fila `24`: `Z` horas, `AB` minutos, `AD` `dd 16-p`, `AF` `ff (m/s)` | |
+| Fenómenos (datos) | fila `26` en adelante | `AI26`=R, `AJ26`=A, `AK26`=04:00:00, `AM26`=04:15:00, `AP26`=15 MINUTOS, `AT26`=KMC |
+
+## Preguntas abiertas (bloquean la implementación)
+
+1. **Presión menor de 1000 hPa.** El decodificador del oráculo
+   (`decode_pressure_h`) hace `1000 + int(dígitos[1:4]) / 10`, así que `9984`
+   daría **1098.4**, no 998.4. La regla que se deduce de tus dos ejemplos es
+   otra: `0162` → 1016.2 (prefijo 10) y `9984` → 998.4 (sin prefijo). ¿Cuál
+   vale?
+2. **Temperatura del subsuelo.** Los 4 grupos de columna (AF, AL, AQ, AT) y las
+   3 filas (13, 14, 15): ¿son 4 profundidades × 3 horas (02, 08, 14 locales) y
+   falta la hora 20, o son 4 horas con la profundidad en otra fila?
+3. **Piche / Tanque C / Evaporígrafo.** Rótulos en la fila 18 y unidades en la
+   19, pero la fila de valores está vacía en el archivo de ejemplo. ¿La fila de
+   valores es la 20?
+4. **Hora local de los fenómenos.** `Z` (horas) y `AB` (minutos) parecen dos
+   celdas separadas que hay que unir; en la fila de datos solo aparecieron
+   `AK`/`AM` con la hora completa. ¿Se guardan hora y minutos por separado o
+   concatenados?
+5. **Formato viejo.** En una muestra de 60 de los 4.885 Excel todos resultaron
+   `new` (con hoja `3074`) y ninguno `old`. Necesito la ruta de un Excel del
+   formato viejo para validar los rangos que me diste (`I17:AA18`,
+   `AF13:AW14`, `B20:AW33`, `AP17:AW18`, `AF16:AN18`).
