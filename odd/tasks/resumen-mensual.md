@@ -79,6 +79,11 @@ Oráculo de comportamiento: `OLD/frontend/src/features/summary/pages/SummaryPage
   `"<RUMBO> <vel>,<decimal>"` con coma.
 - **S14** Nubosidad por hora: `cli["4074"][fila].nubosidad` si existe; si no,
   dígito N de `Nddff`; si no, `Nh` de `8NhCLCMCH` (orden verbatim del oráculo).
+- **S16** Humedad relativa: los extremos (máxima y mínima) se presentan y se
+  exportan como **números enteros**; el promedio del mes mantiene **un
+  decimal**. El cálculo ya redondeaba los extremos a 0 decimales
+  (`round_half_up(v, 0)`, verbatim del oráculo): la regla fija la presentación
+  y el formato de Excel.
 - **S15** Los documentos schema 2 se leen con su forma real: horas en `synop`,
   CLI en `cli["3074"] / ["4074"] / ["5074"]`, grupos en `synop[hh]["grupos"]`.
 
@@ -92,6 +97,7 @@ Oráculo de comportamiento: `OLD/frontend/src/features/summary/pages/SummaryPage
 | T4 | S9 | selector de día tipo Auditoría para el Sinóptico | pendiente |
 | T5 | S10 | mismo selector en Auditoría y Resumen | pendiente |
 | T6 | S11 | fijar la paridad con tests (no debilitar asserts) | pendiente |
+| T7 | S16 | enteros en HR max/min y 1 decimal en la media (tabla + Excel) | hecho |
 
 ## Log
 
@@ -144,3 +150,8 @@ Oráculo de comportamiento: `OLD/frontend/src/features/summary/pages/SummaryPage
   Tmax 23,5 / Tmin 23 / pres_est 1010,0; y `78464/2000/01/01` es el documento
   legacy fuera de schema ya conocido. En los 2.550 documentos del archivo solo
   esos dos están vacíos.
+- **L11** Regla del dueño para la humedad relativa: extremos enteros, promedio
+  con un decimal. El cálculo en Rust ya los redondeaba a 0 decimales; faltaba la
+  presentación, que mostraba `97.0`. Se añadió `INTEGER_HEADERS` +
+  `summary_service.display_value()` (tabla) y `number_format = "0"` en el
+  export. Tests nuevos con RED observado antes del cambio y GREEN después.

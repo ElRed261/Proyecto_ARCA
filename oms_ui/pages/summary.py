@@ -184,7 +184,9 @@ class SummaryTableModel(QAbstractTableModel):
         if role in (Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.EditRole):
             if value is None or value == "":
                 return "" if role == Qt.ItemDataRole.DisplayRole else None
-            return str(value) if role == Qt.ItemDataRole.DisplayRole else value
+            if role == Qt.ItemDataRole.DisplayRole:
+                return summary_service.display_value(header, value)
+            return value
         if role == Qt.ItemDataRole.TextAlignmentRole and header != "Dias":
             return int(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         if role == Qt.ItemDataRole.BackgroundRole:

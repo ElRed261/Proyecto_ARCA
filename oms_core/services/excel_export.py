@@ -16,7 +16,7 @@ from typing import Any
 import openpyxl
 from openpyxl.styles import Font
 
-from oms_core.services.summary import HEADERS
+from oms_core.services.summary import HEADERS, INTEGER_HEADERS
 
 
 def export_to_excel(doc: dict[str, Any], out_path: str | pathlib.Path) -> pathlib.Path:
@@ -38,7 +38,9 @@ def export_to_excel(doc: dict[str, Any], out_path: str | pathlib.Path) -> pathli
         for column, header in enumerate(HEADERS, start=1):
             value = kpis.get(header)
             if value is not None:
-                worksheet.cell(row=row_index, column=column, value=value)
+                cell = worksheet.cell(row=row_index, column=column, value=value)
+                if header in INTEGER_HEADERS:
+                    cell.number_format = "0"
 
     workbook.save(out_path)
     return out_path

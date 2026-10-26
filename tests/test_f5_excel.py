@@ -245,3 +245,25 @@ def test_import_excel_missing_optional_sheets_tolerated(fresh_db, tmp_path):
     assert len(rows) == 8
     assert all(v is None for row in rows for v in vars(row.datos).values())
     assert obs.resumen_dia.pp is None
+
+
+def test_humidity_extremes_export_as_whole_numbers(tmp_path):
+    """Owner's rule (ronda 32): HR max/min export as integers, mean with one
+    decimal. The cell keeps the number; the format is what makes it whole."""
+    from openpyxl import load_workbook
+
+    from oms_core.services.excel_export import export_to_excel
+    from oms_core.services.summary import HEADERS
+
+    doc = {"meta": {"estacion": "78485", "periodo": "10/2025"},
+           "datos": [{"Dias": "2025-10-01", "Humedad maxima": 97.0,
+                      "Humedad minima": 66.0, "Humedad media": 84.8}]}
+    out = export_to_excel(doc, tmp_path / "hum.xlsx")
+    sheet = load_workbook(out).active
+    hmax = HEADERS.index("Humedad maxima") + 1
+    hmin = HEADERS.index("Humedad minima") + 1
+    hmed = HEADERS.index("Humedad media") + 1
+    assert sheet.cell(row=2, column=hmax).number_format == "0"
+    assert sheet.cell(row=2, column=hmin).number_format == "0"
+    assert sheet.cell(row=2, column=hmed).number_format == "General"
+    assert sheet.cell(row=2, column=hmax).value == 97.0

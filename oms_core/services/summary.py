@@ -79,6 +79,22 @@ HEADERS: tuple[str, ...] = (
 #: The 8 synoptic hour labels (synop_adapter hours_config + excel_reader).
 HOURS_8: tuple[str, ...] = ("06Z", "09Z", "12Z", "15Z", "18Z", "21Z", "00Z", "03Z")
 
+#: Headers written as whole numbers: the relative-humidity extremes. The
+#: monthly mean keeps one decimal (owner's rule, round 32). The calculation
+#: already rounds them to zero decimals ("round_half_up(v, 0)", verbatim from
+#: the oracle); this set only controls how they are shown and exported, so a
+#: stored 97.0 never reaches the screen as "97.0".
+INTEGER_HEADERS: frozenset[str] = frozenset({"Humedad maxima", "Humedad minima"})
+
+
+def display_value(header: str, value: Any) -> str:
+    """Human-facing text for one KPI cell (empty for null)."""
+    if value is None or value == "":
+        return ""
+    if header in INTEGER_HEADERS and isinstance(value, (int, float)):
+        return str(int(round(value)))
+    return str(value)
+
 #: Oracle hours_config: UTC hour <-> AST row index (synop_adapter).
 _HOURS_CONFIG: tuple[tuple[str, str], ...] = (
     ("06Z", "2"), ("09Z", "5"), ("12Z", "8"), ("15Z", "11"),

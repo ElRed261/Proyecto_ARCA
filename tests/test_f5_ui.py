@@ -231,3 +231,40 @@ def test_page_flows_in_a_single_scroll_region(page):
     from PySide6.QtWidgets import QScrollArea
 
     assert len(page.findChildren(QScrollArea)) == 1
+
+
+# ------------------------------------------- humidity presentation (ronda 32)
+
+
+def test_humidity_extremes_are_integers_and_the_mean_keeps_one_decimal(page, qtbot):
+    """Owner's rule: HR max/min are whole numbers, the monthly mean has one
+    decimal. The calculation already rounds the extremes to 0 decimals; this
+    pins the presentation so a stored 97.0 never reads as "97.0"."""
+    page.station_combo.setCurrentText("Estación Central")
+    page.month_combo.setCurrentIndex(4)  # mayo
+    page.year_combo.setCurrentText("2025")
+    qtbot.mouseClick(page.generate_button, Qt.LeftButton)
+    model = page.table.model()
+
+    hmax, hmin, hmed = 16, 17, 18  # HEADERS indices
+    for column in (hmax, hmin):
+        for row in range(model.rowCount()):
+            text = model.data(model.index(row, column), Qt.DisplayRole)
+            if text:
+                assert "." not in text, f"columna {column}: {text!r} no es entero"
+    seen = False
+    for row in range(model.rowCount()):
+        text = model.data(model.index(row, hmed), Qt.DisplayRole)
+        if text:
+            seen = True
+            assert len(text.split(".")[1]) == 1, f"media {text!r} sin un decimal"
+    assert seen, "el fixture debe traer humedad para probar el formato"
+
+
+def test_the_mean_of_rounded_humidity_keeps_its_decimal():
+    """96.8 and 97.0 both display as integers, but the mean is untouched."""
+    assert summary_service.display_value("Humedad maxima", 96.8) == "97"
+    assert summary_service.display_value("Humedad minima", 97.0) == "97"
+    assert summary_service.display_value("Humedad media", 84.75) == "84.75"
+    assert summary_service.display_value("Humedad maxima", None) == ""
+    assert summary_service.display_value("Media temperatura", 27.0) == "27.0"
