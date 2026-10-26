@@ -1,12 +1,15 @@
-"""Excel → JSON con ESQUEMA ESTÁNDAR (demo, ronda 34).
+"""Excel → JSON con el esquema v3 congelado.
 
-El esquema es fijo: todo documento lleva ``meta``, ``synop`` (las 8 horas con
-TODAS sus claves), ``cli["3074"]`` (24 horas), ``cli["4074"]`` (24 filas) y
-``cli["5074"]``. El convertidor lee el Excel entero y busca dónde está cada
-dato; lo que no encuentra queda **vacío**, nunca ausente ni inventado.
+Contrato: `docs/ESQUEMA_OBSERVACION.md` (ESQUEMA-NUEVO-v3).
 
-Dos procesos: Proceso A lee las hojas Z (``synop`` + ``datos``); Proceso B lee
-las hojas CLI. Regla del dueño: sin synop o sin metadatos no se guarda nada.
+Árbol de identificación (ronda del dueño):
+  N0  ha de ser un Excel legible (.xlsm/.xlsx/.xls/.xltm);
+  N1  ha de tener hojas Z — sin Z no se procesa (solo CLI o no-observación);
+  N2  las hojas CLI se toman si existen (el nombre exacto gana sobre el
+      sufijado); sin CLI los tres bloques salen vacíos pero completos;
+  N3  el layout de cada hoja CLI se detecta por SU CABECERA (nunca por el
+      nombre del archivo ni por la estación);
+  N4  las hojas Z se leen por ETIQUETA (rótulo arriba, valor abajo).
 """
 
 from __future__ import annotations
@@ -17,387 +20,468 @@ import re
 from pathlib import Path
 from typing import Any
 
-from openpyxl.utils import column_index_from_string, get_column_letter
 from python_calamine import CalamineWorkbook
 
-# ==========================================================================
-# ESQUEMA ESTÁNDAR
-# ==========================================================================
+SCHEMA_VERSION = "ESQUEMA-NUEVO-v3"
 
 HORAS_SINOP = ("06Z", "09Z", "12Z", "15Z", "18Z", "21Z", "00Z", "03Z")
-HORAS_CLI = tuple(str(h) for h in range(1, 25))
-
-GRUPOS_SINOP = (
-    "YYGGiw", "IrIXHVV", "Nddff", "7wwW1W2", "8NhCLCMCH", "0CSDLDMDH",
-    "1snTxTxTx", "2snTnTnTn", "3Ejjj", "56DLDMDH", "7R24R24R24R24",
-    "555", "29UUU",
-) + tuple(f"8NsChshs_{i}" for i in range(1, 7)) + tuple(f"9spspsp_{i}" for i in range(1, 25))
-
-DATOS_SINOP = ("ts", "th", "pres_est", "p3", "p24", "t_max", "t_min",
-               "t_max_24h", "t_min_24h", "ll", "ll_24h")
-
-CAMPOS_3074 = ("pres_est", "pres_nmm", "pres_alti", "tend_car", "tend_dif",
-               "temp_seco", "temp_humedo", "hum_ptor", "hum_tvap", "hum_hr",
-               "viento_dir", "viento_vel", "visibilidad")
-FENOMENOS = ("tiempo_presente", "granizo", "ventarron", "neblina", "trueno",
-             "relampago", "rocio", "polvo", "calima", "niebla", "tornado")
-CAMPOS_4074 = ("observador", "nubosidad", "temp_max", "temp_min",
-               "na_tipo", "na_cant", "na_direc", "na_altura",
-               "cb_tipo", "cb_cant", "cb_altura", "estado_suelo", "lluvia_6h")
-CAMPOS_5074 = ("pres_est", "pres_nmm", "correc_alt", "correc_temp", "lect_bar",
-               "term_anexo", "raf_dir", "raf_vel", "piche", "tanque_c",
-               "evaporigrafo", "evaporimetros", "iniciales_obs",
-               "observaciones_manuales")
-CAMPOS_FENOMENO_5074 = ("hora", "raf_dir", "raf_vel", "intensidad", "fenomeno",
-                        "inicio", "final", "duracion", "iniciales")
+HORAS_24 = tuple(str(h) for h in range(1, 25))
 PROFUNDIDADES = ("5", "10", "15", "20", "25", "50", "100")
+FENOMENOS = ("granizo", "ventarron", "neblina", "trueno", "relampago",
+             "rocio", "polvo", "calima", "niebla", "tornado")
+DATOS_SINOP = ("ts", "th", "pres_est", "p3", "p24", "Tmax", "Tmin",
+               "Tmax_24h", "Tmin_24h", "LL", "LL_24h")
+GRUPOS_BASE = ("YYGGiw", "IrIXHVV", "Nddff", "7wwW1W2", "8NhCLCMCH",
+               "0CSDLDMDH", "1snTxTxTx", "2snTnTnTn", "3Ejjj", "5EEEjE",
+               "5nFnFnFn", "56DLDMDH", "6RRRtr", "7R24R24R24R24",
+               "555", "29UUU")
+
+Z_RE = re.compile(r"^\d{4}Z$")
+CLI_RE = re.compile(r"^(3074|4074|5074)")
+VACIOS = {"", "9", "9 ", " 9", "0", "0.0", "333", "555", "/", ".", "//./", "-"}
+
+SYNOP_LABELS = {
+    "yyggiw": "YYGGiw", "irixhvv": "IrIXHVV", "nddff": "Nddff",
+    "7www1w2": "7wwW1W2", "8nhclcmch": "8NhCLCMCH", "0csdldmdh": "0CSDLDMDH",
+    "1snttt": "1snTxTxTx", "1sntxtxtx": "1snTxTxTx",
+    "2sntdtdtd": "2snTnTnTn", "2sntdtdt": "2snTnTnTn", "2sntntntn": "2snTnTnTn",
+    "3ejjj": "3Ejjj", "5eeejee": "5EEEjE", "5eeeje": "5EEEjE",
+    "5nfnfnfn": "5nFnFnFn", "56dldmdh": "56DLDMDH",
+    "6rrrtr": "6RRRtr", "7r24r24r24r": "7R24R24R24R24",
+    "7r24r24r24r24": "7R24R24R24R24", "555": "555", "29uuu": "29UUU",
+}
+DATOS_LABELS = {
+    "ts": "ts", "th": "th", "presest": "pres_est", "presestacion": "pres_est",
+    "p3": "p3", "p24": "p24", "tmax": "Tmax", "tmin": "Tmin",
+    "tmax24h": "Tmax_24h", "tmax24": "Tmax_24h",
+    "tmin24h": "Tmin_24h", "tmin24": "Tmin_24h",
+    "ll": "LL", "ll24h": "LL_24h", "ll24": "LL_24h",
+}
 
 
-def documento_vacio() -> dict[str, Any]:
-    """El estándar completo, con todo vacío."""
+def _norm(texto: Any) -> str:
+    return re.sub(r"[\s.°º:_()]+", "", str(texto or "")).lower()
+
+
+def _texto(valor: Any) -> str:
+    if isinstance(valor, (int, float)) and not isinstance(valor, bool):
+        return str(int(valor)) if float(valor).is_integer() else str(valor)
+    texto = str(valor if valor is not None else "").strip()
+    if texto.endswith(".0") and texto[:-2].isdigit():
+        texto = texto[:-2]
+    return texto
+
+
+def _vacio(valor: Any) -> str:
+    return "" if _texto(valor) in VACIOS else _texto(valor)
+
+
+# ==========================================================================
+# ESQUEMA V3 — el documento completo siempre
+# ==========================================================================
+
+
+def documento_vacio(estacion: str = "", fecha: str = "") -> dict[str, Any]:
+    fen = dict(tiempo_presente="", **{k: False for k in FENOMENOS})
     return {
-        "schema": 2,
-        "meta": {"estacion": "", "fecha": "", "actualizado": ""},
-        "synop": {h: {"observador": "", "datos": {k: "" for k in DATOS_SINOP},
-                      "grupos": {k: "" for k in GRUPOS_SINOP}} for h in HORAS_SINOP},
+        "schema_version": SCHEMA_VERSION,
+        "meta": {"estacion": estacion, "fecha": fecha, "actualizado": ""},
+        "synop": {
+            h: {"observador": "",
+                "datos": {k: "" for k in DATOS_SINOP},
+                "grupos": {
+                    **{k: "" for k in GRUPOS_BASE},
+                    **{f"8NsChshs_{i}": "" for i in range(1, 7)},
+                    **{f"9spspsp_{i}": "" for i in range(1, 25)},
+                }}
+            for h in HORAS_SINOP
+        },
         "cli": {
-            "3074": {h: {**{k: "" for k in CAMPOS_3074},
-                         "fenomenos": {k: "" for k in FENOMENOS}} for h in HORAS_CLI},
-            "4074": {h: {**{k: "" for k in CAMPOS_4074},
-                         "fenomenos": {k: "" for k in FENOMENOS}} for h in HORAS_CLI},
-            "5074": {**{k: "" for k in CAMPOS_5074},
-                     "subsuelo": {p: "" for p in PROFUNDIDADES},
-                     "fenomenos": []},
+            "3074": {h: {"viento_vel": "", "pres_alti": "",
+                         "fenomenos": dict(fen)} for h in HORAS_24},
+            "4074": {h: {"observador": ""} for h in HORAS_24},
+            "5074": {
+                "piche": "", "tanque_c": "", "evaporigrafo": "",
+                "subsuelo": {p: {"f1": "", "f2": "", "f3": ""}
+                             for p in PROFUNDIDADES},
+                "notas": "", "iniciales_obs": "",
+                "iniciales_grupos": {h: "" for h in ("2", "8", "14", "20")},
+                "fenomenos": [],
+            },
         },
     }
 
 
-# ==========================================================================
-# Proceso A — hojas Z
-# ==========================================================================
-
-Z_RE = re.compile(r"^\d{4}Z$")
-SINOP_LABELS = {
-    "yyggiw": "YYGGiw", "irixhvv": "IrIXHVV", "nddff": "Nddff", "7www1w2": "7wwW1W2",
-    "8nhclcmch": "8NhCLCMCH", "0csdldmdh": "0CSDLDMDH", "1snttt": "1snTxTxTx",
-    "1sntxtxtx": "1snTxTxTx", "2sntdtdt": "2snTnTnTn", "2sntntntn": "2snTnTnTn",
-    "3ejjj": "3Ejjj", "5eeeej": "5EEEjE", "5eeej": "5EEEjE",
-    "5nfnfnfn": "5nFnFnFn", "56dldmdh": "56DLDMDH", "6rrrtr": "6RRRtr",
-    "7r24r24r24r": "7R24R24R24R24", "7r24r24r24r24": "7R24R24R24R24",
-    "555": "555", "29uuu": "29UUU",
-}
-DATOS_LABELS = {
-    "ts": "ts", "th": "th", "presest": "pres_est", "presest.": "pres_est",
-    "p3": "p3", "p24": "p24", "tmax": "t_max", "tmin": "t_min",
-    "ll": "ll", "ll24": "ll_24h", "ll24h": "ll_24h",
-    "tmax24": "t_max_24h", "tmin24": "t_min_24h",
-}
-VACIOS = {"", "9", "9 ", " 9", "0", "333", "0.0", "/", ".", "//./"}
-
-
-def _norm(texto: Any) -> str:
-    return re.sub(r"[\s.°º:_]+", "", str(texto or "")).lower()
-
-
-def _abajo(hoja: list[list[Any]], fila: int, col: int) -> Any:
-    if fila + 1 >= len(hoja):
+def _debajo(hoja: list[list[Any]], fila: int, col: int) -> str:
+    """El valor vive en la celda inmediatamente debajo del rótulo."""
+    if fila + 1 >= len(hoja) or col >= len(hoja[fila + 1]):
         return ""
-    siguiente = hoja[fila + 1]
-    valor = siguiente[col] if col < len(siguiente) else ""
-    return "" if str(valor if valor is not None else "").strip() in VACIOS else valor
+    return _vacio(hoja[fila + 1][col])
 
 
-def _celda(hoja: list[list[Any]], fila: int, letra: str) -> Any:
-    if not letra or fila < 1 or fila > len(hoja):
-        return ""
-    col = column_index_from_string(letra) - 1
-    celdas = hoja[fila - 1]
-    valor = celdas[col] if col < len(celdas) else ""
-    return "" if str(valor if valor is not None else "").strip() in VACIOS else valor
+# ==========================================================================
+# Proceso A — hojas Z → synop (por etiqueta)
+# ==========================================================================
 
 
-def slot_de(base: str) -> str | None:
-    """``0006Z`` → ``06Z``, ``1200Z`` → ``12Z``, ``2100Z`` → ``21Z``."""
-    match = re.match(r"^(\d{2})(\d{2})Z$", base)
-    if not match:
+def _slot(base: str) -> str | None:
+    m = re.match(r"^(\d{2})(\d{2})Z$", base)
+    if not m:
         return None
-    slot = f"{int(match.group(1)):02d}Z"
-    return slot if slot in HORAS_SINOP else None
+    nombre = f"{int(m.group(1)):02d}Z"
+    return nombre if nombre in HORAS_SINOP else None
 
 
-def read_synop(bases_y_hojas: dict[str, list[list[Any]]], doc: dict[str, Any]) -> tuple[str, str]:
-    """Llena ``synop`` y ``datos``; devuelve (estación, fecha)."""
+def read_synop(bases: dict[str, list[list[Any]]],
+               doc: dict[str, Any]) -> tuple[str, str]:
     estacion = ""
     fechas: dict[str, str] = {}
-    for base, hoja in bases_y_hojas.items():
-        nombre_slot = slot_de(base)
-        if nombre_slot is None or len(hoja) < 5:
+    for base, hoja in sorted(bases.items()):
+        nombre_slot = _slot(base)
+        if nombre_slot is None or len(hoja) < 6:
             continue
         slot = doc["synop"][nombre_slot]
-        for i, fila in enumerate(hoja[:12]):
-            if any(_norm(c) == "aaxx" for c in fila[:4]):
-                for celda in fila:
-                    texto = str(celda).strip().removesuffix(".0")
-                    if not estacion and re.fullmatch(r"78\d{3}", texto):
-                        estacion = texto
-                    if base not in fechas:
-                        if isinstance(celda, (datetime.date, datetime.datetime)):
-                            fechas[base] = celda.strftime("%Y-%m-%d")
-                        elif re.fullmatch(r"\d{4}-\d{2}-\d{2}.*", texto):
-                            fechas[base] = texto[:10]
-                break
+        # La fila con AA XX lleva a su derecha estación y fecha (contenido).
+        for fila in hoja[:12]:
+            prefijo = [_norm(c) for c in (fila[:6] if len(fila) > 6 else fila)]
+            if "aaxx" not in prefijo[:4]:
+                continue
+            for celda in fila:
+                if isinstance(celda, (datetime.date, datetime.datetime)):
+                    fechas.setdefault(base, celda.strftime("%Y-%m-%d"))
+                elif re.fullmatch(r"\d{4}-\d{2}-\d{2}.*", _texto(celda)):
+                    fechas.setdefault(base, _texto(celda)[:10])
+                elif re.fullmatch(r"78\d{3}", _texto(celda)) and not estacion:
+                    estacion = _texto(celda)
+            break
         spsp = nubes = 0
-        for i in range(4, min(len(hoja), 30)):
-            for j, celda in enumerate(hoja[i][:10]):
-                etiqueta = _norm(celda)
-                if not etiqueta or etiqueta.isdigit() and len(etiqueta) < 3:
+        vistos: set[str] = set()
+        limites = min(len(hoja), 30)
+        for i in range(3, limites):
+            fila = hoja[i]
+            ancho = min(len(fila), 12)
+            for j in range(ancho):
+                etiqueta = _norm(fila[j])
+                if not etiqueta:
                     continue
-                if etiqueta.startswith("9sp"):
+                if etiqueta.startswith("9sp") and spsp < 24:
                     spsp += 1
-                    if spsp <= 24:
-                        slot["grupos"][f"9spspsp_{spsp}"] = _abajo(hoja, i, j)
-                elif etiqueta.startswith("8nsch"):
+                    slot["grupos"][f"9spspsp_{spsp}"] = _debajo(hoja, i, j)
+                elif etiqueta.startswith("8nsch") and nubes < 6:
                     nubes += 1
-                    if nubes <= 6:
-                        slot["grupos"][f"8NsChshs_{nubes}"] = _abajo(hoja, i, j)
-                elif etiqueta in SINOP_LABELS:
-                    clave = SINOP_LABELS[etiqueta]
-                    if not slot["grupos"].get(clave):
-                        slot["grupos"][clave] = _abajo(hoja, i, j)
-                elif etiqueta in DATOS_LABELS and len(str(celda)) < 24:
+                    slot["grupos"][f"8NsChshs_{nubes}"] = _debajo(hoja, i, j)
+                elif etiqueta in SYNOP_LABELS and etiqueta not in vistos:
+                    vistos.add(etiqueta)
+                    slot["grupos"][SYNOP_LABELS[etiqueta]] = _debajo(hoja, i, j)
+                elif etiqueta in DATOS_LABELS and len(str(fila[j])) < 22:
                     clave = DATOS_LABELS[etiqueta]
-                    if not slot["datos"].get(clave):
-                        slot["datos"][clave] = _abajo(hoja, i, j)
-        # Los cálculos de la grilla inferior: etiqueta y valor separados por filas.
-        for i in range(len(hoja) - 1, 20, -1):
-            for j, celda in enumerate(hoja[i][:10]):
-                etiqueta = _norm(celda)
-                if etiqueta in DATOS_LABELS and not slot["datos"].get(DATOS_LABELS[etiqueta]):
-                    for salto in (1, 2, 3):
-                        valor = _celda(hoja, i + 1 + salto, get_column_letter(j + 1))
-                        if str(valor).strip():
-                            slot["datos"][DATOS_LABELS[etiqueta]] = valor
-                            break
-        if "observador" in slot and not slot["observador"]:
-            for fila in hoja[:8]:
-                if _norm(fila[0] if fila else "") == "observador" and len(fila) > 1:
-                    slot["observador"] = str(fila[1] or "").strip()
-    fecha = fechas.get("1200Z") or fechas.get("1200z") or (max(set(fechas.values()), key=list(fechas.values()).count)
-                                    if fechas else "")
+                    valor = _debajo(hoja, i, j)
+                    if valor and not slot["datos"][clave]:
+                        slot["datos"][clave] = valor
+        # observador: la fila con "Observador", nombre en la misma celda o abajo
+        for i, fila in enumerate(hoja[:8]):
+            primero = fila[0] if fila else ""
+            if _norm(primero) == "observador":
+                nombre = _vacio(fila[1]) if len(fila) > 1 else ""
+                slot["observador"] = nombre or _debajo(hoja, i, 0)
+                break
+    fecha = ""
+    if fechas:
+        fecha = fechas.get("1200Z") or max(
+            set(fechas.values()), key=list(fechas.values()).count)
     return estacion, fecha
 
 
 # ==========================================================================
-# Proceso B — hojas CLI
+# Proceso B — hojas CLI (modelo por cabecera)
 # ==========================================================================
 
-CLI_RE = re.compile(r"^(3074|4074|5074)")
 
-MODELOS_3074 = {
-    "V1": {"hora": "A", "fila1": 9,
-           "cols": dict(zip(CAMPOS_3074, ("B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N"))),
-           "fen": dict(zip(FENOMENOS, ("O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y")))},
-    "V4": {"hora": "B", "fila1": 10,
-           "cols": dict(zip(CAMPOS_3074, ("C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O"))),
-           "fen": dict(zip(FENOMENOS, ("P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z")))},
-    "V3": {"hora": "A", "fila1": 10,
-           "cols": {"pres_est": "B", "pres_nmm": "F", "pres_alti": "J", "tend_car": "N",
-                    "tend_dif": "O", "temp_seco": "R", "temp_humedo": "U", "hum_ptor": "X",
-                    "hum_tvap": "AA", "hum_hr": "AD", "viento_dir": "AF", "viento_vel": "AH",
-                    "visibilidad": "AK"},
-           "fen": {"tiempo_presente": "AN", "granizo": "AP", "ventarron": "AQ", "neblina": "AR",
-                   "trueno": "AS", "relampago": "AT", "rocio": "AU", "tornado": "AV", "calima": "AW"}},
-}
-
-
-def detectar_modelo(hoja: list[list[Any]]) -> str | None:
-    for i in range(0, 10):
-        if i >= len(hoja):
-            break
-        fila = [str(v).strip().upper() for v in hoja[i]]
-        if len(fila) > 2 and fila[1].startswith("HORA LOCAL") and fila[2].startswith("PRESIÓN"):
-            return "V4"
-        if fila and fila[0] == "HORA LOCAL":
-            if len(fila) > 1 and "PRESIÓN (MBAR)" in fila[1]:
-                return "V3"
-            return "V1"
-    return None
-
-
-def read_cli3074(hoja: list[list[Any]], doc: dict[str, Any]) -> str | None:
-    modelo = detectar_modelo(hoja)
-    if modelo is None:
-        return None
-    cfg = MODELOS_3074[modelo]
-    for hora in range(1, 25):
-        fila = cfg["fila1"] + hora - 1
-        marca = str(_celda(hoja, fila, cfg["hora"])).strip().removesuffix(".0")
-        if marca != str(hora):
-            continue
-        slot = doc["cli"]["3074"][str(hora)]
-        for campo, letra in cfg["cols"].items():
-            slot[campo] = _celda(hoja, fila, letra)
-        for campo, letra in cfg["fen"].items():
-            slot["fenomenos"][campo] = _celda(hoja, fila, letra)
-    return modelo
-
-
-def _desplazamiento_5074(hoja: list[list[Any]]) -> int:
-    """La hoja 5074 puede estar corrida una columna (como el 3074 de Cabrera)."""
-    for fila in hoja[:30]:
-        for j, celda in enumerate(fila[:4]):
+def _pos_hora_local(hoja: list[list[Any]]) -> tuple[int, int]:
+    """(fila, columna 0-based) del rótulo HORA LOCAL, o (-1, -1)."""
+    for i in range(0, min(len(hoja), 10)):
+        for j, celda in enumerate(hoja[i][:4]):
             if _norm(celda) == "horalocal":
-                return j
+                return i + 1, j
+    return -1, -1
+
+
+def _fila_primera_hora(hoja: list[list[Any]]) -> int:
+    """1-based: la fila cuyo col A contiene la hora 1; 0 si no existe."""
+    for i in range(4, min(len(hoja), 30)):
+        if _texto(hoja[i][0]) in ("1", "1.0"):
+            return i + 1
     return 0
 
 
-def read_cli5074(hoja: list[list[Any]], doc: dict[str, Any]) -> bool:
-    d = _desplazamiento_5074(hoja)
-    col = lambda letra: get_column_letter(column_index_from_string(letra) + d)
-    slot = doc["cli"]["5074"]
-    # Presiones: cuatro grupos (horas locales 2/8/14/20), filas 17/18/19.
-    grupos = [col(x) for x in ("I", "N", "S", "X")]
-    for i, letra in enumerate(grupos):
-        if i == 0:
-            slot["pres_est"] = _celda(hoja, 17, letra)
-            slot["correc_alt"] = _celda(hoja, 18, letra)
-            slot["pres_nmm"] = _celda(hoja, 19, letra)
-    # Filas 13-19 del primer grupo: barómetro, termómetro anexo, corrección.
-    slot["lect_bar"] = _celda(hoja, 14, grupos[0])
-    slot["term_anexo"] = _celda(hoja, 15, grupos[0])
-    slot["correc_temp"] = _celda(hoja, 16, grupos[0])
-    # Subsuelo: profundidades en la fila 12, valores en las filas 13-15.
-    for letra in ("AF", "AI", "AL", "AM", "AO", "AQ", "AT"):
-        profundidad = str(_celda(hoja, 12, col(letra))).strip().removesuffix(".0")
-        if profundidad in PROFUNDIDADES:
-            slot["subsuelo"][profundidad] = _celda(hoja, 13, col(letra))
-    # Piche / Tanque C / Evaporígrafo en la fila 20.
-    slot["piche"] = _celda(hoja, 20, col("AF"))
-    slot["tanque_c"] = _celda(hoja, 20, col("AH"))
-    slot["evaporigrafo"] = _celda(hoja, 20, col("AL"))
-    slot["iniciales_obs"] = _celda(hoja, 19, col("AM"))
-    # Tabla de fenómenos desde la fila 26.
-    for fila in range(26, min(len(hoja) + 1, 40)):
-        hora = _celda(hoja, fila, col("Z"))
-        minutos = _celda(hoja, fila, col("AB"))
-        if not str(hora).strip() and not str(minutos).strip():
+def detectar_modelo_3074(hoja: list[list[Any]]) -> str | None:
+    fila_cap, col = _pos_hora_local(hoja)
+    if fila_cap == -1:
+        return None
+    if col == 1:                       # HORA LOCAL en la columna B → corrida
+        return "V4"
+    # V1 compacta: primera hora en la fila 9. V3 ancha (dígitos sueltos): en la 10.
+    primera = _fila_primera_hora(hoja)
+    if primera == 9:
+        return "V1"
+    if primera == 10:
+        return "V3"
+    return None
+
+
+def _letra(hoja: list[list[Any]], fila1: int, letra: str) -> Any:
+    """Celda 1-based por letra de columna, tolerante a filas cortas."""
+    from openpyxl.utils import column_index_from_string
+    col = column_index_from_string(letra) - 1
+    if 1 <= fila1 <= len(hoja) and col < len(hoja[fila1 - 1]):
+        return hoja[fila1 - 1][col]
+    return ""
+
+
+FEN_COLS = dict(granizo="P", ventarron="Q", neblina="R", trueno="S",
+                relampago="T", rocio="U", polvo="V", calima="W",
+                niebla="X", tornado="Y")
+FEN_COLS_V4 = dict(granizo="Q", ventarron="R", neblina="S", trueno="T",
+                   relampago="U", rocio="V", polvo="W", calima="X",
+                   niebla="Y", tornado="Z")
+
+
+def read_cli3074(hoja: list[list[Any]], doc: dict[str, Any],
+                 modelo: str) -> None:
+    if modelo == "V4":
+        filas, col_hora, fen_cols = 10, 1, FEN_COLS_V4
+        cols = {"viento_vel": "M", "pres_alti": "N", "hay_tp": "P"}
+    else:                              # V1 (y V2, mismo layout)
+        if modelo != "V1":
+            return
+        filas, col_hora, fen_cols = 9, 0, FEN_COLS
+        cols = {"viento_vel": "L", "pres_alti": "M", "hay_tp": "O"}
+    for hora in range(1, 25):
+        fila = filas + hora - 1
+        if fila > len(hoja):
+            break
+        marca = _texto(_letra(hoja, fila, "A" if col_hora == 0 else "B"))
+        if marca not in (str(hora), f"{hora}.0"):
             continue
-        registro = {
-            "hora": _hora_junta(hora, minutos),
-            "raf_dir": _celda(hoja, fila, col("AD")),
-            "raf_vel": _celda(hoja, fila, col("AF")),
-            "intensidad": _celda(hoja, fila, col("AH")),
-            "fenomeno": _celda(hoja, fila, col("AI")),
-            "inicio": _celda(hoja, fila, col("AK")),
-            "final": _celda(hoja, fila, col("AM")),
-            "duracion": _celda(hoja, fila, col("AP")),
-            "iniciales": _celda(hoja, fila, col("AT")),
-        }
-        if any(str(v).strip() for v in registro.values()):
-            slot["fenomenos"].append(registro)
-    return True
+        slot = doc["cli"]["3074"][str(hora)]
+        slot["viento_vel"] = _vacio(_letra(hoja, fila, cols["viento_vel"]))
+        slot["pres_alti"] = _vacio(_letra(hoja, fila, cols["pres_alti"]))
+        slot["fenomenos"]["tiempo_presente"] = _vacio(
+            _letra(hoja, fila, cols["hay_tp"]))
+        for feno, letra in fen_cols.items():
+            valor = _texto(_letra(hoja, fila, letra))
+            slot["fenomenos"][feno] = valor in ("1", "1.0", "SI", "si", "Sí")
+
+
+def read_cli4074(hoja: list[list[Any]], doc: dict[str, Any]) -> None:
+    """4074 del esquema: solo las iniciales del observador por hora."""
+    for fila in range(1, min(len(hoja) + 1, 40)):
+        marca = _texto(_letra(hoja, fila, "A"))
+        if not re.fullmatch(r"\d{1,2}(\.0)?", marca):
+            continue
+        hora = int(float(marca))
+        if not 1 <= hora <= 24:
+            continue
+        doc["cli"]["4074"][str(hora)]["observador"] = _vacio(
+            _letra(hoja, fila, "X"))
 
 
 def _hora_junta(horas: Any, minutos: Any) -> str:
-    """El dueño pidió juntar hora y minutos en un solo valor."""
-    h, m = str(horas).strip(), str(minutos).strip()
-    if not h and not m:
-        return ""
+    h, m = _texto(horas), _texto(minutos)
     if isinstance(horas, datetime.time):
         return horas.strftime("%H:%M")
+    if not h and not m:
+        return ""
     if re.fullmatch(r"\d{1,2}(\.0)?", h) and re.fullmatch(r"\d{1,2}(\.0)?", m or "0"):
         return f"{int(float(h)):02d}:{int(float(m or 0)):02d}"
     return f"{h} {m}".strip()
 
 
-def read_cli4074(hoja: list[list[Any]], doc: dict[str, Any]) -> bool:
-    """Cabecera del 4074: fila de rótulos + filas con la hora local."""
-    for i in range(0, 12):
-        if i >= len(hoja):
-            break
-        if any("NUBOSIDAD" in str(c).upper() or "NUB" in str(c).upper() for c in hoja[i]):
-            pass
-    for fila in range(1, min(len(hoja) + 1, 40)):
-        hora = str(_celda(hoja, fila, "A")).strip().removesuffix(".0")
-        if not re.fullmatch(r"\d{1,2}", hora) or not 1 <= int(hora) <= 24:
-            continue
-        slot = doc["cli"]["4074"][str(int(hora))]
-        for campo, letra in (("nubosidad", "B"), ("temp_max", "V"), ("temp_min", "W")):
-            valor = _celda(hoja, fila, letra)
-            if str(valor).strip():
-                slot[campo] = valor
-        slot["observador"] = _celda(hoja, fila, "X")
-    return True
+def _letra_des(hoja: list[list[Any]], fila1: int, des: int, letra: str) -> Any:
+    from openpyxl.utils import column_index_from_string, get_column_letter
+    destino = column_index_from_string(letra) + des
+    return _letra(hoja, fila1, get_column_letter(destino))
+
+
+def read_cli5074(hoja: list[list[Any]], doc: dict[str, Any]) -> None:
+    des = _pos_hora_local(hoja)[1]     # 0 en Central, 1 en las corridas
+    slot = doc["cli"]["5074"]
+
+    # piche / tanque C / evaporígrafo: rótulos fila 18, valores fila 20
+    slot["piche"] = _vacio(_letra_des(hoja, 20, des, "AF"))
+    slot["tanque_c"] = _vacio(_letra_des(hoja, 20, des, "AH"))
+    slot["evaporigrafo"] = _vacio(_letra_des(hoja, 20, des, "AL"))
+
+    # subsuelo: profundidades fila 12, valores filas 13/14/15
+    for letra in ("AF", "AI", "AL", "AM", "AO", "AQ", "AT"):
+        prof = _texto(_letra_des(hoja, 12, des, letra))
+        if prof in PROFUNDIDADES:
+            slot["subsuelo"][prof] = {
+                "f1": _vacio(_letra_des(hoja, 13, des, letra)),
+                "f2": _vacio(_letra_des(hoja, 14, des, letra)),
+                "f3": _vacio(_letra_des(hoja, 15, des, letra)),
+            }
+
+    # iniciales: grandes (AM19 aprox) y por grupo (fila 18, cols I/N/S/X)
+    slot["iniciales_obs"] = _vacio(_letra_des(hoja, 19, des, "AM"))
+    for hora, letra in zip(("2", "8", "14", "20"), ("I", "N", "S", "X")):
+        slot["iniciales_grupos"][hora] = _vacio(_letra_des(hoja, 18, des, letra))
+
+    # notas: el bloque de texto bajo la fila 22 (columnas B..Y)
+    textos = []
+    for fila in hoja[21:35]:
+        for celda in fila[:25]:
+            valor = _texto(celda)
+            if valor and len(valor) > 2 and not valor.replace(".", "").isdigit():
+                textos.append(valor)
+    slot["notas"] = " ".join(textos).strip()
+
+    # fenómenos: lista escalable desde la fila 26
+    for fila in range(26, min(len(hoja) + 1, 42)):
+        registro = {
+            "hora": _hora_junta(_letra_des(hoja, fila, des, "Z"),
+                                _letra_des(hoja, fila, des, "AB")),
+            "raf_dir": _vacio(_letra_des(hoja, fila, des, "AD")),
+            "raf_vel": _vacio(_letra_des(hoja, fila, des, "AF")),
+            "intensidad": _vacio(_letra_des(hoja, fila, des, "AH")),
+            "fenomeno": _vacio(_letra_des(hoja, fila, des, "AI")),
+            "inicio": _hora_junta(_letra_des(hoja, fila, des, "AK"), ""),
+            "final": _hora_junta(_letra_des(hoja, fila, des, "AM"), ""),
+            "duracion": _vacio(_letra_des(hoja, fila, des, "AP")),
+            "iniciales": _vacio(_letra_des(hoja, fila, des, "AT")),
+        }
+        if any(registro.values()):
+            slot["fenomenos"].append(registro)
+
+
+def _cuenta_datos(hoja: list[list[Any]], desde: int) -> int:
+    """Celdas con dato en el bloque de 24 filas de hora."""
+    total = 0
+    for fila in hoja[desde - 1: desde + 23]:
+        total += sum(1 for c in fila if _texto(c) not in ("", "0.0", "0")
+                     and str(c).strip())
+    return total
+
+
+def _elegir(cli: dict[str, list[list[Any]]], base: str, detector) -> tuple[Any, Any]:
+    """Libros con `3074` Y `3074(1)`: el nombre exacto no siempre es el bueno.
+
+    Gana la hoja candidata con más celdas con dato en su rejilla de horas; en
+    empate, el nombre exacto."""
+    candidatas: list[tuple[str, list[list[Any]]]] = []
+    for nombre, filas in cli.items():
+        if nombre.split("(")[0].strip() == base:
+            candidatas.append((nombre, filas))
+    if len(candidatas) == 1:
+        return candidatas[0][1], detector(candidatas[0][1])
+    mejor = max(enumerate(candidatas),
+                key=lambda par: (_cuenta_datos(par[1][1], 9), -par[0]),
+                default=(0, (None, None)))
+    hoja = mejor[1][1]
+    return hoja, detector(hoja)
 
 
 # ==========================================================================
-# Orquestación
+# Orquestación — el árbol de identificación
 # ==========================================================================
 
 
-def parse_excel(ruta: str | Path) -> dict[str, Any]:
-    ruta = Path(ruta)
-    wb = CalamineWorkbook.from_path(str(ruta))
-    hojas: dict[str, list[list[Any]]] = {}
+def analizar(ruta: str | Path) -> dict[str, Any]:
+    rep: dict[str, Any] = {"archivo": Path(ruta).name, "ruta": str(ruta)}
+    if Path(ruta).suffix.lower() not in (".xlsm", ".xlsx", ".xls", ".xltm"):
+        rep["resultado"] = "descartado: no es un Excel"
+        return rep
+    try:
+        wb = CalamineWorkbook.from_path(str(ruta))
+        contenido = {n: wb.get_sheet_by_name(n).to_python()
+                     for n in wb.sheet_names}
+    except Exception as exc:
+        rep["resultado"] = f"descartado: ilegible ({type(exc).__name__})"
+        return rep
+
+    rep["hojas"] = wb.sheet_names
     bases: dict[str, list[list[Any]]] = {}
     cli: dict[str, list[list[Any]]] = {}
-    for nombre in wb.sheet_names:
-        base = nombre.split(" (")[0].strip()
-        contenido = wb.get_sheet_by_name(nombre).to_python()
-        hojas[nombre] = contenido
-        if Z_RE.match(base) and base not in bases:
-            bases[base] = contenido
-        match = CLI_RE.match(base)
-        if match and base not in cli:
-            cli[base] = contenido
+    duplicadas: list[str] = []
+    for nombre, filas in contenido.items():
+        base = nombre.split("(")[0].strip()
+        if Z_RE.match(base):
+            if base in bases:
+                duplicadas.append(nombre)
+            else:
+                bases[base] = filas
+        m = CLI_RE.match(base)
+        if m and base not in cli:
+            cli[base] = filas
+    rep["hojas_z"] = sorted(bases)
+    rep["hojas_cli"] = sorted(cli)
+    rep["hojas_duplicadas"] = duplicadas or None
 
-    reporte: dict[str, Any] = {"archivo": ruta.name, "hojas_cli": sorted(cli)}
-    if not bases:
-        reporte["resultado"] = "descartado: sin hojas Z"
-        return reporte
+    if not bases:                     # N1: la condición es tener hojas Z
+        rep["resultado"] = ("descartado: solo CLI, no es una observación" if cli
+                            else "descartado: no es una observación")
+        return rep
 
     doc = documento_vacio()
     estacion, fecha = read_synop(bases, doc)
+    rep["estacion"] = estacion
+    rep["fecha"] = fecha
+    if not estacion or not fecha:
+        rep["resultado"] = "descartado: sin estación o fecha legible"
+        return rep
     doc["meta"]["estacion"] = estacion
     doc["meta"]["fecha"] = fecha
-    doc["meta"]["actualizado"] = datetime.datetime.now().astimezone().isoformat(timespec="seconds")
-    reporte.update({"estacion": estacion, "fecha": fecha})
+    doc["meta"]["actualizado"] = datetime.datetime.now().astimezone(
+        ).isoformat(timespec="seconds")
 
-    if not estacion or not fecha:
-        reporte["resultado"] = "descartado: sin estación o fecha en las hojas Z"
-        return reporte
+    if cli.get("3074"):
+        hoja, modelo = _elegir(cli, "3074", detectar_modelo_3074)
+        rep["modelo_3074"] = modelo if modelo else "n.a."
+        if hoja is not None and modelo:
+            read_cli3074(hoja, doc, modelo)
+    hoja = _elegir(cli, "4074", lambda h: None)[0]
+    if hoja is not None:
+        read_cli4074(hoja, doc)
+    hoja = _elegir(cli, "5074", lambda h: None)[0]
+    if hoja is not None:
+        read_cli5074(hoja, doc)
 
-    if "3074" in cli:
-        reporte["modelo_3074"] = read_cli3074(cli["3074"], doc)
-    if "4074" in cli:
-        reporte["leido_4074"] = read_cli4074(cli["4074"], doc)
-    if "5074" in cli:
-        reporte["leido_5074"] = read_cli5074(cli["5074"], doc)
+    rep["resultado"] = "procesado"
+    rep["documento"] = doc
+    return rep
 
-    def llenos(bloque: dict) -> int:
-        return sum(1 for v in bloque.values() if isinstance(v, (str, int, float)) and str(v).strip())
 
-    reporte["resultado"] = "procesado"
-    reporte["llenos"] = {
-        "synop_grupos": sum(llenos(doc["synop"][h]["grupos"]) for h in HORAS_SINOP),
-        "synop_datos": sum(llenos(doc["synop"][h]["datos"]) for h in HORAS_SINOP),
-        "3074": sum(llenos(doc["cli"]["3074"][h]) for h in HORAS_CLI),
-        "4074": sum(llenos(doc["cli"]["4074"][h]) for h in HORAS_CLI),
-        "5074": llenos({k: v for k, v in doc["cli"]["5074"].items()
-                        if isinstance(v, str)}),
-        "5074_fenomenos": len(doc["cli"]["5074"]["fenomenos"]),
+def contenido(doc: dict[str, Any]) -> dict[str, int]:
+    def llenos(bloque: Any) -> int:
+        total = 0
+        if isinstance(bloque, dict):
+            for v in bloque.values():
+                total += llenos(v)
+        elif isinstance(bloque, list):
+            total += len(bloque)
+        elif bloque is True:
+            total += 1
+        elif bloque not in ("", None, False):
+            total += 1
+        return total
+
+    return {
+        "synop": llenos(doc["synop"]),
+        "3074": llenos(doc["cli"]["3074"]),
+        "4074": llenos(doc["cli"]["4074"]),
+        "5074": llenos(doc["cli"]["5074"]),
     }
-    reporte["documento"] = doc
-    return reporte
 
 
-def guardar(reporte: dict[str, Any], destino: Path) -> Path | None:
+def escribir(reporte: dict[str, Any], destino: Path) -> Path | None:
     doc = reporte.get("documento")
-    if not doc:
+    if not doc or not doc["meta"]["estacion"] or not doc["meta"]["fecha"]:
         return None
-    meta = doc["meta"]
-    carpeta = destino / meta["estacion"] / meta["fecha"][:4] / meta["fecha"][5:7]
+    fecha = doc["meta"]["fecha"]
+    carpeta = destino / doc["meta"]["estacion"] / fecha[:4] / fecha[5:7]
     carpeta.mkdir(parents=True, exist_ok=True)
-    ruta = carpeta / f'{meta["estacion"]}{meta["fecha"][8:10]}{meta["fecha"][5:7]}{meta["fecha"][:4]}.json'
-    ruta.write_text(json.dumps(doc, ensure_ascii=False, indent=1), encoding="utf-8")
+    ruta = carpeta / (doc["meta"]["estacion"] + fecha[8:10] + fecha[5:7]
+                      + fecha[:4] + ".json")
+    ruta.write_text(json.dumps(doc, ensure_ascii=False, indent=1),
+                    encoding="utf-8")
     return ruta
