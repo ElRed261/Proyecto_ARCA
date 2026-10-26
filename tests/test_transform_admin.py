@@ -91,3 +91,14 @@ def test_page_shows_the_report_of_a_fake_run(qtbot, fresh_db, tmp_path):
     assert page.tree.topLevelItemCount() == 2
     assert "2" in page.chips["procesados"].text()
     assert not page.run_button.isEnabled() or True  # el botón no se bloquea
+
+
+
+def test_the_page_keeps_the_conn_for_the_destination(qtbot, fresh_db):
+    """Transformar usa la conn para resolver el destino en cada corrida."""
+    from oms_ui.pages.transformar import TransformarPage
+
+    page = TransformarPage(fresh_db)
+    qtbot.addWidget(page)
+    assert page._conn is fresh_db
+    assert "synop" in page.destino_label.text()

@@ -78,8 +78,7 @@ class TransformarPage(QWidget):
 
     def __init__(self, conn: sqlite3.Connection) -> None:
         super().__init__()
-        # Los hallazgos del rail esperan que cada página declare su papel:
-        # el placeholder-check("pendiente") no debe tropezar con esta.
+        self._conn = conn  # destino_synop lo necesita al convertir
         self.setObjectName("transformPage")
         page = QVBoxLayout(self)
         page.setContentsMargins(24, 18, 24, 18)
