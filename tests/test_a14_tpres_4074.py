@@ -9,8 +9,6 @@ The CLI 4074 keeps the grey "0" placeholder only on the rows the owner marked;
 the rest of the sheet stays visually blank.
 """
 
-import pytest
-
 import oms_calc
 from oms_core.services import cli as cli_service
 from oms_core.services import synoptic as synoptic_service

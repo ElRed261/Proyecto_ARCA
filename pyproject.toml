@@ -8,6 +8,7 @@ dependencies = [
     "platformdirs>=4.0",
     "jsonschema>=4.20",
     "keyring>=24.0",
+    "bcrypt>=4.0",
 ]
 
 [build-system]
@@ -20,7 +21,7 @@ module-name = "oms_calc"
 bindings = "pyo3"
 
 [project.optional-dependencies]
-dev = ["pytest", "ruff", "maturin"]
+dev = ["pytest", "pytest-qt", "ruff", "maturin"]
 ui = ["PySide6"]
 
 [tool.pytest.ini_options]

@@ -6,17 +6,48 @@ on:
   pull_request:
     branches: [neo-arca]
 
+concurrency:
+  group: neoarca-f0-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   linux:
     runs-on: ubuntu-latest
+    env:
+      QT_QPA_PLATFORM: offscreen
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
+
       - uses: dtolnay/rust-toolchain@stable
-      - run: pip install maturin pytest ruff
-      - run: maturin develop --manifest-path oms_calc/Cargo.toml
-      - run: cargo clippy --manifest-path oms_calc/Cargo.toml -- -D warnings
-      - run: ruff check oms_core oms_ui tests packaging  # OLD/ es legado-oráculo, no se lintea
-      - run: pytest -q
+        with:
+          components: clippy
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: oms_calc -> target
+
+      - name: Install the test tooling
+        run: |
+          python -m pip install --upgrade pip
+          pip install maturin pytest pytest-qt ruff "PySide6==6.12.*"
+
+      # La extension Rust se construye como rueda y se instala con pip: no hay
+      # virtualenv en el runner, y `maturin develop` exige uno (fallaba con
+      # exit 1 antes de este cambio).
+      - name: Build and install the Rust extension
+        run: |
+          maturin build --release --out dist --manifest-path oms_calc/Cargo.toml
+          pip install dist/*.whl
+
+      - name: Cargo clippy
+        run: cargo clippy --manifest-path oms_calc/Cargo.toml -- -D warnings
+
+      - name: Ruff
+        run: ruff check oms_core oms_ui tests packaging  # OLD/ es legado-oraculo, no se lintea
+
+      - name: Pytest
+        run: pytest -q

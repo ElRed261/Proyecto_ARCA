@@ -38,6 +38,13 @@ Formato libre por fases; el detalle completo con commits está en
   + helper QEventLoop; `qtbot.waitSignal` roto con PySide6 6.12/py3.14t).
 - RTK instalado para compresión de salidas del agente (infra local).
 - CI `neoarca.yml`; dependabot mensual agrupado.
+- **CI reparada**: el job corría `maturin develop` sin virtualenv en el
+  runner (GitHub Actions no crea uno) y moría con exit 1 en cada push. Ahora
+  construye la rueda (`maturin build --release`) y la instala con `pip`, y
+  antes de pytest pasa por `cargo clippy` y `ruff` con
+  `QT_QPA_PLATFORM=offscreen`. `bcrypt` (importado por
+  `services/auth.py`) no estaba declarado en `pyproject.toml`: se agregó a
+  las dependencias, junto con `pytest-qt` en el extra `dev`.
 
 ## Legado (proyecto ARCA clásico)
 Ver **`../OLD`** (fuera del repositorio) — release final **v2.2.0**
