@@ -309,3 +309,69 @@ consecutivas (una por hora), no las 8 filas sueltas que asumía el oráculo.
 Confirma lo que decía el dueño: con el tiempo se agregaron grupos `9spspsp`
 (los carriles pasan de 4 filas a 7). El transformador no debe asumir un alto fijo:
 lee los 24 carriles desde `SPSP_CELLS` y deja vacíos los que no existan.
+
+## Modelos de lectura por variante (celda → campo del JSON)
+
+Todas las variantes tienen **una fila por hora**, con la hora en una celda y las
+filas consecutivas. Ninguna coincide con el mapa del oráculo.
+
+### Modelo V1 — 2.380 archivos (la mayoría) · y V2 — 171 (Higuero, mismos rótulos abreviados)
+
+Cabecera en las filas 6-8. **Datos: filas 9 a 32, hora = fila − 8.**
+
+| Columna | Campo (`cli["3074"][hora]`) | Columna | Campo |
+|---|---|---|---|
+| A | hora local (1-24) | L | `viento_dir` |
+| B | `pres_est` | M | `viento_vel` |
+| C | `pres_nmm` | N | `visibilidad` |
+| D | `pres_alti` | O | `fenomenos.tiempo_presente` |
+| E | `tend_car` | P | `fenomenos.granizo` |
+| F | `tend_dif` | Q | `fenomenos.ventarron` |
+| G | `temp_seco` | R | `fenomenos.neblina` |
+| H | `temp_humedo` | S | `fenomenos.trueno` |
+| I | `hum_ptor` | T | `fenomenos.relampago` |
+| J | `hum_tvap` | U | `fenomenos.rocio` |
+| K | `hum_hr` | V-Y | `polvo`, `calima`, `niebla`, `tornado` |
+
+### Modelo V3 — 146 archivos (Central 145, Santiago 1), hoja ancha
+
+Cabecera en las filas 7-9. **Datos: filas 10 a 33, hora = fila − 9.**
+
+| Columna | Campo | Columna | Campo |
+|---|---|---|---|
+| A | hora local | X | `hum_ptor` |
+| B | `pres_est` | AA | `hum_tvap` |
+| F | `pres_nmm` | AD | `hum_hr` |
+| J | `pres_alti` | AF | `viento_dir` |
+| N | `tend_car` | AH | `viento_vel` |
+| O | `tend_dif` | AK | `visibilidad` |
+| R | `temp_seco` | AN | `fenomenos.tiempo_presente` |
+| U | `temp_humedo` | AP-AW | `granizo`, `ventarron`, `neblina`, `trueno`, `relampago`, `rocio`, `tornado`, `calima` |
+
+### Modelo V4 — 9 archivos (Cabrera 8, Higuero 1), desplazado una columna
+
+Cabecera en las filas 7-9. **Datos: filas 10 a 33, hora = fila − 9, en la
+columna B.**
+
+| Columna | Campo | Columna | Campo |
+|---|---|---|---|
+| B | hora local | M | `viento_dir` |
+| C | `pres_est` | N | `viento_vel` |
+| D | `pres_nmm` | O | `visibilidad` |
+| E | `pres_alti` | P | `fenomenos.tiempo_presente` |
+| F | `tend_car` | Q | `fenomenos.granizo` |
+| G | `tend_dif` | R | `fenomenos.ventarron` |
+| H | `temp_seco` | S | `fenomenos.neblina` |
+| I | `temp_humedo` | T | `fenomenos.trueno` |
+| J | `hum_ptor` | U | `fenomenos.relampago` |
+| K | `hum_tvap` | V | `fenomenos.rocio` |
+| L | `hum_hr` | W-Z | `polvo`, `calima`, `niebla`, `tornado` |
+
+Es el modelo V1 **desplazado una columna a la derecha**: por eso el barrido que
+buscaba la hora en la columna A no la encontraba.
+
+### Detección del modelo
+
+No se adivina por el nombre del archivo ni por la estación: se lee la cabecera y
+se compara el número de columnas ocupadas y la etiqueta de la celda que debería
+tener la hora (A o B). El reporte de la ventana deja anotado qué modelo se usó.
