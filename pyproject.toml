@@ -9,6 +9,7 @@ dependencies = [
     "jsonschema>=4.20",
     "keyring>=24.0",
     "bcrypt>=4.0",
+    "python-calamine>=0.9",
 ]
 
 [build-system]

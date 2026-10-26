@@ -209,3 +209,40 @@ vacíos**. No se inventa nada.
 Tres archivos no siguen el patrón `DDMMYYYY` y hay que resolverlos por contenido
 o pidiendo la fecha: `MDSD013052024.xlsm`, `Estacion Central 154042025.xlsm`,
 `120072025.xlsx`.
+
+## Metadatos: estación y fecha salen del CONTENIDO, no del nombre
+
+Verificado en archivos reales de cada variante.
+
+### Variantes `new` y `old` — fila 3 de cualquier hoja Z
+
+```
+0006Z fila 3: ['AA XX', '10061', '78486.0', '2025-04-10', '']
+1200Z fila 3: ['AA XX', '10121', '78486.0', '2025-04-10', '']
+2100Z fila 3: ['AA XX', '10211', '78486.0', '2025-04-10', '']
+                col 1   col 2    col 3      col 4
+```
+
+- **columna 3 = código de estación** (`78486`)
+- **columna 4 = fecha ISO** (`2025-04-10`)
+- Vale igual en el formato viejo (`1200Z` fila 3 col 3 = `78486`, col 4 =
+  `2023-12-07`).
+
+Se lee de una hoja del **día** (06Z o 12Z), nunca de `0000Z`/`0003Z`: esas
+pertenecen al día anterior por la regla del cierre a las 06Z
+(`Estacion Central 10042025.xlsm` trae `2025-04-09` en `0000Z`/`0003Z` y
+`2025-04-10` en `0006Z`/`1200Z`/`2100Z`).
+
+Con esto **no hace falta ningún algoritmo de nombres**: la fecha del documento
+es la de adentro. El nombre queda solo como informe.
+
+### Variante `.xls` (hojas `3074 (2)` / `4074 (2)` / `5074 (2)`)
+
+- **No tiene hojas Z**, así que los metadatos salen de la propia hoja `3074 (2)`:
+  el código aparece en la **fila 1, columna 18** (`78482`).
+- La fecha interna (`fila 33, columna 7`) puede estar **obsoleta**: el archivo
+  `Barahona/2025/Diciembre/09122025  DIONYs.xls` declara **2018-09-23**. Parece
+  una plantilla reutilizada que no actualizó la celda.
+- Por eso, en esta variante la fecha se valida cruzada: si la fecha interna cae
+  fuera del mes de la carpeta, manda el nombre del archivo (que sí coincide con
+  la secuencia). El conflicto se informa en el reporte de la ventana.
