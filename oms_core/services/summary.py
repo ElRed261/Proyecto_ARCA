@@ -265,9 +265,17 @@ def _empty_kpis(fecha: str) -> dict[str, Any]:
 
 
 def _doc_nub(hora_entry: object) -> float | None:
-    """get_nubosidad_from_nddff → get_nubosidad_fallback (verbatim order)."""
+    """get_nubosidad_from_nddff → get_nubosidad_fallback (verbatim order).
+
+    The oracle read the groups off ``horas[hh]["synop"]``; the schema-2
+    documents store the same groups under ``synop[hh]["grupos"]``, so both
+    keys are probed and the oracle's order (Nddff first, then 8NhCLCMCH) is
+    kept.
+    """
     entry = hora_entry if isinstance(hora_entry, dict) else {}
     synop = entry.get("synop")
+    if not isinstance(synop, dict):
+        synop = entry.get("grupos")
     if not isinstance(synop, dict):
         return None
     if isinstance((nddff := synop.get("Nddff")), str) and nddff and nddff[0].isdigit():
@@ -282,12 +290,49 @@ def _doc_nub(hora_entry: object) -> float | None:
     return None
 
 
+def _doc_wind_dir(hora_entry: object) -> float | None:
+    """Wind direction in degrees from the ``Nddff`` group: digits 2-3 (dd).
+
+    The document does not store ``viento_dir`` (``document_map.DERIVED_DATOS``
+    marks it derived): dd is tens of degrees, so '21602' means N=2, dd=16 →
+    160 degrees, exactly the value the oracle read from its ``cli3074`` row.
+    """
+    entry = hora_entry if isinstance(hora_entry, dict) else {}
+    synop = entry.get("grupos")
+    if not isinstance(synop, dict):
+        synop = entry.get("synop")
+    if not isinstance(synop, dict):
+        return None
+    nddff = synop.get("Nddff")
+    if not isinstance(nddff, str) or len(nddff) < 3:
+        return None
+    dd = nddff[1:3]
+    if not dd.isdigit():
+        return None
+    return float(int(dd) * 10)
+
+
 def _cli_rows(doc: dict[str, Any], key: str) -> dict[str, Any]:
-    """The doc's cli block as {AST-row: row-dict}, tolerating int keys."""
+    """The doc's cli block as {AST-row: row-dict}, tolerating int keys.
+
+    Three shapes are read, all present in the real archive:
+    - the oracle's flat ``doc["cli3074"]``;
+    - the schema-2 ``doc["cli"]["3074"]`` keyed by AST row (the current app's
+      storage: only ``viento_vel``/``pres_alti``/``fenomenos``);
+    - the migrated legacy block ``doc["cli"]["3074"]["horas"]`` keyed by the 24
+      hourly rows, which keeps the full-precision ``temp_seco``/``temp_humedo``
+      /``hum_*``/``viento_dir`` values the old app computed with.
+    """
     block = doc.get(key)
     if not isinstance(block, dict):
+        cli = doc.get("cli")
+        block = cli.get(key.removeprefix("cli")) if isinstance(cli, dict) else None
+    if not isinstance(block, dict):
         return {}
-    return {str(row): data for row, data in block.items()}
+    horas = block.get("horas")
+    if isinstance(horas, dict):
+        block = horas
+    return {str(row): data for row, data in block.items() if isinstance(data, dict)}
 
 
 def _cli_num(row: object, field: str) -> float | None:
@@ -430,7 +475,8 @@ def observation_from_doc(
             ),
             "v_dir_deg": _first(
                 _num(datos.get("viento_dir")) if entry else None,
-                _cli_num(cli, "viento_dir"), _num(legacy.get("v_dir_deg")),
+                _cli_num(cli, "viento_dir"), _doc_wind_dir(entry),
+                _num(legacy.get("v_dir_deg")),
             ),
             "v_vel": _first(
                 _num(datos.get("viento_vel")) if entry else None,
