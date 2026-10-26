@@ -279,3 +279,33 @@ Hay libros con `3074`, `3074(1)`, `4074`, `4074(1)`, `5074`, `5074(1)` (por
 ejemplo `Central/2024/Diciembre/ESTACION CENTRAL 17122024 .xlsm`). Se prefiere
 siempre el nombre exacto; si solo existe el sufijado, se usa ese, y el reporte
 lo deja anotado. Igual criterio para las hojas Z.
+
+## Reporte: cabeceras reales de la hoja 3074 en las 3.141 observaciones
+
+Barridas las 3.141 con hojas Z; 2.706 traen hoja `3074`. Se leyó la cabecera
+real de cada libro (fila 7) y la fila donde aparece la hora 2. **Ningún archivo
+está roto**: hay cuatro variantes de cabecera, y el problema era el mapa del
+oráculo, que no coincide con ninguna.
+
+| Variante | Archivos | Estaciones | Cabecera | Fila de la hora 2 |
+|---|---|---|---|---|
+| 1 | **2.380** | todas (Central 342, Higuero 234) | `Estación / NMM / Altímetro / 3 H. TEND / TERMOMETROS / PTO R / T VAP / HR / DIR. / VEL.` | **10** (datos 9-32) |
+| 2 | **171** | Higuero | `EST / NMM / ALT / 3 H. TEND / TERMOMETROS / PTO R / T VAP / HR / DIR / VELOC / … / VENTISCA` | 10 — **mismo layout que la 1**, solo cambian los rótulos |
+| 3 | **146** | Central 145, Santiago 1 | `HORA LOCAL / PRESIÓN (mbar) - 1000 / TEMPERATURA 0C / HUMEDAD` | **11** — una fila más de cabecera |
+| 4 | **9** | Cabrera 8, Higuero 1 | `HORA LOCAL / PRESIÓN (hPa) - 1000 / TEMPERATURA ºC / HUMEDAD / VIENTO / VISIBILIDAD / TIEMPO PRESENTE / FENÓMENOS` | no aparece en las filas 9-33: hay que revisarla aparte |
+
+En **todas**, la hora local está en la **columna A** y las filas de datos son
+consecutivas (una por hora), no las 8 filas sueltas que asumía el oráculo.
+
+### Hojas Z: cuatro tamaños
+
+| Filas de la hoja Z | Archivos |
+|---|---|
+| 37 | 2.312 |
+| 31 | 581 |
+| 30 | 171 |
+| 32 | 77 |
+
+Confirma lo que decía el dueño: con el tiempo se agregaron grupos `9spspsp`
+(los carriles pasan de 4 filas a 7). El transformador no debe asumir un alto fijo:
+lee los 24 carriles desde `SPSP_CELLS` y deja vacíos los que no existan.
