@@ -93,7 +93,7 @@ Oráculo de comportamiento: `OLD/frontend/src/features/summary/pages/SummaryPage
 |---|---|---|---|
 | T1 | S15, S14, S13 | adaptador schema 2 en `oms_core/services/summary.py` | hecho (d6e0a43) |
 | T2 | S12 | lluvia en su día: corrimiento del oráculo **no** portado (desviación F5) | hecho |
-| T3 | S11 | verificación día×columna contra los dos oráculos 10/2025 | en curso |
+| T3 | S11 | verificación día×columna contra los dos oráculos 10/2025 | `tools/parity_summary.py` |
 | T4 | S9 | selector de día tipo Auditoría para el Sinóptico | hecho (f4 UI 79/79) |
 | T5 | S10 | mismo selector en Auditoría y Resumen | pendiente |
 | T6 | S11 | fijar la paridad con tests (no debilitar asserts) | pendiente |
@@ -161,3 +161,14 @@ Oráculo de comportamiento: `OLD/frontend/src/features/summary/pages/SummaryPage
   de la Auditoría). El `QDateEdit` sigue funcionando igual, así que los 78 tests
   previos de f4 no cambian; el test nuevo falla sin el botón (`git stash`) y
   pasa con él.
+- **L13** El dueño eligió **A**: derivar de los insumos guardados y firmar la
+  diferencia como desviación **R32 PRECISIÓN** en `docs/CONTRATO_ORACULO.md`,
+  «el objetivo es la precisión y fiabilidad del dato». Registrada junto a F5.
+- **L14** `tools/parity_summary.py` compara día × columna contra los dos
+  oráculos de 10/2025 y separa tres cestas: desviaciones firmadas, pendientes
+  de clasificar y diferencias de regla. Estado medido: **cero diferencias de
+  regla**; quedan pendientes de firmar presiones ±0,1 (1-3 días), nubosidad
+  noche/media del 10-28, un Tmax extra el 10-30 y una dirección `N/A` vs `N`.
+- **L15** Hallazgo nuevo: el **2025-10-25 está vacío en la base para 78485 y
+  para 78486** (en el archivo de disco solo 78486 estaba vacío), así que la
+  pérdida afecta a dos documentos. Hay que re-importarlos.

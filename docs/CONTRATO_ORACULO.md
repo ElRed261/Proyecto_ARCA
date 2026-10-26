@@ -59,6 +59,14 @@ Estas son las ÚNICAS desviaciones del oráculo. Todo lo demás es verbatim.
 3. **D7 (F1)** — env JSON vacío se ignora en importación (corrige un bug del oráculo).
 4. **F5 CORREGIR** — Lluvia en su día y nubosidad real día/tarde (el oráculo
    tenía artefactos heredados; el dueño ordenó corregirlos en vez de portarlos).
+4b. **R32 PRECISIÓN** — Humedad relativa, punto de rocío y tensión de vapor se
+   derivan de los insumos guardados (`datos.ts` / `datos.th`, un decimal). El
+   oráculo leía `hum_hr` / `hum_ptor` / `hum_tvap` ya calculados con precisión
+   completa, así que el promedio mensual difiere en ±0,1/0,2. El dueño eligió
+   la derivación: la regla R2 (no se guardan valores calculados) es lo que
+   mantiene el dato fiable, y la estadística se calcula siempre desde el mismo
+   insumo. El resto de columnas (temperaturas, presiones, viento, nubosidad y
+   lluvia) coincide exacto con el oráculo.
 5. **F6 keep-deny** — encargado mantiene el modelo deny-por-defecto.
 6. **F7 D1/D2** — wrapper de hilo sync; `last_error` nunca levanta.
 7. **Rondas de UI (4–12)** — la presentación se re-crea 1:1 contra las
