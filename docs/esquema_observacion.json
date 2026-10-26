@@ -1,126 +1,306 @@
 {
-  "schema_version": "ESQUEMA-NUEVO-v1",
-  "meta": {
-    "estacion": "78485",
-    "fecha": "2025-10-01",
-    "actualizado": "2026-10-26T12:00:00-04:00"
+ "schema_version": "ESQUEMA-NUEVO-v2",
+ "meta": {
+  "estacion": "78485",
+  "fecha": "2025-10-01",
+  "actualizado": "2026-10-26T12:00:00-04:00"
+ },
+ "synop": {
+  "06Z": {
+   "observador": "EMELYN MERCEDES",
+   "datos": {
+    "ts": "25.9",
+    "th": "25.4",
+    "pres_est": "1011.8",
+    "p3": "1012.7",
+    "p24": "1012.7",
+    "Tmax": "27.4",
+    "Tmin": "25.4",
+    "Tmax_24h": "",
+    "Tmin_24h": "",
+    "LL": "0.0",
+    "LL_24h": ""
+   },
+   "grupos": {
+    "YYGGiw": "01061",
+    "IrIXHVV": "31464",
+    "Nddff": "21602",
+    "7wwW1W2": "70600",
+    "8NhCLCMCH": "82816",
+    "0CSDLDMDH": "02000",
+    "1snTxTxTx": "10259",
+    "2snTnTnTn": "20252",
+    "3Ejjj": "30///",
+    "5EEEjE": "",
+    "5nFnFnFn": "",
+    "56DLDMDH": "02000",
+    "6RRRtr": "",
+    "7R24R24R24R24": "7",
+    "8NsChshs_1": "92816",
+    "8NsChshs_2": "82800",
+    "8NsChshs_3": "81200",
+    "8NsChshs_4": "82000",
+    "8NsChshs_5": "",
+    "8NsChshs_6": "",
+    "9spspsp_1": "90094",
+    "9spspsp_2": "94080",
+    "9spspsp_3": "94320",
+    "9spspsp_4": "94428",
+    "9spspsp_5": "98264",
+    "9spspsp_6": "98464",
+    "9spspsp_7": "98664",
+    "9spspsp_8": "98864"
+   }
   },
-
-  "synop": {
-    "06Z": {
-      "observador": "EMELYN MERCEDES",
-
-      "datos": {
-        "ts": "25.9", "th": "25.4", "pres_est": "1011.8",
-        "p3": "1012.7", "p24": "1012.7",
-        "Tmax": "27.4", "Tmin": "25.4",
-        "Tmax_24h": "", "Tmin_24h": "",
-        "LL": "0.0", "LL_24h": ""
-      },
-
-      "grupos": {
-        "YYGGiw": "01061", "IrIXHVV": "31464", "Nddff": "21602",
-        "7wwW1W2": "70600", "8NhCLCMCH": "82200",
-        "0CSDL DM DH": "02000",
-        "1snTxTxTx": "10259", "2snTnTnTn": "20252",
-        "3Ejjj": "30///", "5EEEjE": "", "5nFnFnFn": "",
-        "56DLDMDH": "02000", "6RRRtr": "", "7R24R24R24R24": "7",
-
-        "8NsChshs_1": "82816",
-        "8NsChshs_2": "82800",
-        "8NsChshs_3": "81200",
-        "8NsChshs_4": "82000",
-        "8NsChshs_5": "",
-        "8NsChshs_6": "",
-
-        "9spspsp_1": "90094",  "9spspsp_2": "94080",  "9spspsp_3": "94320",
-        "9spspsp_4": "94428",  "9spspsp_5": "98264",  "9spspsp_6": "98464",
-        "9spspsp_7": "98664",  "9spspsp_8": "98864",
-        "9spspsp_9": "",  "9spspsp_10": "", "9spspsp_11": "", "9spspsp_12": "",
-        "9spspsp_13": "", "9spspsp_14": "", "9spspsp_15": "", "9spspsp_16": "",
-        "9spspsp_17": "", "9spspsp_18": "", "9spspsp_19": "", "9spspsp_20": "",
-        "9spspsp_21": "", "9spspsp_22": "", "9spspsp_23": "", "9spspsp_24": ""
-      },
-
-      "extra_8Ns": "8 /"
+  "09Z": null,
+  "12Z": null,
+  "15Z": null,
+  "18Z": null,
+  "21Z": null,
+  "00Z": null,
+  "03Z": null
+ },
+ "cli": {
+  "3074": {
+   "_nota": "solo entradas manuales y fenómenos; lo derivado del synop no se guarda",
+   "2": {
+    "viento_vel": "2.1",
+    "pres_alti": "1013.2",
+    "fenomenos": {
+     "tiempo_presente": "06",
+     "granizo": false,
+     "ventarron": false,
+     "neblina": false,
+     "trueno": false,
+     "relampago": false,
+     "rocio": false,
+     "polvo": false,
+     "calima": false,
+     "niebla": false,
+     "tornado": false
     }
+   },
+   "5": {
+    "viento_vel": "2.1",
+    "pres_alti": "1014.3",
+    "fenomenos": {
+     "tiempo_presente": "15",
+     "granizo": false,
+     "ventarron": false,
+     "neblina": false,
+     "trueno": false,
+     "relampago": false,
+     "rocio": false,
+     "polvo": false,
+     "calima": false,
+     "niebla": false,
+     "tornado": false
+    }
+   },
+   "8": {
+    "viento_vel": "0.0",
+    "pres_alti": "1014.3",
+    "fenomenos": {
+     "tiempo_presente": "06",
+     "granizo": false,
+     "ventarron": false,
+     "neblina": false,
+     "trueno": false,
+     "relampago": false,
+     "rocio": false,
+     "polvo": false,
+     "calima": false,
+     "niebla": false,
+     "tornado": false
+    }
+   },
+   "11": {
+    "viento_vel": "3.1",
+    "pres_alti": "1015.1",
+    "fenomenos": {
+     "tiempo_presente": "06",
+     "granizo": false,
+     "ventarron": false,
+     "neblina": false,
+     "trueno": false,
+     "relampago": false,
+     "rocio": false,
+     "polvo": false,
+     "calima": false,
+     "niebla": false,
+     "tornado": false
+    }
+   },
+   "14": {
+    "viento_vel": "4.1",
+    "pres_alti": "1013.6",
+    "fenomenos": {
+     "tiempo_presente": "",
+     "granizo": false,
+     "ventarron": false,
+     "neblina": false,
+     "trueno": false,
+     "relampago": false,
+     "rocio": false,
+     "polvo": false,
+     "calima": false,
+     "niebla": false,
+     "tornado": false
+    }
+   },
+   "17": {
+    "viento_vel": "2.2",
+    "pres_alti": "1013.0",
+    "fenomenos": {
+     "tiempo_presente": "",
+     "granizo": false,
+     "ventarron": false,
+     "neblina": false,
+     "trueno": false,
+     "relampago": false,
+     "rocio": false,
+     "polvo": false,
+     "calima": false,
+     "niebla": false,
+     "tornado": false
+    }
+   },
+   "20": {
+    "viento_vel": "2.1",
+    "pres_alti": "1013.0",
+    "fenomenos": {
+     "tiempo_presente": "",
+     "granizo": false,
+     "ventarron": false,
+     "neblina": false,
+     "trueno": false,
+     "relampago": false,
+     "rocio": false,
+     "polvo": false,
+     "calima": false,
+     "niebla": false,
+     "tornado": false
+    }
+   },
+   "23": {
+    "viento_vel": "0.0",
+    "pres_alti": "1013.0",
+    "fenomenos": {
+     "tiempo_presente": "",
+     "granizo": false,
+     "ventarron": false,
+     "neblina": false,
+     "trueno": false,
+     "relampago": false,
+     "rocio": false,
+     "polvo": false,
+     "calima": false,
+     "niebla": false,
+     "tornado": false
+    }
+   }
   },
-
-  "cli": {
-    "3074": {
-      "2": {
-        "viento_vel": "2.1",
-        "pres_alti": "1013.2",
-        "fenomenos": {
-          "tiempo_presente": "06",
-          "granizo": false, "ventarron": false, "neblina": false,
-          "trueno": false, "relampago": false, "rocio": false,
-          "polvo": false, "calima": false, "niebla": false, "tornado": false
-        }
-      },
-      "5":  { "viento_vel": "2.1", "pres_alti": "1014.3", "fenomenos": { "tiempo_presente": "15", "granizo": false, "ventarron": false, "neblina": false, "trueno": false, "relampago": false, "rocio": false, "polvo": false, "calima": false, "niebla": false, "tornado": false } },
-      "8":  { "viento_vel": "0.0", "pres_alti": "1014.3", "fenomenos": { "tiempo_presente": "06", "granizo": false, "ventarron": false, "neblina": false, "trueno": false, "relampago": false, "rocio": false, "polvo": false, "calima": false, "niebla": false, "tornado": false } },
-      "11": { "viento_vel": "3.1", "pres_alti": "1015.1", "fenomenos": { "tiempo_presente": "06", "granizo": true,  "ventarron": false, "neblina": false, "trueno": false, "relampago": false, "rocio": false, "polvo": false, "calima": false, "niebla": false, "tornado": false } }
+  "4074": {
+   "_nota": "todo lo demás derivado del synop (nubes bajas, Tmax/Tmin, cb_tipo=9 del 3er dígito de 8Ns); aquí solo las iniciales por hora",
+   "2": {
+    "observador": "EMM"
+   },
+   "5": {
+    "observador": ""
+   },
+   "8": {
+    "observador": ""
+   },
+   "11": {
+    "observador": ""
+   },
+   "14": {
+    "observador": ""
+   },
+   "17": {
+    "observador": ""
+   },
+   "20": {
+    "observador": ""
+   },
+   "23": {
+    "observador": ""
+   }
+  },
+  "5074": {
+   "_nota": "entrada manual; presiones/lecturas NO se guardan (salen del synop)",
+   "piche": "",
+   "tanque_c": "",
+   "evaporigrafo": "",
+   "subsuelo": {
+    "5": {
+     "f1": "25.2",
+     "f2": "33.0",
+     "f3": "28.0"
     },
-
-    "4074": {
-      "2":  { "nubosidad": "2", "temp_max": "", "temp_min": "24.1",
-              "na_cant": "2", "na_tipo": "3", "na_direc": "", "na_altura": "",
-              "cb_cant": "",  "cb_tipo": "9", "cb_altura": "",
-              "estado_suelo": "", "lluvia_6h": "0.0", "observador": "EMM" },
-      "5":  { "nubosidad": "", "temp_max": "", "temp_min": "", "na_cant": "", "na_tipo": "", "na_direc": "", "na_altura": "", "cb_cant": "", "cb_tipo": "", "cb_altura": "", "estado_suelo": "", "lluvia_6h": "", "observador": "" },
-      "8":  { "nubosidad": "", "temp_max": "27.4", "temp_min": "", "na_cant": "", "na_tipo": "", "na_direc": "", "na_altura": "", "cb_cant": "", "cb_tipo": "", "cb_altura": "", "estado_suelo": "", "lluvia_6h": "", "observador": "" },
-      "11": { "nubosidad": "", "temp_max": "", "temp_min": "", "na_cant": "", "na_tipo": "", "na_direc": "", "na_altura": "", "cb_cant": "", "cb_tipo": "", "cb_altura": "", "estado_suelo": "", "lluvia_6h": "", "observador": "" },
-      "14": { "nubosidad": "", "temp_max": "", "temp_min": "", "na_cant": "", "na_tipo": "", "na_direc": "", "na_altura": "", "cb_cant": "", "cb_tipo": "", "cb_altura": "", "estado_suelo": "", "lluvia_6h": "", "observador": "" },
-      "17": { "nubosidad": "", "temp_max": "", "temp_min": "", "na_cant": "", "na_tipo": "", "na_direc": "", "na_altura": "", "cb_cant": "", "cb_tipo": "", "cb_altura": "", "estado_suelo": "", "lluvia_6h": "", "observador": "" },
-      "20": { "nubosidad": "", "temp_max": "", "temp_min": "", "na_cant": "", "na_tipo": "", "na_direc": "", "na_altura": "", "cb_cant": "", "cb_tipo": "", "cb_altura": "", "estado_suelo": "", "lluvia_6h": "", "observador": "" },
-      "23": { "nubosidad": "", "temp_max": "", "temp_min": "", "na_cant": "", "na_tipo": "", "na_direc": "", "na_altura": "", "cb_cant": "", "cb_tipo": "", "cb_altura": "", "estado_suelo": "", "lluvia_6h": "", "observador": "" }
+    "10": {
+     "f1": "",
+     "f2": "",
+     "f3": ""
     },
-
-    "5074": {
-      "presiones": {
-        "notas": "Condiciones estables durante la mañana; ligera brisa del SSE."
-      },
-
-      "presiones_meteorologicas": {
-        "2":  { "hora_h": 2, "hora_m": 10, "lect_bar": "1012.0", "term_anexo": "21.5",
-                "correc_temp": "+0.3", "pres_est": "1014.2",
-                "p_nmm": "1015.8", "iniciales": "KMM" },
-        "8":  { "hora_h": 8, "hora_m": 0, "lect_bar": "", "term_anexo": "",
-                "correc_temp": "", "pres_est": "1015.1", "p_nmm": "", "iniciales": "" },
-        "14": { "hora_h": 14, "hora_m": 30, "lect_bar": "", "term_anexo": "",
-                "correc_temp": "", "pres_est": "1016.0", "p_nmm": "", "iniciales": "" },
-        "20": { "hora_h": 20, "hora_m": 0, "lect_bar": "", "term_anexo": "",
-                "correc_temp": "", "pres_est": "1014.9", "p_nmm": "", "iniciales": "" }
-      },
-
-      "subsuelo": {
-        "5":    { "h02": "25.2", "h08": "33.0", "h14": "28.0", "h20": "" },
-        "10":   { "h02": "",      "h08": "",      "h14": "",      "h20": "" },
-        "15":   { "h02": "25.4", "h08": "34.2", "h14": "28.4", "h20": "" },
-        "20":   { "h02": "",      "h08": "",      "h14": "",      "h20": "" },
-        "25":   { "h02": "",      "h08": "",      "h14": "",      "h20": "" },
-        "50":   { "h02": "29.4", "h08": "29.0", "h14": "29.4", "h20": "" },
-        "100":  { "h02": "28.0", "h08": "28.0", "h14": "28.2", "h20": "" }
-      },
-
-      "evaporimetros": {
-        "5":    { "piche": "", "tanque_c": "", "evaporigrafo": "" },
-        "8":    { "piche": "", "tanque_c": "", "evaporigrafo": "" },
-        "14":   { "piche": "1.2", "tanque_c": "", "evaporigrafo": "" },
-        "20":   { "piche": "", "tanque_c": "", "evaporigrafo": "" }
-      },
-
-      "fenomenos": [
-        {
-          "hora": "04:00", "raf_dir": "R", "raf_vel": "A",
-          "intensidad": "R", "fenomeno": "B",
-          "inicio": "04:00", "final": "04:15", "duracion": "15",
-          "iniciales": "KMM"
-        }
-      ],
-
-      "iniciales_obs": "KMM"
+    "15": {
+     "f1": "25.4",
+     "f2": "34.2",
+     "f3": "28.4"
+    },
+    "20": {
+     "f1": "",
+     "f2": "",
+     "f3": ""
+    },
+    "25": {
+     "f1": "",
+     "f2": "",
+     "f3": ""
+    },
+    "50": {
+     "f1": "29.4",
+     "f2": "29.0",
+     "f3": "29.4"
+    },
+    "100": {
+     "f1": "28.0",
+     "f2": "28.0",
+     "f3": "28.2"
     }
+   },
+   "notas": "Condiciones estables durante la mañana; ligera brisa del SSE.",
+   "iniciales_obs": "KMM",
+   "iniciales_grupos": {
+    "2": "KMM",
+    "8": "",
+    "14": "",
+    "20": ""
+   },
+   "fenomenos": [
+    {
+     "hora": "04:00",
+     "raf_dir": "",
+     "raf_vel": "",
+     "intensidad": "",
+     "fenomeno": "RA",
+     "inicio": "04:00",
+     "final": "04:15",
+     "duracion": "15",
+     "iniciales": "KMM"
+    },
+    {
+     "hora": "06:20",
+     "raf_dir": "16",
+     "raf_vel": "4.0",
+     "intensidad": "F",
+     "fenomeno": "TS",
+     "inicio": "06:10",
+     "final": "06:45",
+     "duracion": "35",
+     "iniciales": "KMM"
+    }
+   ]
   }
+ }
 }
