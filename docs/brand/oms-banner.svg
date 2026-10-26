@@ -1,36 +1,62 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="300" viewBox="0 0 1200 300" role="img" aria-label="OMS - Observations Management System">
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="320" viewBox="0 0 1280 320"
+     role="img" aria-label="OMS - Observations Management System">
   <defs>
     <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#0b1220"/>
-      <stop offset="1" stop-color="#1e293b"/>
+      <stop offset="1" stop-color="#172033"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#38bdf8"/>
+      <stop offset="1" stop-color="#0ea5e9"/>
     </linearGradient>
   </defs>
-  <rect width="1200" height="300" fill="url(#sky)"/>
-  <rect width="1200" height="4" fill="#38bdf8" opacity="0.85"/>
 
-  <g transform="translate(96 92)" fill="none" stroke-linecap="round" stroke-linejoin="round">
-    <g stroke="#38bdf8" stroke-width="4">
-      <circle cx="34" cy="34" r="17"/>
-      <path d="M34 4v10M34 54v10M4 34h10M54 34h10M13 13l7 7M48 48l7 7M55 13l-7 7M20 48l-7 7"/>
-    </g>
-    <g stroke="#e2e8f0" stroke-width="4" opacity="0.9">
-      <path d="M52 92a26 26 0 0 1 51 0"/>
-      <path d="M96 92a22 22 0 0 1 40 12H108"/>
-      <path d="M60 104h56"/>
-    </g>
-    <g stroke="#94a3b8" stroke-width="3.5" opacity="0.95">
-      <rect x="18" y="132" width="112" height="54" rx="9"/>
-      <path d="M18 150h112"/>
-      <path d="M40 132v-16M108 132v-16"/>
-      <path d="M36 168h30M36 178h48"/>
-    </g>
+  <rect width="1280" height="320" fill="url(#sky)"/>
+  <rect width="1280" height="4" fill="url(#accent)" opacity="0.9"/>
+
+  <!-- barra vertical: separa la marca de la informacion operativa -->
+  <path d="M772 76v156" stroke="#1e293b" stroke-width="1.5"/>
+
+  <!-- marca -->
+  <text x="88" y="152" font-family="Inter, Segoe UI, Helvetica, Arial, sans-serif"
+        font-size="88" font-weight="800" fill="#f8fafc" letter-spacing="5">OMS</text>
+  <text x="92" y="194" font-family="Inter, Segoe UI, Helvetica, Arial, sans-serif"
+        font-size="26" font-weight="600" fill="#38bdf8" letter-spacing="1.2">Observations Management System</text>
+  <text x="92" y="230" font-family="Inter, Segoe UI, Helvetica, Arial, sans-serif"
+        font-size="15.5" fill="#94a3b8">Captura OMM N° 306 &#183; FM 12 SYNOP &#183; offline-first &#183; correcciones auditadas</text>
+
+  <!-- las ocho horas sinopticas reales del producto; 06Z es el cierre del dia -->
+  <text x="812" y="106" font-family="Inter, Segoe UI, Helvetica, Arial, sans-serif"
+        font-size="11" font-weight="600" fill="#64748b" letter-spacing="2.4">OCHO HORAS SINÓPTICAS (UTC)</text>
+
+  <g font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="14" text-anchor="middle">
+    <!-- fila 1 -->
+    <rect x="812" y="124" width="76" height="34" rx="7" fill="#111c2e" stroke="#1e293b"/>
+    <text x="850" y="146" fill="#cbd5e1">00Z</text>
+    <rect x="896" y="124" width="76" height="34" rx="7" fill="#111c2e" stroke="#1e293b"/>
+    <text x="934" y="146" fill="#cbd5e1">03Z</text>
+    <rect x="980" y="124" width="76" height="34" rx="7" fill="#38bdf8"/>
+    <text x="1018" y="146" fill="#08131f" font-weight="700">06Z</text>
+    <rect x="1064" y="124" width="76" height="34" rx="7" fill="#111c2e" stroke="#1e293b"/>
+    <text x="1102" y="146" fill="#cbd5e1">09Z</text>
+    <!-- fila 2 -->
+    <rect x="812" y="166" width="76" height="34" rx="7" fill="#111c2e" stroke="#1e293b"/>
+    <text x="850" y="188" fill="#cbd5e1">12Z</text>
+    <rect x="896" y="166" width="76" height="34" rx="7" fill="#111c2e" stroke="#1e293b"/>
+    <text x="934" y="188" fill="#cbd5e1">15Z</text>
+    <rect x="980" y="166" width="76" height="34" rx="7" fill="#111c2e" stroke="#1e293b"/>
+    <text x="1018" y="188" fill="#cbd5e1">18Z</text>
+    <rect x="1064" y="166" width="76" height="34" rx="7" fill="#111c2e" stroke="#1e293b"/>
+    <text x="1102" y="188" fill="#cbd5e1">21Z</text>
   </g>
 
-  <text x="300" y="128" font-family="Inter, Segoe UI, Helvetica, Arial, sans-serif" font-size="76" font-weight="800" fill="#f8fafc" letter-spacing="3">OMS</text>
-  <text x="302" y="172" font-family="Inter, Segoe UI, Helvetica, Arial, sans-serif" font-size="25" font-weight="600" fill="#38bdf8" letter-spacing="1.5">Observations Management System</text>
-  <text x="302" y="212" font-family="Inter, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" fill="#94a3b8">Captura OMM N°306 · correcciones auditadas · reporte por observador · offline-first</text>
+  <text x="812" y="226" font-family="Inter, Segoe UI, Helvetica, Arial, sans-serif"
+        font-size="12.5" fill="#64748b">24 grupos 9Sp &#183; 3 m&#243;dulos CLI &#183; resumen mensual</text>
 
-  <path d="M302 236h560" stroke="#334155" stroke-width="1.5"/>
-  <text x="302" y="262" font-family="Inter, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" fill="#64748b" letter-spacing="1">PYTHON · RUST · SQLITE · QT</text>
-  <text x="1140" y="262" text-anchor="end" font-family="Inter, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" fill="#64748b">República Dominicana</text>
+  <!-- pie -->
+  <path d="M88 258h1104" stroke="#1e293b" stroke-width="1.5"/>
+  <text x="88" y="286" font-family="Inter, Segoe UI, Helvetica, Arial, sans-serif"
+        font-size="12" fill="#64748b" letter-spacing="1.6">PYTHON &#183; RUST &#183; SQLITE &#183; QT</text>
+  <text x="1192" y="286" text-anchor="end" font-family="Inter, Segoe UI, Helvetica, Arial, sans-serif"
+        font-size="12" fill="#64748b">Rep&#250;blica Dominicana</text>
 </svg>
