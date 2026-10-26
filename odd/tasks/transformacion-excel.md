@@ -247,29 +247,35 @@ es la de adentro. El nombre queda solo como informe.
   fuera del mes de la carpeta, manda el nombre del archivo (que sí coincide con
   la secuencia). El conflicto se informa en el reporte de la ventana.
 
-## Regla de admisión (dueño, ronda 3): Z **y** CLI en el mismo archivo
+## Regla de admisión (dueño, ronda 3, corregida)
 
-Solo se procesa un Excel si trae **las hojas Z y las hojas CLI en el mismo
-libro**, en cualquier versión. Si le falta una de las dos, el archivo se
-descarta y se informa; hay archivos guardados fuera de lugar.
+**La condición necesaria son las hojas Z.** Un libro se procesa si trae hojas Z,
+tenga o no hojas CLI:
 
-Barrido de los 3.757 candidatos con calamine (los `.xls*` incluyen además copias
-`.pdf` y `.txt` del mismo nombre, que no son Excel):
+- **Z + CLI** → se procesa con los tres bloques CLI llenos.
+- **Z sin CLI** → se procesa igual, con `cli["3074"]`, `cli["4074"]` y
+  `cli["5074"]` presentes y **vacíos**.
+- **CLI sin Z, o ni Z ni CLI** → **no se procesa**: se informa y se salta.
+
+Barrido de los 3.757 candidatos con calamine (el glob `*.xls*` también atrapa
+copias `.pdf` y `.txt` del mismo nombre, que no son Excel):
 
 | Grupo | Archivos | Decisión |
 |---|---|---|
 | **Hojas Z + CLI** | **2.706** (2.590 `.xlsm` + 116 `.xlsx`) | **se procesan** |
-| Solo hojas Z | 435 (Central 89 · Higuero 129 · Las Américas 217) | se descartan |
-| Solo hojas CLI | 10 (Barahona 1 · El Catey 2 · Higuero 1 · Las Américas 5 · Puerto Plata 1) | se descartan |
+| **Hojas Z sin CLI** | **435** (Central 89 · Higuero 129 · Las Américas 217) | **se procesan, CLI vacíos** |
+| Solo hojas CLI | 10 (Las Américas 5 · El Catey 2 · Barahona 1 · Higuero 1 · Puerto Plata 1) | se descartan |
 | Ni Z ni CLI | 606 | 605 son **copias `.pdf`/`.txt`** y 1 corrupto: no son Excel |
 
-**Corrección al informe anterior**: los «607 `.xls` binarios» no eran Excel
-binarios; son copias `.pdf`/`.txt` del mismo nombre que el glob `*.xls*`
-atrapaba. Con calamine se abren los `.xls` reales sin problema.
+**Total a procesar: 3.141 observaciones.**
 
-### Hojas CLI duplicadas
+**Corrección al informe anterior**: los «607 `.xls` binarios» no eran Excel
+binarios; son copias `.pdf`/`.txt` del mismo nombre que el glob atrapaba. Con
+calamine los `.xls` reales se abren sin problema.
+
+### Hojas duplicadas
 
 Hay libros con `3074`, `3074(1)`, `4074`, `4074(1)`, `5074`, `5074(1)` (por
 ejemplo `Central/2024/Diciembre/ESTACION CENTRAL 17122024 .xlsm`). Se prefiere
-siempre el nombre exacto (`3074`); si solo existe el sufijado, se usa ese, y el
-reporte lo deja anotado.
+siempre el nombre exacto; si solo existe el sufijado, se usa ese, y el reporte
+lo deja anotado. Igual criterio para las hojas Z.
