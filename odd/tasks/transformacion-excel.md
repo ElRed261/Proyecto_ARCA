@@ -124,3 +124,37 @@ el archivo real:
    `new` (con hoja `3074`) y ninguno `old`. Necesito la ruta de un Excel del
    formato viejo para validar los rangos que me diste (`I17:AA18`,
    `AF13:AW14`, `B20:AW33`, `AP17:AW18`, `AF16:AN18`).
+
+## Acuerdos de la ronda (respuestas del dueño, verificadas)
+
+- **Filas 7 a 9 no se extraen**: son rótulos y encabezados del formulario.
+- **Profundidades del subsuelo** = fila 12. Leídas en el formato nuevo:
+  `AF12`=5, `AI12`=10, `AL12`=15, `AM12`=20, `AO12`=25, `AQ12`=50, `AT12`=100
+  (cm). Son **7 profundidades × 3 filas** (13, 14, 15, alineadas con las horas
+  locales 02, 08 y 14). Si una profundidad no tiene valor, queda vacía: en el
+  archivo de ejemplo solo traen valor 5, 15, 50 y 100 cm.
+- **Piche / Tanque C / Evaporígrafo** = fila **20** (las filas 18 y 19 son
+  rótulos y unidades). En el archivo de ejemplo la fila 20 está vacía.
+- **Horas**: en el Excel son celdas separadas (horas y minutos); el programa las
+  maneja juntas, así que **se concatenan**. Igual criterio para toda hora.
+- **Corrección de altura no se guarda**: el programa la carga por estación.
+- **Vacío se queda vacío**: nunca se inventa un valor.
+- **Presión, formato viejo** (cada valor en 4 celdas): la regla correcta, dada
+  por el dueño, es `v = int("9884") / 10 = 988.4` y `int("0165") / 10 = 16.5`,
+  que al ser menor de 1000 se lleva a `1016.5`. Es decir:
+  `v = int(dígitos) / 10; si v < 1000 → v += 1000`. El decodificador del oráculo
+  (`1000 + int(dígitos[1:4]) / 10`) **está mal** para los valores por debajo de
+  1000 y no se porta.
+- **Formato nuevo**: la presión viene como número normal (`1011.5`, `996.3`);
+  no necesita decodificación.
+- **Formato viejo sin hoja 5074**: verificado en
+  `Datos-Brutos/Central/2023/Diciembre/07122023.xlsm` (hojas `1200Z`, `1500Z`,
+  `1800Z`, `2100Z`, `0000Z`, `0003Z`, `0006Z`, `0009Z`, `Guardar TXT`,
+  `Instrucciones de llenado`): **no existe la hoja 5074**, la hoja Z ocupa
+  `A1:J36` y los datos del día viven ahí con el desfase de filas del oráculo.
+  En ese formato `cli["5074"]` se guarda vacío.
+- **Pendiente**: el dueño describió un 5074 viejo con cada presión en 4 celdas
+  (`I17:AA18`, `AF13:AW14`, `B20:AW33`, `AP17:AW18`, `AF16:AN18`), pero el
+  archivo viejo que encontré **no tiene esa hoja**. Falta la ruta de un archivo
+  que sí la tenga en versión vieja; si no existe, el 5074 viejo se declara
+  inexistente y queda vacío.
