@@ -421,3 +421,22 @@ Mismo criterio por etiqueta para el `4074` y el `5074`: se localizan los rótulo
 (`Estación`, `NMM`, `Altímetro`, `3 H. TEND`, `PTO R`, `T VAP`, `HR`, `DIR.`,
 `VEL.`, los fenómenos) y se toma el valor de la celda siguiente o de la misma
 columna, según la disposición.
+
+## Ronda 36 — Submódulo admin Transformar (dfb355a)
+
+- **S10 entregado**: nueva página del rail «Transformar» (accent #0ea5e9),
+  visible **solo para admin** (`access.PAGE_ROLES["transform"] = ("admin",)`).
+  Elige carpeta → `convertir_carpeta()` recursiva → reporte en vivo por archivo
+  (archivo / resultado / estación / fecha / modelo del 3074 / JSON) con chips
+  (procesados / ya existía / descartados / sin CLI) y casilla
+  «Sobrescribir los días que ya existen» apagada por defecto: nunca se
+  reemplaza a ciegas.
+- Destino: la **misma sección synop** del dato OMS que usa la app
+  (`resolve_base_dir(conn)`), corregido el doble `synop/synop`.
+- Hallazgo de producción: en Central 2025 conviven `3074(1)` ancha (dígitos
+  sueltos, con datos) y `3074` compacta (plantilla vacía); el nombre exacto no
+  siempre es el bueno → la hoja CLI se **elige por contenido** (más celdas con
+  dato en la rejilla de horas) y el reporte lo anota.
+- Verificación: 6 tests nuevos (`tests/test_transform_admin.py`, incluido el
+  guard de roles y el esquema congelado como invariante) + 3 tests de
+  navegación actualizados con la entrada del rail. Suite: 773 passed.
