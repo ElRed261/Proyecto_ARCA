@@ -61,7 +61,7 @@ migración aparece en la auditoría. Efectos observables: un día guardado por `
 | T2 | S2 | `synoptic.save_day` + `save_hour(commit=)` + `oms_ui/pages/synoptic.py` + `tests/test_synoptic_day_transaction.py` | hecho |
 | T3 | S3 | `run_dev.py`, `oms_core/services/auth.py`, `tests/test_auth_first_run.py` | hecho |
 | T4 | S4 | `synoptic._publicar_en_arbol` + `tests/test_sync_after_save.py` | hecho |
-| T5 | S5 | `oms_core/services/audit.py` + tests | pendiente |
+| T5 | S5 | `oms_core/services/audit.py` + `tests/test_audit_browse_source.py` | hecho |
 
 Cada tarea: test en rojo primero, arreglo mínimo, verde, y commit propio porque cada una toca un ítem
 de riesgo alto (datos, seguridad o integridad).
@@ -111,3 +111,15 @@ tocar el archivo real**. Segundo tropiezo del mismo test: el monkeypatch tenía 
 (`default_documents_root(env_map)`) y el `except Exception` de `_publicar_en_arbol` lo tragaba en
 silencio, dando tres rojos confusos — el `except` amplio es correcto en producción y peligroso en
 test, así que la barrera es el fixture, no el `except`.
+
+**L9 — T5 (S5) cerrado, con un segundo bug encontrado de paso.** `browse_days` sólo contaba horas en
+`doc["horas"]`, pero la regla R3 eliminó ese bloque y hoy sólo existe `doc["synop"]`: por eso
+`horas_registradas` salía **siempre 0** y el observador siempre "Desconocido" (se leía sólo
+`meta.observador`, que R3 también borró). Se extrajeron `_horas_con_dato`, `_hora_tiene_dato` y
+`_observador_de` (observador por hora primero, meta como respaldo) y los usa también el camino de
+disco, así que la fila de un día ya muestra lo que el auditor necesita ver.
+
+**L10 — Chequeo diferencial contra el commit base** (`2ce5c79` en `mktemp -d`, misma base de datos
+copiada, mismos tres meses): 0 días y 0 estaciones perdidos; `78485/2025-12` pasa de **14 a 30** días
+visibles (+16), `78486/2025-10` de **20 a 31** (el mes completo), `78482/2026-09` sin cambios y las 15
+estaciones iguales. Es el arreglo, medido sobre el archivo real del dueño.

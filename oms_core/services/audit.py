@@ -313,20 +313,30 @@ def browse_stations(
     base_dir: str | Path,
     conn: sqlite3.Connection | None = None,
 ) -> list[dict[str, str]]:
-    """Digit-only station subdirs, names resolved via the stations repo."""
+    """Station codes: on-disk subdirs plus stations that only live in SQLite."""
     base = Path(base_dir)
-    stations: list[dict[str, str]] = []
+    codigos: set[str] = set()
     if base.exists():
-        for entry in sorted(base.iterdir(), key=lambda p: p.name):
-            if not entry.is_dir() or not entry.name.isascii() or not entry.name.isdigit():
-                continue
-            name = "Estación Desconocida"
-            if conn is not None:
-                row = stations_repo.get_station(conn, entry.name)
-                if row is not None:
-                    name = row.name
-            stations.append({"code": entry.name, "name": name})
-    stations.sort(key=lambda s: s["code"])
+        for entry in base.iterdir():
+            if entry.is_dir() and entry.name.isascii() and entry.name.isdigit():
+                codigos.add(entry.name)
+    if conn is not None:
+        try:
+            rows = conn.execute(
+                "SELECT DISTINCT station_id FROM summary_logs"
+            ).fetchall()
+        except sqlite3.Error:  # noqa: BLE001 - browsing must not break on a bad archive
+            rows = []
+        for row in rows:
+            codigos.add(str(row["station_id"]))
+    stations: list[dict[str, str]] = []
+    for code in sorted(codigos):
+        name = "Estación Desconocida"
+        if conn is not None:
+            row = stations_repo.get_station(conn, code)
+            if row is not None:
+                name = row.name
+        stations.append({"code": code, "name": name})
     return stations
 
 
@@ -359,81 +369,157 @@ def browse_months(base_dir: str | Path, station: str, year: str) -> list[str]:
     return list(dict.fromkeys(months))
 
 
-def browse_days(
-    base_dir: str | Path, conn: sqlite3.Connection, station: str, year: str, month: str
-) -> list[dict[str, Any]]:
-    """One row per ``*.json`` file with DB error/correction counts."""
-    month_dir = Path(base_dir) / normalize_station_code(station) / year / month
-    days: list[dict[str, Any]] = []
-    if not month_dir.exists():
-        return days
-    month_prefix = f"{year}-{month}-%"
-    error_counts = audit_repo.get_daily_error_counts(conn, station, month_prefix)
-    correction_counts = audit_repo.get_daily_correction_counts(conn, station, month_prefix)
-    for entry in sorted(month_dir.iterdir(), key=lambda p: p.name):
-        if not entry.is_file() or entry.suffix != ".json":
+def _horas_con_dato(doc: Any) -> int:
+    """Hours of a day document that actually carry a value."""
+    if not isinstance(doc, dict):
+        return 0
+    horas = doc.get("horas")
+    if not isinstance(horas, dict):
+        horas = doc.get("synop")
+    if not isinstance(horas, dict):
+        return 0
+    total = 0
+    for hora_val in horas.values():
+        if not isinstance(hora_val, dict):
             continue
-        stem = entry.stem
-        if len(stem) >= 8 and stem[-8:].isdigit():
-            part = stem[-8:]
-            date = f"{part[4:8]}-{part[2:4]}-{part[0:2]}"
-        else:
-            date = f"{year}-{month}-01"
-        observador = "Desconocido"
-        horas_registradas = 0
+        if _hora_tiene_dato(hora_val):
+            total += 1
+    return total
+
+
+def _hora_tiene_dato(hora_val: dict) -> bool:
+    datos = hora_val.get("datos")
+    if isinstance(datos, dict):
+        for key, value in datos.items():
+            if key == "correc_alt" or value is None:
+                continue
+            if isinstance(value, str):
+                if value.strip():
+                    return True
+            else:
+                return True
+    synop = hora_val.get("synop")
+    if isinstance(synop, dict):
+        for value in synop.values():
+            if value is None:
+                continue
+            if isinstance(value, str):
+                if value.strip():
+                    return True
+            else:
+                return True
+    return False
+
+
+def _observador_de(doc: Any) -> str:
+    """Observer name of a day document; per-hour first (rule R3), meta as fallback."""
+    if not isinstance(doc, dict):
+        return "Desconocido"
+    horas = doc.get("horas")
+    if not isinstance(horas, dict):
+        horas = doc.get("synop")
+    if isinstance(horas, dict):
+        for entrada in horas.values():
+            if not isinstance(entrada, dict):
+                continue
+            observador = entrada.get("observador")
+            if isinstance(observador, str) and observador.strip():
+                return observador
+    meta = doc.get("meta")
+    if isinstance(meta, dict):
+        observador = meta.get("observador")
+        if isinstance(observador, str) and observador.strip():
+            return observador
+    return "Desconocido"
+
+
+def _dias_desde_sqlite(
+    conn: sqlite3.Connection,
+    station: str,
+    year: str,
+    month: str,
+    error_counts: dict[str, int],
+    correction_counts: dict[str, int],
+) -> list[dict[str, Any]]:
+    """Days that only exist in ``summary_logs`` (kind='diario', day > 0).
+
+    Saves write here, not to the tree, so without this the audit wizard never
+    sees a day recorded after the migration (Judgment Day ESC-01).
+    """
+    station_code = normalize_station_code(station)
+    try:
+        rows = conn.execute(
+            "SELECT day, data FROM summary_logs WHERE station_id = ? AND year = ?"
+            " AND month = ? AND kind = 'diario' AND day > 0 ORDER BY day",
+            (station_code, int(year), int(month)),
+        ).fetchall()
+    except (sqlite3.Error, ValueError):  # noqa: BLE001 - a bad archive must not break browsing
+        return []
+    salida: list[dict[str, Any]] = []
+    for row in rows:
+        day = int(row["day"])
         try:
-            doc = json.loads(entry.read_text(encoding="utf-8"))
-        except (OSError, ValueError):
+            doc = json.loads(row["data"])
+        except (TypeError, ValueError):
             doc = None
-        if isinstance(doc, dict):
-            meta = doc.get("meta")
-            if isinstance(meta, dict):
-                obs = meta.get("observador")
-                if isinstance(obs, str) and obs.strip():
-                    observador = obs
-            horas = doc.get("horas")
-            if isinstance(horas, dict):
-                for hora_val in horas.values():
-                    if not isinstance(hora_val, dict):
-                        continue
-                    has_data = False
-                    datos = hora_val.get("datos")
-                    if isinstance(datos, dict):
-                        for key, value in datos.items():
-                            if key == "correc_alt" or value is None:
-                                continue
-                            if isinstance(value, str):
-                                if value.strip():
-                                    has_data = True
-                                    break
-                            else:
-                                has_data = True
-                                break
-                    if not has_data:
-                        synop = hora_val.get("synop")
-                        if isinstance(synop, dict):
-                            for value in synop.values():
-                                if value is None:
-                                    continue
-                                if isinstance(value, str):
-                                    if value.strip():
-                                        has_data = True
-                                        break
-                                else:
-                                    has_data = True
-                                    break
-                    if has_data:
-                        horas_registradas += 1
-        days.append(
+        date = f"{year}-{month}-{day:02d}"
+        salida.append(
             {
-                "filename": entry.name,
+                "filename": f"{station_code}{day:02d}{month}{year}.json",
                 "date": date,
-                "observador": observador,
-                "horas_registradas": horas_registradas,
+                "observador": _observador_de(doc),
+                "horas_registradas": _horas_con_dato(doc),
                 "error_count": error_counts.get(date, 0),
                 "correction_count": correction_counts.get(date, 0),
             }
         )
+    return salida
+
+
+def browse_days(
+    base_dir: str | Path, conn: sqlite3.Connection, station: str, year: str, month: str
+) -> list[dict[str, Any]]:
+    """One row per day: legacy ``*.json`` file or ``summary_logs`` document.
+
+    The archive and the database are both sources; a day present in both is
+    reported once, and the disk row wins so migrated months keep their names.
+    """
+    month_dir = Path(base_dir) / normalize_station_code(station) / year / month
+    days: list[dict[str, Any]] = []
+    month_prefix = f"{year}-{month}-%"
+    error_counts = audit_repo.get_daily_error_counts(conn, station, month_prefix)
+    correction_counts = audit_repo.get_daily_correction_counts(conn, station, month_prefix)
+    if month_dir.exists():
+        for entry in sorted(month_dir.iterdir(), key=lambda p: p.name):
+            if not entry.is_file() or entry.suffix != ".json":
+                continue
+            stem = entry.stem
+            if len(stem) >= 8 and stem[-8:].isdigit():
+                part = stem[-8:]
+                date = f"{part[4:8]}-{part[2:4]}-{part[0:2]}"
+            else:
+                date = f"{year}-{month}-01"
+            try:
+                doc = json.loads(entry.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                doc = None
+            days.append(
+                {
+                    "filename": entry.name,
+                    "date": date,
+                    "observador": _observador_de(doc),
+                    "horas_registradas": _horas_con_dato(doc),
+                    "error_count": error_counts.get(date, 0),
+                    "correction_count": correction_counts.get(date, 0),
+                }
+            )
+    vistas = {dia["date"] for dia in days}
+    for dia in _dias_desde_sqlite(
+        conn, station, year, month, error_counts, correction_counts
+    ):
+        if dia["date"] not in vistas:
+            days.append(dia)
+            vistas.add(dia["date"])
     days.sort(key=lambda d: d["date"])
     return days
 
