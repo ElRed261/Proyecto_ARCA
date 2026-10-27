@@ -229,6 +229,9 @@ def seed_admin(conn, seed_dir) -> dict[str, str] | None:
         " inmediatamente en el panel de administración.\n"
     )
     (seed_dir / "primer_inicio.txt").write_text(content, encoding="utf-8")
+    # Spec S3: the file holds working passwords, so nobody else on the machine
+    # may read it.
+    (seed_dir / "primer_inicio.txt").chmod(0o600)
     return credentials
 
 

@@ -5,7 +5,9 @@ Ejecutar con el venv GIL (PySide6 no corre en ft):
 
     .venv-gil/bin/python run_dev.py
 
-Credenciales dev (fijas, SOLO desarrollo): admin@arca.rd / ArcaDev123!
+Primer arranque: se siembran los cuatro usuarios con contraseñas aleatorias y
+se escriben en ``<data dir>/primer_inicio.txt`` con permisos 0600. No hay
+credenciales en el repositorio (Judgment Day SEG-01).
 """
 
 from __future__ import annotations
@@ -22,7 +24,6 @@ from oms_core import logging_setup
 from oms_core import paths as paths_mod
 from oms_core.db.connection import connect
 from oms_core.db.migrations import migrate
-from oms_core.db.repositories import users as users_repo
 from oms_core.services import auth
 from oms_ui.login_window import LoginWindow
 from oms_ui.main_window import MainWindow
@@ -39,18 +40,20 @@ from oms_ui.theme import apply_theme
 DB_PATH = paths_mod.database_path()
 DEV_DIR = DB_PATH.parent
 
-DEV_EMAIL = "admin@arca.rd"
-DEV_PASSWORD = "ArcaDev123!"
-
 # Every run writes to <data dir>/logs/oms.log; OMS_LOG_LEVEL=DEBUG for detail.
 LOG_PATH = logging_setup.setup_logging()
 logging_setup.install_excepthook()
 
 
-def ensure_dev_user(conn) -> None:
-    if users_repo.get_user_by_email(conn, DEV_EMAIL) is None:
-        auth.add_user(conn, DEV_EMAIL, auth.hash_password(DEV_PASSWORD), "admin")
-    print(f"[dev] {DEV_EMAIL} / {DEV_PASSWORD}", flush=True)
+def ensure_first_run(conn) -> None:
+    """Seed the four users on an empty database (spec S3)."""
+    seeded = auth.seed_admin(conn, DEV_DIR)
+    if seeded is None:
+        return
+    print("[dev] primer arranque: usuarios sembrados", flush=True)
+    for email, password in seeded.items():
+        print(f"[dev]   {email} : {password}", flush=True)
+    print("[dev] también quedan en primer_inicio.txt (0600)", flush=True)
 
 
 def _center_on_screen(widget) -> None:
@@ -70,7 +73,7 @@ def main() -> int:
     DEV_DIR.mkdir(parents=True, exist_ok=True)
     conn = connect(DB_PATH)
     migrate(conn)
-    ensure_dev_user(conn)
+    ensure_first_run(conn)
 
     app = QApplication([])
     family = apply_theme(app)
