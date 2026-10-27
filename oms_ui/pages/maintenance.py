@@ -28,6 +28,8 @@ from pathlib import Path
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
+    QApplication,
+    QComboBox,
     QFileDialog,
     QGroupBox,
     QHBoxLayout,
@@ -47,6 +49,7 @@ from oms_core.services import access
 from oms_core.services import audit as audit_service
 from oms_core.services import sync as sync_service
 from oms_core.services.sync_thread import SyncWorker
+from oms_ui import theme as theme_mod
 
 #: Retention choices for the backups card (0 = not set).
 _BACKUPS_MAX_DAYS = 3650
@@ -230,6 +233,22 @@ class MaintenancePage(QWidget):
         paths_layout.addWidget(self.save_label)
         content_layout.addWidget(paths_box)
 
+        # ---- apariencia (todos los roles) -------------------------------
+        appearance_box = QGroupBox("Apariencia")
+        appearance_layout = QHBoxLayout(appearance_box)
+        appearance_layout.addWidget(QLabel("Tema"))
+        self.theme_combo = QComboBox()
+        for clave in theme_mod.THEMES:
+            self.theme_combo.addItem(theme_mod.ETIQUETAS[clave], clave)
+        actual = theme_mod.current_theme()
+        self.theme_combo.setCurrentIndex(max(0, self.theme_combo.findData(actual)))
+        self.theme_combo.currentIndexChanged.connect(self._on_theme_changed)
+        appearance_layout.addWidget(self.theme_combo)
+        self.theme_label = QLabel(f"Activo: {theme_mod.ETIQUETAS[actual]}")
+        appearance_layout.addWidget(self.theme_label)
+        appearance_layout.addStretch(1)
+        content_layout.addWidget(appearance_box)
+
         # ---- sync panel (every role) -----------------------------------
         sync_box = QGroupBox("Sincronización")
         sync_layout = QVBoxLayout(sync_box)
@@ -296,6 +315,14 @@ class MaintenancePage(QWidget):
             backups_max_age_days=backups if backups > 0 else None,
             summaries_dir=self.cards["summaries_dir"].edit.text() or None,
         )
+
+    def _on_theme_changed(self, _index: int) -> None:
+        """Cambia el tema en caliente y lo deja guardado (docs/DISENO_OMS.md §1)."""
+        elegido = theme_mod.set_theme(str(self.theme_combo.currentData() or ""))
+        app = QApplication.instance()
+        if app is not None:
+            theme_mod.apply_theme(app, elegido)
+        self.theme_label.setText(f"Activo: {theme_mod.ETIQUETAS[elegido]}")
 
     def save_profile(self) -> bool:
         try:

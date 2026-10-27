@@ -1,20 +1,26 @@
-/* Neo Arca theme v1 (PRD F7.5). Flat + 1px borders + radius.
-   The web oracle's glass blur does NOT port to Qt: sober flat cards instead.
-   Palette: gray-100 bg, white cards, slate text, per-module accents. */
+/* Tema de OMS — PLANTILLA de string.Template.
+   Cada token (fondo, superficie, borde, texto, acento...) lo sustituye
+   oms_ui/theme.py desde PALETTE, ver docs/DISENO_OMS.md §2. Aquí NO se escribe
+   un color literal. Los acentos por módulo (violeta, naranja, teal) son deuda
+   de la fase 1: desaparecen en la fase 2, cuando los setStyleSheet inline ya no
+   compitan con esta hoja.
+   Nota: un signo de peso literal en este archivo lo interpretaría la plantilla;
+   por eso la documentación de arriba no lo usa.
+   Flat + 1px borders + radius: la transparencia del oráculo web no porta a Qt. */
 
 QWidget {
-    background-color: #f3f4f6;
-    color: #1e293b;
+    background-color: $fondo;
+    color: $texto;
     font-size: 13px;
 }
 
 QMainWindow, QDialog {
-    background-color: #f3f4f6;
+    background-color: $fondo;
 }
 
 QGroupBox {
-    background-color: #ffffff;
-    border: 1px solid #e2e8f0;
+    background-color: $superficie;
+    border: 1px solid $borde;
     border-radius: 8px;
     margin-top: 12px;
     padding-top: 8px;
@@ -24,7 +30,7 @@ QGroupBox::title {
     subcontrol-origin: margin;
     left: 10px;
     padding: 0 4px;
-    color: #475569;
+    color: $suave;
 }
 
 QLabel {
@@ -32,141 +38,139 @@ QLabel {
 }
 
 QLineEdit, QComboBox, QDateEdit, QSpinBox {
-    background-color: #ffffff;
-    border: 1px solid #cbd5e1;
+    background-color: $superficie;
+    border: 1px solid $borde_input;
     border-radius: 6px;
     padding: 6px 8px;
 }
 /* text selection only where there is text being selected: on a QComboBox
    the property cascades into the popup list and painted its selection. */
 QLineEdit, QDateEdit, QSpinBox {
-    selection-background-color: #bfdbfe;
+    selection-background-color: $acento_debil;
 }
 QLineEdit:focus, QComboBox:focus, QDateEdit:focus {
-    border: 1px solid #3b82f6;
+    border: 1px solid $acento_foco;
 }
 
 /* QComboBox popup: the combo's own rule must not leak into the list, and
    the list must sit on the same light surface (no dark frame bands). */
 QComboBox QAbstractItemView {
-    background-color: #ffffff;
+    background-color: $superficie;
     border: none;
-    outline: none;
     padding: 4px;
-    selection-background-color: #e2e8f0;
-    selection-color: #0f172a;
+    selection-background-color: $borde;
+    selection-color: $texto_alt;
 }
 QComboBox QAbstractItemView::item {
     padding: 4px 8px;
 }
 QLineEdit[readOnly="true"] {
-    background-color: #f1f5f9;
-    color: #1d4ed8;
+    background-color: $panel;
+    color: $acento_hover;
     font-weight: bold;
 }
 QLineEdit[error="true"] {
-    border: 2px solid #ef4444;
+    border: 2px solid $error;
 }
 
 QPushButton {
-    background-color: #ffffff;
-    border: 1px solid #cbd5e1;
+    background-color: $superficie;
+    border: 1px solid $borde_input;
     border-radius: 6px;
     padding: 7px 14px;
 }
 QPushButton:hover {
-    border-color: #94a3b8;
-    background-color: #f8fafc;
+    border-color: $tenue;
+    background-color: $panel_alt;
 }
 QPushButton:disabled {
-    color: #94a3b8;
-    background-color: #f1f5f9;
+    color: $tenue;
+    background-color: $panel;
 }
 QPushButton[primary="true"] {
-    background-color: #2563eb;
-    border: 1px solid #2563eb;
-    color: #ffffff;
+    background-color: $acento;
+    border: 1px solid $acento;
+    color: $superficie;
     font-weight: bold;
 }
 QPushButton[primary="true"]:hover {
-    background-color: #1d4ed8;
+    background-color: $acento_hover;
 }
 QPushButton[primary="true"]:disabled {
-    background-color: #93c5fd;
-    border-color: #93c5fd;
-    color: #ffffff;
+    background-color: $acento_deshabilitado;
+    border-color: $acento_deshabilitado;
+    color: $superficie;
 }
 QPushButton[danger="true"] {
-    background-color: #dc2626;
-    border: 1px solid #dc2626;
-    color: #ffffff;
+    background-color: $error_fuerte;
+    border: 1px solid $error_fuerte;
+    color: $superficie;
 }
 
 QTableView {
-    background-color: #ffffff;
-    alternate-background-color: #f8fafc;
-    border: 1px solid #e2e8f0;
+    background-color: $superficie;
+    alternate-background-color: $panel_alt;
+    border: 1px solid $borde;
     border-radius: 8px;
-    gridline-color: #e2e8f0;
+    gridline-color: $borde;
 }
 QHeaderView::section {
-    background-color: #f1f5f9;
+    background-color: $panel;
     border: none;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid $borde;
     padding: 6px;
     font-weight: bold;
-    color: #475569;
+    color: $suave;
 }
 
 QTabWidget::pane {
-    background-color: #ffffff;
-    border: 1px solid #e2e8f0;
+    background-color: $superficie;
+    border: 1px solid $borde;
     border-radius: 8px;
 }
 QTabBar::tab {
-    background-color: #f1f5f9;
-    border: 1px solid #e2e8f0;
+    background-color: $panel;
+    border: 1px solid $borde;
     border-bottom: none;
     border-top-left-radius: 6px;
     border-top-right-radius: 6px;
     padding: 6px 14px;
-    color: #475569;
+    color: $suave;
 }
 QTabBar::tab:selected {
-    background-color: #ffffff;
-    color: #1e293b;
+    background-color: $superficie;
+    color: $texto;
 }
 
 QListWidget {
-    background-color: #ffffff;
-    border: 1px solid #e2e8f0;
+    background-color: $superficie;
+    border: 1px solid $borde;
     border-radius: 8px;
-    outline: none;
 }
 QListWidget::item {
     padding: 8px;
     border-radius: 6px;
 }
 QListWidget::item:selected {
-    background-color: #dbeafe;
-    color: #1e40af;
+    background-color: $acento_debil_alt;
+    color: $acento_texto;
 }
 
 QStatusBar {
-    background-color: #ffffff;
-    border-top: 1px solid #e2e8f0;
-    color: #475569;
+    background-color: $superficie;
+    border-top: 1px solid $borde;
+    color: $suave;
 }
 
 QProgressBar {
-    background-color: #e2e8f0;
+    background-color: $borde;
     border: none;
     border-radius: 4px;
     text-align: center;
-    color: #1e40af;
+    color: $acento_texto;
 }
 QProgressBar::chunk {
-    background-color: #3b82f6;
+    background-color: $acento_foco;
     border-radius: 4px;
 }
 
@@ -175,7 +179,7 @@ QScrollBar:vertical {
     width: 10px;
 }
 QScrollBar::handle:vertical {
-    background-color: #cbd5e1;
+    background-color: $borde_input;
     border-radius: 5px;
     min-height: 30px;
 }
@@ -186,44 +190,44 @@ QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
 /* ===== Neo Arca theme v2 (IMG vocabulary) ===== */
 QPushButton[primary="true"] {
     background-color: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 0,
-        stop: 0 #2563eb, stop: 1 #7c3aed);
+        stop: 0 $acento, stop: 1 $violeta);
     border: none;
     border-radius: 8px;
-    color: #ffffff;
+    color: $superficie;
     font-weight: bold;
     padding: 10px 14px;
 }
 QPushButton[primary="true"]:hover {
     background-color: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 0,
-        stop: 0 #1d4ed8, stop: 1 #6d28d9);
+        stop: 0 $acento_hover, stop: 1 $violeta_fuerte);
 }
 QPushButton[primary="true"]:disabled {
-    background-color: #c4b5fd;
-    color: #ffffff;
+    background-color: $violeta_deshabilitado;
+    color: $superficie;
 }
 QPushButton[accent="orange"] {
-    background-color: #ea580c;
-    border: 1px solid #ea580c;
-    color: #ffffff;
+    background-color: $naranja;
+    border: 1px solid $naranja;
+    color: $superficie;
     font-weight: bold;
     border-radius: 8px;
     padding: 9px 16px;
 }
-QPushButton[accent="orange"]:hover { background-color: #c2410c; }
+QPushButton[accent="orange"]:hover { background-color: $naranja_fuerte; }
 QPushButton[accent="green"] {
-    background-color: #16a34a;
-    border: 1px solid #16a34a;
-    color: #ffffff;
+    background-color: $ok;
+    border: 1px solid $ok;
+    color: $superficie;
     font-weight: bold;
     border-radius: 8px;
     padding: 9px 16px;
 }
-QPushButton[accent="green"]:hover { background-color: #15803d; }
+QPushButton[accent="green"]:hover { background-color: $ok_fuerte; }
 QPushButton[circle="true"] {
-    border: 1px solid #e2e8f0;
+    border: 1px solid $borde;
     border-radius: 22px;
-    background-color: #ffffff;
-    color: #3b82f6;
+    background-color: $superficie;
+    color: $acento_foco;
     font-weight: bold;
 }
 QPushButton[link="true"] {
@@ -232,125 +236,147 @@ QPushButton[link="true"] {
     padding: 2px;
     font-weight: bold;
 }
-QPushButton[link="blue"] { color: #2563eb; }
-QPushButton[link="violet"] { color: #a855f7; }
-QPushButton[link="orange"] { color: #ea580c; }
+QPushButton[link="blue"] { color: $acento; }
+QPushButton[link="violet"] { color: $violeta_suave; }
+QPushButton[link="orange"] { color: $naranja; }
 QLabel[pill="role"] {
-    background-color: #f3e8ff;
-    color: #7c3aed;
+    background-color: $violeta_fondo;
+    color: $violeta;
     border-radius: 10px;
     padding: 2px 12px;
     font-weight: 600;
 }
 QLabel[pill="ok"] {
-    background-color: #dcfce7;
-    color: #15803d;
+    background-color: $ok_fondo;
+    color: $ok_fuerte;
     border-radius: 10px;
     padding: 2px 12px;
     font-weight: 600;
 }
 QLabel[pill="info"] {
-    background-color: #dbeafe;
-    color: #1d4ed8;
+    background-color: $acento_debil_alt;
+    color: $acento_hover;
     border-radius: 10px;
     padding: 2px 12px;
     font-weight: 600;
 }
 QLabel[pill="warn"] {
-    background-color: #fef3c7;
-    color: #b45309;
+    background-color: $ambar_fondo;
+    color: $ambar;
     border-radius: 10px;
     padding: 2px 12px;
     font-weight: 600;
 }
 QFrame[tint="violet"] {
-    background-color: #faf5ff;
-    border: 1px solid #e9d5ff;
+    background-color: $violeta_debil;
+    border: 1px solid $violeta_borde;
     border-radius: 12px;
 }
 QFrame[tint="orange"] {
-    background-color: #fff7ed;
-    border: 1px solid #fed7aa;
+    background-color: $naranja_fondo;
+    border: 1px solid $naranja_debil;
     border-radius: 12px;
 }
 QFrame[tint="blue"] {
-    background-color: #eff6ff;
-    border: 1px solid #bfdbfe;
+    background-color: $acento_fondo;
+    border: 1px solid $acento_debil;
     border-radius: 12px;
 }
 QFrame[tint="teal"] {
-    background-color: #f0fdfa;
-    border: 1px solid #99f6e4;
+    background-color: $teal_fondo;
+    border: 1px solid $teal_borde;
     border-radius: 12px;
 }
 QLabel[cardTitle="true"] {
     font-size: 18px;
     font-weight: 800;
-    color: #0f172a;
+    color: $texto_alt;
     background-color: transparent;
 }
 QLabel[cardSub="true"] {
     font-size: 13px;
-    color: #64748b;
+    color: $suave_alt;
     background-color: transparent;
 }
 QLabel[emptyTitle="true"] {
     font-size: 16px;
     font-weight: 800;
-    color: #0f172a;
+    color: $texto_alt;
     background-color: transparent;
 }
 QLabel[emptyBody="true"] {
     font-size: 13px;
-    color: #64748b;
+    color: $suave_alt;
     background-color: transparent;
 }
 QLabel[tile="blue"] {
-    background-color: #3b82f6;
-    color: #ffffff;
+    background-color: $acento_foco;
+    color: $superficie;
     border-radius: 10px;
     font-size: 18px;
     font-weight: 800;
     padding: 10px;
 }
 QLabel[tile="violet"] {
-    background-color: #a855f7;
-    color: #ffffff;
+    background-color: $violeta_suave;
+    color: $superficie;
     border-radius: 10px;
     font-size: 18px;
     font-weight: 800;
     padding: 10px;
 }
 QLabel[tile="orange"] {
-    background-color: #f97316;
-    color: #ffffff;
+    background-color: $naranja_alt;
+    color: $superficie;
     border-radius: 10px;
     font-size: 18px;
     font-weight: 800;
     padding: 10px;
 }
 QLabel[tile="teal"] {
-    background-color: #0d9488;
-    color: #ffffff;
+    background-color: $teal;
+    color: $superficie;
     border-radius: 10px;
     font-size: 18px;
     font-weight: 800;
     padding: 10px;
 }
 QLabel[tile="gray"] {
-    background-color: #64748b;
-    color: #ffffff;
+    background-color: $suave_alt;
+    color: $superficie;
     border-radius: 10px;
     font-size: 18px;
     font-weight: 800;
     padding: 10px;
 }
 QPushButton[dark="true"] {
-    background-color: #0f172a;
-    border: 1px solid #0f172a;
-    color: #ffffff;
+    background-color: $texto_alt;
+    border: 1px solid $texto_alt;
+    color: $superficie;
     font-weight: bold;
     border-radius: 8px;
     padding: 9px 16px;
 }
-QPushButton[dark="true"]:hover { background-color: #1e293b; }
+QPushButton[dark="true"]:hover { background-color: $texto; }
+
+/* ---------------------------------------------------------------- estados
+   §4 de docs/DISENO_OMS.md. Un control deshabilitado NO puede verse igual que
+   uno editable: era el defecto UI-02, por el que el observador no distinguía
+   las celdas bloqueadas del Sinóptico. Solo propiedades que Qt entiende: nada
+   de `opacity` ni `outline`, que Qt descarta en silencio. */
+
+QLineEdit:disabled, QComboBox:disabled, QDateEdit:disabled, QSpinBox:disabled,
+QDoubleSpinBox:disabled, QPlainTextEdit:disabled, QTextEdit:disabled {
+    background-color: $panel;
+    color: $tenue;
+    border: 1px dashed $borde_input;
+}
+
+QPushButton:focus, QToolButton:focus, QCheckBox:focus, QRadioButton:focus,
+QComboBox:focus, QToolTip:focus {
+    border: 2px solid $acento_foco;
+}
+
+QCheckBox:disabled, QRadioButton:disabled, QLabel:disabled {
+    color: $tenue;
+}
