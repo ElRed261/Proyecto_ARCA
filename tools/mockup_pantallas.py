@@ -901,6 +901,686 @@ def pantalla_cli5074(p: dict) -> QWidget:
     return pagina
 
 
+# ---------------------------------------------------------------- Auditoría
+# Estructura leída de audit.py (header + breadcrumbs + panel por pasos y filas
+# de día con badges), audit_observation.py (header, horas, cuerpo en 3:1) y
+# audit_report.py (filtros, notas, tres pestañas de tabla, exportar).
+
+ESTACIONES = (
+    "Las Américas (78485)", "Central (78486)", "Barahona (78482)",
+    "Cabrera (78481)", "El Catey (MDCY)", "Higuero (78484)",
+    "Santiago (78483)", "Puerto Plata (78487)", "La Romana (78488)",
+    "Punta Cana (78489)", "San Isidro (78490)", "Monte Cristi (78491)",
+)
+
+
+def _card_audit(p: dict) -> tuple[QWidget, QVBoxLayout]:
+    caja = QWidget()
+    caja.setObjectName("cardA")
+    caja.setStyleSheet(
+        f"QWidget#cardA {{ background:{p['superficie']};"
+        f" border:1px solid {p['borde']}; border-radius:10px; }}"
+    )
+    cv = QVBoxLayout(caja)
+    cv.setContentsMargins(14, 12, 14, 12)
+    cv.setSpacing(6)
+    return caja, cv
+
+
+def _badge(p: dict, texto: str, tipo: str = "muted") -> QLabel:
+    colores = {
+        "error": (p["error_suave"], p["error"], p["error"]),
+        "ok": (p["ok_fondo"], p["ok"], p["ok"]),
+        "muted": (p["panel"], p["tenue"], p["borde"]),
+    }[tipo]
+    fondo, tinta, borde = colores
+    lab = QLabel(texto)
+    lab.setFont(ui(11, 700))
+    lab.setStyleSheet(
+        f"background:{fondo};color:{tinta};border:1px solid {borde};"
+        "border-radius:9px;padding:3px 9px;"
+    )
+    return lab
+
+
+def _cabecera_audit(p: dict, con_reporte: bool = True) -> QHBoxLayout:
+    cab = QHBoxLayout()
+    titulos = QVBoxLayout()
+    titulos.setSpacing(0)
+    t = QLabel("Módulo de Auditoría")
+    t.setFont(ui(22, 800))
+    t.setStyleSheet(f"color:{p['texto']};background:transparent;")
+    sub = QLabel(
+        "Control de Calidad, Marcado de Errores y Superposición de Correcciones"
+    )
+    sub.setFont(ui(12))
+    sub.setStyleSheet(f"color:{p['suave']};background:transparent;")
+    titulos.addWidget(t)
+    titulos.addWidget(sub)
+    cab.addLayout(titulos, 1)
+    if con_reporte:
+        boton = QLabel("Reporte General de Errores")
+        boton.setFont(ui(12, 700))
+        boton.setFixedHeight(32)
+        boton.setStyleSheet(
+            f"background:{p['acento']};color:{p['superficie']};"
+            "border:none;border-radius:4px;padding:0 14px;"
+        )
+        cab.addWidget(boton, 0, Qt.AlignVCenter)
+    return cab
+
+
+def _crumbs(p: dict, pasos: tuple[str, ...]) -> QWidget:
+    barra = QWidget()
+    barra.setObjectName("crumbA")
+    barra.setStyleSheet(
+        f"QWidget#crumbA {{ background:{p['panel']};"
+        f" border:1px solid {p['borde']}; border-radius:6px; }}"
+    )
+    row = QHBoxLayout(barra)
+    row.setContentsMargins(12, 8, 12, 8)
+    row.setSpacing(6)
+    for indice, texto in enumerate(pasos):
+        if indice:
+            sep = QLabel("›")
+            sep.setStyleSheet(f"color:{p['tenue']};background:transparent;")
+            row.addWidget(sep)
+        activo = indice == len(pasos) - 1
+        lab = QLabel(texto)
+        lab.setFont(ui(11, 700 if activo else 400))
+        lab.setStyleSheet(
+            f"color:{p['texto'] if activo else p['suave']};background:transparent;"
+        )
+        row.addWidget(lab)
+    row.addStretch(1)
+    return barra
+
+
+def _titulo_paso(p: dict, texto: str) -> QLabel:
+    lab = QLabel(f"◉  {texto}")
+    lab.setFont(ui(15, 700))
+    lab.setStyleSheet(f"color:{p['texto']};background:transparent;")
+    return lab
+
+
+def pantalla_audit_estaciones(p: dict) -> QWidget:
+    pagina = QWidget()
+    pagina.setObjectName("pagina")
+    pagina.setStyleSheet(f"QWidget#pagina {{ background:{p['fondo']}; }}")
+    v = QVBoxLayout(pagina)
+    v.setContentsMargins(20, 16, 20, 16)
+    v.setSpacing(12)
+    v.addLayout(_cabecera_audit(p))
+    v.addWidget(_crumbs(p, ("Estaciones",)))
+
+    panel, cv = _card_audit(p)
+    cv.addWidget(_titulo_paso(p, "Seleccione una Estación Meteorológica"))
+    grilla = QGridLayout()
+    grilla.setHorizontalSpacing(12)
+    grilla.setVerticalSpacing(12)
+    for indice, nombre in enumerate(ESTACIONES):
+        tarjeta = QWidget()
+        tarjeta.setObjectName("tarjA")
+        tarjeta.setStyleSheet(
+            f"QWidget#tarjA {{ background:{p['superficie']};"
+            f" border:1px solid {p['borde']}; border-radius:8px; }}"
+        )
+        tc = QVBoxLayout(tarjeta)
+        tc.setContentsMargins(14, 12, 14, 12)
+        tc.setSpacing(4)
+        hint = QLabel("ESTACIÓN")
+        hint.setFont(ui(9, 700))
+        hint.setStyleSheet(f"color:{p['tenue']};background:transparent;border:none;")
+        nombre_lab = QLabel(nombre)
+        nombre_lab.setFont(ui(14, 700))
+        nombre_lab.setStyleSheet(f"color:{p['texto']};background:transparent;border:none;")
+        pie = QHBoxLayout()
+        explorar = QLabel("Explorar años")
+        explorar.setFont(ui(11, 600))
+        explorar.setStyleSheet(f"color:{p['acento']};background:transparent;border:none;")
+        flecha = QLabel("›")
+        flecha.setStyleSheet(f"color:{p['tenue']};background:transparent;border:none;")
+        pie.addWidget(explorar)
+        pie.addStretch(1)
+        pie.addWidget(flecha)
+        tc.addWidget(hint)
+        tc.addWidget(nombre_lab)
+        tc.addLayout(pie)
+        grilla.addWidget(tarjeta, indice // 4, indice % 4)
+    for col in range(4):
+        grilla.setColumnStretch(col, 1)
+    cv.addLayout(grilla)
+    cv.addStretch(1)
+    v.addWidget(panel, 1)
+    estado = QLabel("12 estaciones disponibles · el panel se llena desde summary_logs y el árbol")
+    estado.setFont(ui(11))
+    estado.setStyleSheet(f"color:{p['tenue']};background:transparent;")
+    v.addWidget(estado)
+    return pagina
+
+
+def pantalla_audit_dias(p: dict) -> QWidget:
+    pagina = QWidget()
+    pagina.setObjectName("pagina")
+    pagina.setStyleSheet(f"QWidget#pagina {{ background:{p['fondo']}; }}")
+    v = QVBoxLayout(pagina)
+    v.setContentsMargins(20, 16, 20, 16)
+    v.setSpacing(12)
+    v.addLayout(_cabecera_audit(p))
+    v.addWidget(_crumbs(p, ("Estaciones", "Estación Las Américas", "2025", "Diciembre")))
+
+    panel, cv = _card_audit(p)
+    cv.addWidget(
+        _titulo_paso(p, "Listado de Días — Estación Las Américas (Diciembre 2025)")
+    )
+    dias = (
+        ("31", "2025-12-31", "JUAN RODRIGUEZ", 0, 0, 0, True),
+        ("30", "2025-12-30", "MENDEZ", 2, 0, 0, True),
+        ("29", "2025-12-29", "FELIPE", 0, 1, 0, True),
+        ("28", "2025-12-28", "JUAN RODRIGUEZ", 3, 2, 0, False),
+        ("27", "2025-12-27", "MENDEZ", 0, 0, 0, False),
+        ("26", "2025-12-26", "FELIPE", 1, 0, 1, False),
+        ("25", "2025-12-25", "JUAN RODRIGUEZ", 0, 0, 0, False),
+        ("21", "2025-12-21", "MENDEZ", 4, 4, 0, False),
+    )
+    for numero, fecha, obs, errores, correcciones, revisados, cerrado in dias:
+        fila = QWidget()
+        fila.setObjectName("filaD")
+        fila.setStyleSheet(
+            f"QWidget#filaD {{ background:{p['superficie']};"
+            f" border:1px solid {p['borde']}; border-radius:8px; }}"
+        )
+        fl = QHBoxLayout(fila)
+        fl.setContentsMargins(14, 10, 14, 10)
+        fl.setSpacing(12)
+        textos = QVBoxLayout()
+        textos.setSpacing(2)
+        titulo = QLabel(f"Día {numero} ({fecha})")
+        titulo.setFont(ui(14, 700))
+        titulo.setStyleSheet(f"color:{p['texto']};background:transparent;border:none;")
+        textos.addWidget(titulo)
+        meta = QHBoxLayout()
+        meta.setSpacing(14)
+        for texto in (f"Obs: {obs}", f"Horas: {5 if cerrado else 0}"):
+            lab = QLabel(texto)
+            lab.setFont(ui(11))
+            lab.setStyleSheet(f"color:{p['suave']};background:transparent;border:none;")
+            meta.addWidget(lab)
+        meta.addStretch(1)
+        textos.addLayout(meta)
+        fl.addLayout(textos, 1)
+        badges = QHBoxLayout()
+        badges.setSpacing(6)
+        if errores:
+            badges.addWidget(_badge(p, f"{errores} Error{'es' if errores > 1 else ''}", "error"))
+        if correcciones:
+            badges.addWidget(
+                _badge(p, f"{correcciones} Correcci{'ones' if correcciones > 1 else 'ón'}", "ok")
+            )
+        if revisados:
+            badges.addWidget(_badge(p, "Revisado", "muted"))
+        if cerrado:
+            badges.addWidget(_badge(p, "Cerrado", "muted"))
+        fl.addLayout(badges)
+        cv.addWidget(fila)
+    cv.addStretch(1)
+    v.addWidget(panel, 1)
+    estado = QLabel("8 días en el mes · los badges salen del conteo real de marcas y correcciones")
+    estado.setFont(ui(11))
+    estado.setStyleSheet(f"color:{p['tenue']};background:transparent;")
+    v.addWidget(estado)
+    return pagina
+
+
+def pantalla_audit_observacion(p: dict) -> QWidget:
+    pagina = QWidget()
+    pagina.setObjectName("pagina")
+    pagina.setStyleSheet(f"QWidget#pagina {{ background:{p['fondo']}; }}")
+    v = QVBoxLayout(pagina)
+    v.setContentsMargins(20, 14, 20, 14)
+    v.setSpacing(10)
+
+    # ---- cabecera: pastillas + título | observador/auditor + acciones -----
+    cab = QHBoxLayout()
+    izq = QVBoxLayout()
+    izq.setSpacing(4)
+    pastillas = QHBoxLayout()
+    pastillas.setSpacing(6)
+    for texto, tipo in (("ESTACIÓN 78485", "acento"), ("08/12/2025", "panel")):
+        lab = QLabel(texto)
+        lab.setFont(ui(11, 700))
+        if tipo == "acento":
+            lab.setStyleSheet(
+                f"background:{p['naranja_fondo']};color:{p['naranja_fuerte']};"
+                f"border:1px solid {p['naranja_debil']};border-radius:9px;padding:3px 9px;"
+            )
+        else:
+            lab.setStyleSheet(
+                f"background:{p['panel']};color:{p['suave']};"
+                f"border:1px solid {p['borde']};border-radius:9px;padding:3px 9px;"
+            )
+        pastillas.addWidget(lab)
+    pastillas.addStretch(1)
+    izq.addLayout(pastillas)
+    titulo = QLabel("Auditoría de Datos Meteorológicos")
+    titulo.setFont(ui(20, 800))
+    titulo.setStyleSheet(f"color:{p['texto']};background:transparent;")
+    izq.addWidget(titulo)
+    cab.addLayout(izq, 1)
+
+    der = QVBoxLayout()
+    der.setSpacing(6)
+    info, info_cv = _card_audit(p)
+    info_cv.setContentsMargins(10, 6, 10, 6)
+    fila_info = QHBoxLayout()
+    for texto in ("Observador: JUAN RODRIGUEZ", "Auditor: calidad@arca.rd"):
+        lab = QLabel(texto)
+        lab.setFont(ui(11, 600))
+        lab.setStyleSheet(f"color:{p['suave']};background:transparent;border:none;")
+        fila_info.addWidget(lab)
+    info_cv.addLayout(fila_info)
+    der.addWidget(info, 0, Qt.AlignRight)
+
+    acciones = QHBoxLayout()
+    acciones.setSpacing(6)
+    for modulo in ("CLI 3074", "CLI 4074", "CLI 5074"):
+        boton = QLabel(modulo)
+        boton.setFont(ui(11, 600))
+        boton.setFixedHeight(28)
+        boton.setStyleSheet(
+            f"background:{p['superficie']};color:{p['suave']};"
+            f"border:1px solid {p['borde']};border-radius:4px;padding:0 10px;"
+        )
+        acciones.addWidget(boton)
+    guardar = QLabel("Guardar correcciones")
+    guardar.setFont(ui(12, 700))
+    guardar.setFixedHeight(30)
+    guardar.setStyleSheet(
+        f"background:{p['acento']};color:{p['superficie']};"
+        "border:none;border-radius:4px;padding:0 12px;"
+    )
+    acciones.addWidget(guardar)
+    der.addLayout(acciones)
+
+    estado_fila = QHBoxLayout()
+    estado = QLabel("Día sin cerrar · 3 marcas")
+    estado.setFont(ui(11))
+    estado.setStyleSheet(f"color:{p['suave']};background:transparent;")
+    terminar = QLabel("Terminar auditoría")
+    terminar.setFont(ui(11, 600))
+    terminar.setFixedHeight(28)
+    terminar.setStyleSheet(
+        f"background:transparent;color:{p['suave']};"
+        f"border:1px solid {p['borde']};border-radius:4px;padding:0 10px;"
+    )
+    estado_fila.addWidget(estado)
+    estado_fila.addWidget(terminar)
+    der.addLayout(estado_fila)
+    cab.addLayout(der, 0)
+    v.addLayout(cab)
+
+    # ---- tira de horas con su punto de estado -----------------------------
+    barra, barra_cv = _card_audit(p)
+    barra_cv.setContentsMargins(8, 8, 8, 8)
+    fila_horas = QHBoxLayout()
+    fila_horas.setSpacing(6)
+    for hora in HORAS:
+        activa = hora == HORA_ACTIVA
+        boton = QLabel(hora)
+        boton.setFont(mono(10))
+        boton.setFixedHeight(26)
+        boton.setMinimumWidth(56)
+        boton.setAlignment(Qt.AlignCenter)
+        boton.setStyleSheet(
+            f"background:{p['acento_suave'] if activa else p['superficie']};"
+            f"color:{p['acento'] if activa else p['suave']};"
+            f"border:1px solid {p['acento'] if activa else p['borde']};border-radius:4px;"
+        )
+        fila_horas.addWidget(boton)
+        punto = QLabel("●")
+        punto.setFont(ui(7))
+        punto.setStyleSheet(
+            f"color:{p['error'] if hora in ('15Z', '21Z') else p['borde']};"
+            "background:transparent;"
+        )
+        fila_horas.addWidget(punto)
+    fila_horas.addStretch(1)
+    barra_cv.addLayout(fila_horas)
+    v.addWidget(barra)
+
+    # ---- cuerpo 3:1 -------------------------------------------------------
+    cuerpo = QHBoxLayout()
+    cuerpo.setSpacing(12)
+
+    izquierda = QVBoxLayout()
+    izquierda.setSpacing(12)
+
+    card_synop, synop_cv = _card_audit(p)
+    titulo_synop = QLabel("Secciones SYNOP OMM")
+    titulo_synop.setFont(ui(12, 800))
+    titulo_synop.setStyleSheet(f"color:{p['texto']};background:transparent;border:none;")
+    synop_cv.addWidget(titulo_synop)
+    pista = QLabel("Hacer click en un campo para marcar error o corregir")
+    pista.setFont(ui(10))
+    pista.setStyleSheet(f"color:{p['suave']};background:transparent;border:none;")
+    synop_cv.addWidget(pista)
+    secciones = (
+        ("IDENTIFICACIÓN Y VIENTO", ("MiMiMjMj", "YYGGIw", "IIiii", "IrIXHVV", "Nddff")),
+        ("TEMPERATURA Y PRESIÓN", ("1snTTT", "2snTdTdTd", "4PPPP", "5aPPP", "7wwW1W2")),
+        ("NUBOSIDAD Y ESTADO", ("8NhCLCMCH", "0CSDLDMDH", "3Ejjj", "5EEEjE")),
+    )
+    for titulo_sec, campos in secciones:
+        caption = QLabel(titulo_sec)
+        caption.setFont(ui(10, 800))
+        caption.setStyleSheet(
+            f"color:{p['naranja_fuerte']};background:transparent;border:none;"
+            "padding-top:4px;"
+        )
+        synop_cv.addWidget(caption)
+        fila = QHBoxLayout()
+        fila.setSpacing(6)
+        for campo in campos:
+            celda = QVBoxLayout()
+            celda.setSpacing(2)
+            etiqueta = QLabel(campo)
+            etiqueta.setFont(ui(9, 600))
+            etiqueta.setStyleSheet(
+                f"color:{p['suave']};background:transparent;border:none;"
+            )
+            celda.addWidget(etiqueta)
+            marcado = campo == "2snTdTdTd"
+            caja = QLabel("20186" if campo in ("1snTTT", "2snTdTdTd") else "")
+            caja.setFont(mono(11))
+            caja.setFixedHeight(28)
+            caja.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+            caja.setStyleSheet(
+                f"background:{p['error_suave'] if marcado else p['superficie']};"
+                f"color:{p['texto']};"
+                f"border:1px solid {p['error'] if marcado else p['borde']};"
+                "border-radius:4px;padding:0 6px;"
+            )
+            celda.addWidget(caja)
+            fila.addLayout(celda)
+        synop_cv.addLayout(fila)
+    izquierda.addWidget(card_synop)
+
+    card_inst, inst_cv = _card_audit(p)
+    titulo_inst = QLabel("Cálculos e Instrumentales de Estación")
+    titulo_inst.setFont(ui(12, 800))
+    titulo_inst.setStyleSheet(f"color:{p['texto']};background:transparent;border:none;")
+    inst_cv.addWidget(titulo_inst)
+    fila_inst = QHBoxLayout()
+    fila_inst.setSpacing(6)
+    for etiqueta, valor in (
+        ("Pres. NMM (hPa)", "1011.4"), ("Humedad (%)", "74.2"),
+        ("Punto rocío (°C)", "24.9"), ("Tensión vapor", "30.2"),
+    ):
+        celda = QVBoxLayout()
+        celda.setSpacing(2)
+        lab = QLabel(etiqueta)
+        lab.setFont(ui(9, 600))
+        lab.setStyleSheet(f"color:{p['suave']};background:transparent;border:none;")
+        celda.addWidget(lab)
+        caja = QLabel(valor)
+        caja.setFont(mono(11))
+        caja.setFixedHeight(28)
+        caja.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        caja.setStyleSheet(
+            f"background:{p['panel']};color:{p['suave']};"
+            f"border:1px solid {p['borde']};border-radius:4px;padding:0 6px;"
+        )
+        celda.addWidget(caja)
+        fila_inst.addLayout(celda)
+    inst_cv.addLayout(fila_inst)
+    izquierda.addWidget(card_inst)
+    izquierda.addStretch(1)
+    cuerpo.addLayout(izquierda, 3)
+
+    derecha = QVBoxLayout()
+    derecha.setSpacing(12)
+    card_estado = QWidget()
+    card_estado.setObjectName("estadoA")
+    card_estado.setStyleSheet(
+        f"QWidget#estadoA {{ background:{p['naranja']}; border-radius:10px; }}"
+    )
+    est_cv = QVBoxLayout(card_estado)
+    est_cv.setContentsMargins(14, 12, 14, 12)
+    est_cv.setSpacing(8)
+    titulo_est = QLabel("◉  ESTADO DE AUDITORÍA")
+    titulo_est.setFont(ui(11, 800))
+    titulo_est.setStyleSheet(f"color:{p['naranja_fondo']};background:transparent;")
+    est_cv.addWidget(titulo_est)
+    tiles = QHBoxLayout()
+    tiles.setSpacing(6)
+    for etiqueta, valor in (("Marcas", "3"), ("Correcciones", "1"), ("Revisados", "12")):
+        tile = QWidget()
+        tile.setObjectName("tileA")
+        tile.setStyleSheet(
+            "QWidget#tileA { background: rgba(255,255,255,0.16); border-radius:6px; }"
+        )
+        tc = QVBoxLayout(tile)
+        tc.setContentsMargins(8, 6, 8, 6)
+        tc.setSpacing(0)
+        v1 = QLabel(valor)
+        v1.setFont(mono(15))
+        v1.setStyleSheet(f"color:{p['naranja_fondo']};background:transparent;border:none;")
+        v2 = QLabel(etiqueta)
+        v2.setFont(ui(9, 600))
+        v2.setStyleSheet(f"color:{p['naranja_fondo']};background:transparent;border:none;")
+        tc.addWidget(v1)
+        tc.addWidget(v2)
+        tiles.addWidget(tile)
+    est_cv.addLayout(tiles)
+    derecha.addWidget(card_estado, 0)
+
+    card_marcas, marcas_cv = _card_audit(p)
+    titulo_marcas = QLabel("Marcas en este día")
+    titulo_marcas.setFont(ui(12, 800))
+    titulo_marcas.setStyleSheet(f"color:{p['texto']};background:transparent;border:none;")
+    marcas_cv.addWidget(titulo_marcas)
+    for hora, campo, nota in (
+        ("15Z", "2snTdTdTd", "dato ilegible en el libro"),
+        ("21Z", "Nddff", "dirección no es múltiplo de 10"),
+        ("00Z", "7wwW1W2", "grupo incompleto"),
+    ):
+        fila = QWidget()
+        fila.setObjectName("marcaA")
+        fila.setStyleSheet(
+            f"QWidget#marcaA {{ background:{p['error_suave']}; border-radius:6px; }}"
+        )
+        fc = QVBoxLayout(fila)
+        fc.setContentsMargins(8, 6, 8, 6)
+        fc.setSpacing(1)
+        cab_m = QLabel(f"{hora} · {campo}")
+        cab_m.setFont(ui(11, 700))
+        cab_m.setStyleSheet(f"color:{p['error']};background:transparent;border:none;")
+        fc.addWidget(cab_m)
+        nota_lab = QLabel(nota)
+        nota_lab.setFont(ui(10))
+        nota_lab.setStyleSheet(f"color:{p['suave']};background:transparent;border:none;")
+        fc.addWidget(nota_lab)
+        marcas_cv.addWidget(fila)
+    marcas_cv.addStretch(1)
+    aplicar = QLabel("Aplicar corrección")
+    aplicar.setFont(ui(12, 700))
+    aplicar.setFixedHeight(32)
+    aplicar.setAlignment(Qt.AlignCenter)
+    aplicar.setStyleSheet(
+        f"background:{p['acento']};color:{p['superficie']};"
+        "border:none;border-radius:4px;"
+    )
+    marcas_cv.addWidget(aplicar)
+    derecha.addWidget(card_marcas, 1)
+    cuerpo.addLayout(derecha, 1)
+
+    v.addLayout(cuerpo, 1)
+    return pagina
+
+
+def pantalla_audit_reporte(p: dict) -> QWidget:
+    pagina = QWidget()
+    pagina.setObjectName("pagina")
+    pagina.setStyleSheet(f"QWidget#pagina {{ background:{p['fondo']}; }}")
+    v = QVBoxLayout(pagina)
+    v.setContentsMargins(20, 16, 20, 16)
+    v.setSpacing(10)
+
+    titulos = QVBoxLayout()
+    titulos.setSpacing(0)
+    t = QLabel("Reporte General de Errores")
+    t.setFont(ui(22, 900))
+    t.setStyleSheet(f"color:{p['texto']};background:transparent;")
+    sub = QLabel("Detalle de inconsistencias, resumen por persona y conteo por observador")
+    sub.setFont(ui(12))
+    sub.setStyleSheet(f"color:{p['suave']};background:transparent;")
+    titulos.addWidget(t)
+    titulos.addWidget(sub)
+    v.addLayout(titulos)
+
+    filtros, filtros_cv = _card_audit(p)
+    filtros_cv.setContentsMargins(12, 10, 12, 10)
+    fila = QHBoxLayout()
+    fila.setSpacing(8)
+    for etiqueta, marcador, ancho in (
+        ("Estación", "Código de estación (opcional)", 200),
+        ("Año", "AAAA", 80),
+        ("Mes", "(Todos) ▾", 130),
+    ):
+        lab = QLabel(etiqueta)
+        lab.setFont(ui(11, 700))
+        lab.setStyleSheet(f"color:{p['suave']};background:transparent;border:none;")
+        fila.addWidget(lab)
+        campo = QLabel(marcador)
+        campo.setFont(ui(11))
+        campo.setFixedHeight(28)
+        campo.setFixedWidth(ancho)
+        campo.setStyleSheet(
+            f"background:{p['superficie']};color:{p['tenue']};"
+            f"border:1px solid {p['borde']};border-radius:4px;padding:0 6px;"
+        )
+        fila.addWidget(campo)
+    filtrar = QLabel("Filtrar")
+    filtrar.setFont(ui(12, 700))
+    filtrar.setFixedHeight(28)
+    filtrar.setStyleSheet(
+        f"background:{p['acento']};color:{p['superficie']};"
+        "border:none;border-radius:4px;padding:0 14px;"
+    )
+    fila.addWidget(filtrar)
+    fila.addStretch(1)
+    filtros_cv.addLayout(fila)
+    v.addWidget(filtros)
+
+    notas, notas_cv = _card_audit(p)
+    notas_cv.setContentsMargins(12, 10, 12, 10)
+    lab_notas = QLabel("Notas Generales del Reporte")
+    lab_notas.setFont(ui(11, 700))
+    lab_notas.setStyleSheet(f"color:{p['suave']};background:transparent;border:none;")
+    notas_cv.addWidget(lab_notas)
+    caja_notas = QLabel("Notas generales del reporte (salen en el PDF)")
+    caja_notas.setFont(ui(10))
+    caja_notas.setFixedHeight(48)
+    caja_notas.setAlignment(Qt.AlignTop | Qt.AlignLeft)
+    caja_notas.setStyleSheet(
+        f"background:{p['superficie']};color:{p['tenue']};"
+        f"border:1px solid {p['borde']};border-radius:4px;padding:6px;"
+    )
+    notas_cv.addWidget(caja_notas)
+    v.addWidget(notas)
+
+    pestanas = QHBoxLayout()
+    pestanas.setSpacing(4)
+    for indice, texto in enumerate(
+        ("Por observador", "Detalle de Inconsistencias", "Resumen por Persona")
+    ):
+        activa = indice == 0
+        pestana = QLabel(texto)
+        pestana.setFont(ui(11, 700))
+        pestana.setFixedHeight(30)
+        pestana.setStyleSheet(
+            f"background:{p['acento'] if activa else p['superficie']};"
+            f"color:{p['superficie'] if activa else p['suave']};"
+            f"border:1px solid {p['acento'] if activa else p['borde']};"
+            "border-top-left-radius:6px;border-top-right-radius:6px;padding:0 14px;"
+        )
+        pestanas.addWidget(pestana)
+    pestanas.addStretch(1)
+    v.addLayout(pestanas)
+
+    tabla, tabla_cv = _card_audit(p)
+    tabla_cv.setContentsMargins(0, 0, 0, 0)
+    grilla = QGridLayout()
+    grilla.setContentsMargins(10, 8, 10, 8)
+    grilla.setHorizontalSpacing(0)
+    grilla.setVerticalSpacing(0)
+    cabeceras = ("OBSERVADOR", "MARCADOS", "CORREGIDOS", "APROBADOS", "TOTAL")
+    for col, texto in enumerate(cabeceras):
+        cab = QLabel(texto)
+        cab.setFont(ui(10, 700))
+        cab.setStyleSheet(
+            f"color:{p['suave']};background:transparent;"
+            f"border-bottom:1px solid {p['borde']};padding:4px;"
+        )
+        cab.setAlignment(Qt.AlignLeft if col == 0 else Qt.AlignRight)
+        grilla.addWidget(cab, 0, col)
+    datos = (
+        ("JUAN RODRIGUEZ", "14", "9", "7", "30"),
+        ("MENDEZ", "8", "6", "6", "20"),
+        ("FELIPE", "5", "4", "3", "12"),
+        ("MiMi MjMj", "1", "0", "0", "1"),
+    )
+    for fila_i, valores in enumerate(datos, start=1):
+        for col, valor in enumerate(valores):
+            celda = QLabel(valor)
+            celda.setFont(mono(11) if col else ui(11, 600))
+            celda.setStyleSheet(
+                f"color:{p['texto']};background:transparent;"
+                f"border-bottom:1px solid {p['borde']};padding:5px 4px;"
+            )
+            celda.setAlignment(Qt.AlignLeft if col == 0 else Qt.AlignRight)
+            grilla.addWidget(celda, fila_i, col)
+    for col in range(len(cabeceras)):
+        grilla.setColumnStretch(col, 1)
+    tabla_cv.addLayout(grilla)
+    tabla_cv.addStretch(1)
+    v.addWidget(tabla, 1)
+
+    pie = QHBoxLayout()
+    pie.addStretch(1)
+    exportar = QLabel("Exportar PDF")
+    exportar.setFont(ui(12, 700))
+    exportar.setFixedHeight(30)
+    exportar.setStyleSheet(
+        f"background:{p['acento']};color:{p['superficie']};"
+        "border:none;border-radius:4px;padding:0 16px;"
+    )
+    pie.addWidget(exportar)
+    v.addLayout(pie)
+
+    fila_nota = QHBoxLayout()
+    lab_nota = QLabel("Nota de la fila")
+    lab_nota.setFont(ui(11))
+    lab_nota.setStyleSheet(f"color:{p['suave']};background:transparent;")
+    fila_nota.addWidget(lab_nota)
+    campo_nota = QLabel("")
+    campo_nota.setFixedHeight(28)
+    campo_nota.setStyleSheet(
+        f"background:{p['superficie']};border:1px solid {p['borde']};"
+        "border-radius:4px;"
+    )
+    fila_nota.addWidget(campo_nota, 1)
+    guardar_nota = QLabel("Guardar Nota")
+    guardar_nota.setFont(ui(11, 600))
+    guardar_nota.setFixedHeight(28)
+    guardar_nota.setStyleSheet(
+        f"background:{p['superficie']};color:{p['texto']};"
+        f"border:1px solid {p['borde']};border-radius:4px;padding:0 12px;"
+    )
+    fila_nota.addWidget(guardar_nota)
+    v.addLayout(fila_nota)
+    return pagina
+
+
 def main() -> int:
     SALIDA.mkdir(parents=True, exist_ok=True)
     app = QApplication.instance() or QApplication(sys.argv)
@@ -918,6 +1598,10 @@ def main() -> int:
             ("cli3074", pantalla_cli3074),
             ("cli4074", pantalla_cli4074),
             ("cli5074", pantalla_cli5074),
+            ("audit-estaciones", pantalla_audit_estaciones),
+            ("audit-dias", pantalla_audit_dias),
+            ("audit-observacion", pantalla_audit_observacion),
+            ("audit-reporte", pantalla_audit_reporte),
         ):
             w = constructor(paleta)
             w.resize(QSize(ANCHO, ALTO))
