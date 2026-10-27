@@ -428,12 +428,16 @@ def save_hour(
     data: dict,
     observer: str | None = None,
     actor: str = "",
+    commit: bool = True,
 ) -> None:
     """Validate, recalc derived, upsert the row and revise the daily doc.
 
     ONE transaction (SQLite SAVEPOINT): the observations row and the diario
     document land together or the failure leaves NOTHING written — the
     ``nothing is written on failure`` guarantee of validar_grupos_synop.
+
+    ``commit=False`` leaves the caller's outer transaction open, which is what
+    :func:`save_day` uses to make a whole day atomic (spec S2).
     """
     validate_station(station)
     year, month, day = validate_fecha(fecha)
@@ -527,11 +531,48 @@ def save_hour(
             summary=f"synoptic {hora}",
         )
         conn.execute("RELEASE f4_save_hour")
-        conn.commit()
+        if commit:
+            conn.commit()
     except Exception:
         conn.execute("ROLLBACK TO f4_save_hour")
         conn.execute("RELEASE f4_save_hour")
         raise
+
+
+def save_day(
+    conn: sqlite3.Connection,
+    station: str,
+    fecha: str,
+    hours_data: dict,
+    observer: str | None = None,
+    actor: str = "",
+) -> None:
+    """Save every synoptic hour of a day in ONE transaction (spec S2).
+
+    The day lands whole or not at all: a validation error in any hour leaves no
+    observation row and no version row behind. The observer is stored only
+    after the day commits, exactly like the per-hour path did.
+    """
+    conn.execute("BEGIN IMMEDIATE")
+    try:
+        for hora in HOURS:
+            data = hours_data.get(hora) or {}
+            save_hour(
+                conn,
+                station,
+                fecha,
+                hora,
+                data,
+                observer=observer,
+                actor=actor,
+                commit=False,
+            )
+    except Exception:
+        conn.rollback()
+        raise
+    conn.commit()
+    if observer:
+        remember_observer(conn, station, observer)
 
 
 def _now_local() -> str:

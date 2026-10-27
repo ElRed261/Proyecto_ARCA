@@ -231,14 +231,14 @@ def test_guilty_field_highlight_and_automatic_hour_switch(qtbot, page, monkeypat
     _filled_hour(page, "06Z")
     active = {"current": "06Z"}
 
-    def failing_save(conn, station, fecha, hora, data, observer=None):
+    def failing_save(conn, station, fecha, hours_data, observer=None):
         raise synoptic_service.SaveError(
             "el grupo 'meteo_4_6' en hora 09Z excede 5 caracteres (123456).",
             field="meteo_4_6",
             hour="09Z",
         )
 
-    monkeypatch.setattr(synoptic_service, "save_hour", failing_save)
+    monkeypatch.setattr(synoptic_service, "save_day", failing_save)
     page.save_clicked()
 
     # hour auto-switched to the guilty hour + red highlight on the guilty field
@@ -402,10 +402,10 @@ def test_shortcut_bindings_and_keyboard_ctrl_s_save(qtbot, page, monkeypatch):
 
     calls = {"saved": False}
 
-    def fake_save(conn, station, fecha, hora, data, observer=None):
+    def fake_save(conn, station, fecha, hours_data, observer=None):
         calls["saved"] = True
 
-    monkeypatch.setattr(synoptic_service, "save_hour", fake_save)
+    monkeypatch.setattr(synoptic_service, "save_day", fake_save)
     _filled_hour(page, "06Z")
     _focus_window(qtbot, page)
     # a REAL modified Ctrl+S keystroke travels the shortcut → save

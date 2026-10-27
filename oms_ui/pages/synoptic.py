@@ -1998,16 +1998,15 @@ class SynopticPage(QWidget):
             return
         observer = self.observer_edit.text().strip() or None
         day_data = self.collect_day_data()
-        for hora in synoptic_service.HOURS:
-            data = dict(day_data.get(hora) or {})
-            try:
-                synoptic_service.save_hour(
-                    self._conn, station, fecha, hora, data, observer=observer
-                )
-            except synoptic_service.SaveError as error:
-                self._highlight_guilty_field(error)
-                return  # stop on the first failure (oracle: whole day fails)
-        synoptic_service.remember_observer(self._conn, station, self.observer_edit.text())
+        try:
+            synoptic_service.save_day(
+                self._conn, station, fecha, day_data, observer=observer
+            )
+        except synoptic_service.SaveError as error:
+            # S2: the day is atomic, so nothing was written; pointing at the
+            # offending field is the whole recovery the observer needs.
+            self._highlight_guilty_field(error)
+            return
         self._discard_draft()
         self._dirty = False
         self._update_readouts_after_save(station, fecha)
