@@ -101,10 +101,10 @@ def fila_formulario(p: dict, celdas) -> list[QWidget]:
         campo = QLabel("")
         campo.setProperty("tramo", tramo)
         campo.setFont(mono(12))
-        campo.setFixedHeight(30)
+        campo.setFixedHeight(34)
         campo.setStyleSheet(
             f"background:{p['superficie']};color:{p['texto']};"
-            f"border:1px solid {p['borde']};border-radius:4px;padding:0 7px;"
+            f"border:1px solid {p['borde']};border-radius:4px;padding:0 8px;"
         )
         campo.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         v.addWidget(campo)
@@ -121,7 +121,7 @@ def _valor_de(fila: int, columna: int) -> str:
 def _campo_valor(p: dict, texto: str, *, constante: bool = False) -> QLabel:
     campo = QLabel(texto)
     campo.setFont(mono(12))
-    campo.setFixedHeight(30)
+    campo.setFixedHeight(34)
     if constante:
         campo.setStyleSheet(
             f"background:{p['panel']};color:{p['suave']};"
@@ -154,11 +154,11 @@ def tarjeta_formulario(p: dict) -> QWidget:
     lab = QLabel("Observador")
     lab.setFont(ui(11, 600))
     lab.setStyleSheet(f"color:{p['suave']};background:transparent;")
-    lab.setFixedWidth(96)
+    lab.setFixedWidth(104)
     obs.addWidget(lab)
     campo_obs = QLabel("A. Pérez")
     campo_obs.setFont(mono(12))
-    campo_obs.setFixedHeight(30)
+    campo_obs.setFixedHeight(34)
     campo_obs.setStyleSheet(
         f"background:{p['superficie']};color:{p['texto']};"
         f"border:1px solid {p['borde']};border-radius:4px;padding:0 7px;"
@@ -184,8 +184,11 @@ def tarjeta_formulario(p: dict) -> QWidget:
         grilla.setRowMinimumHeight(indice * 2 + 1, 30)
     for col in range(7):
         grilla.setColumnStretch(col, 1)
-    v.addLayout(grilla)
-    v.addStretch(1)
+    # Las 16 filas se reparten el alto de la tarjeta: sin esto quedaba un
+    # tercio de la pantalla vacío y todo apelotonado arriba.
+    for fila in range(len(FILAS) * 2):
+        grilla.setRowStretch(fila, 1)
+    v.addLayout(grilla, 1)
     return tarjeta
 
 
@@ -201,7 +204,7 @@ def titulo_seccion(p: dict, texto: str) -> QLabel:
 
 def riel_derecho(p: dict) -> QWidget:
     riel = QWidget()
-    riel.setFixedWidth(252)
+    riel.setFixedWidth(284)
     v = QVBoxLayout(riel)
     v.setContentsMargins(0, 0, 0, 0)
     v.setSpacing(14)
@@ -322,10 +325,15 @@ FENOMENOS = ("OR", "SQ", "FC", "TS", "LT", "RD", "DS", "HZ", "FG", "EC")
 FILAS_CLI = 24
 
 
-def _celda_trazo(p: dict, texto: str, *, ancho: int = 0, cabecera: bool = False) -> QLabel:
+def _celda_trazo(
+    p: dict, texto: str, *, ancho: int = 0, cabecera: bool = False, alto: int | None = None
+) -> QLabel:
     lab = QLabel(texto)
     lab.setFont(ui(11, 700) if cabecera else mono(11))
-    lab.setFixedHeight(26 if cabecera else 22)
+    if alto is not None:
+        lab.setFixedHeight(alto)
+    else:
+        lab.setMinimumHeight(20)
     if ancho:
         lab.setFixedWidth(ancho)
     lab.setAlignment(Qt.AlignCenter if cabecera else (Qt.AlignRight | Qt.AlignVCenter))
@@ -461,24 +469,334 @@ def pantalla_cli3074(p: dict) -> QWidget:
         grilla.addWidget(_celda_trazo(p, nombre, cabecera=True), 1, columna)
         columna += 1
     grilla.addWidget(_celda_trazo(p, "OBS.", cabecera=True), 0, columna, 2, 1)
-
-    # Cuerpo de la hoja: la línea de celda es lo que hace visible cada renglón.
     for fila in range(FILAS_CLI):
-        numero = _celda_trazo(p, str(fila + 1))
+        grilla.setRowStretch(fila + 2, 1)
+    _estirar_columnas(grilla, columna + 1)
+
+    # Cuerpo de la hoja: mismo helper que 4074/5074 (línea de celda + separador).
+    for fila in range(FILAS_CLI):
+        numero = _celda_cuerpo(p, str(fila + 1))
         numero.setAlignment(Qt.AlignCenter)
-        numero.setStyleSheet(
-            f"color:{p['tenue']};background:transparent;"
-            f"border-bottom:1px solid {p['borde']};padding:0 4px;"
-        )
         grilla.addWidget(numero, fila + 2, 0)
         for col in range(1, columna):
-            celda = _celda_trazo(p, "")
-            celda.setStyleSheet(
-                f"color:{p['texto']};background:transparent;"
-                f"border-bottom:1px solid {p['borde']};padding:0 4px;"
-            )
-            grilla.addWidget(celda, fila + 2, col)
+            grilla.addWidget(_celda_cuerpo(p), fila + 2, col)
+        grilla.setRowStretch(fila + 2, 1)
+    _estirar_columnas(grilla, columna + 1)
     v.addWidget(hoja, 1)
+    return pagina
+
+
+GRUPOS_4074 = (
+    ("CÚMULONIMBOS", ("Cant", "Tipo", "Altura")),
+    ("NUBES BAJAS (CL)", ("Cant", "Tipo", "Dir", "Altura", "TOTAL")),
+    ("NUBES MEDIAS (CM)", ("Cant", "Tipo", "Dir", "Altura", "TOTAL")),
+    ("NUBES ALTAS (CH)", ("Cant", "Tipo", "Dir", "Altura", "TOTAL")),
+)
+#: Columnas de una sola celda que ocupan las dos filas de cabecera.
+SUELTAS_4074 = ("N", "LLUVIA 6H (mm)", "EST. SUELO", "OBS.")
+
+GRUPOS_5074 = (
+    ("LECT. BAR (mmHg)", ()),
+    ("TERM. ANEXO (°C)", ()),
+    ("CORREC. TEMP.", ()),
+    ("PRES. EST. (hPa)", ()),
+    ("CORREC. ALT.", ()),
+    ("PRES. NMM (hPa)", ()),
+)
+
+
+def banda_superior(p: dict, titulo_texto: str, activo: str) -> QHBoxLayout:
+    """Volver + título + pestañas de módulo + VER HORA SYNOP + Guardar."""
+    banda = QHBoxLayout()
+    banda.setSpacing(10)
+    volver = QLabel("←")
+    volver.setFont(ui(15, 600))
+    volver.setFixedSize(28, 28)
+    volver.setAlignment(Qt.AlignCenter)
+    volver.setStyleSheet(
+        f"color:{p['texto']};background:{p['superficie']};"
+        f"border:1px solid {p['borde']};border-radius:4px;"
+    )
+    banda.addWidget(volver)
+    titulo = QLabel(titulo_texto)
+    titulo.setFont(ui(15, 800))
+    titulo.setStyleSheet(f"color:{p['texto']};background:transparent;")
+    banda.addWidget(titulo)
+    banda.addStretch(1)
+    for nombre in ("3074", "4074", "5074"):
+        on = nombre == activo
+        tab = QLabel(nombre)
+        tab.setFont(mono(11))
+        tab.setFixedHeight(26)
+        tab.setMinimumWidth(52)
+        tab.setAlignment(Qt.AlignCenter)
+        tab.setStyleSheet(
+            f"background:{p['acento_suave'] if on else p['superficie']};"
+            f"color:{p['acento'] if on else p['suave']};"
+            f"border:1px solid {p['acento'] if on else p['borde']};border-radius:4px;"
+        )
+        banda.addWidget(tab)
+    etiqueta_h = QLabel("VER HORA SYNOP")
+    etiqueta_h.setFont(ui(9, 700))
+    etiqueta_h.setStyleSheet(f"color:{p['suave']};background:transparent;")
+    banda.addWidget(etiqueta_h)
+    for hora in HORAS:
+        chip = QLabel(hora)
+        chip.setFont(mono(10))
+        chip.setFixedHeight(26)
+        chip.setMinimumWidth(42)
+        chip.setAlignment(Qt.AlignCenter)
+        chip.setStyleSheet(
+            f"background:{p['superficie']};color:{p['suave']};"
+            f"border:1px solid {p['borde']};border-radius:4px;"
+        )
+        banda.addWidget(chip)
+    guardar = QLabel("Guardar")
+    guardar.setFont(ui(12, 700))
+    guardar.setFixedHeight(28)
+    guardar.setMinimumWidth(84)
+    guardar.setAlignment(Qt.AlignCenter)
+    guardar.setStyleSheet(
+        f"background:{p['acento']};color:{p['superficie']};border:none;border-radius:4px;"
+    )
+    banda.addWidget(guardar)
+    return banda
+
+
+def banda_estacion(p: dict) -> QHBoxLayout:
+    datos = QHBoxLayout()
+    datos.setSpacing(10)
+    for etiqueta, valor, ancho in (
+        ("ESTACIÓN", "Las Américas (78485)", 210),
+        ("LATITUD", "18.4331", 110),
+        ("LONGITUD", "-69.6796", 110),
+        ("ALTURA", "2.0", 80),
+        ("FECHA", "08/12/2025", 130),
+    ):
+        celda = QWidget()
+        celda.setObjectName("celda")
+        celda.setStyleSheet("QWidget#celda { background:transparent; }")
+        cv = QVBoxLayout(celda)
+        cv.setContentsMargins(0, 0, 0, 0)
+        cv.setSpacing(3)
+        lab = QLabel(etiqueta)
+        lab.setFont(ui(10, 700))
+        lab.setStyleSheet(f"color:{p['suave']};background:transparent;border:none;")
+        cv.addWidget(lab)
+        campo = QLabel(valor)
+        campo.setFont(mono(11))
+        campo.setFixedHeight(28)
+        campo.setFixedWidth(ancho)
+        campo.setStyleSheet(
+            f"background:{p['superficie']};color:{p['texto']};"
+            f"border:1px solid {p['borde']};border-radius:4px;padding:0 6px;"
+        )
+        cv.addWidget(campo)
+        datos.addWidget(celda)
+    datos.addStretch(1)
+    return datos
+
+
+def _estirar_columnas(grilla: QGridLayout, columnas: int) -> None:
+    """Hora sin estirar, numéricas por igual, última (OBS.) más ancha."""
+    grilla.setColumnStretch(0, 0)
+    for col in range(1, columnas - 1):
+        grilla.setColumnStretch(col, 1)
+    grilla.setColumnStretch(columnas - 1, 3)
+
+
+def _hoja(p: dict) -> tuple[QWidget, QGridLayout]:
+    hoja = QWidget()
+    hoja.setObjectName("hoja")
+    hoja.setStyleSheet(
+        f"QWidget#hoja {{ background:{p['superficie']};"
+        f" border:1px solid {p['borde']}; border-radius:10px; }}"
+    )
+    grilla = QGridLayout(hoja)
+    grilla.setContentsMargins(10, 8, 10, 8)
+    grilla.setHorizontalSpacing(2)
+    grilla.setVerticalSpacing(1)
+    return hoja, grilla
+
+
+def _celda_cuerpo(p: dict, texto: str = "") -> QLabel:
+    celda = _celda_trazo(p, texto, alto=None)
+    celda.setStyleSheet(
+        f"color:{p['texto']};background:transparent;"
+        f"border-bottom:1px solid {p['borde']};"
+        f"border-right:1px solid {p['borde']};padding:0 4px;"
+    )
+    return celda
+
+
+def pantalla_cli4074(p: dict) -> QWidget:
+    pagina = QWidget()
+    pagina.setObjectName("pagina")
+    pagina.setStyleSheet(f"QWidget#pagina {{ background:{p['fondo']}; }}")
+    v = QVBoxLayout(pagina)
+    v.setContentsMargins(16, 12, 16, 12)
+    v.setSpacing(10)
+    v.addLayout(banda_superior(p, "CLI 4074 · Nubosidad y temperatura", "4074"))
+    v.addLayout(banda_estacion(p))
+
+    hoja, grilla = _hoja(p)
+    columna = 0
+    grilla.addWidget(_celda_trazo(p, "H", cabecera=True), 0, columna, 2, 1)
+    columna += 1
+    for grupo, subs in GRUPOS_4074:
+        grilla.addWidget(_celda_trazo(p, grupo, cabecera=True), 0, columna, 1, len(subs))
+        for sub in subs:
+            grilla.addWidget(_celda_trazo(p, sub, cabecera=True), 1, columna)
+            columna += 1
+    for nombre in SUELTAS_4074:
+        grilla.addWidget(_celda_trazo(p, nombre, cabecera=True), 0, columna, 2, 1)
+        columna += 1
+    for fila in range(FILAS_CLI):
+        numero = _celda_cuerpo(p, str(fila + 1))
+        numero.setAlignment(Qt.AlignCenter)
+        grilla.addWidget(numero, fila + 2, 0)
+        for col in range(1, columna):
+            grilla.addWidget(_celda_cuerpo(p), fila + 2, col)
+        grilla.setRowStretch(fila + 2, 1)
+    _estirar_columnas(grilla, columna)
+    v.addWidget(hoja, 1)
+    return pagina
+
+
+def pantalla_cli5074(p: dict) -> QWidget:
+    """Hoja de 4 bloques horarios a la izquierda, tarjetas a la derecha."""
+    pagina = QWidget()
+    pagina.setObjectName("pagina")
+    pagina.setStyleSheet(f"QWidget#pagina {{ background:{p['fondo']}; }}")
+    v = QVBoxLayout(pagina)
+    v.setContentsMargins(16, 12, 16, 12)
+    v.setSpacing(10)
+    v.addLayout(banda_superior(p, "CLI 5074 · Suelo y evaporación", "5074"))
+    v.addLayout(banda_estacion(p))
+
+    cuerpo = QHBoxLayout()
+    cuerpo.setSpacing(12)
+
+    hoja, grilla = _hoja(p)
+    grilla.setContentsMargins(10, 8, 10, 8)
+    grilla.addWidget(_celda_trazo(p, "H", cabecera=True), 0, 0, 2, 1)
+    for indice, (etiqueta, _subs) in enumerate(GRUPOS_5074):
+        grilla.addWidget(_celda_trazo(p, etiqueta, cabecera=True), 0, indice + 1, 2, 1)
+    # La hoja real tiene 24 filas y las filas 2/8/14/20 SON las cabeceras de
+    # bloque: no son renglones extra, así que la numeración va 1..24 corrida.
+    for numero_fila in range(1, 25):
+        fila_grid = numero_fila + 1
+        es_bloque = numero_fila in (2, 8, 14, 20)
+        if es_bloque:
+            for columna in range(len(GRUPOS_5074) + 1):
+                cabecera = _celda_trazo(
+                    p, f"{numero_fila:02d}" if columna == 0 else "", cabecera=True
+                )
+                if columna == 0:
+                    cabecera.setAlignment(Qt.AlignCenter)
+                cabecera.setStyleSheet(
+                    f"color:{p['acento']};background:{p['acento_suave']};"
+                    f"border-bottom:1px solid {p['borde']};padding:0 4px;"
+                )
+                grilla.addWidget(cabecera, fila_grid, columna)
+            grilla.setRowStretch(fila_grid, 0)
+            continue
+        numero = _celda_cuerpo(p, str(numero_fila))
+        numero.setAlignment(Qt.AlignCenter)
+        grilla.addWidget(numero, fila_grid, 0)
+        for columna in range(1, len(GRUPOS_5074) + 1):
+            grilla.addWidget(_celda_cuerpo(p), fila_grid, columna)
+        grilla.setRowStretch(fila_grid, 1)
+    cuerpo.addWidget(hoja, 55)
+
+    derecha = QVBoxLayout()
+    derecha.setSpacing(10)
+
+    def tarjeta(titulo_texto: str) -> tuple[QWidget, QVBoxLayout]:
+        caja = QWidget()
+        caja.setObjectName("caja")
+        caja.setStyleSheet(
+            f"QWidget#caja {{ background:{p['superficie']};"
+            f" border:1px solid {p['borde']}; border-radius:10px; }}"
+        )
+        cv = QVBoxLayout(caja)
+        cv.setContentsMargins(12, 10, 12, 10)
+        cv.setSpacing(6)
+        t = QLabel(titulo_texto)
+        t.setFont(ui(10, 700))
+        t.setStyleSheet(f"color:{p['suave']};background:transparent;border:none;")
+        cv.addWidget(t)
+        return caja, cv
+
+    caja_sub, cv_sub = tarjeta("TEMPERATURA SUBSUELO (°C)")
+    depths = (5, 10, 15, 20, 25, 50, 100)
+    fila_depths = QHBoxLayout()
+    fila_depths.setSpacing(4)
+    for d in depths:
+        lab = QLabel(f"{d} cm")
+        lab.setFont(mono(9))
+        lab.setAlignment(Qt.AlignCenter)
+        lab.setStyleSheet(f"color:{p['tenue']};background:transparent;border:none;")
+        fila_depths.addWidget(lab)
+    cv_sub.addLayout(fila_depths)
+    fila_valores = QHBoxLayout()
+    fila_valores.setSpacing(4)
+    for _d in depths:
+        campo = QLabel("")
+        campo.setFont(mono(11))
+        campo.setFixedHeight(28)
+        campo.setStyleSheet(
+            f"background:{p['superficie']};color:{p['texto']};"
+            f"border:1px solid {p['borde']};border-radius:4px;"
+        )
+        fila_valores.addWidget(campo)
+    cv_sub.addLayout(fila_valores)
+    derecha.addWidget(caja_sub, 0)
+
+    caja_evap, cv_evap = tarjeta("EVAPORACIÓN")
+    for etiqueta in ("PICHE", "TANQUE C.", "EVAPORÍGRAFO"):
+        lab = QLabel(etiqueta)
+        lab.setFont(ui(10, 700))
+        lab.setStyleSheet(f"color:{p['suave']};background:transparent;border:none;")
+        cv_evap.addWidget(lab)
+        campo = QLabel("")
+        campo.setFont(mono(11))
+        campo.setFixedHeight(28)
+        campo.setStyleSheet(
+            f"background:{p['superficie']};color:{p['texto']};"
+            f"border:1px solid {p['borde']};border-radius:4px;"
+        )
+        cv_evap.addWidget(campo)
+    derecha.addWidget(caja_evap, 0)
+
+    caja_feno, cv_feno = tarjeta("FENÓMENOS")
+    cabeceras = ("HORAS", "MINUTOS", "dd 16-P", "ff (m/s)", "INTENSIDAD",
+                 "FENÓMENO", "INICIO", "FINAL", "DURACIÓN", "INICIALES")
+    rejilla = QGridLayout()
+    rejilla.setSpacing(2)
+    for col, texto in enumerate(cabeceras):
+        cab = QLabel(texto)
+        cab.setFont(ui(9, 700))
+        cab.setAlignment(Qt.AlignCenter)
+        cab.setStyleSheet(
+            f"color:{p['suave']};background:transparent;border:none;"
+            f"border-bottom:1px solid {p['borde']};"
+        )
+        rejilla.addWidget(cab, 0, col)
+    for fila_f in range(12):
+        for col in range(len(cabeceras)):
+            celda = QLabel("")
+            celda.setMinimumHeight(20)
+            celda.setStyleSheet(
+                f"background:transparent;border-bottom:1px solid {p['borde']};"
+            )
+            rejilla.addWidget(celda, fila_f + 1, col)
+    cv_feno.addLayout(rejilla)
+    cv_feno.addStretch(1)  # el aire sobrante va al final, no entre el título y la tabla
+    derecha.addWidget(caja_feno, 1)
+
+    cuerpo.addLayout(derecha, 45)
+    v.addLayout(cuerpo, 1)
     return pagina
 
 
@@ -495,14 +813,19 @@ def main() -> int:
         print(f"  {destino}  ({destino.stat().st_size // 1024} KB)")
         w.close()
 
-        w = pantalla_cli3074(paleta)
-        w.resize(QSize(ANCHO, ALTO))
-        w.show()
-        app.processEvents()
-        destino = SALIDA / f"mock-cli3074-{nombre}.png"
-        w.grab().save(str(destino))
-        print(f"  {destino}  ({destino.stat().st_size // 1024} KB)")
-        w.close()
+        for clave, constructor in (
+            ("cli3074", pantalla_cli3074),
+            ("cli4074", pantalla_cli4074),
+            ("cli5074", pantalla_cli5074),
+        ):
+            w = constructor(paleta)
+            w.resize(QSize(ANCHO, ALTO))
+            w.show()
+            app.processEvents()
+            destino = SALIDA / f"mock-{clave}-{nombre}.png"
+            w.grab().save(str(destino))
+            print(f"  {destino}  ({destino.stat().st_size // 1024} KB)")
+            w.close()
     return 0
 
 
