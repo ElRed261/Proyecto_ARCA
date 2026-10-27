@@ -465,13 +465,15 @@ def pantalla_cli3074(p: dict) -> QWidget:
             columna += 1
     cab = _celda_trazo(p, "FENÓMENOS", cabecera=True)
     grilla.addWidget(cab, 0, columna, 1, len(FENOMENOS))
+    inicio_fenomenos = columna
     for nombre in FENOMENOS:
         grilla.addWidget(_celda_trazo(p, nombre, cabecera=True), 1, columna)
         columna += 1
+    fin_fenomenos = columna - 1
     grilla.addWidget(_celda_trazo(p, "OBS.", cabecera=True), 0, columna, 2, 1)
     for fila in range(FILAS_CLI):
         grilla.setRowStretch(fila + 2, 1)
-    _estirar_columnas(grilla, columna + 1)
+    _estirar_columnas(grilla, columna + 1, fijas=range(inicio_fenomenos, fin_fenomenos + 1))
 
     # Cuerpo de la hoja: mismo helper que 4074/5074 (línea de celda + separador).
     for fila in range(FILAS_CLI):
@@ -481,7 +483,7 @@ def pantalla_cli3074(p: dict) -> QWidget:
         for col in range(1, columna):
             grilla.addWidget(_celda_cuerpo(p), fila + 2, col)
         grilla.setRowStretch(fila + 2, 1)
-    _estirar_columnas(grilla, columna + 1)
+    _estirar_columnas(grilla, columna + 1, fijas=range(inicio_fenomenos, fin_fenomenos + 1))
     v.addWidget(hoja, 1)
     return pagina
 
@@ -597,12 +599,22 @@ def banda_estacion(p: dict) -> QHBoxLayout:
     return datos
 
 
-def _estirar_columnas(grilla: QGridLayout, columnas: int) -> None:
-    """Hora sin estirar, numéricas por igual, última (OBS.) más ancha."""
-    grilla.setColumnStretch(0, 0)
-    for col in range(1, columnas - 1):
-        grilla.setColumnStretch(col, 1)
-    grilla.setColumnStretch(columnas - 1, 3)
+def _estirar_columnas(
+    grilla: QGridLayout, columnas: int, fijas: range | tuple = ()
+) -> None:
+    """Hora sin estirar, carriles fijos al ancho de una casilla y el resto igual.
+
+    Así lo hace cli3074: las columnas 1..14 comparten el estirón y los carriles
+    de fenómenos van a ancho fijo. OBS. no es más ancha que una numérica.
+    """
+    fijas = set(fijas)
+    for col in range(columnas):
+        if col == 0 or col in fijas:
+            grilla.setColumnStretch(col, 0)
+        else:
+            grilla.setColumnStretch(col, 1)
+    for col in fijas:
+        grilla.setColumnMinimumWidth(col, 34)
 
 
 def _hoja(p: dict) -> tuple[QWidget, QGridLayout]:
