@@ -663,8 +663,39 @@ def pantalla_cli4074(p: dict) -> QWidget:
     return pagina
 
 
+def _tarjeta(p: dict, titulo_texto: str | None = None) -> tuple[QWidget, QVBoxLayout]:
+    """Card del sistema: superficie, borde de 1 px, radio 10."""
+    caja = QWidget()
+    caja.setObjectName("caja")
+    caja.setStyleSheet(
+        f"QWidget#caja {{ background:{p['superficie']};"
+        f" border:1px solid {p['borde']}; border-radius:10px; }}"
+    )
+    cv = QVBoxLayout(caja)
+    cv.setContentsMargins(12, 10, 12, 10)
+    cv.setSpacing(6)
+    if titulo_texto:
+        t = QLabel(titulo_texto)
+        t.setFont(ui(10, 700))
+        t.setStyleSheet(f"color:{p['suave']};background:transparent;border:none;")
+        cv.addWidget(t)
+    return caja, cv
+
+
+def _campo_plano(p: dict, alto: int = 26) -> QLabel:
+    campo = QLabel("")
+    campo.setFont(mono(11))
+    campo.setFixedHeight(alto)
+    campo.setStyleSheet(
+        f"background:{p['superficie']};color:{p['texto']};"
+        f"border:1px solid {p['borde']};border-radius:4px;padding:0 6px;"
+    )
+    return campo
+
+
 def pantalla_cli5074(p: dict) -> QWidget:
-    """Hoja de 4 bloques horarios a la izquierda, tarjetas a la derecha."""
+    """Estructura real de cli5074._build: HORARIO (6 filas x 4 horas) + columna
+    con subsuelo y [evap | iniciales] + FENÓMENOS a todo el ancho abajo."""
     pagina = QWidget()
     pagina.setObjectName("pagina")
     pagina.setStyleSheet(f"QWidget#pagina {{ background:{p['fondo']}; }}")
@@ -674,129 +705,187 @@ def pantalla_cli5074(p: dict) -> QWidget:
     v.addLayout(banda_superior(p, "CLI 5074 · Suelo y evaporación", "5074"))
     v.addLayout(banda_estacion(p))
 
-    cuerpo = QHBoxLayout()
-    cuerpo.setSpacing(12)
+    medio = QHBoxLayout()
+    medio.setSpacing(10)
 
-    hoja, grilla = _hoja(p)
-    grilla.setContentsMargins(10, 8, 10, 8)
-    grilla.addWidget(_celda_trazo(p, "H", cabecera=True), 0, 0, 2, 1)
-    for indice, (etiqueta, _subs) in enumerate(GRUPOS_5074):
-        grilla.addWidget(_celda_trazo(p, etiqueta, cabecera=True), 0, indice + 1, 2, 1)
-    # La hoja real tiene 24 filas y las filas 2/8/14/20 SON las cabeceras de
-    # bloque: no son renglones extra, así que la numeración va 1..24 corrida.
-    for numero_fila in range(1, 25):
-        fila_grid = numero_fila + 1
-        es_bloque = numero_fila in (2, 8, 14, 20)
-        if es_bloque:
-            for columna in range(len(GRUPOS_5074) + 1):
-                cabecera = _celda_trazo(
-                    p, f"{numero_fila:02d}" if columna == 0 else "", cabecera=True
-                )
-                if columna == 0:
-                    cabecera.setAlignment(Qt.AlignCenter)
-                cabecera.setStyleSheet(
-                    f"color:{p['acento']};background:{p['acento_suave']};"
-                    f"border-bottom:1px solid {p['borde']};padding:0 4px;"
-                )
-                grilla.addWidget(cabecera, fila_grid, columna)
-            grilla.setRowStretch(fila_grid, 0)
-            continue
-        numero = _celda_cuerpo(p, str(numero_fila))
-        numero.setAlignment(Qt.AlignCenter)
-        grilla.addWidget(numero, fila_grid, 0)
-        for columna in range(1, len(GRUPOS_5074) + 1):
-            grilla.addWidget(_celda_cuerpo(p), fila_grid, columna)
-        grilla.setRowStretch(fila_grid, 1)
-    cuerpo.addWidget(hoja, 55)
+    # ---- tarjeta HORARIO: 6 filas de campos x las horas 2 / 8 / 14 / 20 ----
+    caja_hor, cv_hor = _tarjeta(p, "HORARIO")
+    grilla_hor = QGridLayout()
+    grilla_hor.setHorizontalSpacing(3)
+    grilla_hor.setVerticalSpacing(3)
+    esquina = QLabel("HORA LOCAL")
+    esquina.setFont(ui(10, 700))
+    esquina.setAlignment(Qt.AlignCenter)
+    esquina.setStyleSheet(f"color:{p['suave']};background:transparent;border:none;")
+    grilla_hor.addWidget(esquina, 0, 0)
+    for indice, hora in enumerate((2, 8, 14, 20)):
+        cab = QLabel(str(hora))
+        cab.setFont(mono(11))
+        cab.setAlignment(Qt.AlignCenter)
+        cab.setStyleSheet(
+            f"color:{p['acento']};background:{p['acento_suave']};"
+            f"border-bottom:1px solid {p['borde']};"
+        )
+        grilla_hor.addWidget(cab, 0, indice + 1)
+    for fila, etiqueta in enumerate(
+        ("LECT. BAR (mmHg)", "TERM. ANEXO (°C)", "CORREC. TEMP.",
+         "PRES. EST. (hPa)", "CORREC. ALT.", "PRES. NMM (hPa)")
+    ):
+        lab = QLabel(etiqueta)
+        lab.setFont(ui(10, 600))
+        lab.setStyleSheet(f"color:{p['suave']};background:transparent;border:none;")
+        grilla_hor.addWidget(lab, fila + 1, 0)
+        for indice in range(4):
+            grilla_hor.addWidget(_campo_plano(p), fila + 1, indice + 1)
+    grilla_hor.setColumnStretch(0, 2)
+    for indice in range(4):
+        grilla_hor.setColumnStretch(indice + 1, 1)
+    cv_hor.addLayout(grilla_hor)
+    cv_hor.addStretch(1)
+    medio.addWidget(caja_hor, 3)
 
+    # ---- columna derecha: subsuelo arriba, [evap | iniciales] abajo -------
     derecha = QVBoxLayout()
     derecha.setSpacing(10)
 
-    def tarjeta(titulo_texto: str) -> tuple[QWidget, QVBoxLayout]:
-        caja = QWidget()
-        caja.setObjectName("caja")
-        caja.setStyleSheet(
-            f"QWidget#caja {{ background:{p['superficie']};"
-            f" border:1px solid {p['borde']}; border-radius:10px; }}"
-        )
-        cv = QVBoxLayout(caja)
-        cv.setContentsMargins(12, 10, 12, 10)
-        cv.setSpacing(6)
-        t = QLabel(titulo_texto)
-        t.setFont(ui(10, 700))
-        t.setStyleSheet(f"color:{p['suave']};background:transparent;border:none;")
-        cv.addWidget(t)
-        return caja, cv
-
-    caja_sub, cv_sub = tarjeta("TEMPERATURA SUBSUELO (°C)")
-    depths = (5, 10, 15, 20, 25, 50, 100)
-    fila_depths = QHBoxLayout()
-    fila_depths.setSpacing(4)
-    for d in depths:
-        lab = QLabel(f"{d} cm")
-        lab.setFont(mono(9))
-        lab.setAlignment(Qt.AlignCenter)
-        lab.setStyleSheet(f"color:{p['tenue']};background:transparent;border:none;")
-        fila_depths.addWidget(lab)
-    cv_sub.addLayout(fila_depths)
-    fila_valores = QHBoxLayout()
-    fila_valores.setSpacing(4)
-    for _d in depths:
-        campo = QLabel("")
-        campo.setFont(mono(11))
-        campo.setFixedHeight(28)
-        campo.setStyleSheet(
-            f"background:{p['superficie']};color:{p['texto']};"
-            f"border:1px solid {p['borde']};border-radius:4px;"
-        )
-        fila_valores.addWidget(campo)
-    cv_sub.addLayout(fila_valores)
+    caja_sub, cv_sub = _tarjeta(p, "TEMPERATURA SUBSUELO")
+    grilla_sub = QGridLayout()
+    grilla_sub.setHorizontalSpacing(3)
+    grilla_sub.setVerticalSpacing(3)
+    cm = QLabel("(cm)")
+    cm.setFont(ui(9, 600))
+    cm.setStyleSheet(f"color:{p['tenue']};background:transparent;border:none;")
+    grilla_sub.addWidget(cm, 0, 0)
+    for indice, profundidad in enumerate((5, 10, 15, 20, 25, 50, 100)):
+        cab = QLabel(str(profundidad))
+        cab.setFont(mono(9))
+        cab.setAlignment(Qt.AlignCenter)
+        cab.setStyleSheet(f"color:{p['tenue']};background:transparent;border:none;")
+        grilla_sub.addWidget(cab, 0, indice + 1)
+    celsius = QLabel("(°C)")
+    celsius.setFont(ui(9, 700))
+    celsius.setStyleSheet(f"color:{p['error']};background:transparent;border:none;")
+    grilla_sub.addWidget(celsius, 1, 0)
+    for indice in range(7):
+        grilla_sub.addWidget(_campo_plano(p), 1, indice + 1)
+    for col in range(8):
+        grilla_sub.setColumnStretch(col, 1)
+    cv_sub.addLayout(grilla_sub)
     derecha.addWidget(caja_sub, 0)
 
-    caja_evap, cv_evap = tarjeta("EVAPORACIÓN")
-    for etiqueta in ("PICHE", "TANQUE C.", "EVAPORÍGRAFO"):
-        lab = QLabel(etiqueta)
-        lab.setFont(ui(10, 700))
-        lab.setStyleSheet(f"color:{p['suave']};background:transparent;border:none;")
-        cv_evap.addWidget(lab)
-        campo = QLabel("")
-        campo.setFont(mono(11))
-        campo.setFixedHeight(28)
-        campo.setStyleSheet(
-            f"background:{p['superficie']};color:{p['texto']};"
-            f"border:1px solid {p['borde']};border-radius:4px;"
-        )
-        cv_evap.addWidget(campo)
-    derecha.addWidget(caja_evap, 0)
+    fila_abajo = QHBoxLayout()
+    fila_abajo.setSpacing(10)
 
-    caja_feno, cv_feno = tarjeta("FENÓMENOS")
-    cabeceras = ("HORAS", "MINUTOS", "dd 16-P", "ff (m/s)", "INTENSIDAD",
-                 "FENÓMENO", "INICIO", "FINAL", "DURACIÓN", "INICIALES")
-    rejilla = QGridLayout()
-    rejilla.setSpacing(2)
-    for col, texto in enumerate(cabeceras):
-        cab = QLabel(texto)
+    caja_evap, cv_evap = _tarjeta(p, "EVAP. 0.00 A 0.00 HL")
+    grilla_evap = QGridLayout()
+    grilla_evap.setHorizontalSpacing(3)
+    grilla_evap.setVerticalSpacing(3)
+    for indice, etiqueta in enumerate(("PICHE", "TANQUE C.", "EVAPORÍGRAFO")):
+        cab = QLabel(etiqueta)
+        cab.setFont(ui(9, 600))
+        cab.setAlignment(Qt.AlignCenter)
+        cab.setStyleSheet(f"color:{p['suave']};background:transparent;border:none;")
+        grilla_evap.addWidget(cab, 0, indice)
+        sub = QLabel("(mm)")
+        sub.setFont(ui(9, 700))
+        sub.setAlignment(Qt.AlignCenter)
+        sub.setStyleSheet(f"color:{p['error']};background:transparent;border:none;")
+        grilla_evap.addWidget(sub, 1, indice)
+        grilla_evap.addWidget(_campo_plano(p), 2, indice)
+        grilla_evap.setColumnStretch(indice, 1)
+    cv_evap.addLayout(grilla_evap)
+    fila_abajo.addWidget(caja_evap, 3)
+
+    caja_ini, cv_ini = _tarjeta(p, None)
+    lab_ini = QLabel("INICIALES OBS.")
+    lab_ini.setFont(ui(11, 800))
+    lab_ini.setStyleSheet(f"color:{p['texto']};background:transparent;border:none;")
+    cv_ini.addWidget(lab_ini)
+    campo_ini = _campo_plano(p, alto=64)
+    campo_ini.setAlignment(Qt.AlignCenter)
+    cv_ini.addWidget(campo_ini)
+    cv_ini.addStretch(1)
+    fila_abajo.addWidget(caja_ini, 1)
+
+    derecha.addLayout(fila_abajo, 0)
+    derecha.addStretch(1)
+    medio.addLayout(derecha, 2)
+    v.addLayout(medio, 0)
+
+    # ---- FENÓMENOS: a todo el ancho, observaciones a la izquierda ---------
+    caja_feno = QWidget()
+    caja_feno.setObjectName("caja")
+    caja_feno.setStyleSheet(
+        f"QWidget#caja {{ background:{p['superficie']};"
+        f" border:1px solid {p['borde']}; border-radius:10px; }}"
+    )
+    fila_feno = QHBoxLayout(caja_feno)
+    fila_feno.setContentsMargins(12, 10, 12, 12)
+    fila_feno.setSpacing(10)
+
+    izquierda = QVBoxLayout()
+    titulo_obs = QLabel("OBSERVACIONES Y DETALLES DEL FENÓMENO")
+    titulo_obs.setFont(ui(11, 800))
+    titulo_obs.setStyleSheet(f"color:{p['texto']};background:transparent;border:none;")
+    izquierda.addWidget(titulo_obs)
+    caja_texto = QLabel("Espacio destinado a detallar más información de forma manual…")
+    caja_texto.setWordWrap(True)
+    caja_texto.setFont(ui(10))
+    caja_texto.setAlignment(Qt.AlignTop | Qt.AlignLeft)
+    caja_texto.setStyleSheet(
+        f"color:{p['tenue']};background:{p['fondo']};"
+        f"border:1px solid {p['borde']};border-radius:4px;padding:6px;"
+    )
+    izquierda.addWidget(caja_texto, 1)
+    fila_feno.addLayout(izquierda, 1)
+
+    grupos_feno = (
+        ("HORA LOCAL", ("HORAS", "MINUTOS")),
+        ("RÁFAGAS DE VIENTO", ("dd 16-P", "ff (m/s)")),
+        ("INTENSIDAD", ()),
+        ("FENÓMENOS METEOROLÓGICOS", ()),
+        ("INICIO (HH:MM)", ()),
+        ("FINAL (HH:MM)", ()),
+        ("DURACIÓN", ()),
+        ("INICIALES OBSERV.", ()),
+    )
+    tabla_feno = QGridLayout()
+    tabla_feno.setHorizontalSpacing(0)
+    tabla_feno.setVerticalSpacing(0)
+    columna = 0
+    for titulo_grupo, subs in grupos_feno:
+        cab = QLabel(titulo_grupo)
         cab.setFont(ui(9, 700))
+        cab.setWordWrap(True)
         cab.setAlignment(Qt.AlignCenter)
         cab.setStyleSheet(
-            f"color:{p['suave']};background:transparent;border:none;"
-            f"border-bottom:1px solid {p['borde']};"
+            f"color:{p['suave']};background:transparent;"
+            f"border-bottom:1px solid {p['borde']};padding:2px;"
         )
-        rejilla.addWidget(cab, 0, col)
-    for fila_f in range(12):
-        for col in range(len(cabeceras)):
-            celda = QLabel("")
-            celda.setMinimumHeight(20)
-            celda.setStyleSheet(
-                f"background:transparent;border-bottom:1px solid {p['borde']};"
+        tabla_feno.addWidget(cab, 0, columna, 1 if subs else 2, max(1, len(subs)))
+        for offset, sub in enumerate(subs):
+            sub_lab = QLabel(sub)
+            sub_lab.setFont(ui(8, 600))
+            sub_lab.setAlignment(Qt.AlignCenter)
+            sub_lab.setStyleSheet(
+                f"color:{p['tenue']};background:transparent;"
+                f"border-bottom:1px solid {p['borde']};"
             )
-            rejilla.addWidget(celda, fila_f + 1, col)
-    cv_feno.addLayout(rejilla)
-    cv_feno.addStretch(1)  # el aire sobrante va al final, no entre el título y la tabla
-    derecha.addWidget(caja_feno, 1)
-
-    cuerpo.addLayout(derecha, 45)
-    v.addLayout(cuerpo, 1)
+            tabla_feno.addWidget(sub_lab, 1, columna + offset)
+        for fila_f in range(12):
+            for offset in range(max(1, len(subs))):
+                celda = QLabel("")
+                celda.setMinimumHeight(18)
+                celda.setStyleSheet(
+                    f"background:transparent;border-bottom:1px solid {p['borde']};"
+                    f"border-right:1px solid {p['borde']};"
+                )
+                tabla_feno.addWidget(celda, 2 + fila_f, columna + offset)
+        columna += max(1, len(subs))
+    for col in range(columna):
+        tabla_feno.setColumnStretch(col, 1)
+    fila_feno.addLayout(tabla_feno, 3)
+    v.addWidget(caja_feno, 1)
     return pagina
 
 
