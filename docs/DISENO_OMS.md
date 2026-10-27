@@ -146,13 +146,18 @@ humedad relativa y presión.
 El Resumen Mensual son datos **diarios** (1..31), así que cada panel es una serie de 31
 puntos con un solo eje de días al pie.
 
+**Forma elegida: tres paneles.** Dos fijos y un tercero conmutable por un selector de
+pastillas sobre el gráfico.
+
 | Fila | Dibujo | Variables del Resumen |
 |---|---|---|
-| Temperatura (°C) | banda de máx/mín + línea de la media | Mayor temperatura máxima · Menor temperatura minima · Media temperatura |
-| Humedad (%) | banda máx/mín + línea de la media | Humedad maxima · Humedad minima · Humedad media |
-| Presión NMM (hPa) | banda máx/mín + línea de la media; la de estación punteada | MAxima/Minima/Media presión nivel medio del mar · Media presion en la estación |
-| Viento (m/s) · dirección | barras de la media, puntos del máximo diario y **flechas en franja propia arriba** | Velocidad media · Velocidad máxima y direccion · Dirección del viento |
-| Lluvia (mm) | barras | Lluvia |
+| Temperatura (°C) — fija | banda de máx/mín + línea de la media | Mayor temperatura máxima · Menor temperatura minima · Media temperatura |
+| Presión NMM (hPa) — fija | banda máx/mín + línea de la media | MAxima/Minima/Media presión nivel medio del mar |
+| Tercer panel — selector | según la variable activa | ver abajo |
+
+Selector del tercer panel: `Humedad` (banda máx/mín + media) · `Viento` (barras de la
+media, puntos del máximo diario y flechas de dirección) · `Nubosidad` (banda día/noche con
+la media) · `Lluvia` (barras).
 
 Reglas:
 
@@ -162,8 +167,10 @@ Reglas:
   `borde` punteado.
 - **Las flechas de dirección nunca van al pie del panel**: las tapan las barras. Van en su
   propia franja, arriba.
-- Fuera de esta primera versión, por decisión del dueño: nubosidad día/noche/media, punto
-  de rocío y tensión de vapor. Entran después como líneas o banda fina sin cambiar el panel set.
+- Descartada la variante de cinco paneles (todo visible pero cada fila muy baja) y la de un
+  único gráfico con doble eje (dos escalas en el mismo plano invitan a leer correlaciones
+  falsas).
+- Fuera por ahora: punto de rocío y tensión de vapor.
 
 ## 6. Reglas por pantalla
 

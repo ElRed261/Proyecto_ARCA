@@ -1960,10 +1960,16 @@ def _series_resumen() -> dict[str, list[float]]:
 class _Meteograma(QWidget):
     """Cinco paneles diarios con el eje de tiempo compartido."""
 
-    def __init__(self, paleta: dict, series: dict[str, list[float]]) -> None:
+    def __init__(
+        self,
+        paleta: dict,
+        series: dict[str, list[float]],
+        paneles: tuple | None = None,
+    ) -> None:
         super().__init__()
         self.p = paleta
         self.s = series
+        self.paneles = paneles
 
     def _panel_viento(self, painter, x0, y0, ancho, alto) -> None:
         """Barras de velocidad media, punto del máximo y flechas de dirección.
@@ -2102,7 +2108,7 @@ class _Meteograma(QWidget):
         painter.fillRect(self.rect(), QColor(self.p["superficie"]))
 
         izq, der, arriba, abajo, hueco = 132, 16, 10, 26, 12
-        paneles = (
+        paneles = self.paneles or (
             ("Temperatura (°C)", "tmed", self.p["acento"],
              {"banda": (self.s["tmax"], self.s["tmin"])}),
             ("Humedad (%)", "hummed", self.p["ok"],
@@ -2142,7 +2148,20 @@ class _Meteograma(QWidget):
         painter.end()
 
 
-def pantalla_summary_graficas(p: dict) -> QWidget:
+#: Paneles de la variante B: dos fijos y uno conmutable.
+PANELES_B = {
+    "humedad": ("Humedad (%)", "hummed", "ok",
+                {"banda": ("hummax", "hummin"), "minimo": 40, "maximo": 100}),
+    "viento": ("Viento (m/s) · dirección", "vel", "suave", {"viento": True}),
+    "nubosidad": ("Nubosidad (octavos)", "nubmed", "violeta",
+                  {"banda": ("nubdia", "nubnoche"), "minimo": 0, "maximo": 8}),
+    "lluvia": ("Lluvia (mm)", "lluvia", "acento",
+               {"barras": True, "minimo": 0}),
+}
+
+
+def pantalla_summary_graficas_b(p: dict, variable: str = "viento") -> QWidget:
+    """Meteograma del Resumen: dos paneles fijos y el tercero con selector."""
     pagina = QWidget()
     pagina.setObjectName("pagina")
     pagina.setStyleSheet(f"QWidget#pagina {{ background:{p['fondo']}; }}")
@@ -2150,7 +2169,6 @@ def pantalla_summary_graficas(p: dict) -> QWidget:
     v.setContentsMargins(28, 20, 28, 20)
     v.setSpacing(12)
 
-    # cabecera con las tres pastillas, Gráficas activa
     fila = QHBoxLayout()
     titulos = QVBoxLayout()
     titulos.setSpacing(2)
@@ -2184,11 +2202,40 @@ def pantalla_summary_graficas(p: dict) -> QWidget:
     nombre.setStyleSheet(f"color:{p['texto']};background:transparent;")
     meta.addWidget(nombre)
     meta.addStretch(1)
-    resumen = QLabel("T media 26.4 °C · Lluvia 24.1 mm · Viento medio 12 m/s")
-    resumen.setFont(ui(11))
-    resumen.setStyleSheet(f"color:{p['suave']};background:transparent;")
-    meta.addWidget(resumen)
+    # selector de la tercera variable
+    for clave, etiqueta in (
+        ("humedad", "Humedad"), ("viento", "Viento"),
+        ("nubosidad", "Nubosidad"), ("lluvia", "Lluvia"),
+    ):
+        activo = clave == variable
+        pill = QLabel(etiqueta)
+        pill.setFont(ui(10, 700))
+        pill.setFixedHeight(26)
+        pill.setStyleSheet(
+            f"background:{p['acento_suave'] if activo else p['superficie']};"
+            f"color:{p['acento'] if activo else p['suave']};"
+            f"border:1px solid {p['acento'] if activo else p['borde']};"
+            "border-radius:13px;padding:0 12px;"
+        )
+        meta.addWidget(pill)
     v.addLayout(meta)
+
+    series = _series_resumen()
+    # el espec del tercer panel resuelve los nombres de serie a listas
+    titulo3, clave3, rol3, opciones3 = PANELES_B[variable]
+    opciones3 = {
+        k: (series[v] if isinstance(v, str) else v) for k, v in opciones3.items()
+    } if "banda" not in opciones3 else {
+        **{k: v for k, v in opciones3.items() if k != "banda"},
+        "banda": tuple(series[n] for n in opciones3["banda"]),
+    }
+    paneles = (
+        ("Temperatura (°C)", "tmed", p["acento"],
+         {"banda": (series["tmax"], series["tmin"])}),
+        ("Presión NMM (hPa)", "pmed", p["naranja"],
+         {"banda": (series["pmax"], series["pmin"])}),
+        (titulo3, clave3, p[rol3], opciones3),
+    )
 
     tarjeta = QWidget()
     tarjeta.setObjectName("meteoC")
@@ -2198,12 +2245,12 @@ def pantalla_summary_graficas(p: dict) -> QWidget:
     )
     tv = QVBoxLayout(tarjeta)
     tv.setContentsMargins(8, 8, 8, 8)
-    tv.addWidget(_Meteograma(p, _series_resumen()))
+    tv.addWidget(_Meteograma(p, series, paneles))
     v.addWidget(tarjeta, 1)
 
     pie = QLabel(
-        "Serie diaria del mes · bandas = máximo y mínimo · puntos = máximo diario de viento · "
-        "flechas = dirección"
+        "Dos paneles fijos (temperatura y presión) y el tercero según el selector · "
+        "eje de días compartido"
     )
     pie.setFont(ui(10))
     pie.setStyleSheet(f"color:{p['tenue']};background:transparent;")
@@ -2237,7 +2284,7 @@ def main() -> int:
             ("audit", "audit-reporte", pantalla_audit_reporte),
             ("summary", "summary-tabla", pantalla_summary_tabla),
             ("summary", "summary-historial", pantalla_summary_historial),
-            ("summary", "summary-graficas", pantalla_summary_graficas),
+            ("summary", "summary-graficas", pantalla_summary_graficas_b),
         ):
             w = constructor(paleta)
             w.resize(QSize(ANCHO, ALTO))
