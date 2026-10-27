@@ -153,6 +153,19 @@ packaging/       empaquetado multiplataforma
 
 ## Licencia
 
-Los términos heredados del proyecto original (CC BY-NC-SA) están en
-[`LICENSE`](LICENSE); la estrategia de licenciamiento se define antes del
-empaquetado final.
+El código de OMS se distribuye bajo **MIT**: ver [`LICENSE`](LICENSE). Podés usarlo,
+modificarlo, publicarlo y venderlo, conservando el aviso de copyright.
+
+**El MIT cubre el software, no todo lo que hay en el repositorio:**
+
+| Qué | Condición |
+|---|---|
+| Código (`oms_core/`, `oms_ui/`, `oms_calc/`, `tests/`, `tools/`) | MIT |
+| Datos meteorológicos del archivo (`~/Documentos/OMS/`) | Fuera del repositorio y fuera de esta licencia: son del ONAMET |
+| Manual de claves OMM N°306 (`docs/`) | Material de la OMM, con sus propios términos; no se relicencia |
+| Marca y banner (`docs/brand/`) | MIT junto con el código |
+
+**Dependencias**: PySide6 6.12 es `LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0` y se usa
+por la vía LGPL; bcrypt es Apache-2.0; openpyxl, python-calamine, platformdirs y keyring
+son MIT. El plan de cumplimiento de la LGPL está en
+[`packaging/README.md`](packaging/README.md#cumplimiento-de-la-lgpl-de-pyside6).
