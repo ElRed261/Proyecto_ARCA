@@ -105,6 +105,11 @@ def mark_error(
         (station_id, fecha, hora, campo, tipo_error, nota, marcado_por),
     )
     if cur.rowcount == 0:
+        # The INSERT opened an implicit transaction even when it inserted
+        # nothing; leaving it open makes the caller's next BEGIN IMMEDIATE
+        # fail with "cannot start a transaction within a transaction"
+        # (Judgment Day SEG-02).
+        conn.rollback()
         raise MarkConflictError("Este campo ya está marcado como error")
     conn.commit()
     return int(conn.execute("SELECT last_insert_rowid()").fetchone()[0])
