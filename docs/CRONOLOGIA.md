@@ -49,6 +49,7 @@ Qt Widgets para UI de escritorio de productividad, SQLite WAL.
 |---|---|---|
 | `7dd63a8` | **F0** | Archivo total a `OLD/` (git mv, sin node_modules/dist/cachés) + scaffold `oms_calc`/`oms_core`/`oms_ui`/`tests`/`packaging` + CI `neoarca.yml` + `tendencia_a` verbatim |
 | `588e630` | base | LICENSE raíz (CC BY-NC-SA heredado) |
+| `e38b4b9` | base | **LICENSE pasa a MIT** (decisión del dueño: la CC BY-NC-SA prohibía el uso comercial y bloqueaba piloto, API y distribución); se documenta el alcance —los datos del ONAMET y el manual OMM no se relicencian— y el plan de cumplimiento de la LGPL de PySide6 |
 | `537867d` | **F1** | Núcleo de datos: migraciones M1–M5 verbatim del `db.rs` del oráculo, repos, `paths.py` (cadena ARCA_BASE_DIR>perfil>Documents/ARCA), importador JSON→SQLite idempotente SHA-256; corpus real 488 obs + 63 docs con 0 mismatches |
 | `29eb9c7` | base | Swap a free-threaded 3.14t + PyO3 0.29 (multihilo real; PySide6 requiere GIL → dual-venv permanente `.venv` ft / `.venv-gil` GIL) |
 | `6012951` | **F2** | `oms_calc` completo: portación verbatim de `synoptic.rs`/`monthly.rs`, 26 pyfunctions (23 + 3 frontera JSON), cirugía de `correc_alt` por parámetro; oráculo 512h-Z +1220 celdas exactas |
