@@ -2,6 +2,8 @@
 name = "oms_calc"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
+description = "Cálculos sinópticos y mensuales de OMS (Neo Arca)"
 
 [lib]
 name = "oms_calc"
