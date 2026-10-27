@@ -19,6 +19,11 @@ Sustituye por completo al tema anterior (356 líneas de QSS, 213 `setStyleSheet`
 - **La organización actual se conserva exactamente**: Sinóptico es formulario en
   columnas con riel derecho (horas, módulos CLI, acciones); los CLI mantienen su grilla
   de 24 filas. El rediseño cambia el trazo, no el orden de las cosas.
+- **Los grids no se tocan** (orden del dueño, textual: «deja todo el Grid como está, al
+  igual con el Grid de los CLI»). Eso incluye: el orden de las filas y de los grupos, las
+  etiquetas de la clave, sus tramos (`Fecha` ocupa 4 columnas), los 24 renglones de cada
+  hoja CLI, sus columnas y los carriles de fenómenos. El rediseño sólo cambia cómo se
+  pinta cada celda y todo lo que la rodea (título, riel, bandas, botones, cards).
 
 ## 1. Decisiones firmes
 

@@ -306,6 +306,182 @@ def pantalla_synop(p: dict) -> QWidget:
     return pagina
 
 
+# ---------------------------------------------------------------- CLI 3074
+#: Columnas reales de la hoja 3074 (cli3074.py: "columns verbatim"): el grid no
+#: se toca; lo único que cambia es el trazo.
+GRUPOS_3074 = (
+    ("PRESIÓN (hPa)", ("Esta.", "NMM", "Altímetro")),
+    ("3 H. TEND", ("C.A.R", "Dif")),
+    ("TEMPERATURA", ("Seco", "Húmedo")),
+    ("HUMEDAD", ("Pto R (°C)", "T Vap (hPa)", "HR %")),
+    ("VIENTO", ("DIR (16P)", "VEL (m/s)")),
+    ("VISIBILIDAD", ("(km)",)),
+    ("T.PRES.", ("",)),
+)
+FENOMENOS = ("OR", "SQ", "FC", "TS", "LT", "RD", "DS", "HZ", "FG", "EC")
+FILAS_CLI = 24
+
+
+def _celda_trazo(p: dict, texto: str, *, ancho: int = 0, cabecera: bool = False) -> QLabel:
+    lab = QLabel(texto)
+    lab.setFont(ui(11, 700) if cabecera else mono(11))
+    lab.setFixedHeight(26 if cabecera else 22)
+    if ancho:
+        lab.setFixedWidth(ancho)
+    lab.setAlignment(Qt.AlignCenter if cabecera else (Qt.AlignRight | Qt.AlignVCenter))
+    lab.setStyleSheet(
+        f"color:{p['suave'] if cabecera else p['texto']};background:transparent;"
+        + (f"border-bottom:1px solid {p['borde']};" if cabecera else "")
+        + "padding:0 4px;"
+    )
+    return lab
+
+
+def pantalla_cli3074(p: dict) -> QWidget:
+    pagina = QWidget()
+    pagina.setObjectName("pagina")
+    pagina.setStyleSheet(f"QWidget#pagina {{ background:{p['fondo']}; }}")
+    v = QVBoxLayout(pagina)
+    v.setContentsMargins(16, 12, 16, 12)
+    v.setSpacing(10)
+
+    # ---- banda superior: volver, título, módulos, horas, guardar -----------
+    banda = QHBoxLayout()
+    banda.setSpacing(10)
+    volver = QLabel("←")
+    volver.setFont(ui(15, 600))
+    volver.setFixedSize(28, 28)
+    volver.setAlignment(Qt.AlignCenter)
+    volver.setStyleSheet(
+        f"color:{p['texto']};background:{p['superficie']};"
+        f"border:1px solid {p['borde']};border-radius:4px;"
+    )
+    banda.addWidget(volver)
+    titulo = QLabel("CLI 3074 · Observaciones de superficie")
+    titulo.setFont(ui(15, 800))
+    titulo.setStyleSheet(f"color:{p['texto']};background:transparent;")
+    banda.addWidget(titulo)
+    banda.addStretch(1)
+    for nombre in ("3074", "4074", "5074"):
+        activo = nombre == "3074"
+        tab = QLabel(nombre)
+        tab.setFont(mono(11))
+        tab.setFixedHeight(26)
+        tab.setAlignment(Qt.AlignCenter)
+        tab.setMinimumWidth(52)
+        tab.setStyleSheet(
+            f"background:{p['acento_suave'] if activo else p['superficie']};"
+            f"color:{p['acento'] if activo else p['suave']};"
+            f"border:1px solid {p['acento'] if activo else p['borde']};border-radius:4px;"
+        )
+        banda.addWidget(tab)
+    etiqueta_h = QLabel("VER HORA SYNOP")
+    etiqueta_h.setFont(ui(9, 700))
+    etiqueta_h.setStyleSheet(f"color:{p['suave']};background:transparent;")
+    banda.addWidget(etiqueta_h)
+    for hora in HORAS:
+        chip = QLabel(hora)
+        chip.setFont(mono(10))
+        chip.setFixedHeight(26)
+        chip.setAlignment(Qt.AlignCenter)
+        chip.setMinimumWidth(42)
+        chip.setStyleSheet(
+            f"background:{p['superficie']};color:{p['suave']};"
+            f"border:1px solid {p['borde']};border-radius:4px;"
+        )
+        banda.addWidget(chip)
+    guardar = QLabel("Guardar")
+    guardar.setFont(ui(12, 700))
+    guardar.setFixedHeight(28)
+    guardar.setAlignment(Qt.AlignCenter)
+    guardar.setMinimumWidth(84)
+    guardar.setStyleSheet(
+        f"background:{p['acento']};color:{p['superficie']};border:none;border-radius:4px;"
+    )
+    banda.addWidget(guardar)
+    v.addLayout(banda)
+
+    # ---- banda de estación: mismas etiquetas y el mismo orden -------------
+    datos = QHBoxLayout()
+    datos.setSpacing(10)
+    for etiqueta, valor, ancho in (
+        ("ESTACIÓN", "Las Américas (78485)", 210),
+        ("LATITUD", "18.4331", 110),
+        ("LONGITUD", "-69.6796", 110),
+        ("ALTURA", "2.0", 80),
+        ("FECHA", "08/12/2025", 130),
+    ):
+        celda = QWidget()
+        celda.setObjectName("celda")
+        celda.setStyleSheet("QWidget#celda { background:transparent; }")
+        cv = QVBoxLayout(celda)
+        cv.setContentsMargins(0, 0, 0, 0)
+        cv.setSpacing(3)
+        lab = QLabel(etiqueta)
+        lab.setFont(ui(10, 700))
+        lab.setStyleSheet(f"color:{p['suave']};background:transparent;border:none;")
+        cv.addWidget(lab)
+        campo = QLabel(valor)
+        campo.setFont(mono(11))
+        campo.setFixedHeight(28)
+        campo.setFixedWidth(ancho)
+        campo.setStyleSheet(
+            f"background:{p['superficie']};color:{p['texto']};"
+            f"border:1px solid {p['borde']};border-radius:4px;padding:0 6px;"
+        )
+        cv.addWidget(campo)
+        datos.addWidget(celda)
+    datos.addStretch(1)
+    v.addLayout(datos)
+
+    # ---- la hoja: 24 filas y las mismas columnas -------------------------
+    hoja = QWidget()
+    hoja.setObjectName("hoja")
+    hoja.setStyleSheet(
+        f"QWidget#hoja {{ background:{p['superficie']};"
+        f" border:1px solid {p['borde']}; border-radius:10px; }}"
+    )
+    grilla = QGridLayout(hoja)
+    grilla.setContentsMargins(10, 8, 10, 8)
+    grilla.setHorizontalSpacing(2)
+    grilla.setVerticalSpacing(1)
+
+    columna = 0
+    grilla.addWidget(_celda_trazo(p, "H", cabecera=True), 0, columna, 2, 1)
+    columna += 1
+    for grupo, subs in GRUPOS_3074:
+        cab = _celda_trazo(p, grupo, cabecera=True)
+        grilla.addWidget(cab, 0, columna, 1, len(subs))
+        for sub in subs:
+            grilla.addWidget(_celda_trazo(p, sub, cabecera=True), 1, columna)
+            columna += 1
+    cab = _celda_trazo(p, "FENÓMENOS", cabecera=True)
+    grilla.addWidget(cab, 0, columna, 1, len(FENOMENOS))
+    for nombre in FENOMENOS:
+        grilla.addWidget(_celda_trazo(p, nombre, cabecera=True), 1, columna)
+        columna += 1
+    grilla.addWidget(_celda_trazo(p, "OBS.", cabecera=True), 0, columna, 2, 1)
+
+    # Cuerpo de la hoja: la línea de celda es lo que hace visible cada renglón.
+    for fila in range(FILAS_CLI):
+        numero = _celda_trazo(p, str(fila + 1))
+        numero.setAlignment(Qt.AlignCenter)
+        numero.setStyleSheet(
+            f"color:{p['tenue']};background:transparent;"
+            f"border-bottom:1px solid {p['borde']};padding:0 4px;"
+        )
+        grilla.addWidget(numero, fila + 2, 0)
+        for col in range(1, columna):
+            celda = _celda_trazo(p, "")
+            celda.setStyleSheet(
+                f"color:{p['texto']};background:transparent;"
+                f"border-bottom:1px solid {p['borde']};padding:0 4px;"
+            )
+            grilla.addWidget(celda, fila + 2, col)
+    v.addWidget(hoja, 1)
+    return pagina
+
+
 def main() -> int:
     SALIDA.mkdir(parents=True, exist_ok=True)
     app = QApplication.instance() or QApplication(sys.argv)
@@ -315,6 +491,15 @@ def main() -> int:
         w.show()
         app.processEvents()
         destino = SALIDA / f"mock-synop-{nombre}.png"
+        w.grab().save(str(destino))
+        print(f"  {destino}  ({destino.stat().st_size // 1024} KB)")
+        w.close()
+
+        w = pantalla_cli3074(paleta)
+        w.resize(QSize(ANCHO, ALTO))
+        w.show()
+        app.processEvents()
+        destino = SALIDA / f"mock-cli3074-{nombre}.png"
         w.grab().save(str(destino))
         print(f"  {destino}  ({destino.stat().st_size // 1024} KB)")
         w.close()
