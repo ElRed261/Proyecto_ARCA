@@ -38,6 +38,8 @@ from oms_ui.theme import PALETTES  # noqa: E402
 
 ANCHO, ALTO = 1366, 768
 SALIDA = Path("Migración/evidencias/DISENO_NUEVO")
+#: Una carpeta por módulo: así la evidencia no se mezcla.
+MODULOS = ("synop", "cli", "audit", "estados", "reales")
 
 HORAS = ("06Z", "09Z", "12Z", "15Z", "18Z", "21Z", "00Z", "03Z")
 HORA_ACTIVA = "12Z"
@@ -1581,33 +1583,361 @@ def pantalla_audit_reporte(p: dict) -> QWidget:
     return pagina
 
 
+# ------------------------------------------- Auditoría sobre el Sinóptico (A+D+B)
+# A: la misma grilla de 16 filas del Sinóptico, en lectura, con el estado en el
+#    propio campo. D: cola de pendientes con «Siguiente pendiente». B: riel de
+#    historial guardado -> propuesto, plegable.
+
+#: estado por (fila del formulario, columna): "marcado" | "corregido" | "limpio"
+ESTADOS_CAMPO = {
+    (1, 3): "marcado",   # 15Z · 2snTdTdTd
+    (2, 1): "corregido", # 21Z · Nddff
+    (3, 0): "marcado",   # 00Z · 5nFnFnFn
+    (0, 1): "corregido", # 06Z · YYGGIw
+}
+CAMPO_ACTIVO = (1, 3)
+
+
+def _formulario_auditado(p: dict) -> QWidget:
+    tarjeta = QWidget()
+    tarjeta.setObjectName("tarjeta")
+    tarjeta.setStyleSheet(
+        f"QWidget#tarjeta {{ background:{p['superficie']};"
+        f" border:1px solid {p['borde']}; border-radius:10px; }}"
+    )
+    v = QVBoxLayout(tarjeta)
+    v.setContentsMargins(16, 14, 16, 14)
+    v.setSpacing(10)
+
+    obs = QHBoxLayout()
+    lab = QLabel("Observador")
+    lab.setFont(ui(11, 600))
+    lab.setStyleSheet(f"color:{p['suave']};background:transparent;border:none;")
+    lab.setFixedWidth(104)
+    obs.addWidget(lab)
+    campo = QLabel("JUAN RODRIGUEZ")
+    campo.setFont(mono(12))
+    campo.setFixedHeight(34)
+    campo.setStyleSheet(
+        f"background:{p['panel']};color:{p['suave']};"
+        f"border:1px solid {p['borde']};border-radius:4px;padding:0 8px;"
+    )
+    obs.addWidget(campo, 1)
+    v.addLayout(obs)
+
+    grilla = QGridLayout()
+    grilla.setHorizontalSpacing(8)
+    grilla.setVerticalSpacing(3)
+    colores = {
+        "marcado": p["error"],
+        "corregido": p["ok"],
+        "limpio": p["borde"],
+    }
+    for indice, celdas in enumerate(FILAS):
+        columna = 0
+        for etiqueta, tramo in celdas:
+            estado = ESTADOS_CAMPO.get((indice, columna), "limpio")
+            activo = (indice, columna) == CAMPO_ACTIVO
+            cab = QWidget()
+            cab.setObjectName("cab")
+            cab.setStyleSheet("QWidget#cab { background:transparent; border:none; }")
+            ch = QHBoxLayout(cab)
+            ch.setContentsMargins(0, 0, 0, 0)
+            ch.setSpacing(4)
+            lab = QLabel(etiqueta)
+            lab.setFont(ui(11, 600))
+            lab.setStyleSheet(f"color:{p['suave']};background:transparent;border:none;")
+            ch.addWidget(lab)
+            if estado != "limpio":
+                punto = QLabel("●")
+                punto.setFont(ui(8))
+                punto.setStyleSheet(
+                    f"color:{colores[estado]};background:transparent;border:none;"
+                )
+                ch.addWidget(punto)
+            ch.addStretch(1)
+            grilla.addWidget(cab, indice * 2, columna, 1, tramo)
+
+            valor = _valor_de(indice, columna)
+            caja = QWidget()
+            caja.setObjectName("caja")
+            caja.setStyleSheet("QWidget#caja { background:transparent; border:none; }")
+            caj = QHBoxLayout(caja)
+            caj.setContentsMargins(0, 0, 0, 0)
+            caj.setSpacing(0)
+            texto = QLabel(valor)
+            texto.setFont(mono(12))
+            texto.setFixedHeight(34)
+            texto.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+            borde = p["acento"] if activo else colores[estado]
+            grosor = 2 if activo else 1
+            texto.setStyleSheet(
+                f"background:{p['superficie']};color:{p['texto']};"
+                f"border:{grosor}px solid {borde};border-radius:4px;padding:0 8px;"
+            )
+            caj.addWidget(texto, 1)
+            if activo:
+                # Las dos acciones viven fuera del campo, con aire: dentro
+                # quedaban apretadas contra el valor.
+                acciones = QVBoxLayout()
+                acciones.setContentsMargins(0, 0, 0, 0)
+                acciones.setSpacing(2)
+                for glifo, tip in (("✎", "corregir"), ("⚑", "marcar")):
+                    boton = QLabel(glifo)
+                    boton.setFont(ui(11))
+                    boton.setFixedSize(22, 16)
+                    boton.setAlignment(Qt.AlignCenter)
+                    boton.setToolTip(tip)
+                    boton.setStyleSheet(
+                        f"background:{p['acento_suave']};color:{p['acento']};"
+                        "border:none;border-radius:3px;"
+                    )
+                    acciones.addWidget(boton)
+                caj.addSpacing(4)
+                caj.addLayout(acciones, 0)
+            grilla.addWidget(caja, indice * 2 + 1, columna, 1, tramo)
+            columna += tramo
+        grilla.setRowMinimumHeight(indice * 2 + 1, 34)
+    for col in range(7):
+        grilla.setColumnStretch(col, 1)
+    for fila in range(len(FILAS) * 2):
+        grilla.setRowStretch(fila, 1)
+    v.addLayout(grilla, 1)
+    return tarjeta
+
+
+def pantalla_audit_sinoptico(p: dict) -> QWidget:
+    pagina = QWidget()
+    pagina.setObjectName("pagina")
+    pagina.setStyleSheet(f"QWidget#pagina {{ background:{p['fondo']}; }}")
+    v = QVBoxLayout(pagina)
+    v.setContentsMargins(20, 14, 20, 14)
+    v.setSpacing(10)
+
+    # ---- cabecera --------------------------------------------------------
+    cab = QHBoxLayout()
+    izq = QVBoxLayout()
+    izq.setSpacing(4)
+    pastillas = QHBoxLayout()
+    pastillas.setSpacing(6)
+    for texto, tipo in (("ESTACIÓN 78485", "acento"), ("08/12/2025 · 15Z", "panel")):
+        lab = QLabel(texto)
+        lab.setFont(ui(11, 700))
+        if tipo == "acento":
+            lab.setStyleSheet(
+                f"background:{p['naranja_fondo']};color:{p['naranja_fuerte']};"
+                f"border:1px solid {p['naranja_debil']};border-radius:9px;padding:3px 9px;"
+            )
+        else:
+            lab.setStyleSheet(
+                f"background:{p['panel']};color:{p['suave']};"
+                f"border:1px solid {p['borde']};border-radius:9px;padding:3px 9px;"
+            )
+        pastillas.addWidget(lab)
+    pastillas.addStretch(1)
+    izq.addLayout(pastillas)
+    titulo = QLabel("Auditoría · Sinóptico")
+    titulo.setFont(ui(22, 800))
+    titulo.setStyleSheet(f"color:{p['texto']};background:transparent;")
+    izq.addWidget(titulo)
+    cab.addLayout(izq, 1)
+
+    der = QVBoxLayout()
+    der.setSpacing(6)
+    acciones = QHBoxLayout()
+    acciones.setSpacing(6)
+    siguiente = QLabel("Siguiente pendiente  ·  3")
+    siguiente.setFont(ui(12, 700))
+    siguiente.setFixedHeight(32)
+    siguiente.setStyleSheet(
+        f"background:{p['acento']};color:{p['superficie']};"
+        "border:none;border-radius:4px;padding:0 14px;"
+    )
+    acciones.addWidget(siguiente)
+    for texto in ("Guardar correcciones", "Terminar auditoría"):
+        boton = QLabel(texto)
+        boton.setFont(ui(11, 600))
+        boton.setFixedHeight(32)
+        boton.setStyleSheet(
+            f"background:{p['superficie']};color:{p['texto']};"
+            f"border:1px solid {p['borde']};border-radius:4px;padding:0 12px;"
+        )
+        acciones.addWidget(boton)
+    der.addLayout(acciones)
+    resumen = QLabel("3 marcas sin corregir · 1 corrección por aprobar · 12 campos sin revisar")
+    resumen.setFont(ui(11))
+    resumen.setAlignment(Qt.AlignRight)
+    resumen.setStyleSheet(f"color:{p['suave']};background:transparent;")
+    der.addWidget(resumen)
+    cab.addLayout(der, 0)
+    v.addLayout(cab)
+
+    # ---- tira de horas + leyenda ----------------------------------------
+    barra = QWidget()
+    barra.setObjectName("barra")
+    barra.setStyleSheet(
+        f"QWidget#barra {{ background:{p['superficie']};"
+        f" border:1px solid {p['borde']}; border-radius:8px; }}"
+    )
+    fila = QHBoxLayout(barra)
+    fila.setContentsMargins(10, 8, 10, 8)
+    fila.setSpacing(6)
+    for hora in HORAS:
+        activa = hora == HORA_ACTIVA
+        boton = QLabel(hora)
+        boton.setFont(mono(10))
+        boton.setFixedHeight(26)
+        boton.setMinimumWidth(48)
+        boton.setAlignment(Qt.AlignCenter)
+        boton.setStyleSheet(
+            f"background:{p['acento_suave'] if activa else p['superficie']};"
+            f"color:{p['acento'] if activa else p['suave']};"
+            f"border:1px solid {p['acento'] if activa else p['borde']};border-radius:4px;"
+        )
+        fila.addWidget(boton)
+        punto = QLabel("●")
+        punto.setFont(ui(7))
+        punto.setStyleSheet(
+            f"color:{p['error'] if hora in ('15Z', '21Z', '00Z') else p['borde']};"
+            "background:transparent;"
+        )
+        fila.addWidget(punto)
+    fila.addStretch(1)
+    for glifo, texto, color in (
+        ("●", "marcado", p["error"]),
+        ("●", "corregido", p["ok"]),
+        ("○", "limpio", p["tenue"]),
+    ):
+        punto = QLabel(glifo)
+        punto.setFont(ui(10))
+        punto.setStyleSheet(f"color:{color};background:transparent;")
+        fila.addWidget(punto)
+        etiqueta = QLabel(texto)
+        etiqueta.setFont(ui(10))
+        etiqueta.setStyleSheet(f"color:{p['suave']};background:transparent;")
+        fila.addWidget(etiqueta)
+        fila.addSpacing(8)
+    v.addWidget(barra)
+
+    # ---- cuerpo: formulario | cola + historial ---------------------------
+    cuerpo = QHBoxLayout()
+    cuerpo.setSpacing(12)
+    cuerpo.addWidget(_formulario_auditado(p), 62)
+
+    derecha = QVBoxLayout()
+    derecha.setSpacing(10)
+
+    cola, cola_cv = _card_audit(p)
+    titulo_cola = QLabel("Cola de pendientes")
+    titulo_cola.setFont(ui(12, 800))
+    titulo_cola.setStyleSheet(f"color:{p['texto']};background:transparent;border:none;")
+    cola_cv.addWidget(titulo_cola)
+    for etiqueta, valor, tipo in (
+        ("Marcas sin corregir", "3", "error"),
+        ("Correcciones por aprobar", "1", "ok"),
+        ("Campos sin revisar", "12", "muted"),
+    ):
+        fila_cola = QHBoxLayout()
+        nom = QLabel(etiqueta)
+        nom.setFont(ui(11))
+        nom.setStyleSheet(f"color:{p['suave']};background:transparent;border:none;")
+        fila_cola.addWidget(nom, 1)
+        fila_cola.addWidget(_badge(p, valor, tipo))
+        cola_cv.addLayout(fila_cola)
+    pista = QLabel("Enter va al siguiente pendiente; N marca, C corrige")
+    pista.setFont(ui(10))
+    pista.setStyleSheet(f"color:{p['tenue']};background:transparent;border:none;")
+    cola_cv.addWidget(pista)
+    derecha.addWidget(cola, 0)
+
+    hist, hist_cv = _card_audit(p)
+    cab_hist = QHBoxLayout()
+    titulo_hist = QLabel("Historial del campo")
+    titulo_hist.setFont(ui(12, 800))
+    titulo_hist.setStyleSheet(f"color:{p['texto']};background:transparent;border:none;")
+    cab_hist.addWidget(titulo_hist, 1)
+    plegar = QLabel("▾ 2snTdTdTd")
+    plegar.setFont(ui(10, 600))
+    plegar.setStyleSheet(f"color:{p['suave']};background:transparent;border:none;")
+    cab_hist.addWidget(plegar)
+    hist_cv.addLayout(cab_hist)
+    for campo, antes, ahora, quien, hora in (
+        ("2snTdTdTd", "20186", "20185", "MENDEZ", "10:42"),
+        ("Nddff", "82506", "82516", "FELIPE", "11:05"),
+        ("YYGGIw", "08124", "08125", "JUAN R.", "09:18"),
+    ):
+        fila_h = QWidget()
+        fila_h.setObjectName("histF")
+        fila_h.setStyleSheet(
+            f"QWidget#histF {{ background:{p['panel']}; border-radius:6px; }}"
+        )
+        fh = QVBoxLayout(fila_h)
+        fh.setContentsMargins(8, 6, 8, 6)
+        fh.setSpacing(2)
+        nombre = QLabel(campo)
+        nombre.setFont(ui(10, 700))
+        nombre.setStyleSheet(f"color:{p['texto']};background:transparent;border:none;")
+        fh.addWidget(nombre)
+        cambio = QHBoxLayout()
+        v1 = QLabel(antes)
+        v1.setFont(mono(11))
+        v1.setStyleSheet(
+            f"color:{p['suave']};background:transparent;border:none;"
+        )
+        flecha = QLabel("→")
+        flecha.setStyleSheet(f"color:{p['tenue']};background:transparent;border:none;")
+        v2 = QLabel(ahora)
+        v2.setFont(mono(11))
+        v2.setStyleSheet(f"color:{p['ok']};background:transparent;border:none;")
+        quien_lab = QLabel(f"{quien} · {hora}")
+        quien_lab.setFont(ui(9))
+        quien_lab.setStyleSheet(f"color:{p['tenue']};background:transparent;border:none;")
+        cambio.addWidget(v1)
+        cambio.addWidget(flecha)
+        cambio.addWidget(v2)
+        cambio.addStretch(1)
+        cambio.addWidget(quien_lab)
+        fh.addLayout(cambio)
+        hist_cv.addWidget(fila_h)
+    hist_cv.addStretch(1)
+    derecha.addWidget(hist, 1)
+    cuerpo.addLayout(derecha, 38)
+    v.addLayout(cuerpo, 1)
+    return pagina
+
+
 def main() -> int:
     SALIDA.mkdir(parents=True, exist_ok=True)
+    for modulo in MODULOS:
+        (SALIDA / modulo).mkdir(parents=True, exist_ok=True)
     app = QApplication.instance() or QApplication(sys.argv)
     for nombre, paleta in PALETTES.items():
         w = pantalla_synop(paleta)
         w.resize(QSize(ANCHO, ALTO))
         w.show()
         app.processEvents()
-        destino = SALIDA / f"mock-synop-{nombre}.png"
+        (SALIDA / "synop").mkdir(parents=True, exist_ok=True)
+        destino = SALIDA / "synop" / f"mock-synop-{nombre}.png"
         w.grab().save(str(destino))
         print(f"  {destino}  ({destino.stat().st_size // 1024} KB)")
         w.close()
 
-        for clave, constructor in (
-            ("cli3074", pantalla_cli3074),
-            ("cli4074", pantalla_cli4074),
-            ("cli5074", pantalla_cli5074),
-            ("audit-estaciones", pantalla_audit_estaciones),
-            ("audit-dias", pantalla_audit_dias),
-            ("audit-observacion", pantalla_audit_observacion),
-            ("audit-reporte", pantalla_audit_reporte),
+        for carpeta, clave, constructor in (
+            ("cli", "cli3074", pantalla_cli3074),
+            ("cli", "cli4074", pantalla_cli4074),
+            ("cli", "cli5074", pantalla_cli5074),
+            ("audit", "audit-estaciones", pantalla_audit_estaciones),
+            ("audit", "audit-dias", pantalla_audit_dias),
+            ("audit", "audit-observacion", pantalla_audit_observacion),
+            ("audit", "audit-sinoptico", pantalla_audit_sinoptico),
+            ("audit", "audit-reporte", pantalla_audit_reporte),
         ):
             w = constructor(paleta)
             w.resize(QSize(ANCHO, ALTO))
             w.show()
             app.processEvents()
-            destino = SALIDA / f"mock-{clave}-{nombre}.png"
+            (SALIDA / carpeta).mkdir(parents=True, exist_ok=True)
+            destino = SALIDA / carpeta / f"mock-{clave}-{nombre}.png"
             w.grab().save(str(destino))
             print(f"  {destino}  ({destino.stat().st_size // 1024} KB)")
             w.close()

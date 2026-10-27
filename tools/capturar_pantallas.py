@@ -106,7 +106,7 @@ def _capturar_estados(app: QApplication, nombre_tema: str) -> None:
             modelo.setItem(r, c, QStandardItem(valor))
     tabla.setModel(modelo)
     lay.addWidget(tabla)
-    _capturar(w, SALIDA / f"fase1-estados-{nombre_tema}.png", app)
+    _capturar(w, _carpeta("estados") / f"fase1-estados-{nombre_tema}.png", app)
 
 
 def _db_temporal() -> tuple[object, Path]:
@@ -114,6 +114,13 @@ def _db_temporal() -> tuple[object, Path]:
     conn = connect(carpeta / "capturas.db")
     migrations.migrate(conn)
     return conn, carpeta
+
+
+def _carpeta(nombre: str) -> Path:
+    """Una carpeta por módulo dentro de la evidencia."""
+    ruta = SALIDA / nombre
+    ruta.mkdir(parents=True, exist_ok=True)
+    return ruta
 
 
 def _capturar(widget, destino: Path, app: QApplication) -> None:
@@ -146,7 +153,7 @@ def main() -> int:
             if hora in pagina.observations:
                 pagina.observations[hora].update(valores)
         pagina.select_hour("12Z")
-        _capturar(pagina, SALIDA / f"pantalla-synop-{nombre_tema}.png", app)
+        _capturar(pagina, _carpeta("reales") / f"pantalla-synop-{nombre_tema}.png", app)
 
         for clave, vista in (
             ("cli3074", Cli3074View),
@@ -158,7 +165,7 @@ def main() -> int:
             except TypeError as error:  # firma distinta: se reporta, no se inventa
                 print(f"  {clave}: no se pudo construir ({error})")
                 continue
-            _capturar(widget, SALIDA / f"pantalla-{clave}-{nombre_tema}.png", app)
+            _capturar(widget, _carpeta("reales") / f"pantalla-{clave}-{nombre_tema}.png", app)
 
     theme.apply_theme(app, "claro")
     conn.close()
