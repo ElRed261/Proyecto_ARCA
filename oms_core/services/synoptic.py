@@ -533,6 +533,7 @@ def save_hour(
         conn.execute("RELEASE f4_save_hour")
         if commit:
             conn.commit()
+            _publicar_en_arbol(conn, station, fecha)
     except Exception:
         conn.execute("ROLLBACK TO f4_save_hour")
         conn.execute("RELEASE f4_save_hour")
@@ -573,6 +574,45 @@ def save_day(
     conn.commit()
     if observer:
         remember_observer(conn, station, observer)
+    _publicar_en_arbol(conn, station, fecha)
+
+
+def _publicar_en_arbol(conn: sqlite3.Connection, station: str, fecha: str) -> None:
+    """Write the day JSON to the documented tree and hand it to sync (S4).
+
+    Silent by design: without a configured root there is nothing to write and a
+    save must never fail because a Drive folder is missing.
+    """
+    from oms_core import paths as paths_mod
+
+    try:
+        raiz = paths_mod.offline_base_dir(conn, modulo="")
+    except Exception:  # noqa: BLE001 - a corrupt profile must not break a save
+        return
+    if str(raiz) in ("", "."):
+        return
+
+    year, month, day = validate_fecha(fecha)
+    texto = summaries_repo.get_summary_doc(conn, station, year, month, "diario", day=day)
+    if not texto:
+        return
+
+    base = raiz / paths_mod.SECTION_SYNOP
+    carpeta = base / station / str(year) / f"{month:02d}"
+    destino = carpeta / f"{station}{day:02d}{month:02d}{year}.json"
+    try:
+        carpeta.mkdir(parents=True, exist_ok=True)
+        temporal = destino.with_suffix(".json.tmp")
+        temporal.write_text(texto, encoding="utf-8")
+        temporal.replace(destino)
+    except OSError:
+        return
+
+    from oms_core.services import sync as sync_service
+
+    sync_service.emit_dual_after_save(
+        conn, "synop", station, fecha, default_root=str(raiz)
+    )
 
 
 def _now_local() -> str:

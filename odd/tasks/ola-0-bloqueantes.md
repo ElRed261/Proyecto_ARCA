@@ -41,9 +41,10 @@ contraseña utilizable.
 `sync.emit_dual_after_save` sólo se invoca desde `tests/test_f7_sync.py`; `save_hour` y `save_cli`
 escriben únicamente en SQLite, así que el árbol `synop/` no recibe ningún documento nuevo y
 `sync_pending` queda vacía para siempre, mientras el panel muestra "Sincronización al día". Efectos
-observables: después de un `save_hour` exitoso, el JSON del día existe en el árbol configurado y hay
-una fila en `sync_pending`; si el árbol online no está configurado, el guardado **no falla** y la cola
-lo refleja como pendiente, no como inexistente.
+observables: después de un `save_day`/`save_hour` exitoso, el JSON del día existe en
+`<offline_root>/synop/<station>/<year>/<month>/<station><dd><mm><yyyy>.json`; con raíz online configurada
+y copia fallida hay una fila en `sync_pending` con `last_error`; sin raíz online el guardado **no falla**
+y no encola nada (no-op honesto, igual que el oráculo).
 
 **S5 — El auditor ve los días guardados por la aplicación (ESC-01).**
 El navegador de auditoría (`oms_core/services/audit.py:385`) enumera el árbol en disco y parsea los
@@ -59,7 +60,7 @@ migración aparece en la auditoría. Efectos observables: un día guardado por `
 | T1 | S1 | `oms_core/db/repositories/audit.py` + `tests/test_audit_transaction.py` | hecho · `b86f039` |
 | T2 | S2 | `synoptic.save_day` + `save_hour(commit=)` + `oms_ui/pages/synoptic.py` + `tests/test_synoptic_day_transaction.py` | hecho |
 | T3 | S3 | `run_dev.py`, `oms_core/services/auth.py`, `tests/test_auth_first_run.py` | hecho |
-| T4 | S4 | `oms_core/services/synoptic.py`, `oms_core/services/sync.py` + test de integración | pendiente |
+| T4 | S4 | `synoptic._publicar_en_arbol` + `tests/test_sync_after_save.py` | hecho |
 | T5 | S5 | `oms_core/services/audit.py` + tests | pendiente |
 
 Cada tarea: test en rojo primero, arreglo mínimo, verde, y commit propio porque cada una toca un ítem
@@ -95,3 +96,18 @@ decide al abrir el PR.
 llama a `auth.seed_admin(conn, DEV_DIR)` y sólo imprime credenciales cuando acaba de sembrar.
 `seed_admin` deja `primer_inicio.txt` en `0600`. Un test lee `run_dev.py` y falla si vuelve a aparecer
 la contraseña. Suite completa: 785 passed.
+
+**L7 — T4 (S4) cerrado, y el hallazgo era mayor de lo que decía el informe.** `emit_after_save` copia
+**desde** el árbol offline; nadie escribía el documento en ese árbol, así que conectar el emisor no
+bastaba: había que crear la escritura. Se añade `_publicar_en_arbol()` en `synoptic.py` (escribe
+`<offline_root>/synop/<station>/<year>/<month>/<station><dd><mm><yyyy>.json` con reemplazo atómico y
+después llama `emit_dual_after_save`), invocada en el nivel más externo de commit: `save_hour` cuando
+`commit=True` y `save_day` tras su commit, para no emitir ocho veces por día.
+
+**L8 — Incidente durante T4, y la lección que importa.** El primer test de "sin árbol configurado"
+resolvió al `~/Documentos/OMS` real y escribió un día vacío en el archivo del dueño: borrado. Regla
+nueva del fixture: `default_documents_root` se monkeypatchea a `tmp_path`, así que **ningún test puede
+tocar el archivo real**. Segundo tropiezo del mismo test: el monkeypatch tenía la firma mal
+(`default_documents_root(env_map)`) y el `except Exception` de `_publicar_en_arbol` lo tragaba en
+silencio, dando tres rojos confusos — el `except` amplio es correcto en producción y peligroso en
+test, así que la barrera es el fixture, no el `except`.
