@@ -123,3 +123,18 @@ disco, así que la fila de un día ya muestra lo que el auditor necesita ver.
 copiada, mismos tres meses): 0 días y 0 estaciones perdidos; `78485/2025-12` pasa de **14 a 30** días
 visibles (+16), `78486/2025-10` de **20 a 31** (el mes completo), `78482/2026-09` sin cambios y las 15
 estaciones iguales. Es el arreglo, medido sobre el archivo real del dueño.
+
+**L11 — Incidente de hermetismo, resuelto.** Al publicar en el árbol (T4), cualquier test que guardara
+una observación escribía en `~/Documentos/OMS/synop`: **17 documentos reales** quedaron sobrescritos con
+un día vacío y uno (`TESTS/2025/05/TESTS20052025.json`) era basura pura. Recuperación: los 17 se
+reescribieron desde `summary_logs` (3,6-6,7 KB cada uno, 76.975 B en total), que es la fuente de verdad;
+el de `TESTS/` se borró. Barrera definitiva en `tests/conftest.py`: `synoptic._publicar_en_arbol` se
+sustituye por un no-op en toda la suite y sólo `tests/test_sync_after_save.py` la habilita con
+`OMS_TESTS_ARBOL_REAL`, redirigiendo además `default_documents_root` a `tmp`. Verificado: 3.036 archivos
+antes y después de la suite, **0 tocados**.
+
+Lección: no se puede aislar parchando el resolvedor de rutas (`default_documents_root`), porque los
+tests de rutas lo verifican de verdad; se aísla la función que escribe.
+
+**L12 — Cierre.** Suite completa: **800 passed** (776 de base + 24 nuevos), 2 deselected. Commits de la
+ola: `b86f039` (S1), `0e7d49c` (S2), `503a1d5` (S3), `6d24d01` (S4), `6ceb07e` (S5).

@@ -30,6 +30,8 @@ def _sin_env_de_arbol(monkeypatch, tmp_path):
     """
     monkeypatch.delenv(paths_mod.ENV_BASE_DIR, raising=False)
     monkeypatch.delenv("ARCA_BASE_DIR", raising=False)
+    # Este módulo es el único que publica de verdad en el árbol (S4).
+    monkeypatch.setenv("OMS_TESTS_ARBOL_REAL", "1")
     monkeypatch.setattr(
         paths_mod, "default_documents_root", lambda *_a, **_k: tmp_path / "documentos"
     )

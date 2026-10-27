@@ -20,9 +20,34 @@ import pytest
 
 from oms_core.db import migrations
 from oms_core.db.connection import connect
+from oms_core.services import synoptic as synoptic_service
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
 IMPORTER_FIXTURES = FIXTURES / "importer"
+
+
+_PUBLICAR_REAL = synoptic_service._publicar_en_arbol
+
+
+def _publicar_solo_si_se_pide(conn, station, fecha):
+    """Publish to the tree only for the test module that asks for it."""
+    if os.environ.get("OMS_TESTS_ARBOL_REAL") == "1":
+        _PUBLICAR_REAL(conn, station, fecha)
+
+
+@pytest.fixture(autouse=True)
+def _archivo_real_intocable(monkeypatch):
+    """No test may write into the user's real archive.
+
+    A save publishes the day JSON to the offline tree (spec S4), and with no
+    profile configured that tree resolves to ``~/Documentos/OMS``. The suite
+    once overwrote 18 real day documents before this barrier existed; only the
+    sync tests opt in (``OMS_TESTS_ARBOL_REAL``), and they redirect the default
+    root to tmp themselves.
+    """
+    monkeypatch.setattr(
+        synoptic_service, "_publicar_en_arbol", _publicar_solo_si_se_pide
+    )
 
 
 @pytest.fixture(autouse=True)
