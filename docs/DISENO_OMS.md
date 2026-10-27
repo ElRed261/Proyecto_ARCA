@@ -136,6 +136,35 @@ Ocho segmentos clicables: `06Z 09Z 12Z 15Z 18Z 21Z 00Z 03Z`.
 En los CLI, el detalle a la derecha muestra el grupo de la celda activa:
 `82618` → `N=4/8 · dd=260° · ff=18`. Incluye los 10 carriles de fenómenos como chips.
 
+### 5.6 `Meteograma` — la pestaña Gráficas del Resumen
+
+Un meteograma es una **serie temporal meteorológica dibujada como paneles apilados que
+comparten el eje de tiempo**: la misma fecha cae en la misma vertical en todos. Referencia
+canónica: el meteograma de MetPy (Unidata), que apila viento, temperatura con rocío,
+humedad relativa y presión.
+
+El Resumen Mensual son datos **diarios** (1..31), así que cada panel es una serie de 31
+puntos con un solo eje de días al pie.
+
+| Fila | Dibujo | Variables del Resumen |
+|---|---|---|
+| Temperatura (°C) | banda de máx/mín + línea de la media | Mayor temperatura máxima · Menor temperatura minima · Media temperatura |
+| Humedad (%) | banda máx/mín + línea de la media | Humedad maxima · Humedad minima · Humedad media |
+| Presión NMM (hPa) | banda máx/mín + línea de la media; la de estación punteada | MAxima/Minima/Media presión nivel medio del mar · Media presion en la estación |
+| Viento (m/s) · dirección | barras de la media, puntos del máximo diario y **flechas en franja propia arriba** | Velocidad media · Velocidad máxima y direccion · Dirección del viento |
+| Lluvia (mm) | barras | Lluvia |
+
+Reglas:
+
+- **Nada de degradados.** Los rellenos van planos con alfa sobre el color del rol (38/255
+  en las bandas, 150/255 en las barras).
+- La etiqueta de cada fila va a la izquierda, en `suave` 9 px; la rejilla horizontal, en
+  `borde` punteado.
+- **Las flechas de dirección nunca van al pie del panel**: las tapan las barras. Van en su
+  propia franja, arriba.
+- Fuera de esta primera versión, por decisión del dueño: nubosidad día/noche/media, punto
+  de rocío y tensión de vapor. Entran después como líneas o banda fina sin cambiar el panel set.
+
 ## 6. Reglas por pantalla
 
 | Pantalla | Regla |
