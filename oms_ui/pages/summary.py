@@ -375,9 +375,7 @@ class SummaryPage(QWidget):
         panel = QFrame()
         panel.setObjectName("panel")
         panel.setStyleSheet(
-            "QFrame#panel { background-color: qlineargradient("
-            "x1: 0, y1: 0, x2: 1, y2: 1,"
-            " stop: 0 #faf5ff, stop: 0.5 #f5f3ff, stop: 1 #fdf4ff);"
+            "QFrame#panel { background-color: #faf5ff;"
             f" border: 1px solid {_VIOLET_LINE}; border-radius: 16px; }}"
         )
         layout = QVBoxLayout(panel)
@@ -392,7 +390,7 @@ class SummaryPage(QWidget):
         head.addWidget(gauge)
         head.addWidget(_label(
             "CARGA AUTOMÁTICA POR ESTACIÓN Y PERÍODO",
-            size=11, weight=800, color="#6d28d9", extra="letter-spacing: 0.6px;",
+            size=11, weight=800, color="#6d28d9", extra="",
         ))
         head.addStretch(1)
         layout.addLayout(head)
@@ -704,7 +702,7 @@ class SummaryPage(QWidget):
         row.addStretch(1)
 
         row.addWidget(_label("SYNOP", size=10, weight=800, color=_FAINT,
-                             extra="letter-spacing: 1px;"))
+                             extra=""))
 
         delete = QPushButton()
         delete.setIcon(lucide_icon("trash-2", _FAINT, 16))

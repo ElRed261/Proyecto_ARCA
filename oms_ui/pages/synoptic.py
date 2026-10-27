@@ -42,7 +42,6 @@ from PySide6.QtCore import QDate, QRegularExpression, QSize, Qt, QTimer
 from PySide6.QtGui import (
     QColor,
     QKeySequence,
-    QLinearGradient,
     QPainter,
     QPixmap,
     QRegularExpressionValidator,
@@ -74,6 +73,7 @@ from oms_core.db.repositories import stations as stations_repo
 from oms_core.services import past_weather
 from oms_core.services import synoptic as synoptic_service
 from oms_ui.icons import icon_pixmap, lucide_icon
+from oms_ui import theme as theme_mod
 from oms_ui.widgets import StyledComboBox
 
 _AAXX = "AAXX"
@@ -523,29 +523,15 @@ class SynopticPage(QWidget):
         self._observer_prefill()
 
     def paintEvent(self, event) -> None:
-        """The hour's photograph, with the gradient as the fallback.
+        """Fondo plano del tema.
 
-        A dark scrim is painted over the photo so the white header and titles
-        stay readable whatever the picture looks like.
+        Regla del dueño: NADA de degradados ni fotografías detrás de la tabla.
+        El cielo por hora se veía «muy IA» y competía con el dato; el fondo sale
+        de la paleta y el título toma el color de texto. La hora sigue
+        distinguiéndose por el selector, no por pintar la página.
         """
-        theme = HOUR_THEMES.get(self.active_hour, HOUR_THEMES["06Z"])
         painter = QPainter(self)
-        photo = hour_background(self.active_hour, self.size())
-        if photo is not None:
-            painter.drawPixmap(0, 0, photo)
-            # A whisper of shade so the cards never float on raw pixels...
-            painter.fillRect(self.rect(), QColor(0, 0, 0, 30))
-            # ...and a darker band at the top, which is where the title lives.
-            band_height = 96  # just the title strip, not a quarter of the page
-            band = QLinearGradient(0.0, 0.0, 0.0, float(band_height))
-            band.setColorAt(0.0, QColor(0, 0, 0, 135))
-            band.setColorAt(1.0, QColor(0, 0, 0, 0))
-            painter.fillRect(0, 0, self.width(), band_height, band)
-        else:
-            gradient = QLinearGradient(0.0, 0.0, float(self.width()), float(self.height()))
-            gradient.setColorAt(0.0, QColor(theme["from"]))
-            gradient.setColorAt(1.0, QColor(theme["to"]))
-            painter.fillRect(self.rect(), gradient)
+        painter.fillRect(self.rect(), QColor(getattr(self, "_page_bg", "#f3f4f6")))
         painter.end()
         super().paintEvent(event)
 
@@ -629,38 +615,38 @@ class SynopticPage(QWidget):
         ))
         button.setIconSize(QSize(14, 14))
 
-    def _hour_has_photo(self) -> bool:
-        path = HOUR_BACKGROUNDS.get(self.active_hour)
-        return path is not None and path.exists()
-
     def _apply_hour_theme(self) -> None:
-        """Accent chips, title color and active-hour button follow the hour."""
-        theme = HOUR_THEMES.get(self.active_hour, HOUR_THEMES["06Z"])
-        accent = theme["accent"]
-        # over a photograph the title is always white; the gradient themes keep
-        # their per-hour ink colour
-        text_color = "#ffffff" if self._hour_has_photo() else theme["text"]
+        """Ink, chips y botón salen de la paleta; la hora sólo tiñe el selector.
+
+        Antes el título era blanco porque iba encima de la fotografía del cielo;
+        con el fondo plano tiene que ser color de texto o desaparece.
+        """
+        paleta = theme_mod.palette()
+        self._page_bg = paleta["fondo"]
+        accent = HOUR_THEMES.get(self.active_hour, HOUR_THEMES["06Z"])["accent"]
         self.title_label.setText(f"Observación Sinóptica {self.active_hour}")
         self.title_label.setStyleSheet(
-            f"background: transparent; color: {text_color};"
+            f"background: transparent; color: {paleta['texto']};"
             "font-size: 22px; font-weight: 700;"
         )
         chip_qss = (
-            f"background-color: {accent}; color: #ffffff; font-weight: 700;"
-            "font-size: 12px; padding: 8px 14px; border: none; border-radius: 10px;"
+            f"background-color: {paleta['acento_suave']}; color: {paleta['acento']};"
+            f"border: 1px solid {paleta['borde']}; font-weight: 600;"
+            "font-size: 12px; padding: 8px 14px; border-radius: 6px;"
         )
         for chip in (self.observer_label, *self._primary_headers):
             chip.setStyleSheet(chip_qss)
         for hora in self.hour_buttons:
             self._style_hour_button(hora, accent)
         self.save_btn.setStyleSheet(
-            f"QPushButton {{ background-color: {accent}; color: #ffffff;"
-            "border: none; border-radius: 12px; padding: 10px 12px;"
+            f"QPushButton {{ background-color: {paleta['acento']};"
+            f" color: {paleta['superficie']};"
+            "border: none; border-radius: 6px; padding: 10px 12px;"
             "font-weight: 700; font-size: 13px; }"
-            "QPushButton:hover { opacity: 0.95; }"
+            f"QPushButton:hover {{ background-color: {paleta['acento_hover']}; }}"
         )
-        self.save_btn.setIcon(lucide_icon("save", "#ffffff", 16))
-        self.update()  # repaint the gradient (hour themes change with the hour)
+        self.save_btn.setIcon(lucide_icon("save", paleta["superficie"], 16))
+        self.update()  # el selector de hora cambia de tinte
 
     # ------------------------------------------------------------ building
 

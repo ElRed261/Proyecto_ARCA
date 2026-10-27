@@ -159,7 +159,7 @@ QFrame#auditCard {{ background: #ffffff; border: 1px solid #e2e8f0;
     border-radius: 14px; }}
 QLabel#sectionTitle {{ color: #1e293b; font-size: 16px; font-weight: 800; }}
 QLabel#sectionHint {{ color: #94a3b8; font-size: 10px; font-weight: 700;
-    letter-spacing: 1px; }}
+    }}
 QLabel#fieldLabel {{ color: #475569; font-size: 11px; font-weight: 700;
     background: transparent; }}
 QLabel#title {{ color: #0f172a; font-size: 21px; font-weight: 900; }}
@@ -668,7 +668,7 @@ class AuditObservationPage(QWidget):
             caption = QLabel(section_title)
             caption.setStyleSheet(
                 "color: #f97316; font-size: 10px; font-weight: 800;"
-                "letter-spacing: 1px; padding-top: 4px;"
+                "padding-top: 4px;"
             )
             column.addWidget(caption)
             column.addWidget(self._rows_grid((rows,)))
@@ -688,7 +688,7 @@ class AuditObservationPage(QWidget):
         title = QLabel("  ESTADO DE AUDITORÍA")
         title.setStyleSheet(
             "color: #ffedd5; font-size: 11px; font-weight: 800;"
-            "letter-spacing: 1px;"
+            ""
         )
         title.setPixmap(lucide_icon("radio", "#ffedd5", 13).pixmap(13, 13))
         column.addWidget(title)

@@ -7,6 +7,19 @@ Sustituye por completo al tema anterior (356 líneas de QSS, 213 `setStyleSheet`
 89 colores distintos). Referencias visuales: `Migración/evidencias/DISENO_NUEVO/`
 (`nav-riel-*.png` es la pantalla de trabajo).
 
+## 0. Regla del dueño (por encima de todo)
+
+> «NADA DE DEGRADADO DE COLORES, eso se ve muy IA y muy genérico, es horrible.»
+
+- **Cero degradados** en el programa: ni `qlineargradient`, ni `QLinearGradient`, ni
+  fotografías de fondo tras las tablas. Fondo plano de la paleta.
+- **Cero mockups inventados**: las imágenes de referencia se capturan de las páginas
+  reales (`tools/capturar_pantallas.py`), para que la organización sea idéntica por
+  construcción y no por parecido.
+- **La organización actual se conserva exactamente**: Sinóptico es formulario en
+  columnas con riel derecho (horas, módulos CLI, acciones); los CLI mantienen su grilla
+  de 24 filas. El rediseño cambia el trazo, no el orden de las cosas.
+
 ## 1. Decisiones firmes
 
 | Tema | Decisión |
@@ -144,6 +157,8 @@ En los CLI, el detalle a la derecha muestra el grupo de la celda activa:
 
 ## 8. Anti-reglas (lo que ya no se hace)
 
+0. **Degradados**: ningún `qlineargradient`/`QLinearGradient` y ninguna imagen de fondo
+   en una pantalla de trabajo. El cielo por hora se veía «muy IA» y competía con el dato.
 1. `setStyleSheet` inline con literales de color → **todo viene de `PALETTE`**.
 2. `opacity` en QSS: Qt la descarta en silencio.
 3. Colores derivados de `hash()`: cambian en cada arranque.
@@ -171,8 +186,9 @@ las que más revisión necesitan.
 
 ## 10. Referencias
 
-- Mockups Qt reproducibles: `tools/mockup_diseno.py` → `Migración/evidencias/DISENO_NUEVO/`
-- `nav-riel-claro.png` · `nav-riel-oscuro.png` — pantalla de trabajo
-- `d4-claro.png` — modo Revisar
-- `cli3074-claro.png` — CLI con inspector de grupo
+- Capturas de las páginas reales: `tools/capturar_pantallas.py` →
+  `Migración/evidencias/DISENO_NUEVO/pantalla-*.png` (Sinóptico + los tres CLI, en ambos temas)
+- `fase1-estados-claro.png` · `fase1-estados-oscuro.png` — estados de los controles
+- Los mockups inventados (D1-D4, navegación) se borraron: no coincidían con la
+  organización real y confundían más de lo que ayudaban.
 - Auditoría que origina estos cambios: `docs/AUDITORIA_JD.md` (UI-01 … UI-13)

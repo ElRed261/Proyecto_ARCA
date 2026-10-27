@@ -68,7 +68,7 @@ class LoginWindow(QWidget):
         subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
         subtitle.setWordWrap(True)
         subtitle.setStyleSheet(
-            "font-size: 11px; font-weight: 600; letter-spacing: 2px; "
+            "font-size: 11px; font-weight: 600; "
             "color: #64748b; background: transparent; margin-top: 4px;"
         )
         layout.addWidget(subtitle)

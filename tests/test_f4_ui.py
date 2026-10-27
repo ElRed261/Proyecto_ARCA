@@ -756,7 +756,11 @@ def test_hour_theme_application_on_select(qtbot, fresh_db, tmp_path):
     widget.select_hour("15Z")
     assert widget.title_label.text() == "Observación Sinóptica 15Z"
     accent = HOUR_THEMES["15Z"]["accent"]
-    assert accent in widget.save_btn.styleSheet()
+    # El botón Guardar sale de la paleta, no del acento de la hora: el dueño
+    # mandó quitar los degradados y unificar el acento (docs/DISENO_OMS.md §0).
+    from oms_ui import theme
+
+    assert theme.PALETTE_CLARO["acento"] in widget.save_btn.styleSheet()
     assert accent in widget.hour_buttons["15Z"].styleSheet()
     # inactive buttons fall back to the slate-50 inline base (fill tint)
     assert "#f8fafc" in widget.hour_buttons["06Z"].styleSheet()
@@ -1168,9 +1172,12 @@ def test_toast_5s_and_click_dismiss(qtbot, fresh_db, tmp_path):
     assert widget._toast.isVisible() is False
 
 
-def test_hourly_gradient_reaches_the_grid(qtbot, fresh_db, tmp_path):
-    """Owner round 8: the background REALLY shifts per hour (00Z purple-dark,
-    12Z sky) — the stack must not paint flat gray over it."""
+def test_el_fondo_es_plano_y_no_cambia_con_la_hora(qtbot, fresh_db, tmp_path):
+    """Regla del dueño: NADA de degradados.
+
+    Antes el fondo era la fotografía del cielo de cada hora; ahora es el color
+    plano de la paleta y tiene que ser el mismo a cualquier hora.
+    """
     from PySide6.QtCore import QPoint
     from PySide6.QtWidgets import QApplication
 
@@ -1189,8 +1196,10 @@ def test_hourly_gradient_reaches_the_grid(qtbot, fresh_db, tmp_path):
         for _ in range(8):
             QApplication.processEvents()
         seen[hour] = widget.grab().toImage().pixelColor(point).name()
-    assert seen["00Z"] != seen["12Z"]  # the background really changed
-    assert seen["00Z"].startswith("#") and seen["12Z"].startswith("#")
+    from oms_ui import theme
+
+    fondo = theme.PALETTE_CLARO["fondo"]
+    assert seen["00Z"] == seen["12Z"] == fondo
 
 
 def test_cli3074_group_headers_uniform_slate(cli3074_page, qtbot):
@@ -1271,8 +1280,8 @@ def test_hour_themes_trace_the_real_sky(qtbot, fresh_db, tmp_path):
         assert HOUR_THEMES[prev]["from"] != HOUR_THEMES[nxt]["from"]
 
 
-def test_background_changes_across_day_cycle(qtbot, fresh_db, tmp_path):
-    """Pinned pixels: noon sky-blue vs dusk purple vs deep night."""
+def test_el_selector_marca_la_hora_aunque_el_fondo_no_cambie(qtbot, fresh_db, tmp_path):
+    """Píxeles clavados: el fondo plano no se mueve; la hora la marca el selector."""
     from PySide6.QtCore import QPoint
     from PySide6.QtWidgets import QApplication
 
@@ -1291,7 +1300,7 @@ def test_background_changes_across_day_cycle(qtbot, fresh_db, tmp_path):
         for _ in range(8):
             QApplication.processEvents()
         seen[hour] = widget.grab().toImage().pixelColor(point).name()
-    assert len(set(seen.values())) == 3  # morning != dusk != night
+    assert len(set(seen.values())) == 1  # el fondo ya no cambia con la hora
 
 
 def test_cli5074_uses_its_red_identity(cli3074_page, qtbot):

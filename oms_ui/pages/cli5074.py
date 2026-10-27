@@ -201,9 +201,8 @@ class Cli5074View(QWidget):
 
         title = QLabel(self.TITLE)
         title.setStyleSheet(
-            # the CLI sheets sit on the hour's photograph: white title, like
-            # the synoptic page over a photo
-            "font-size: 18px; font-weight: 800; color: #ffffff;"
+            # fondo plano (sin fotografía ni degradado): tinta de texto
+                        "font-size: 18px; font-weight: 800; color: #0f172a;"
             "background: transparent;"
         )
         title.setWordWrap(True)

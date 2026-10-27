@@ -48,7 +48,7 @@ QLabel#crumb {{ color: #475569; font-weight: 600; font-size: 13px; }}
 QLabel#crumbActive {{ color: {ACCENT}; font-weight: 800; font-size: 13px; }}
 QLabel#stepTitle {{ color: #1e293b; font-size: 18px; font-weight: 800; }}
 QLabel#cardHint {{ color: #f97316; font-size: 10px; font-weight: 800;
-    letter-spacing: 1px; }}
+    }}
 QLabel#cardTitle {{ color: #1e293b; font-size: 16px; font-weight: 800; }}
 QLabel#cardFooter {{ color: #64748b; font-size: 12px; font-weight: 600; }}
 QLabel#dayTitle {{ color: #1e293b; font-size: 15px; font-weight: 800; }}

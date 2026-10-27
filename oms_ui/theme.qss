@@ -189,8 +189,7 @@ QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
 
 /* ===== Neo Arca theme v2 (IMG vocabulary) ===== */
 QPushButton[primary="true"] {
-    background-color: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 0,
-        stop: 0 $acento, stop: 1 $violeta);
+    background-color: $acento;
     border: none;
     border-radius: 8px;
     color: $superficie;
@@ -198,8 +197,7 @@ QPushButton[primary="true"] {
     padding: 10px 14px;
 }
 QPushButton[primary="true"]:hover {
-    background-color: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 0,
-        stop: 0 $acento_hover, stop: 1 $violeta_fuerte);
+    background-color: $acento_hover;
 }
 QPushButton[primary="true"]:disabled {
     background-color: $violeta_deshabilitado;

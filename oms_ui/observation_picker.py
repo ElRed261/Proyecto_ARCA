@@ -181,7 +181,7 @@ class ObservationPickerDialog(QDialog):
         caption = QLabel("ESTACIONES")
         caption.setStyleSheet(
             f"color: {_FAINT}; font-size: 11px; font-weight: 700;"
-            "letter-spacing: 1px;"
+            ""
         )
         column.addWidget(caption)
         self.station_list = QListWidget()
@@ -220,7 +220,7 @@ class ObservationPickerDialog(QDialog):
         caption = QLabel("DÍAS DE OBSERVACIÓN")
         caption.setStyleSheet(
             f"color: {_FAINT}; font-size: 11px; font-weight: 700;"
-            "letter-spacing: 1px;"
+            ""
         )
         column.addWidget(caption)
         self.tree = QTreeWidget()

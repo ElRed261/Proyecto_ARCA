@@ -33,6 +33,10 @@ _FONT_FILES = (
 FALLBACK_FAMILIES = ("Inter", "Segoe UI", "Noto Sans", "DejaVu Sans")
 
 #: Roles de la paleta clara. Ver docs/DISENO_OMS.md §2.
+#:
+#: `acento_suave` es el rol del documento. Los `*_debil` son los nombres que
+#: salieron de tokenizar los literales del QSS viejo: deuda de la fase 1, se
+#: funden con los del documento cuando se purguen los inline.
 PALETTE_CLARO: dict[str, str] = {
     "fondo": "#f3f4f6",
     "superficie": "#ffffff",
@@ -48,6 +52,7 @@ PALETTE_CLARO: dict[str, str] = {
     "acento": "#2563eb",
     "acento_hover": "#1d4ed8",
     "acento_foco": "#3b82f6",
+    "acento_suave": "#e0f2fe",
     "acento_debil": "#bfdbfe",
     "acento_debil_alt": "#dbeafe",
     "acento_deshabilitado": "#93c5fd",
@@ -93,6 +98,7 @@ PALETTE_OSCURO: dict[str, str] = {
     "acento": "#22d3ee",
     "acento_hover": "#67e8f9",
     "acento_foco": "#22d3ee",
+    "acento_suave": "#123241",
     "acento_debil": "#123241",
     "acento_debil_alt": "#163a4d",
     "acento_deshabilitado": "#1c4b5e",
