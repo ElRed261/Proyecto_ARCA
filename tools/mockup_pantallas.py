@@ -1913,6 +1913,304 @@ def pantalla_summary_historial(p: dict) -> QWidget:
     return pagina
 
 
+# ------------------------------------------------ Resumen: meteograma
+# Referencia: el meteograma de MetPy (unidata.github.io) apila paneles que
+# comparten el eje de tiempo — viento (velocidad y dirección), temperatura con
+# punto de rocío, humedad relativa y presión. Aquí son cinco filas con las
+# variables del Resumen Mensual, en datos diarios (día 1..31).
+
+
+def _series_resumen() -> dict[str, list[float]]:
+    """Series de 31 días coherentes con la tabla del mockup."""
+    tmax, tmin, tmed, pmed, pmax, pmin, lluvia, vel, velmax, dirv = (
+        [], [], [], [], [], [], [], [], [], []
+    )
+    hummax, hummin, hummed, rocio, nubdia, nubnoche, nubmed = (
+        [], [], [], [], [], [], []
+    )
+    for dia in range(1, 32):
+        tx = 29.6 + (dia % 5) * 0.4
+        tn = 21.8 + (dia % 4) * 0.5
+        tmax.append(tx)
+        tmin.append(tn)
+        tmed.append((tx + tn) / 2)
+        rocio.append(20.1 + (dia % 5) * 0.4)
+        pmed.append(1012.0 + (dia % 5) * 0.2)
+        pmax.append(1014.2 + (dia % 6) * 0.3)
+        pmin.append(1009.8 + (dia % 4) * 0.4)
+        lluvia.append(0.0 if dia % 7 else 3.4 + (dia % 5))
+        vel.append(8 + dia % 9)
+        velmax.append(24 + dia % 6)
+        dirv.append((90 + dia * 10) % 360)
+        hummax.append(94 - dia % 5)
+        hummin.append(58 + dia % 7)
+        hummed.append(76 + (dia % 4) * 0.5)
+        nubdia.append(7 if dia % 3 else 6)
+        nubnoche.append(5 if dia % 4 else 4)
+        nubmed.append(6.2 + (dia % 3) * 0.2)
+    return {
+        "tmax": tmax, "tmin": tmin, "tmed": tmed, "rocio": rocio,
+        "pmax": pmax, "pmin": pmin, "pmed": pmed,
+        "lluvia": lluvia, "vel": vel, "velmax": velmax, "dir": dirv,
+        "hummax": hummax, "hummin": hummin, "hummed": hummed,
+        "nubdia": nubdia, "nubnoche": nubnoche, "nubmed": nubmed,
+    }
+
+
+class _Meteograma(QWidget):
+    """Cinco paneles diarios con el eje de tiempo compartido."""
+
+    def __init__(self, paleta: dict, series: dict[str, list[float]]) -> None:
+        super().__init__()
+        self.p = paleta
+        self.s = series
+
+    def _panel_viento(self, painter, x0, y0, ancho, alto) -> None:
+        """Barras de velocidad media, punto del máximo y flechas de dirección.
+
+        Las flechas van en una franja arriba del panel: dibujadas al pie las
+        tapaban las barras y no se leían.
+        """
+        import math
+
+        from PySide6.QtCore import QPointF, QRectF
+        from PySide6.QtGui import QBrush, QColor, QPen
+
+        franja = 16
+        base = y0 + alto
+        tope = y0 + franja
+        alto_util = base - tope
+        vel = self.s["vel"]
+        velmax = self.s["velmax"]
+        vmax = max(velmax) + 2
+        paso = ancho / (len(vel) - 1)
+
+        relleno = QColor(self.p["suave"])
+        relleno.setAlpha(150)
+        painter.setPen(Qt.NoPen)
+        painter.setBrush(QBrush(relleno))
+        for i, valor in enumerate(vel):
+            x = x0 + i * paso
+            h = valor / vmax * alto_util
+            painter.drawRect(QRectF(x - 3, base - h, 6, h))
+
+        painter.setBrush(QBrush(QColor(self.p["acento"])))
+        for i, valor in enumerate(velmax):
+            x = x0 + i * paso
+            painter.drawEllipse(QPointF(x, base - valor / vmax * alto_util), 1.9, 1.9)
+        painter.setBrush(Qt.NoBrush)
+
+        painter.setPen(QPen(QColor(self.p["suave"]), 1.1))
+        for i, grados in enumerate(self.s["dir"]):
+            x = x0 + i * paso
+            centro = y0 + franja / 2
+            rad = math.radians(grados)
+            painter.drawLine(
+                QPointF(x - 3.2 * math.sin(rad), centro + 3.2 * math.cos(rad)),
+                QPointF(x + 3.2 * math.sin(rad), centro - 3.2 * math.cos(rad)),
+            )
+
+    def _panel(self, painter, x0, y0, ancho, alto, valores, color, *, relleno=False,
+               minimo=None, maximo=None, barras=False, puntos=None, flechas=None,
+               banda=None) -> None:
+        from PySide6.QtCore import QPointF, QRectF
+        from PySide6.QtGui import QBrush, QColor, QPen, QPolygonF
+
+        todos = list(valores) + (banda[0] + banda[1] if banda else [])
+        vmin = minimo if minimo is not None else min(todos)
+        vmax = maximo if maximo is not None else max(todos)
+        if vmax == vmin:
+            vmax = vmin + 1
+
+        def y_de(valor):
+            return y0 + alto - (valor - vmin) / (vmax - vmin) * alto
+
+        # rejilla horizontal
+        pintor_rejilla = QPen(QColor(self.p["borde"]))
+        pintor_rejilla.setStyle(Qt.DashLine)
+        painter.setPen(pintor_rejilla)
+        for paso in range(4):
+            y = y0 + alto * paso / 3
+            painter.drawLine(QPointF(x0, y), QPointF(x0 + ancho, y))
+
+        # banda (máx/mín)
+        if banda:
+            superior, inferior = banda
+            poligono = QPolygonF()
+            for i, valor in enumerate(superior):
+                poligono.append(QPointF(x0 + i * ancho / (len(superior) - 1), y_de(valor)))
+            for i in range(len(inferior) - 1, -1, -1):
+                poligono.append(QPointF(x0 + i * ancho / (len(inferior) - 1), y_de(inferior[i])))
+            relleno_banda = QColor(color)
+            relleno_banda.setAlpha(38)
+            painter.setPen(Qt.NoPen)
+            painter.setBrush(QBrush(relleno_banda))
+            painter.drawPolygon(poligono)
+            painter.setBrush(Qt.NoBrush)
+
+        # barras
+        if barras:
+            ancho_barra = max(2.0, ancho / len(valores) * 0.6)
+            painter.setPen(Qt.NoPen)
+            relleno_barra = QColor(color)
+            relleno_barra.setAlpha(170)
+            painter.setBrush(QBrush(relleno_barra))
+            for i, valor in enumerate(valores):
+                x = x0 + i * ancho / (len(valores) - 1)
+                painter.drawRect(QRectF(x - ancho_barra / 2, y_de(valor), ancho_barra, y0 + alto - y_de(valor)))
+            painter.setBrush(Qt.NoBrush)
+
+        # línea
+        if not barras:
+            lapiz = QPen(QColor(color), 1.6)
+            painter.setPen(lapiz)
+            for i in range(len(valores) - 1):
+                painter.drawLine(
+                    QPointF(x0 + i * ancho / (len(valores) - 1), y_de(valores[i])),
+                    QPointF(x0 + (i + 1) * ancho / (len(valores) - 1), y_de(valores[i + 1])),
+                )
+
+        # puntos de máximo
+        if puntos:
+            painter.setPen(Qt.NoPen)
+            painter.setBrush(QBrush(QColor(color)))
+            for i, valor in enumerate(puntos):
+                x = x0 + i * ancho / (len(puntos) - 1)
+                painter.drawEllipse(QPointF(x, y_de(valor)), 1.8, 1.8)
+            painter.setBrush(Qt.NoBrush)
+
+        # flechas de dirección
+        if flechas:
+            painter.setPen(QPen(QColor(self.p["tenue"]), 1))
+            for i, grados in enumerate(flechas):
+                x = x0 + i * ancho / (len(flechas) - 1)
+                y = y0 + alto - 6
+                import math
+
+                rad = math.radians(grados)
+                painter.drawLine(
+                    QPointF(x - 3 * math.sin(rad), y + 3 * math.cos(rad)),
+                    QPointF(x + 3 * math.sin(rad), y - 3 * math.cos(rad)),
+                )
+
+    def paintEvent(self, event) -> None:  # noqa: N802 - API de Qt
+        from PySide6.QtCore import QPointF
+        from PySide6.QtGui import QColor, QFont, QPainter, QPen
+
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        painter.fillRect(self.rect(), QColor(self.p["superficie"]))
+
+        izq, der, arriba, abajo, hueco = 132, 16, 10, 26, 12
+        paneles = (
+            ("Temperatura (°C)", "tmed", self.p["acento"],
+             {"banda": (self.s["tmax"], self.s["tmin"])}),
+            ("Humedad (%)", "hummed", self.p["ok"],
+             {"banda": (self.s["hummax"], self.s["hummin"]), "minimo": 40, "maximo": 100}),
+            ("Presión NMM (hPa)", "pmed", self.p["naranja"],
+             {"banda": (self.s["pmax"], self.s["pmin"])}),
+            ("Viento (m/s) · dirección", "vel", self.p["suave"], {"viento": True}),
+            ("Lluvia (mm)", "lluvia", self.p["acento"],
+             {"barras": True, "minimo": 0, "maximo": max(self.s["lluvia"]) + 1}),
+        )
+        alto_panel = (self.height() - arriba - abajo - hueco * (len(paneles) - 1)) / len(paneles)
+        fuente = QFont()
+        fuente.setPixelSize(9)
+        fuente.setWeight(QFont.Weight.DemiBold)
+
+        for indice, (titulo, clave, color, opciones) in enumerate(paneles):
+            y0 = arriba + indice * (alto_panel + hueco)
+            painter.setPen(QPen(QColor(self.p["suave"])))
+            painter.setFont(fuente)
+            painter.drawText(8, int(y0 + alto_panel / 2), titulo)
+            if opciones.get("viento"):
+                self._panel_viento(
+                    painter, izq, y0, self.width() - izq - der, alto_panel
+                )
+            else:
+                self._panel(
+                    painter, izq, y0, self.width() - izq - der, alto_panel,
+                    self.s[clave], color, **opciones,
+                )
+
+        # eje de días compartido
+        painter.setPen(QPen(QColor(self.p["tenue"])))
+        for dia in range(1, 32, 5):
+            x = izq + (dia - 1) * (self.width() - izq - der) / 30
+            painter.drawText(QPointF(x - 4, self.height() - 8), str(dia))
+        painter.drawText(QPointF(self.width() - 46, self.height() - 8), "día")
+        painter.end()
+
+
+def pantalla_summary_graficas(p: dict) -> QWidget:
+    pagina = QWidget()
+    pagina.setObjectName("pagina")
+    pagina.setStyleSheet(f"QWidget#pagina {{ background:{p['fondo']}; }}")
+    v = QVBoxLayout(pagina)
+    v.setContentsMargins(28, 20, 28, 20)
+    v.setSpacing(12)
+
+    # cabecera con las tres pastillas, Gráficas activa
+    fila = QHBoxLayout()
+    titulos = QVBoxLayout()
+    titulos.setSpacing(2)
+    t = QLabel("Resumen Mensual SYNOP")
+    t.setFont(ui(24, 800))
+    t.setStyleSheet(f"color:{p['texto']};background:transparent;")
+    sub = QLabel("Generación y visualización de resúmenes climáticos")
+    sub.setFont(ui(13))
+    sub.setStyleSheet(f"color:{p['suave']};background:transparent;")
+    titulos.addWidget(t)
+    titulos.addWidget(sub)
+    fila.addLayout(titulos)
+    fila.addStretch(1)
+    for texto, activo in (("Historial", False), ("Tabla", False), ("Gráficas", True)):
+        pill = QLabel(texto)
+        pill.setFont(ui(11, 700))
+        pill.setFixedHeight(30)
+        pill.setStyleSheet(
+            f"background:{p['acento_suave'] if activo else p['superficie']};"
+            f"color:{p['acento'] if activo else p['suave']};"
+            f"border:1px solid {p['acento'] if activo else p['borde']};"
+            "border-radius:15px;padding:0 14px;"
+        )
+        fila.addWidget(pill)
+    v.addLayout(fila)
+    v.addWidget(_panel_carga(p))
+
+    meta = QHBoxLayout()
+    nombre = QLabel("Las Américas (78485) · Diciembre 2025")
+    nombre.setFont(ui(15, 800))
+    nombre.setStyleSheet(f"color:{p['texto']};background:transparent;")
+    meta.addWidget(nombre)
+    meta.addStretch(1)
+    resumen = QLabel("T media 26.4 °C · Lluvia 24.1 mm · Viento medio 12 m/s")
+    resumen.setFont(ui(11))
+    resumen.setStyleSheet(f"color:{p['suave']};background:transparent;")
+    meta.addWidget(resumen)
+    v.addLayout(meta)
+
+    tarjeta = QWidget()
+    tarjeta.setObjectName("meteoC")
+    tarjeta.setStyleSheet(
+        f"QWidget#meteoC {{ background:{p['superficie']};"
+        f" border:1px solid {p['borde']}; border-radius:10px; }}"
+    )
+    tv = QVBoxLayout(tarjeta)
+    tv.setContentsMargins(8, 8, 8, 8)
+    tv.addWidget(_Meteograma(p, _series_resumen()))
+    v.addWidget(tarjeta, 1)
+
+    pie = QLabel(
+        "Serie diaria del mes · bandas = máximo y mínimo · puntos = máximo diario de viento · "
+        "flechas = dirección"
+    )
+    pie.setFont(ui(10))
+    pie.setStyleSheet(f"color:{p['tenue']};background:transparent;")
+    v.addWidget(pie)
+    return pagina
+
+
 def main() -> int:
     SALIDA.mkdir(parents=True, exist_ok=True)
     for modulo in MODULOS:
@@ -1939,6 +2237,7 @@ def main() -> int:
             ("audit", "audit-reporte", pantalla_audit_reporte),
             ("summary", "summary-tabla", pantalla_summary_tabla),
             ("summary", "summary-historial", pantalla_summary_historial),
+            ("summary", "summary-graficas", pantalla_summary_graficas),
         ):
             w = constructor(paleta)
             w.resize(QSize(ANCHO, ALTO))
