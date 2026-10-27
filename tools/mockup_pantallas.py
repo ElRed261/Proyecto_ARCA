@@ -2284,7 +2284,15 @@ def main() -> int:
             ("audit", "audit-reporte", pantalla_audit_reporte),
             ("summary", "summary-tabla", pantalla_summary_tabla),
             ("summary", "summary-historial", pantalla_summary_historial),
-            ("summary", "summary-graficas", pantalla_summary_graficas_b),
+            # el meteograma se documenta con las cuatro variables del selector
+            ("summary", "summary-graficas-humedad",
+             lambda pal, v="humedad": pantalla_summary_graficas_b(pal, v)),
+            ("summary", "summary-graficas-viento",
+             lambda pal, v="viento": pantalla_summary_graficas_b(pal, v)),
+            ("summary", "summary-graficas-nubosidad",
+             lambda pal, v="nubosidad": pantalla_summary_graficas_b(pal, v)),
+            ("summary", "summary-graficas-lluvia",
+             lambda pal, v="lluvia": pantalla_summary_graficas_b(pal, v)),
         ):
             w = constructor(paleta)
             w.resize(QSize(ANCHO, ALTO))
