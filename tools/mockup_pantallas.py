@@ -39,7 +39,7 @@ from oms_ui.theme import PALETTES  # noqa: E402
 ANCHO, ALTO = 1366, 768
 SALIDA = Path("Migración/evidencias/DISENO_NUEVO")
 #: Una carpeta por módulo: así la evidencia no se mezcla.
-MODULOS = ("synop", "cli", "audit", "estados")
+MODULOS = ("synop", "cli", "audit", "summary", "estados")
 
 HORAS = ("06Z", "09Z", "12Z", "15Z", "18Z", "21Z", "00Z", "03Z")
 HORA_ACTIVA = "12Z"
@@ -1621,6 +1621,298 @@ def pantalla_audit_sinoptico(p: dict) -> QWidget:
     return pagina
 
 
+# ---------------------------------------------------------------- Resumen
+# Estructura leída de summary.py: header con título/subtítulo y las pastillas
+# Historial/Tabla + «Importar manual»; card blanca con el panel de carga
+# (gauge + leyenda, Estación/Mes/Año, casilla de correcciones, Generar), la
+# línea de estado y el stack historial|tabla. La tabla son los 21 HEADERS del
+# servicio; el historial son tarjetas con badge de período, estación, días,
+# «SYNOP», papelera y flecha.
+
+#: summary_service.HEADERS, en su orden real.
+HEADERS_RESUMEN = (
+    "Dias", "Mayor temperatura máxima", "Menor temperatura minima",
+    "Media temperatura", "MAxima presión nivel medio del mar",
+    "Minima presión nivel medio del mar", "Media presión nivel medio del mar",
+    "Media presion en la estación", "Lluvia", "Dirección del viento",
+    "Velocidad media del viento", "Velocidad máxima y direccion",
+    "Recorrido del viento", "Nuvocidad dia", "Nuvocidad noche",
+    "Media de nuvocidad", "Humedad maxima", "Humedad minima", "Humedad media",
+    "Punto de rocio", "Tensión de vapor",
+)
+
+
+def _cabecera_resumen(p: dict) -> QHBoxLayout:
+    fila = QHBoxLayout()
+    fila.setSpacing(12)
+    titulos = QVBoxLayout()
+    titulos.setSpacing(2)
+    t = QLabel("Resumen Mensual SYNOP")
+    t.setFont(ui(24, 800))
+    t.setStyleSheet(f"color:{p['texto']};background:transparent;")
+    sub = QLabel("Generación y visualización de resúmenes climáticos")
+    sub.setFont(ui(13))
+    sub.setStyleSheet(f"color:{p['suave']};background:transparent;")
+    titulos.addWidget(t)
+    titulos.addWidget(sub)
+    fila.addLayout(titulos)
+    fila.addStretch(1)
+    for texto, activo in (("Historial", True), ("Tabla", False)):
+        pill = QLabel(texto)
+        pill.setFont(ui(11, 700))
+        pill.setFixedHeight(30)
+        pill.setStyleSheet(
+            f"background:{p['acento_suave'] if activo else p['superficie']};"
+            f"color:{p['acento'] if activo else p['suave']};"
+            f"border:1px solid {p['acento'] if activo else p['borde']};"
+            "border-radius:15px;padding:0 14px;"
+        )
+        fila.addWidget(pill)
+    manual = QLabel("Importar manual")
+    manual.setFont(ui(11, 600))
+    manual.setFixedHeight(30)
+    manual.setStyleSheet(
+        f"background:{p['superficie']};color:{p['texto']};"
+        f"border:1px solid {p['borde']};border-radius:15px;padding:0 14px;"
+    )
+    fila.addWidget(manual)
+    return fila
+
+
+def _panel_carga(p: dict) -> QWidget:
+    panel = QWidget()
+    panel.setObjectName("panelC")
+    panel.setStyleSheet(
+        f"QWidget#panelC {{ background:{p['panel']};"
+        f" border:1px solid {p['borde']}; border-radius:10px; }}"
+    )
+    cv = QVBoxLayout(panel)
+    cv.setContentsMargins(18, 14, 18, 14)
+    cv.setSpacing(10)
+    leyenda = QLabel("◔  CARGA AUTOMÁTICA POR ESTACIÓN Y PERÍODO")
+    leyenda.setFont(ui(10, 800))
+    leyenda.setStyleSheet(f"color:{p['acento']};background:transparent;border:none;")
+    cv.addWidget(leyenda)
+
+    fila = QHBoxLayout()
+    fila.setSpacing(14)
+    for etiqueta, valor, ancho in (
+        ("Estación Meteorológica", "Las Américas (78485)  ▾", 260),
+        ("Mes", "Diciembre  ▾", 140),
+        ("Año", "2025  ▾", 100),
+    ):
+        celda = QVBoxLayout()
+        celda.setSpacing(4)
+        lab = QLabel(etiqueta)
+        lab.setFont(ui(11, 600))
+        lab.setStyleSheet(f"color:{p['suave']};background:transparent;border:none;")
+        celda.addWidget(lab)
+        campo = QLabel(valor)
+        campo.setFont(ui(11))
+        campo.setFixedHeight(30)
+        campo.setFixedWidth(ancho)
+        campo.setStyleSheet(
+            f"background:{p['superficie']};color:{p['texto']};"
+            f"border:1px solid {p['borde']};border-radius:4px;padding:0 8px;"
+        )
+        celda.addWidget(campo)
+        fila.addLayout(celda)
+    casilla = QLabel("☑  Incluir correcciones")
+    casilla.setFont(ui(11, 600))
+    casilla.setStyleSheet(f"color:{p['texto']};background:transparent;border:none;")
+    fila.addWidget(casilla, 0, Qt.AlignBottom)
+    generar = QLabel("Generar resumen")
+    generar.setFont(ui(12, 700))
+    generar.setFixedHeight(30)
+    generar.setStyleSheet(
+        f"background:{p['acento']};color:{p['superficie']};"
+        "border:none;border-radius:4px;padding:0 16px;"
+    )
+    fila.addWidget(generar, 0, Qt.AlignBottom)
+    fila.addStretch(1)
+    cv.addLayout(fila)
+    return panel
+
+
+def _valor_resumen(dia: int, columna: int) -> str:
+    """Valores coherentes de ejemplo (media = (máx+mín)/2, etc.)."""
+    tmax = 29.6 + (dia % 5) * 0.4
+    tmin = 21.8 + (dia % 4) * 0.5
+    media = (tmax + tmin) / 2
+    lluvia = 0.0 if dia % 7 else round(3.4 + (dia % 5), 1)
+    tabla = (
+        f"{dia}",
+        f"{tmax:.1f}", f"{tmin:.1f}", f"{media:.1f}",
+        f"{1014.2 + (dia % 6) * 0.3:.1f}", f"{1009.8 + (dia % 4) * 0.4:.1f}",
+        f"{1012.0 + (dia % 5) * 0.2:.1f}", f"{1011.4 + (dia % 3) * 0.3:.1f}",
+        f"{lluvia:.1f}",
+        f"{(90 + dia * 10) % 360:03d}", f"{8 + dia % 9}",
+        f"{24 + dia % 6} / {110 + (dia % 8) * 5}",
+        f"{180 + (dia % 10) * 12}",
+        f"{7 if dia % 3 else 6}", f"{5 if dia % 4 else 4}",
+        f"{6.2 + (dia % 3) * 0.2:.1f}",
+        f"{94 - dia % 5}", f"{58 + dia % 7}",
+        f"{76 + (dia % 4) * 0.5:.1f}", f"{20.1 + (dia % 5) * 0.4:.1f}",
+        f"{23.4 + (dia % 4) * 0.5:.1f}",
+    )
+    return tabla[columna] if columna < len(tabla) else ""
+
+
+def pantalla_summary_tabla(p: dict) -> QWidget:
+    pagina = QWidget()
+    pagina.setObjectName("pagina")
+    pagina.setStyleSheet(f"QWidget#pagina {{ background:{p['fondo']}; }}")
+    v = QVBoxLayout(pagina)
+    v.setContentsMargins(28, 20, 28, 20)
+    v.setSpacing(14)
+    v.addLayout(_cabecera_resumen(p))
+    v.addWidget(_panel_carga(p))
+
+    meta = QHBoxLayout()
+    t = QLabel("Las Américas (78485)")
+    t.setFont(ui(16, 800))
+    t.setStyleSheet(f"color:{p['texto']};background:transparent;")
+    det = QLabel("Período: Diciembre 2025   ·   Días analizados: 31")
+    det.setFont(ui(12))
+    det.setStyleSheet(f"color:{p['suave']};background:transparent;")
+    meta.addWidget(t)
+    meta.addWidget(det)
+    meta.addStretch(1)
+    exportar = QLabel("Exportar a Excel")
+    exportar.setFont(ui(11, 600))
+    exportar.setFixedHeight(28)
+    exportar.setStyleSheet(
+        f"background:{p['superficie']};color:{p['texto']};"
+        f"border:1px solid {p['borde']};border-radius:4px;padding:0 12px;"
+    )
+    meta.addWidget(exportar)
+    v.addLayout(meta)
+
+    tabla = QWidget()
+    tabla.setObjectName("tablaS")
+    tabla.setStyleSheet(
+        f"QWidget#tablaS {{ background:{p['superficie']};"
+        f" border:1px solid {p['borde']}; border-radius:10px; }}"
+    )
+    grilla = QGridLayout(tabla)
+    grilla.setContentsMargins(8, 6, 8, 6)
+    grilla.setHorizontalSpacing(0)
+    grilla.setVerticalSpacing(0)
+    for col, texto in enumerate(HEADERS_RESUMEN):
+        cab = QLabel(texto)
+        cab.setFont(ui(8, 700))
+        cab.setWordWrap(True)
+        cab.setAlignment(Qt.AlignCenter)
+        cab.setMinimumHeight(46)  # sin alto propio los rótulos largos se cortan
+        cab.setStyleSheet(
+            f"color:{p['suave']};background:{p['panel']};"
+            f"border-bottom:1px solid {p['borde']};"
+            f"border-right:1px solid {p['borde']};padding:3px 2px;"
+        )
+        grilla.addWidget(cab, 0, col)
+    for dia in range(1, 32):
+        for col in range(len(HEADERS_RESUMEN)):
+            num = QLabel(_valor_resumen(dia, col))
+            num.setFont(mono(9) if col else ui(9, 700))
+            num.setFixedHeight(17)
+            num.setAlignment(Qt.AlignLeft if col == 0 else Qt.AlignRight)
+            num.setStyleSheet(
+                f"color:{p['texto']};background:transparent;"
+                f"border-bottom:1px solid {p['borde']};"
+                f"border-right:1px solid {p['borde']};padding:0 3px;"
+            )
+            grilla.addWidget(num, dia, col)
+        grilla.setRowStretch(dia, 1)
+    grilla.setRowStretch(0, 0)
+    grilla.setRowMinimumHeight(0, 46)
+    for col in range(len(HEADERS_RESUMEN)):
+        grilla.setColumnStretch(col, 2 if col == 0 else 1)
+    v.addWidget(tabla, 1)
+
+    estado = QLabel("Resumen cargado desde summary_logs · 31 días · correcciones aplicadas")
+    estado.setFont(ui(10))
+    estado.setStyleSheet(f"color:{p['tenue']};background:transparent;")
+    v.addWidget(estado)
+    return pagina
+
+
+def pantalla_summary_historial(p: dict) -> QWidget:
+    pagina = QWidget()
+    pagina.setObjectName("pagina")
+    pagina.setStyleSheet(f"QWidget#pagina {{ background:{p['fondo']}; }}")
+    v = QVBoxLayout(pagina)
+    v.setContentsMargins(28, 20, 28, 20)
+    v.setSpacing(14)
+    v.addLayout(_cabecera_resumen(p))
+    v.addWidget(_panel_carga(p))
+
+    seccion = QHBoxLayout()
+    titulo = QLabel("Historial de Reportes Guardados")
+    titulo.setFont(ui(19, 900))
+    titulo.setStyleSheet(f"color:{p['texto']};background:transparent;")
+    seccion.addWidget(titulo)
+    seccion.addStretch(1)
+    v.addLayout(seccion)
+
+    for periodo, estacion, dias in (
+        ("DICIEMBRE 2025", "Las Américas (78485)", 31),
+        ("NOVIEMBRE 2025", "Las Américas (78485)", 30),
+        ("OCTUBRE 2025", "Central (78486)", 31),
+        ("SEPTIEMBRE 2025", "Central (78486)", 30),
+    ):
+        tarjeta = QWidget()
+        tarjeta.setObjectName("histC")
+        tarjeta.setStyleSheet(
+            f"QWidget#histC {{ background:{p['superficie']};"
+            f" border:1px solid {p['borde']}; border-radius:10px; }}"
+        )
+        fila = QHBoxLayout(tarjeta)
+        fila.setContentsMargins(16, 12, 12, 12)
+        fila.setSpacing(14)
+        badge = QLabel(periodo)
+        badge.setFont(ui(10, 800))
+        badge.setStyleSheet(
+            f"background:{p['acento_suave']};color:{p['acento']};"
+            f"border:1px solid {p['borde']};border-radius:6px;padding:4px 10px;"
+        )
+        fila.addWidget(badge)
+        textos = QVBoxLayout()
+        textos.setSpacing(2)
+        nombre = QLabel(estacion)
+        nombre.setFont(ui(14, 800))
+        nombre.setStyleSheet(f"color:{p['texto']};background:transparent;border:none;")
+        dias_lab = QLabel(f"{dias} días analizados")
+        dias_lab.setFont(ui(11))
+        dias_lab.setStyleSheet(f"color:{p['suave']};background:transparent;border:none;")
+        textos.addWidget(nombre)
+        textos.addWidget(dias_lab)
+        fila.addLayout(textos)
+        fila.addStretch(1)
+        tipo = QLabel("SYNOP")
+        tipo.setFont(ui(9, 800))
+        tipo.setStyleSheet(f"color:{p['tenue']};background:transparent;border:none;")
+        fila.addWidget(tipo)
+        borrar = QLabel("🗑")
+        borrar.setFont(ui(12))
+        borrar.setFixedSize(30, 30)
+        borrar.setAlignment(Qt.AlignCenter)
+        borrar.setStyleSheet(
+            f"color:{p['tenue']};background:transparent;border:none;"
+        )
+        fila.addWidget(borrar)
+        flecha = QLabel("→")
+        flecha.setFont(ui(13, 700))
+        flecha.setStyleSheet(f"color:{p['acento']};background:transparent;border:none;")
+        fila.addWidget(flecha)
+        v.addWidget(tarjeta)
+    v.addStretch(1)
+    estado = QLabel("4 reportes guardados · clic en una tarjeta para abrirla")
+    estado.setFont(ui(10))
+    estado.setStyleSheet(f"color:{p['tenue']};background:transparent;")
+    v.addWidget(estado)
+    return pagina
+
+
 def main() -> int:
     SALIDA.mkdir(parents=True, exist_ok=True)
     for modulo in MODULOS:
@@ -1645,6 +1937,8 @@ def main() -> int:
             ("audit", "audit-dias", pantalla_audit_dias),
             ("audit", "audit-sinoptico", pantalla_audit_sinoptico),
             ("audit", "audit-reporte", pantalla_audit_reporte),
+            ("summary", "summary-tabla", pantalla_summary_tabla),
+            ("summary", "summary-historial", pantalla_summary_historial),
         ):
             w = constructor(paleta)
             w.resize(QSize(ANCHO, ALTO))
