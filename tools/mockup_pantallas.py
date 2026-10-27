@@ -2160,8 +2160,226 @@ PANELES_B = {
 }
 
 
-def pantalla_summary_graficas_b(p: dict, variable: str = "viento") -> QWidget:
-    """Meteograma del Resumen: dos paneles fijos y el tercero con selector."""
+
+# ------------------------------------------- Resumen: gráficas por familia
+# Criterio (Statistics Canada): en un mismo gráfico sólo variables con la
+# MISMA unidad, y como máximo cuatro series (Compendio de series temporales).
+# Cada familia es una banda con su unidad, su leyenda y sus valores extremos.
+
+def _series_familias() -> dict[str, list[float]]:
+    s = _series_resumen()
+    s["pest"] = [v - 1.2 for v in s["pmed"]]
+    return s
+
+
+class _GraficasFamilias(QWidget):
+    """Seis familias de variables, cada una con su escala y su unidad."""
+
+    def __init__(self, paleta: dict, series: dict[str, list[float]]) -> None:
+        super().__init__()
+        self.p = paleta
+        self.s = series
+
+    # -- helpers -----------------------------------------------------------
+
+    def _y(self, valor, vmin, vmax, y0, alto):
+        return y0 + alto - (valor - vmin) / (vmax - vmin) * alto
+
+    def _trazo(self, painter, valores, vmin, vmax, x0, y0, ancho, alto, color,
+               *, estilo="linea", alpha=255, ancho_px=1.5) -> None:
+        from PySide6.QtCore import QPointF
+        from PySide6.QtGui import QColor, QPen
+
+        c = QColor(color)
+        c.setAlpha(alpha)
+        lapiz = QPen(c, ancho_px)
+        if estilo == "punteada":
+            lapiz.setStyle(Qt.DashLine)
+        painter.setPen(lapiz)
+        paso = ancho / (len(valores) - 1)
+        for i in range(len(valores) - 1):
+            painter.drawLine(
+                QPointF(x0 + i * paso, self._y(valores[i], vmin, vmax, y0, alto)),
+                QPointF(x0 + (i + 1) * paso, self._y(valores[i + 1], vmin, vmax, y0, alto)),
+            )
+
+    def _banda(self, painter, alto_s, bajo_s, vmin, vmax, x0, y0, ancho, alto, color,
+               alpha=26) -> None:
+        from PySide6.QtCore import QPointF
+        from PySide6.QtGui import QBrush, QColor, QPolygonF
+
+        pol = QPolygonF()
+        paso = ancho / (len(alto_s) - 1)
+        for i, v in enumerate(alto_s):
+            pol.append(QPointF(x0 + i * paso, self._y(v, vmin, vmax, y0, alto)))
+        for i in range(len(bajo_s) - 1, -1, -1):
+            pol.append(QPointF(x0 + i * paso, self._y(bajo_s[i], vmin, vmax, y0, alto)))
+        c = QColor(color)
+        c.setAlpha(alpha)
+        painter.setPen(Qt.NoPen)
+        painter.setBrush(QBrush(c))
+        painter.drawPolygon(pol)
+        painter.setBrush(Qt.NoBrush)
+
+    def _barras(self, painter, valores, vmax, x0, y0, ancho, alto, color) -> None:
+        from PySide6.QtCore import QRectF
+        from PySide6.QtGui import QBrush, QColor
+
+        c = QColor(color)
+        c.setAlpha(180)
+        painter.setPen(Qt.NoPen)
+        painter.setBrush(QBrush(c))
+        paso = ancho / (len(valores) - 1)
+        for i, v in enumerate(valores):
+            if v <= 0:
+                continue
+            x = x0 + i * paso
+            h = (v / vmax) * alto if vmax else 0
+            painter.drawRect(QRectF(x - 3.5, y0 + alto - h, 7, h))
+        painter.setBrush(Qt.NoBrush)
+
+    def _flechas(self, painter, direcciones, x0, y0, ancho) -> None:
+        import math
+
+        from PySide6.QtCore import QPointF
+        from PySide6.QtGui import QColor, QPen
+
+        painter.setPen(QPen(QColor(self.p["suave"]), 1.1))
+        paso = ancho / (len(direcciones) - 1)
+        for i, grados in enumerate(direcciones):
+            x = x0 + i * paso
+            rad = math.radians(grados)
+            painter.drawLine(
+                QPointF(x - 3.4 * math.sin(rad), y0 + 8 + 3.4 * math.cos(rad)),
+                QPointF(x + 3.4 * math.sin(rad), y0 + 8 - 3.4 * math.cos(rad)),
+            )
+
+    # -- pintado -----------------------------------------------------------
+
+    def paintEvent(self, event) -> None:  # noqa: N802 - API de Qt
+        from PySide6.QtCore import QPointF
+        from PySide6.QtGui import QColor, QFont, QPainter, QPen
+
+        p, s = self.p, self.s
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        painter.fillRect(self.rect(), QColor(p["superficie"]))
+
+        izq, der = 200, 60
+        arriba, abajo, hueco = 6, 18, 8
+
+        familias = (
+            ("Temperatura", "°C", ("tmax", "tmin"), 22,
+             (("Máx", "tmax", "linea", p["acento"]),
+              ("Media", "tmed", "linea", p["texto"]),
+              ("Mín", "tmin", "linea", p["acento"]),
+              ("Rocío", "rocio", "punteada", p["ok"])),
+             None),
+            ("Presión", "hPa", ("pmax", "pmin"), 22,
+             (("Máx", "pmax", "linea", p["naranja"]),
+              ("Media NMM", "pmed", "linea", p["texto"]),
+              ("Mín", "pmin", "linea", p["naranja"]),
+              ("Estación", "pest", "punteada", p["suave"])),
+             None),
+            ("Humedad", "%", ("hummax", "hummin"), 22,
+             (("Máx", "hummax", "linea", p["ok"]),
+              ("Media", "hummed", "linea", p["texto"]),
+              ("Mín", "hummin", "linea", p["ok"])),
+             (40, 100)),
+            ("Viento", "m/s", None, 0,
+             (("Media", "vel", "linea", p["suave"]),
+              ("Máximo", "velmax", "punteada", p["acento"])),
+             (0, 32)),
+            ("Nubosidad", "octavos", ("nubdia", "nubnoche"), 18,
+             (("Día", "nubdia", "linea", p["violeta"]),
+              ("Noche", "nubnoche", "linea", p["suave"]),
+              ("Media", "nubmed", "punteada", p["texto"])),
+             (0, 8)),
+            ("Lluvia", "mm", None, 0,
+             (("Diaria", "lluvia", "barras", p["acento"]),),
+             None),
+        )
+
+        alto_banda = (self.height() - arriba - abajo - hueco * (len(familias) - 1)) / len(familias)
+        fuente_titulo = QFont(); fuente_titulo.setPixelSize(10)
+        fuente_titulo.setWeight(QFont.Weight.DemiBold)
+        fuente_chica = QFont(); fuente_chica.setPixelSize(8)
+
+        for indice, (nombre, unidad, banda, alpha, filas, fijo) in enumerate(familias):
+            y0 = arriba + indice * (alto_banda + hueco)
+            alto = alto_banda
+            x0 = izq
+            ancho = self.width() - izq - der
+
+            # escala
+            valores = [v for _n, clave, _e, _c in filas for v in s[clave]]
+            if banda:
+                valores += s[banda[0]] + s[banda[1]]
+            vmin, vmax = fijo if fijo else (min(valores), max(valores))
+            if vmax == vmin:
+                vmax = vmin + 1
+
+            # rejilla muy tenue
+            lapiz = QPen(QColor(p["borde"]))
+            painter.setPen(lapiz)
+            for paso in range(3):
+                y = y0 + alto * paso / 2
+                painter.drawLine(QPointF(x0, y), QPointF(x0 + ancho, y))
+
+            # título + unidad + leyenda
+            painter.setPen(QPen(QColor(p["texto"])))
+            painter.setFont(fuente_titulo)
+            painter.drawText(8, int(y0 + 13), nombre)
+            painter.setPen(QPen(QColor(p["tenue"])))
+            painter.setFont(fuente_chica)
+            painter.drawText(8, int(y0 + 25), unidad)
+
+            for posicion, (etiqueta, clave, estilo, color) in enumerate(filas):
+                columna_leyenda, fila_leyenda = posicion % 2, posicion // 2
+                lx = 10 + columna_leyenda * 92
+                ly = y0 + 38 + fila_leyenda * 12
+                painter.setPen(Qt.NoPen)
+                painter.setBrush(QColor(color))
+                painter.drawEllipse(QPointF(lx + 3, ly - 3), 2.4, 2.4)
+                painter.setBrush(Qt.NoBrush)
+                painter.setPen(QPen(QColor(p["suave"])))
+                painter.setFont(fuente_chica)
+                painter.drawText(lx + 9, int(ly), etiqueta)
+
+            # extremos del eje a la derecha
+            painter.setFont(fuente_chica)
+            for valor, y in ((vmax, y0 + 6), ((vmax + vmin) / 2, y0 + alto / 2 + 3),
+                             (vmin, y0 + alto)):
+                painter.setPen(QPen(QColor(p["tenue"])))
+                texto = f"{valor:.0f}" if abs(vmax - vmin) > 6 else f"{valor:.1f}"
+                painter.drawText(QPointF(x0 + ancho + 6, y), texto)
+
+            # datos
+            if banda:
+                self._banda(painter, s[banda[0]], s[banda[1]], vmin, vmax,
+                            x0, y0, ancho, alto, filas[0][3], alpha)
+            for _etiqueta, clave, estilo, color in filas:
+                if estilo == "barras":
+                    self._barras(painter, s[clave], vmax, x0, y0, ancho, alto, color)
+                else:
+                    self._trazo(painter, s[clave], vmin, vmax, x0, y0, ancho, alto,
+                                color, estilo=estilo,
+                                ancho_px=1.1 if estilo == "punteada" else 1.5)
+
+            if nombre == "Viento":
+                self._flechas(painter, s["dir"], x0, y0, ancho)
+
+            if indice == len(familias) - 1:
+                painter.setPen(QPen(QColor(p["tenue"])))
+                painter.setFont(fuente_chica)
+                for dia in range(1, 32, 5):
+                    x = x0 + (dia - 1) * ancho / 30
+                    painter.drawText(QPointF(x - 3, self.height() - 5), str(dia))
+                painter.drawText(QPointF(x0 + ancho + 14, self.height() - 5), "día")
+        painter.end()
+
+
+def pantalla_summary_graficas(p: dict) -> QWidget:
     pagina = QWidget()
     pagina.setObjectName("pagina")
     pagina.setStyleSheet(f"QWidget#pagina {{ background:{p['fondo']}; }}")
@@ -2202,40 +2420,11 @@ def pantalla_summary_graficas_b(p: dict, variable: str = "viento") -> QWidget:
     nombre.setStyleSheet(f"color:{p['texto']};background:transparent;")
     meta.addWidget(nombre)
     meta.addStretch(1)
-    # selector de la tercera variable
-    for clave, etiqueta in (
-        ("humedad", "Humedad"), ("viento", "Viento"),
-        ("nubosidad", "Nubosidad"), ("lluvia", "Lluvia"),
-    ):
-        activo = clave == variable
-        pill = QLabel(etiqueta)
-        pill.setFont(ui(10, 700))
-        pill.setFixedHeight(26)
-        pill.setStyleSheet(
-            f"background:{p['acento_suave'] if activo else p['superficie']};"
-            f"color:{p['acento'] if activo else p['suave']};"
-            f"border:1px solid {p['acento'] if activo else p['borde']};"
-            "border-radius:13px;padding:0 12px;"
-        )
-        meta.addWidget(pill)
+    resumen = QLabel("T media 26.4 °C · Lluvia 24.1 mm · Una serie por unidad, máximo cuatro")
+    resumen.setFont(ui(11))
+    resumen.setStyleSheet(f"color:{p['suave']};background:transparent;")
+    meta.addWidget(resumen)
     v.addLayout(meta)
-
-    series = _series_resumen()
-    # el espec del tercer panel resuelve los nombres de serie a listas
-    titulo3, clave3, rol3, opciones3 = PANELES_B[variable]
-    opciones3 = {
-        k: (series[v] if isinstance(v, str) else v) for k, v in opciones3.items()
-    } if "banda" not in opciones3 else {
-        **{k: v for k, v in opciones3.items() if k != "banda"},
-        "banda": tuple(series[n] for n in opciones3["banda"]),
-    }
-    paneles = (
-        ("Temperatura (°C)", "tmed", p["acento"],
-         {"banda": (series["tmax"], series["tmin"])}),
-        ("Presión NMM (hPa)", "pmed", p["naranja"],
-         {"banda": (series["pmax"], series["pmin"])}),
-        (titulo3, clave3, p[rol3], opciones3),
-    )
 
     tarjeta = QWidget()
     tarjeta.setObjectName("meteoC")
@@ -2244,13 +2433,13 @@ def pantalla_summary_graficas_b(p: dict, variable: str = "viento") -> QWidget:
         f" border:1px solid {p['borde']}; border-radius:10px; }}"
     )
     tv = QVBoxLayout(tarjeta)
-    tv.setContentsMargins(8, 8, 8, 8)
-    tv.addWidget(_Meteograma(p, series, paneles))
+    tv.setContentsMargins(8, 6, 8, 4)
+    tv.addWidget(_GraficasFamilias(p, _series_familias()))
     v.addWidget(tarjeta, 1)
 
     pie = QLabel(
-        "Dos paneles fijos (temperatura y presión) y el tercero según el selector · "
-        "eje de días compartido"
+        "Una banda por unidad · banda clara = máximo y mínimo del día · "
+        "punteada = serie secundaria · flechas = dirección del viento"
     )
     pie.setFont(ui(10))
     pie.setStyleSheet(f"color:{p['tenue']};background:transparent;")
@@ -2284,15 +2473,8 @@ def main() -> int:
             ("audit", "audit-reporte", pantalla_audit_reporte),
             ("summary", "summary-tabla", pantalla_summary_tabla),
             ("summary", "summary-historial", pantalla_summary_historial),
+            ("summary", "summary-graficas", pantalla_summary_graficas),
             # el meteograma se documenta con las cuatro variables del selector
-            ("summary", "summary-graficas-humedad",
-             lambda pal, v="humedad": pantalla_summary_graficas_b(pal, v)),
-            ("summary", "summary-graficas-viento",
-             lambda pal, v="viento": pantalla_summary_graficas_b(pal, v)),
-            ("summary", "summary-graficas-nubosidad",
-             lambda pal, v="nubosidad": pantalla_summary_graficas_b(pal, v)),
-            ("summary", "summary-graficas-lluvia",
-             lambda pal, v="lluvia": pantalla_summary_graficas_b(pal, v)),
         ):
             w = constructor(paleta)
             w.resize(QSize(ANCHO, ALTO))

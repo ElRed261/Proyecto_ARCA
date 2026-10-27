@@ -138,39 +138,44 @@ En los CLI, el detalle a la derecha muestra el grupo de la celda activa:
 
 ### 5.6 `Meteograma` — la pestaña Gráficas del Resumen
 
-Un meteograma es una **serie temporal meteorológica dibujada como paneles apilados que
-comparten el eje de tiempo**: la misma fecha cae en la misma vertical en todos. Referencia
-canónica: el meteograma de MetPy (Unidata), que apila viento, temperatura con rocío,
-humedad relativa y presión.
+Un meteograma es una **serie temporal meteorológica dibujada como bandas apiladas que
+comparten el eje de tiempo**: la misma fecha cae en la misma vertical en todas. Referencia
+canónica: el meteograma de MetPy (Unidata); para el criterio de agrupación, tres fuentes:
 
-El Resumen Mensual son datos **diarios** (1..31), así que cada panel es una serie de 31
-puntos con un solo eje de días al pie.
+- **Statistics Canada, *Data Visualization: Best Practices***: cuando varias variables van
+  en un mismo gráfico **deben tener la misma unidad de medida**.
+- **Compendio de series temporales (Univ. de Melbourne)**: **no más de cuatro variables**
+  en un gráfico.
+- **ONS / Rare Digits**: *small multiples* para comparar; y la **banda** es el recurso para
+  un rango — una línea dice cuál es el número, una banda dice qué tan ancho es.
 
-**Forma elegida: tres paneles.** Dos fijos y un tercero conmutable por un selector de
-pastillas sobre el gráfico.
+**Regla de oro: una banda por unidad.** Nada se superpone si no comparte escala.
 
-| Fila | Dibujo | Variables del Resumen |
+| Banda | Unidad | Series (máx. 4) |
 |---|---|---|
-| Temperatura (°C) — fija | banda de máx/mín + línea de la media | Mayor temperatura máxima · Menor temperatura minima · Media temperatura |
-| Presión NMM (hPa) — fija | banda máx/mín + línea de la media | MAxima/Minima/Media presión nivel medio del mar |
-| Tercer panel — selector | según la variable activa | ver abajo |
+| Temperatura | °C | Máx · Media · Mín (banda) + **Rocío** (punteada) |
+| Presión | hPa | Máx · Media NMM · Mín (banda) + **Estación** (punteada) |
+| Humedad | % | Máx · Media · Mín (banda) |
+| Viento | m/s | Media (línea) + **Máximo** (punteada) + **dirección** (flechas en la franja superior) |
+| Nubosidad | octavos | Día · Noche (banda) + Media (punteada) |
+| Lluvia | mm | Diaria (barras) |
 
-Selector del tercer panel: `Humedad` (banda máx/mín + media) · `Viento` (barras de la
-media, puntos del máximo diario y flechas de dirección) · `Nubosidad` (banda día/noche con
-la media) · `Lluvia` (barras).
+Reglas de dibujo:
 
-Reglas:
+- La banda clara va **detrás** de las líneas, con alfa 26; las barras, con alfa 180.
+- Serie principal en `texto`; la secundaria del mismo eje en **punteada**; los extremos de
+  la banda, en el color del rol (acento para temperatura, naranja para presión).
+- Escala: extremos y punto medio **a la derecha**, en 8 px `tenue`. Nada de ejes rotados.
+- Leyenda por banda, en dos columnas de puntos + nombre (8 px), a la izquierda. Cuatro
+  filas en una columna se desbordaban sobre la banda siguiente.
+- Rejilla: dos líneas horizontales en `borde`, sin líneas verticales.
+- Dirección del viento: **flechas en la franja superior de su banda**, nunca al pie.
+- Sólo la última banda lleva los días del eje (1..31, cada 5).
+- **Nada de degradados** ni de doble eje: dos escalas en el mismo plano invitan a leer
+  correlaciones falsas.
 
-- **Nada de degradados.** Los rellenos van planos con alfa sobre el color del rol (38/255
-  en las bandas, 150/255 en las barras).
-- La etiqueta de cada fila va a la izquierda, en `suave` 9 px; la rejilla horizontal, en
-  `borde` punteado.
-- **Las flechas de dirección nunca van al pie del panel**: las tapan las barras. Van en su
-  propia franja, arriba.
-- Descartada la variante de cinco paneles (todo visible pero cada fila muy baja) y la de un
-  único gráfico con doble eje (dos escalas en el mismo plano invitan a leer correlaciones
-  falsas).
-- Fuera por ahora: punto de rocío y tensión de vapor.
+Fuera por ahora: tensión de vapor (hPa, pero otra magnitud) y la velocidad máxima con su
+dirección como par.
 
 ## 6. Reglas por pantalla
 
