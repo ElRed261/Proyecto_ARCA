@@ -162,6 +162,21 @@ def main() -> int:
 
             auditoria = AuditPage(conn, base_dir=carpeta, role="admin")
             _capturar(auditoria, _carpeta("reales") / f"pantalla-audit-{nombre_tema}.png", app)
+
+            # El formulario de auditoría es la superficie grande de la fase: se
+            # captura directo, sin depender del drill-down sobre el árbol synop.
+            from oms_ui.pages.audit_observation import AuditObservationPage
+
+            formulario = AuditObservationPage(
+                conn, base_dir=carpeta, station=ESTACION, fecha=FECHA,
+                role="admin", user_email="auditor@arca.rd",
+            )
+            formulario.resize(1366, 900)
+            _capturar(
+                formulario,
+                _carpeta("reales") / f"pantalla-audit-observacion-{nombre_tema}.png",
+                app,
+            )
         except Exception as error:  # se reporta, no se inventa
             print(f"  audit: no se pudo construir ({error})")
 

@@ -197,6 +197,9 @@ QPushButton#saveButton { background: $ok; color: $superficie; border: none;
     border-radius: 10px; padding: 9px 16px; font-weight: 800; }
 QPushButton#ghost { background: $superficie; color: $texto;
     border: 1px solid $borde_input; border-radius: 9px; padding: 6px 12px; }
+/* El viewport del scroll hereda el negro de la paleta por defecto: sin esto
+   la tarjeta de marcas aparece como un rectángulo negro en tema oscuro. */
+QScrollArea, QScrollArea > QWidget > QWidget { background: transparent; }
 QPushButton#backButton { background: $superficie; color: $naranja;
     border: 1px solid $naranja_debil; border-radius: 20px; padding: 6px 14px;
     font-weight: 700; }
@@ -337,7 +340,7 @@ class CorrectionDialog(QDialog):
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
         header = QLabel()
-        header.setStyleSheet(f"background: {EMERALD};")
+        header.setStyleSheet(_qss(f"background: {EMERALD};"))
         header_box = QVBoxLayout(header)
         header_box.setContentsMargins(14, 10, 14, 10)
         pill = QLabel("CORRECCIÓN OVERLAY")
@@ -689,7 +692,7 @@ class AuditObservationPage(QWidget):
 
     def _state_card(self) -> QFrame:
         card = QFrame()
-        card.setStyleSheet(f"background: {ORANGE}; border-radius: 14px;")
+        card.setStyleSheet(_qss(f"background: {ORANGE}; border-radius: 14px;"))
         column = QVBoxLayout(card)
         column.setContentsMargins(14, 12, 14, 12)
         column.setSpacing(8)
@@ -710,9 +713,9 @@ class AuditObservationPage(QWidget):
             ("Corregidos", self.corrections_value),
         ):
             tile = QFrame()
-            tile.setStyleSheet(
-                "background: rgba(255,255,255,0.16); border-radius: 10px;"
-            )
+            tile.setStyleSheet(_qss(
+                "background: $naranja_debil; border-radius: 10px;"
+            ))
             tile_column = QVBoxLayout(tile)
             tile_column.setContentsMargins(10, 8, 10, 8)
             caption_label = QLabel(caption)
@@ -731,9 +734,9 @@ class AuditObservationPage(QWidget):
         )
         footer.setWordWrap(True)
         footer.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        footer.setStyleSheet(
-            "color: rgba(255,237,213,0.85); font-size: 9px;"
-        )
+        footer.setStyleSheet(_qss(
+            "color: $naranja_fondo; font-size: 9px;"
+        ))
         column.addWidget(footer)
         return card
 
@@ -862,7 +865,7 @@ class AuditObservationPage(QWidget):
                 color = "$ok"
             else:
                 color = "transparent"
-            dot.setStyleSheet(f"background: {color}; border-radius: 3px;")
+            dot.setStyleSheet(_qss(f"background: {color}; border-radius: 3px;"))
 
     def _refresh_observer_alert(self) -> None:
         view = self._hour_view()
@@ -924,9 +927,9 @@ class AuditObservationPage(QWidget):
         title = QLabel(
             f"{mark['hora']} - {FIELD_LABELS.get(mark['campo'], mark['campo'])}"
         )
-        title.setStyleSheet(
+        title.setStyleSheet(_qss(
             f"color: {ORANGE_DARK}; font-size: 11px; font-weight: 800;"
-        )
+        ))
         pill = QLabel(mark["tipo_error"])
         pill.setStyleSheet(_qss(
             "background: $error_suave; color: $error_fuerte; border-radius: 4px;"
@@ -957,9 +960,9 @@ class AuditObservationPage(QWidget):
         corr = self._correction_for(mark["hora"], mark["campo"])
         if corr is not None:
             corrected = QLabel(f"Corregido: {corr['valor_corregido']}")
-            corrected.setStyleSheet(
+            corrected.setStyleSheet(_qss(
                 f"color: {EMERALD}; font-size: 10px; font-weight: 700;"
-            )
+            ))
             column.addWidget(corrected)
         self.mark_blocks.append(block)
         return block
