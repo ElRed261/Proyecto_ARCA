@@ -153,7 +153,13 @@ class MainWindow(QMainWindow):
         self._rail_logo.setAlignment(
             Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft
         )
-        fila_logo_layout.addWidget(self._rail_logo, 1)
+        fila_logo_layout.addWidget(self._rail_logo)
+        self._rail_logo_suffix = QLabel("· Observations")
+        self._rail_logo_suffix.setObjectName("railLogoSub")
+        self._rail_logo_suffix.setAlignment(
+            Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft
+        )
+        fila_logo_layout.addWidget(self._rail_logo_suffix, 1)
         # Tanto la fila como la etiqueta navegan a Inicio: el usuario hace clic
         # en el icono, en el texto o en el hueco entre ambos.
         self._rail_logo_row = fila_logo
@@ -227,8 +233,10 @@ class MainWindow(QMainWindow):
             button.setIconSize(QSize(18, 18))
             button.setIcon(rail_icon(_RAIL_ICONS.get(page_id, "radar"), acento))
             _repolish(button)
-        self._rail_logo.setText("OMS · Observations")
+        # Colapsado queda sólo la marca: el nombre completo no entra en 76 px.
+        self._rail_logo.setText("OMS")
         self._rail_logo.setVisible(not collapsed)
+        self._rail_logo_suffix.setVisible(not collapsed)
         if hasattr(self, "_email_label"):
             self._email_label.setVisible(not collapsed)
             # Elipsis según el ancho real del riel: si se colapsa o cambia la

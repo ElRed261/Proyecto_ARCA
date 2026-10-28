@@ -392,6 +392,13 @@ QCheckBox:disabled, QRadioButton:disabled, QLabel:disabled {
     background: transparent;
 }
 
+#railLogoSub {
+    color: $suave_alt;
+    font-size: 12px;
+    font-weight: 500;
+    background: transparent;
+}
+
 #railEmail {
     color: $suave_alt;
     font-size: 11px;
