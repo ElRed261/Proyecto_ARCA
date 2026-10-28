@@ -195,64 +195,75 @@ _GROUP_RE = QRegularExpression(r"[0-9/]{0,5}")
 #: Inline stylesheets — per-widget, not page-wide. Probe finding: the
 #: page-level descendant selectors rendered backgrounds unreliably while
 #: every inline rule painted correctly; the visual contract goes inline.
+def _qss(plantilla: str) -> str:
+    """Resuelve una plantilla QSS con la paleta del tema activo.
+
+    Los estilos de esta página eran literales; ahora son plantillas con $rol
+    (S1) que se resuelven al aplicarse, así el Sinóptico sigue el tema.
+    """
+    from string import Template
+
+    return Template(plantilla).substitute(theme_mod.palette())
+
+
 FIELD_QSS = (
-    "QLineEdit { background-color: #ffffff; border: 1px solid #cbd5e1;"
-    "border-radius: 4px; padding: 5px 8px; color: #1e293b;"
-    "selection-background-color: #bfdbfe; }"
-    "QLineEdit:disabled { background-color: #e2e8f0; color: #94a3b8; }"
+    "QLineEdit { background-color: $superficie; border: 1px solid $borde_input;"
+    "border-radius: 4px; padding: 5px 8px; color: $texto;"
+    "selection-background-color: $acento; }"
+    "QLineEdit:disabled { background-color: $borde; color: $tenue; }"
 )
 FIELD_ERROR_QSS = (
-    "QLineEdit { background-color: #ffffff; border: 2px solid #ef4444;"
-    "border-radius: 4px; padding: 5px 8px; color: #1e293b; }"
+    "QLineEdit { background-color: $superficie; border: 2px solid $error;"
+    "border-radius: 4px; padding: 5px 8px; color: $texto; }"
 )
 RO_QSS = (
-    "QLineEdit { background-color: #ffffff; border: 1px solid #cbd5e1;"
-    "border-radius: 4px; padding: 5px 8px; color: #2563eb; font-weight: bold; }"
-    "QLineEdit:disabled { background-color: #e2e8f0; color: #94a3b8; }"
+    "QLineEdit { background-color: $superficie; border: 1px solid $borde_input;"
+    "border-radius: 4px; padding: 5px 8px; color: $acento; font-weight: bold; }"
+    "QLineEdit:disabled { background-color: $borde; color: $tenue; }"
 )
 CONST_QSS = (
-    "QLineEdit { background-color: #e2e8f0; border: 1px solid #94a3b8;"
-    "border-radius: 4px; padding: 5px 8px; color: #334155; font-weight: bold; }"
+    "QLineEdit { background-color: $borde; border: 1px solid $tenue;"
+    "border-radius: 4px; padding: 5px 8px; color: $texto; font-weight: bold; }"
 )
 CARD_QSS = (
-    "QFrame { background-color: #ffffff; border: 1px solid #e2e8f0;"
+    "QFrame { background-color: $superficie; border: 1px solid $borde;"
     "border-radius: 16px; }"
 )
 CARDHEAD_QSS = (
-    "color: #94a3b8; font-size: 12px; font-weight: 700; background: transparent;"
+    "color: $tenue; font-size: 12px; font-weight: 700; background: transparent;"
     "border: none;"
 )
 MINILABEL_QSS = (
-    "color: #94a3b8; font-size: 11px; font-weight: 700; background: transparent;"
+    "color: $tenue; font-size: 11px; font-weight: 700; background: transparent;"
     "border: none;"
 )
 HOURBTN_QSS = (
-    "QPushButton { background-color: #f8fafc; color: #475569;"
-    "border: 1px solid #f1f5f9; border-radius: 8px;"
+    "QPushButton { background-color: $panel_alt; color: $suave;"
+    "border: 1px solid $panel; border-radius: 8px;"
     "padding: 8px 6px; font-weight: 700; font-size: 12px; }"
-    "QPushButton:hover { background-color: #f1f5f9; color: #0f172a; }"
+    "QPushButton:hover { background-color: $panel; color: $texto_alt; }"
 )
 DAYNAV_BACK_QSS = (
-    "QPushButton { background-color: #eff6ff; border: 1px solid #dbeafe;"
+    "QPushButton { background-color: $acento_fondo; border: 1px solid $acento_suave;"
     "border-radius: 8px; padding: 8px 0; }"
-    "QPushButton:hover { background-color: #dbeafe; }"
+    "QPushButton:hover { background-color: $acento_suave; }"
 )
 DAYNAV_FORWARD_QSS = (
-    "QPushButton { background-color: #f0fdf4; border: 1px solid #dcfce7;"
+    "QPushButton { background-color: $ok_fondo; border: 1px solid $ok_fondo;"
     "border-radius: 8px; padding: 8px 0; }"
-    "QPushButton:hover { background-color: #dcfce7; }"
+    "QPushButton:hover { background-color: $ok_fondo; }"
 )
 CLI_BTN_QSS = (
-    "QToolButton { background-color: #f8fafc; color: #334155;"
-    "border: 1px solid #e2e8f0; border-radius: 10px;"
+    "QToolButton { background-color: $panel_alt; color: $texto;"
+    "border: 1px solid $borde; border-radius: 10px;"
     "padding: 5px 2px; font-size: 11px; font-weight: 700; }"
-    "QToolButton:hover { background-color: #fef3c7; border-color: #fde68a; }"
+    "QToolButton:hover { background-color: $ambar_fondo; border-color: $ambar_fondo; }"
 )
 SECONDARY_BTN_QSS = (
-    "QPushButton { background-color: #f8fafc; color: #334155;"
-    "border: 1px solid #e2e8f0; border-radius: 12px;"
+    "QPushButton { background-color: $panel_alt; color: $texto;"
+    "border: 1px solid $borde; border-radius: 12px;"
     "padding: 7px 10px; font-size: 12px; font-weight: 700; }"
-    "QPushButton:hover { background-color: #f1f5f9; }"
+    "QPushButton:hover { background-color: $panel; }"
 )
 
 
@@ -284,9 +295,9 @@ HOUR_THEMES: dict[str, dict[str, str]] = {
     # 12Z=08:00 mañana azul cielo, 15Z=11:00 mediodia pleno, 18Z=14:00
     # tarde luminosa, 21Z=17:00 golden hour (violeta alto + dorado bajo).
     "00Z": {"from": "#4a3a7a", "to": "#1e1b4b", "accent": "#4a3a7a", "text": "#e2e8f0"},
-    "03Z": {"from": "#172554", "to": "#0b1026", "accent": "#172554", "text": "#dbeafe"},
+    "03Z": {"from": "#172554", "to": "#0b1026", "accent": "#172554", "text": "$acento_suave"},
     "06Z": {"from": "#0f172a", "to": "#020617", "accent": "#1e293b", "text": "#e2e8f0"},
-    "09Z": {"from": "#1e2a5a", "to": "#b45309", "accent": "#35426b", "text": "#fde68a"},
+    "09Z": {"from": "#1e2a5a", "to": "#b45309", "accent": "#35426b", "text": "$ambar_fondo"},
     "12Z": {"from": "#38bdf8", "to": "#93c5fd", "accent": "#0369a1", "text": "#0c4a6e"},
     "15Z": {"from": "#0ea5e9", "to": "#7dd3fc", "accent": "#0284c7", "text": "#0c4a6e"},
     "18Z": {"from": "#22b8ea", "to": "#67e8f9", "accent": "#0e7490", "text": "#0c4a6e"},
@@ -307,7 +318,7 @@ HOUR_ICONS: dict[str, tuple[str, str]] = {
 
 #: slate-600 header chips (oracle tableHeader slate bg; square corners).
 _HEADER_QSS = (
-    "background-color: #475569; color: #ffffff; font-weight: 600;"
+    "background-color: $suave; color: $superficie; font-weight: 600;"
     "font-size: 12px; padding: 7px 6px; border-radius: 6px;"
 )
 
@@ -663,7 +674,7 @@ class SynopticPage(QWidget):
             label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             label.setWordWrap(True)
             if accent is None:
-                label.setStyleSheet(_HEADER_QSS)
+                label.setStyleSheet(_qss(_HEADER_QSS))
             else:
                 label.setStyleSheet(
                     f"background-color: {accent}; color: #ffffff;"
@@ -681,14 +692,14 @@ class SynopticPage(QWidget):
         """One oracle sidebar/panel card: white rounded-2xl, slate-200 hairline."""
         frame = QFrame()
         frame.setProperty("card", True)  # marker for tests/probes
-        frame.setStyleSheet(CARD_QSS)
+        frame.setStyleSheet(_qss(CARD_QSS))
         return frame
 
     def _grid_const(self, grid: QGridLayout, row: int, col: int, text: str) -> None:
         """Readonly slate constant cell (AAXX/333/555, oracle constantClass)."""
         cell = QLineEdit(text)
         cell.setReadOnly(True)
-        cell.setStyleSheet(CONST_QSS)
+        cell.setStyleSheet(_qss(CONST_QSS))
         cell.setAlignment(Qt.AlignmentFlag.AlignCenter)
         grid.addWidget(cell, row, col)
 
@@ -696,7 +707,7 @@ class SynopticPage(QWidget):
         """Readonly blue computed cell (oracle readonlyClass groups)."""
         cell = QLineEdit()
         cell.setReadOnly(True)
-        cell.setStyleSheet(RO_QSS)
+        cell.setStyleSheet(_qss(RO_QSS))
         cell.setAlignment(Qt.AlignmentFlag.AlignCenter)
         grid.addWidget(cell, row, col)
         self.auto_cells[key] = cell
@@ -752,7 +763,7 @@ class SynopticPage(QWidget):
         self.observer_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.observer_edit = QLineEdit()
         self.observer_edit.setPlaceholderText("Nombre del Observador...")
-        self.observer_edit.setStyleSheet(FIELD_QSS)
+        self.observer_edit.setStyleSheet(_qss(FIELD_QSS))
         self.observer_edit.setMinimumHeight(32)
         self.observer_label.setBuddy(self.observer_edit)
         meta_row.addWidget(self.observer_label)
@@ -820,7 +831,7 @@ class SynopticPage(QWidget):
 
         self.correc_alt_edit = QLineEdit()
         self.correc_alt_edit.setReadOnly(True)
-        self.correc_alt_edit.setStyleSheet(RO_QSS)
+        self.correc_alt_edit.setStyleSheet(_qss(RO_QSS))
         self.correc_alt_edit.setPlaceholderText("hPa")
         self.correc_alt_edit.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
@@ -909,7 +920,7 @@ class SynopticPage(QWidget):
             label = QLabel(text)
             label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             label.setWordWrap(True)
-            label.setStyleSheet(_HEADER_QSS)
+            label.setStyleSheet(_qss(_HEADER_QSS))
             calc.addWidget(label, row, col)
 
         def cfield(row: int, col: int, key: str) -> None:
@@ -919,7 +930,7 @@ class SynopticPage(QWidget):
                 placeholder: str = "") -> None:
             cell = QLineEdit()
             cell.setReadOnly(True)
-            cell.setStyleSheet(RO_QSS)
+            cell.setStyleSheet(_qss(RO_QSS))
             cell.setAlignment(Qt.AlignmentFlag.AlignCenter)
             if placeholder:
                 cell.setPlaceholderText(placeholder)
@@ -1023,7 +1034,7 @@ class SynopticPage(QWidget):
         hours_head.addWidget(clock_icon, 0, Qt.AlignmentFlag.AlignVCenter)
         hours_title = QLabel("HORAS DE OBSERVACIÓN")
         hours_title.setProperty("cardhead", True)
-        hours_title.setStyleSheet(CARDHEAD_QSS)
+        hours_title.setStyleSheet(_qss(CARDHEAD_QSS))
         hours_head.addWidget(hours_title, 0, Qt.AlignmentFlag.AlignVCenter)
         hours_head.addStretch(1)
         hours_l.addLayout(hours_head)
@@ -1052,7 +1063,7 @@ class SynopticPage(QWidget):
             button = QPushButton(hora)
             button.setProperty("hourbtn", True)  # marker for tests/probes
             button.setProperty("fill", "empty")
-            button.setStyleSheet(HOURBTN_QSS)
+            button.setStyleSheet(_qss(HOURBTN_QSS))
             button.setIconSize(QSize(14, 14))
             button.setMinimumHeight(26)
             button.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -1071,7 +1082,7 @@ class SynopticPage(QWidget):
         nav_row.setSpacing(8)
         self.prev_btn = QPushButton()
         self.prev_btn.setProperty("daynav", "back")
-        self.prev_btn.setStyleSheet(DAYNAV_BACK_QSS)
+        self.prev_btn.setStyleSheet(_qss(DAYNAV_BACK_QSS))
         self.prev_btn.setIcon(lucide_icon("arrow-left", "#0369a1", 16))
         self.prev_btn.setIconSize(QSize(16, 16))
         self.prev_btn.setToolTip("Guardar y cargar día anterior")
@@ -1080,7 +1091,7 @@ class SynopticPage(QWidget):
         self.prev_btn.clicked.connect(lambda: self.navigate_to_day(-1))
         self.next_btn = QPushButton()
         self.next_btn.setProperty("daynav", "forward")
-        self.next_btn.setStyleSheet(DAYNAV_FORWARD_QSS)
+        self.next_btn.setStyleSheet(_qss(DAYNAV_FORWARD_QSS))
         self.next_btn.setIcon(lucide_icon("arrow-right", "#15803d", 16))
         self.next_btn.setIconSize(QSize(16, 16))
         self.next_btn.setToolTip("Guardar y avanzar al siguiente día")
@@ -1104,7 +1115,7 @@ class SynopticPage(QWidget):
         cli_head.addWidget(file_icon, 0, Qt.AlignmentFlag.AlignVCenter)
         cli_title = QLabel("MÓDULOS CLI")
         cli_title.setProperty("cardhead", True)
-        cli_title.setStyleSheet(CARDHEAD_QSS)
+        cli_title.setStyleSheet(_qss(CARDHEAD_QSS))
         cli_head.addWidget(cli_title, 0, Qt.AlignmentFlag.AlignVCenter)
         cli_head.addStretch(1)
         cli_l.addLayout(cli_head)
@@ -1118,7 +1129,7 @@ class SynopticPage(QWidget):
         ):
             button = QToolButton()
             button.setText(label)
-            button.setStyleSheet(CLI_BTN_QSS)
+            button.setStyleSheet(_qss(CLI_BTN_QSS))
             button.setIcon(lucide_icon("file-text", "#94a3b8", 14))
             button.setIconSize(QSize(14, 14))
             button.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
@@ -1141,7 +1152,7 @@ class SynopticPage(QWidget):
         extra_head.addWidget(cloud_icon, 0, Qt.AlignmentFlag.AlignVCenter)
         extra_title = QLabel("NUBOSIDAD EXTRA")
         extra_title.setProperty("cardhead", True)
-        extra_title.setStyleSheet(CARDHEAD_QSS)
+        extra_title.setStyleSheet(_qss(CARDHEAD_QSS))
         extra_head.addWidget(extra_title, 0, Qt.AlignmentFlag.AlignVCenter)
         extra_head.addStretch(1)
         extra_l.addLayout(extra_head)
@@ -1151,7 +1162,7 @@ class SynopticPage(QWidget):
         ):
             title = QLabel(label)
             title.setProperty("minilabel", True)
-            title.setStyleSheet(MINILABEL_QSS)
+            title.setStyleSheet(_qss(MINILABEL_QSS))
             extra_l.addWidget(title)
             extra_input = self._make_grid_input(key)
             extra_input.setMinimumHeight(26)  # sidebar compactness
@@ -1168,7 +1179,7 @@ class SynopticPage(QWidget):
         self._toast.setObjectName("syntoast")
         self._toast.setStyleSheet(
             "QWidget#syntoast { background-color: rgba(15, 23, 42, 0.94);"
-            "border: 1px solid #334155; border-radius: 10px; }"
+            "border: 1px solid $texto; border-radius: 10px; }"
             "QWidget#syntoast QLabel { background: transparent; border: none; }"
         )
         self.error_label = _MessageLabel(on_change=self._refresh_toast)
@@ -1203,7 +1214,7 @@ class SynopticPage(QWidget):
         self.save_btn.clicked.connect(self.save_clicked)
         self.cargar_btn = QPushButton("Cargar Observación")
         self.cargar_btn.setProperty("secondaryaction", True)  # marker
-        self.cargar_btn.setStyleSheet(SECONDARY_BTN_QSS)
+        self.cargar_btn.setStyleSheet(_qss(SECONDARY_BTN_QSS))
         self.cargar_btn.setIcon(lucide_icon("folder", "#475569", 15))
         self.cargar_btn.setIconSize(QSize(15, 15))
         self.cargar_btn.setMinimumHeight(28)
@@ -1456,7 +1467,7 @@ class SynopticPage(QWidget):
         if tooltip:
             widget.setToolTip(tooltip)
         widget.setProperty("field_key", key)
-        widget.setStyleSheet(FIELD_QSS)  # oracle fieldClass token, inline
+        widget.setStyleSheet(_qss(FIELD_QSS))  # oracle fieldClass token, inline
         widget.setAlignment(Qt.AlignmentFlag.AlignCenter)
         widget.setMinimumHeight(32)
         widget.textChanged.connect(lambda _text, k=key: self._on_field_changed(k))
@@ -1593,7 +1604,7 @@ class SynopticPage(QWidget):
         widget = self.field_widgets.get(key)
         if widget is not None and widget.property("error"):
             widget.setProperty("error", None)
-            widget.setStyleSheet(FIELD_QSS)
+            widget.setStyleSheet(_qss(FIELD_QSS))
             self.error_label.setText("")
 
         # meteo_6_2 (0CS) vs meteo_8_1 (56) mutual exclusion, verbatim oracle
@@ -1928,7 +1939,7 @@ class SynopticPage(QWidget):
         for widget in self.field_widgets.values():
             if widget.property("error"):
                 widget.setProperty("error", None)
-                widget.setStyleSheet(FIELD_QSS)
+                widget.setStyleSheet(_qss(FIELD_QSS))
         self.error_label.setText("")
 
     def _highlight_guilty_field(self, error: synoptic_service.SaveError) -> None:
@@ -1948,7 +1959,7 @@ class SynopticPage(QWidget):
         widget = self.field_widgets.get(field)
         if widget is not None:
             widget.setProperty("error", True)
-            widget.setStyleSheet(FIELD_ERROR_QSS)
+            widget.setStyleSheet(_qss(FIELD_ERROR_QSS))
         if switched:
             self.error_label.setText(f"Revisá el campo {field} en {hour}")
         else:
