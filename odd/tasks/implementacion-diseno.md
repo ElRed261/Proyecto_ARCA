@@ -176,7 +176,34 @@ De paso agrega soporte para personas daltónicas.»
 queda como opción de Configuración → Apariencia, junto con la forma redundante de cada
 serie. Se descarta distinguir series sólo por color.
 
+**L8** — F1 a F3 cerradas con la suite en verde. Dos lecciones quedan asentadas: el gate
+de la suite va con `> log; echo EXIT=$?` porque un `| tail` devolvió 0 con un segfault
+(exit 139) y el commit salió igual; y mover un manejador de clic de un widget a su
+contenedor no hace fallar el test, lo segfaultea.
+
+**L9** — §5.6 reescrita con el esquema de OLD: sidebar de seis variables, tres tarjetas de
+estadísticas y una caja de gráfico por variable, con el rocío en el eje derecho. La sección
+anterior describía las bandas por unidad, que el dueño rechazó.
+
 **L7** — Defecto detectado al revisar el render de humedad, a corregir en F7: el eje derecho
 repite etiquetas cuando el rango es chico (22, 21, 21, 20, 20) porque los cinco cortes se
 redondean al mismo entero. El widget de la app calcula el paso con «números lindos» según
 el rango antes de dibujar, y un test lo fija sobre un rango de 19–22 °C.
+
+## Estado y cortes de entrega
+
+El hook de cada commit reclama el corte de entrega: la rama acumula ~37.600 líneas
+contra `origin/main`, muy por encima del slice de ~400. El corte no se hace por commits
+sueltos sino por los tres PRs de la estrategia de entrega, y hasta que existan esos PRs
+todo commit nuevo pertenece al PR 1 si toca tokens, armazón o login, y al PR 2 en
+adelante si toca captura de datos.
+
+| Fase | Estado | Commits | Evidencia |
+|---|---|---|---|
+| F1 Base de estilo | cerrada | `a2c2357` | 8 tests en `tests/test_theme_datos.py` |
+| F2 Armazón | cerrada | `04fb474` `74b5196` `77443c4` `b8b7ea5` `c5ea890` `047c49f` | 4 capturas + `tools/capturar_armazon.py` |
+| F3 Login | cerrada | `78b119c` | 3 tests + 2 capturas |
+| F4…F9 | pendientes | — | — |
+
+Suite al cerrar F3: **834 passed** (`-m "not slow"`), `EXIT=0`.
+
