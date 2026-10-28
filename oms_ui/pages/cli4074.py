@@ -195,10 +195,10 @@ class Cli4074View(QWidget):
         top.addWidget(back_btn, 0, Qt.AlignmentFlag.AlignVCenter)
 
         title = QLabel(self.TITLE)
+        title.setObjectName("cliTitle")
         title.setStyleSheet(_qss(
-            # fondo plano (sin fotografía ni degradado): tinta de texto
-                        "font-size: 18px; font-weight: 800; color: $texto_alt;"
-            "background: transparent;"
+            "QLabel#cliTitle { font-size: 18px; font-weight: 800;"
+            "color: $texto_alt; background: transparent; }"
         ))
         title.setWordWrap(True)
         top.addWidget(title, 0, Qt.AlignmentFlag.AlignVCenter)
@@ -269,11 +269,11 @@ class Cli4074View(QWidget):
             number = QLabel(str(row))
             number.setAlignment(Qt.AlignmentFlag.AlignCenter)
             main = (row - 2) % 3 == 0
-            number.setStyleSheet(
+            number.setStyleSheet(_qss(
                 f"background-color: {_qss(_MAIN_STICKY) if main else _qss('$panel')};"
                 f"color: {_qss(_MAIN_NUMBER) if main else _qss('$suave')}; font-weight: bold;"
                 "font-size: 12px; padding: 4px 5px;"
-            )
+            ))
             grid.addWidget(number, row + 1, 0)
             for cindex, (field, _text) in enumerate(self._all_fields()):
                 edit = QLineEdit()
@@ -328,13 +328,13 @@ class Cli4074View(QWidget):
         ):
             active = module_key == self.MODULE_KEY
             tab = QPushButton(label)
-            tab.setStyleSheet(
+            tab.setStyleSheet(_qss(
                 f"QPushButton {{ background-color: {_qss('$superficie') if active else 'transparent'};"
                 f"color: {_qss('$acento_texto') if active else _qss('$suave')}; border: none;"
                 "border-radius: 6px; padding: 6px 14px; font-size: 12px;"
                 "font-weight: bold; min-height: 24px; }"
                 "QPushButton:hover { background-color: $acento_fondo; }"
-            )
+            ))
             tab.setCursor(Qt.CursorShape.PointingHandCursor)
             if not active:
                 tab.clicked.connect(

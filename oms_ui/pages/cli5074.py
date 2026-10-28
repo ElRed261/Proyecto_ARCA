@@ -209,10 +209,10 @@ class Cli5074View(QWidget):
         top.addWidget(back_btn, 0, Qt.AlignmentFlag.AlignVCenter)
 
         title = QLabel(self.TITLE)
+        title.setObjectName("cliTitle")
         title.setStyleSheet(_qss(
-            # fondo plano (sin fotografía ni degradado): tinta de texto
-                        "font-size: 18px; font-weight: 800; color: $texto_alt;"
-            "background: transparent;"
+            "QLabel#cliTitle { font-size: 18px; font-weight: 800;"
+            "color: $texto_alt; background: transparent; }"
         ))
         title.setWordWrap(True)
         top.addWidget(title, 0, Qt.AlignmentFlag.AlignVCenter)
@@ -461,13 +461,13 @@ class Cli5074View(QWidget):
         ):
             active = module_key == self.MODULE_KEY
             tab = QPushButton(label)
-            tab.setStyleSheet(
+            tab.setStyleSheet(_qss(
                 f"QPushButton {{ background-color: {_qss('$superficie') if active else 'transparent'};"
                 f"color: {_qss('$error_fuerte') if active else _qss('$suave')}; border: none;"
                 "border-radius: 6px; padding: 6px 14px; font-size: 12px;"
                 "font-weight: bold; min-height: 24px; }"
                 "QPushButton:hover { background-color: $ok_fondo; }"
-            )
+            ))
             tab.setCursor(Qt.CursorShape.PointingHandCursor)
             if not active:
                 tab.clicked.connect(
@@ -483,20 +483,20 @@ class Cli5074View(QWidget):
         hour_row.setContentsMargins(8, 4, 8, 4)
         hour_row.setSpacing(4)
         hint = QLabel("VER HORA SYNOP:")
-        hint.setStyleSheet(
+        hint.setStyleSheet(_qss(
             "color: $suave_alt; font-size: 10px; font-weight: 700;"
             "background: transparent;"
-        )
+        ))
         hour_row.addWidget(hint)
         for hour in ("06Z", "09Z", "12Z", "15Z", "18Z", "21Z",
                       "00Z", "03Z"):  # the day starts at 06Z
             button = QPushButton(hour)
-            button.setStyleSheet(
+            button.setStyleSheet(_qss(
                 "QPushButton { background-color: $superficie; color: $suave;"
                 "border: none; border-radius: 6px; padding: 6px 12px;"
                 "font-size: 12px; font-weight: bold; min-height: 24px; }"
                 "QPushButton:hover { color: $error_fuerte; background-color: $error_suave; }"
-            )
+            ))
             button.setCursor(Qt.CursorShape.PointingHandCursor)
             button.clicked.connect(
                 lambda _checked=False, h=hour: self.synop_hour_requested.emit(h)
