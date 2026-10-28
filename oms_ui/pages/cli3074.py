@@ -95,12 +95,13 @@ FENOMENOS: tuple[tuple[str, str, str], ...] = (
 
 _MAIN_ROW_TINT = "$acento_fondo"      # filas de la hora principal
 _MAIN_STICKY_TINT = "$acento_suave"   # celdas de número fijo
-#: owner round 8: EVERY group header in the same muted slate as HUMEDAD.
-#: Cabecera de grupo: banda oscura con texto claro en ambos temas (S5).
+#: Encabezado de grupo: fondo tintado de la identidad del módulo y letra
+#: oscura, para que se lea en los dos temas (forma del mockup).
 _HEADER_QSS = (
-    "background-color: $acento_suave; color: $acento_texto; font-weight: 700;"
+    "background-color: {color}; color: {text}; font-weight: 800;"
     "font-size: 11px; padding: 6px 4px; border-radius: 3px;"
 )
+_DEFAULT = {"color": "$acento_suave", "text": "$acento_texto"}
 #: Sub-encabezado: texto gris, sin relleno.
 _SUB_HEADER_QSS = (
     "background-color: transparent; color: $suave_alt; font-weight: 600;"
@@ -116,12 +117,12 @@ _RO_QSS = (
     "color: $acento_texto; font-weight: bold; font-size: 12px; padding: 3px 4px; }"
 )
 _MAIN_INPUT_QSS = (
-    "QLineEdit { background-color: $acento_fondo; border: 1px solid $acento_suave;"
+    "QLineEdit { background-color: $acento_suave; border: 1px solid $borde;"
     "color: $texto; font-size: 12px; padding: 3px 4px; }"
     "QLineEdit:focus { border-color: $acento; background-color: $superficie; }"
 )
 _MAIN_RO_QSS = (
-    "QLineEdit { background-color: $acento_suave; border: 1px solid $acento;"
+    "QLineEdit { background-color: $acento_suave; border: 1px solid $borde;"
     "color: $acento_texto; font-weight: bold; font-size: 12px; padding: 3px 4px; }"
 )
 _CHECKBOX_QSS = (
@@ -150,11 +151,11 @@ QLineEdit[row="sub"]:focus { border-color: $acento; background-color: $acento_fo
 QLineEdit[row="sub"][ro="true"] { background-color: $acento_fondo;
     border: 1px solid $acento_suave; color: $acento_texto; font-weight: bold;
     font-size: 12px; padding: 3px 4px; }
-QLineEdit[row="main"] { background-color: $acento_fondo; border: 1px solid $acento_suave;
+QLineEdit[row="main"] { background-color: $acento_suave; border: 1px solid $borde;
     color: $texto; font-size: 12px; padding: 3px 4px; }
 QLineEdit[row="main"]:focus { border-color: $acento; background-color: $superficie; }
-QLineEdit[row="main"][ro="true"] { background-color: $acento_suave;
-    border: 1px solid $acento; color: $acento_texto; font-weight: bold;
+QLineEdit[row="main"][ro="true"] { background-color: $acento_fondo;
+    border: 1px solid $borde; color: $acento_texto; font-weight: bold;
     font-size: 12px; padding: 3px 4px; }
 /* base rules first, attribute overrides after: Qt matches the subcontrol
    rules only when the base `::indicator` block exists */
@@ -325,12 +326,14 @@ class Cli3074View(QWidget):
         ):
             active = module_key == self.MODULE_KEY
             tab = QPushButton(label)
+            tab.setProperty("mod", module_key)
             tab.setStyleSheet(_qss(
-                f"QPushButton {{ background-color: {_qss('$superficie') if active else 'transparent'};"
-                f"color: {_qss('$acento_texto') if active else _qss('$suave')}; border: none;"
-                "border-radius: 6px; padding: 6px 14px; font-size: 12px;"
-                "font-weight: bold; min-height: 24px; }"
-                "QPushButton:hover { background-color: $acento_fondo; }"
+                "QPushButton { border: 1px solid transparent;"
+                " border-radius: 6px; padding: 6px 14px; font-size: 12px;"
+                " font-weight: 800; min-height: 24px; }"
+                "QPushButton[mod='cli3074'] { background-color: $acento_fondo;"
+                " border-color: $acento; color: $acento_texto; }"
+                "QPushButton:hover { border-color: $acento; }"
             ))
             tab.setCursor(Qt.CursorShape.PointingHandCursor)
             if not active:
@@ -442,7 +445,7 @@ class Cli3074View(QWidget):
             label = QLabel(text)
             label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             label.setWordWrap(True)
-            label.setStyleSheet(_qss(_HEADER_QSS))
+            label.setStyleSheet(_qss(_HEADER_QSS.format(**_DEFAULT)))
             grid.addWidget(label, 0, col, rowspan, span)
 
         group_header(1, 3, "PRESIÓN (hPa)", "$banda")

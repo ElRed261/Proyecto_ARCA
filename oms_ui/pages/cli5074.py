@@ -104,15 +104,13 @@ _SECTION_QSS = (
 _LABEL_QSS = (
     "color: $suave; font-weight: 600; font-size: 11px; background: transparent;"
 )
-#: El 5074 mantiene su identidad roja: el encabezado es tinte de la familia
-#: de error, no el acento global. Es el nivel 2 de la jerarquía.
-#: Encabezado de grupo: texto de color sobre la tarjeta, sin caja (mockup).
-#: `{color}` lo pone cada grupo; por defecto el acento.
+#: Encabezado de grupo: fondo tintado de la identidad del módulo y letra
+#: oscura, para que se lea en los dos temas (forma del mockup).
 _HEADER_QSS = (
-    "background-color: transparent; color: {color}; font-weight: 700;"
-    "font-size: 11px; padding: 6px 4px 2px 4px;"
+    "background-color: {color}; color: {text}; font-weight: 800;"
+    "font-size: 11px; padding: 6px 4px; border-radius: 3px;"
 )
-_DEFAULT = "$acento"
+_DEFAULT = {"color": "$error_suave", "text": "$error_fuerte"}
 #: Sub-encabezado: texto gris, sin relleno.
 _SUB_HEADER_QSS = (
     "background-color: transparent; color: $suave_alt; font-weight: 600;"
@@ -317,12 +315,12 @@ class Cli5074View(QWidget):
         card_layout.addLayout(grid)
         corner = QLabel("HORA LOCAL")
         corner.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        corner.setStyleSheet(_qss(_HEADER_QSS.format(color="$acento")))
+        corner.setStyleSheet(_qss(_HEADER_QSS.format(color="$error_fuerte", text="$error_fuerte")))
         grid.addWidget(corner, 0, 0)
         for col_index, row in enumerate(_HOURLY_ROWS):
             head = QLabel(str(row))
             head.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            head.setStyleSheet(_qss(_HEADER_QSS.format(color="$acento")))
+            head.setStyleSheet(_qss(_HEADER_QSS.format(color="$error_fuerte", text="$error_fuerte")))
             grid.addWidget(head, 0, 1 + col_index)
         self.hour_inputs: dict[int, dict[str, QLineEdit]] = {}
         for row_index, (field, label) in enumerate(_HOURLY_FIELDS):
@@ -434,7 +432,7 @@ class Cli5074View(QWidget):
             header = QLabel(text)
             header.setAlignment(Qt.AlignmentFlag.AlignCenter)
             header.setWordWrap(True)
-            header.setStyleSheet(_qss(_HEADER_QSS.format(color=color)))
+            header.setStyleSheet(_qss(_HEADER_QSS.format(color=color, text="$error_fuerte")))
             # sin subtítulo el header abarca ambas filas: sin hueco debajo
             feno_grid.addWidget(header, 0, col, 2 if no_sub else 1, span)
             for offset, (field, sub) in enumerate(fields):
@@ -467,12 +465,14 @@ class Cli5074View(QWidget):
         ):
             active = module_key == self.MODULE_KEY
             tab = QPushButton(label)
+            tab.setProperty("mod", module_key)
             tab.setStyleSheet(_qss(
-                f"QPushButton {{ background-color: {_qss('$superficie') if active else 'transparent'};"
-                f"color: {_qss('$error_fuerte') if active else _qss('$suave')}; border: none;"
-                "border-radius: 6px; padding: 6px 14px; font-size: 12px;"
-                "font-weight: bold; min-height: 24px; }"
-                "QPushButton:hover { background-color: $ok_fondo; }"
+                "QPushButton { border: 1px solid transparent;"
+                " border-radius: 6px; padding: 6px 14px; font-size: 12px;"
+                " font-weight: 800; min-height: 24px; }"
+                "QPushButton[mod='cli5074'] { background-color: $error_suave;"
+                " border-color: $error_fuerte; color: $error_fuerte; }"
+                "QPushButton:hover { border-color: $error_fuerte; }"
             ))
             tab.setCursor(Qt.CursorShape.PointingHandCursor)
             if not active:

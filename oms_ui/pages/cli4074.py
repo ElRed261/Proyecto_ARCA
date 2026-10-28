@@ -107,13 +107,13 @@ INPUT_QSS = (
     "color: $texto; font-size: 12px; padding: 3px 4px; }"
     "QLineEdit:focus { border-color: $acento; background-color: $acento_fondo; }"
 )
-#: Encabezado de grupo: texto de color sobre la tarjeta, sin caja (mockup).
-#: `{color}` lo pone cada grupo; por defecto el acento.
+#: Encabezado de grupo: fondo tintado de la identidad del módulo y letra
+#: oscura, para que se lea en los dos temas (forma del mockup).
 _HEADER_QSS = (
-    "background-color: transparent; color: {color}; font-weight: 700;"
-    "font-size: 11px; padding: 6px 4px 2px 4px;"
+    "background-color: {color}; color: {text}; font-weight: 800;"
+    "font-size: 11px; padding: 6px 4px; border-radius: 3px;"
 )
-_DEFAULT = "$acento"
+_DEFAULT = {"color": "$ok_fondo", "text": "$ok_texto"}
 #: Sub-encabezado: texto gris, sin relleno.
 _SUB_HEADER_QSS = (
     "background-color: transparent; color: $suave_alt; font-weight: 600;"
@@ -236,7 +236,7 @@ class Cli4074View(QWidget):
             header = QLabel(text)
             header.setAlignment(Qt.AlignmentFlag.AlignCenter)
             header.setWordWrap(True)
-            header.setStyleSheet(_qss(_HEADER_QSS.format(color=color)))
+            header.setStyleSheet(_qss(_HEADER_QSS.format(color=color, text="$ok_texto")))
             grid.addWidget(header, 0, at_col, 2, 1)  # full header height
 
         def group_header(at_col: int, text: str, color: str,
@@ -244,7 +244,7 @@ class Cli4074View(QWidget):
             header = QLabel(text)
             header.setAlignment(Qt.AlignmentFlag.AlignCenter)
             header.setWordWrap(True)
-            header.setStyleSheet(_qss(_HEADER_QSS.format(color=color)))
+            header.setStyleSheet(_qss(_HEADER_QSS.format(color=color, text="$ok_texto")))
             grid.addWidget(header, 0, at_col, 1, span)
             for offset, (field, sub) in enumerate(fields):
                 if field in TOTAL_FIELDS:  # full height + emerald, like N
@@ -332,12 +332,14 @@ class Cli4074View(QWidget):
         ):
             active = module_key == self.MODULE_KEY
             tab = QPushButton(label)
+            tab.setProperty("mod", module_key)
             tab.setStyleSheet(_qss(
-                f"QPushButton {{ background-color: {_qss('$superficie') if active else 'transparent'};"
-                f"color: {_qss('$acento_texto') if active else _qss('$suave')}; border: none;"
-                "border-radius: 6px; padding: 6px 14px; font-size: 12px;"
-                "font-weight: bold; min-height: 24px; }"
-                "QPushButton:hover { background-color: $acento_fondo; }"
+                "QPushButton { border: 1px solid transparent;"
+                " border-radius: 6px; padding: 6px 14px; font-size: 12px;"
+                " font-weight: 800; min-height: 24px; }"
+                "QPushButton[mod='cli4074'] { background-color: $ok_fondo;"
+                " border-color: $ok; color: $ok_texto; }"
+                "QPushButton:hover { border-color: $ok; }"
             ))
             tab.setCursor(Qt.CursorShape.PointingHandCursor)
             if not active:
