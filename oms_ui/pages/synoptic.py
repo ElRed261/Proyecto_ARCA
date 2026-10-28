@@ -526,7 +526,7 @@ class SynopticPage(QWidget):
         distinguiéndose por el selector, no por pintar la página.
         """
         painter = QPainter(self)
-        painter.fillRect(self.rect(), QColor(getattr(self, "_page_bg", "#f3f4f6")))
+        painter.fillRect(self.rect(), QColor(getattr(self, "_page_bg", "$fondo")))
         painter.end()
         super().paintEvent(event)
 
@@ -628,10 +628,10 @@ class SynopticPage(QWidget):
         self._page_bg = paleta["fondo"]
         accent = theme_mod.palette_actual()["acento"]
         self.title_label.setText(f"Observación Sinóptica {self.active_hour}")
-        self.title_label.setStyleSheet(
+        self.title_label.setStyleSheet(_qss(
             f"background: transparent; color: {paleta['texto']};"
             "font-size: 22px; font-weight: 700;"
-        )
+        ))
         chip_qss = (
             f"background-color: {paleta['acento_suave']}; color: {paleta['acento']};"
             f"border: 1px solid {paleta['borde']}; font-weight: 600;"
@@ -641,13 +641,13 @@ class SynopticPage(QWidget):
             chip.setStyleSheet(chip_qss)
         for hora in self.hour_buttons:
             self._style_hour_button(hora)
-        self.save_btn.setStyleSheet(
+        self.save_btn.setStyleSheet(_qss(
             f"QPushButton {{ background-color: {paleta['acento']};"
             f" color: {paleta['superficie']};"
             "border: none; border-radius: 6px; padding: 10px 12px;"
             "font-weight: 700; font-size: 13px; }"
             f"QPushButton:hover {{ background-color: {paleta['acento_hover']}; }}"
-        )
+        ))
         self.save_btn.setIcon(lucide_icon("save", paleta["superficie"], 16))
         self.update()  # el selector de hora cambia de tinte
 
@@ -809,7 +809,7 @@ class SynopticPage(QWidget):
         # a ciegas. Es el mismo selector que el botón "Cargar Observación".
         self.date_picker_button = QPushButton()
         self.date_picker_button.setToolTip("Elegir de las observaciones guardadas")
-        self.date_picker_button.setIcon(lucide_icon("calendar", "#475569", 15))
+        self.date_picker_button.setIcon(lucide_icon("calendar", _qss("$suave"), 15))
         self.date_picker_button.setIconSize(QSize(15, 15))
         self.date_picker_button.setFixedWidth(34)
         self.date_picker_button.setMinimumHeight(32)
@@ -1024,7 +1024,7 @@ class SynopticPage(QWidget):
         hours_head = QHBoxLayout()
         hours_head.setSpacing(6)
         clock_icon = QLabel()
-        clock_icon.setPixmap(icon_pixmap("clock", "#94a3b8", 14))
+        clock_icon.setPixmap(icon_pixmap("clock", _qss("$tenue"), 14))
         hours_head.addWidget(clock_icon, 0, Qt.AlignmentFlag.AlignVCenter)
         hours_title = QLabel("HORAS DE OBSERVACIÓN")
         hours_title.setProperty("cardhead", True)
@@ -1077,7 +1077,7 @@ class SynopticPage(QWidget):
         self.prev_btn = QPushButton()
         self.prev_btn.setProperty("daynav", "back")
         self.prev_btn.setStyleSheet(_qss(DAYNAV_BACK_QSS))
-        self.prev_btn.setIcon(lucide_icon("arrow-left", "#0369a1", 16))
+        self.prev_btn.setIcon(lucide_icon("arrow-left", _qss("$acento_texto"), 16))
         self.prev_btn.setIconSize(QSize(16, 16))
         self.prev_btn.setToolTip("Guardar y cargar día anterior")
         self.prev_btn.setMinimumHeight(26)
@@ -1086,7 +1086,7 @@ class SynopticPage(QWidget):
         self.next_btn = QPushButton()
         self.next_btn.setProperty("daynav", "forward")
         self.next_btn.setStyleSheet(_qss(DAYNAV_FORWARD_QSS))
-        self.next_btn.setIcon(lucide_icon("arrow-right", "#15803d", 16))
+        self.next_btn.setIcon(lucide_icon("arrow-right", _qss("$ok_fuerte"), 16))
         self.next_btn.setIconSize(QSize(16, 16))
         self.next_btn.setToolTip("Guardar y avanzar al siguiente día")
         self.next_btn.setMinimumHeight(26)
@@ -1105,7 +1105,7 @@ class SynopticPage(QWidget):
         cli_head = QHBoxLayout()
         cli_head.setSpacing(6)
         file_icon = QLabel()
-        file_icon.setPixmap(icon_pixmap("file-text", "#94a3b8", 14))
+        file_icon.setPixmap(icon_pixmap("file-text", _qss("$tenue"), 14))
         cli_head.addWidget(file_icon, 0, Qt.AlignmentFlag.AlignVCenter)
         cli_title = QLabel("MÓDULOS CLI")
         cli_title.setProperty("cardhead", True)
@@ -1124,7 +1124,7 @@ class SynopticPage(QWidget):
             button = QToolButton()
             button.setText(label)
             button.setStyleSheet(_qss(CLI_BTN_QSS))
-            button.setIcon(lucide_icon("file-text", "#94a3b8", 14))
+            button.setIcon(lucide_icon("file-text", _qss("$tenue"), 14))
             button.setIconSize(QSize(14, 14))
             button.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
             button.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -1142,7 +1142,7 @@ class SynopticPage(QWidget):
         extra_head = QHBoxLayout()
         extra_head.setSpacing(6)
         cloud_icon = QLabel()
-        cloud_icon.setPixmap(icon_pixmap("cloud", "#94a3b8", 14))
+        cloud_icon.setPixmap(icon_pixmap("cloud", _qss("$tenue"), 14))
         extra_head.addWidget(cloud_icon, 0, Qt.AlignmentFlag.AlignVCenter)
         extra_title = QLabel("NUBOSIDAD EXTRA")
         extra_title.setProperty("cardhead", True)
@@ -1211,7 +1211,7 @@ class SynopticPage(QWidget):
         self.cargar_btn = QPushButton("Cargar Observación")
         self.cargar_btn.setProperty("secondaryaction", True)  # marker
         self.cargar_btn.setStyleSheet(_qss(SECONDARY_BTN_QSS))
-        self.cargar_btn.setIcon(lucide_icon("folder", "#475569", 15))
+        self.cargar_btn.setIcon(lucide_icon("folder", _qss("$suave"), 15))
         self.cargar_btn.setIconSize(QSize(15, 15))
         self.cargar_btn.setMinimumHeight(28)
         self.cargar_btn.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -1810,7 +1810,7 @@ class SynopticPage(QWidget):
             else "ok" if active["ratio"] == 1.0
             else "part"
         )
-        chunk = {"empty": "#e2e8f0", "part": "#fbbf24", "ok": "#10b981"}[fillcls]
+        chunk = {"empty": "$borde", "part": "$ambar", "ok": "$ok"}[fillcls]
         self.progress.setStyleSheet(_qss(_progress_qss(chunk)))
         self.progress_label.setText(
             f"{self.active_hour}: {active['done']}/{active['total']} campos"

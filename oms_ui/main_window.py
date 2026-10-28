@@ -29,6 +29,14 @@ from PySide6.QtWidgets import (
 
 from oms_core.db.repositories import app_config as app_config_repo
 from oms_core.services import access
+def _qss(plantilla: str) -> str:
+    """Resuelve una plantilla QSS con la paleta del tema aplicado (S1)."""
+    from string import Template
+
+    from oms_ui import theme as _theme
+
+    return Template(plantilla).substitute(_theme.palette_actual())
+
 from oms_ui.pages.stations_admin import StationsAdminPage
 
 #: Nav entries mirroring OLD Sidebar.jsx MODULES (id, label, accent, monogram)
@@ -42,13 +50,13 @@ _RAIL_MODULE_IDS = ("synoptic", "audit", "summary", "maintenance",
                    "transform", "admin")
 
 NAV_ENTRIES = (
-    ("dashboard", "Inicio", "#3b82f6", "IN"),
-    ("synoptic", "Sinóptico", "#3b82f6", "SI"),
-    ("audit", "Auditoría", "#f97316", "AU"),
-    ("summary", "Resumen", "#a855f7", "RE"),
-    ("maintenance", "Configuración", "#0d9488", "CO"),
-    ("transform", "Transformar", "#0ea5e9", "TR"),
-    ("admin", "Seguridad", "#64748b", "SE"),
+    ("dashboard", "Inicio", "$acento_foco", "IN"),
+    ("synoptic", "Sinóptico", "$acento_foco", "SI"),
+    ("audit", "Auditoría", "$naranja_alt", "AU"),
+    ("summary", "Resumen", "$violeta", "RE"),
+    ("maintenance", "Configuración", "$teal", "CO"),
+    ("transform", "Transformar", "$acento", "TR"),
+    ("admin", "Seguridad", "$suave_alt", "SE"),
 )
 
 #: Icono Lucide de cada entrada del riel (provisional, ver LICENSE.md).
@@ -322,17 +330,17 @@ class MainWindow(QMainWindow):
         tabs.addTab(AuditReportPage(conn, role=self.role), "Reporte")
         # the module's orange, not the application default: the switch between
         # reviewing and reporting is part of the audit screen (owner round 29)
-        tabs.setStyleSheet(
-            "QTabWidget::pane { border: none; background: #f8fafc; }"
-            "QTabBar::tab { background: #ffffff; color: #475569;"
-            " border: 1px solid #e2e8f0; border-bottom: none;"
+        tabs.setStyleSheet(_qss(
+            "QTabWidget::pane { border: none; background: $panel_alt; }"
+            "QTabBar::tab { background: $superficie; color: $suave;"
+            " border: 1px solid $borde; border-bottom: none;"
             " border-top-left-radius: 10px; border-top-right-radius: 10px;"
             " padding: 9px 22px; margin-right: 4px; font-weight: 700;"
             " font-size: 13px; }"
-            "QTabBar::tab:hover { color: #c2410c; }"
-            "QTabBar::tab:selected { background: #f97316; color: #ffffff;"
-            " border-color: #f97316; }"
-        )
+            "QTabBar::tab:hover { color: $naranja_fuerte; }"
+            "QTabBar::tab:selected { background: $naranja_alt; color: $superficie;"
+            " border-color: $naranja_alt; }"
+        ))
         return tabs
 
     def _build_page(self, page_id: str) -> QWidget:

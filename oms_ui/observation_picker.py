@@ -34,6 +34,14 @@ from PySide6.QtWidgets import (
 )
 
 from oms_core.db.repositories import stations as stations_repo
+def _qss(plantilla: str) -> str:
+    """Resuelve una plantilla QSS con la paleta del tema aplicado (S1)."""
+    from string import Template
+
+    from oms_ui import theme as _theme
+
+    return Template(plantilla).substitute(_theme.palette_actual())
+
 from oms_ui.icons import lucide_icon
 
 _MONTHS = (
@@ -42,9 +50,9 @@ _MONTHS = (
 )
 _WEEKDAYS = ("lun", "mar", "mié", "jue", "vie", "sáb", "dom")
 
-_INK = "#334155"
-_FAINT = "#94a3b8"
-_LINE = "#e2e8f0"
+_INK = "$texto"
+_FAINT = "$tenue"
+_LINE = "$borde"
 
 _SQL_DAYS = """
 SELECT station_id, year, month, day
@@ -84,7 +92,7 @@ class ObservationPickerDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("Cargar observación")
         self.setMinimumSize(760, 520)
-        self.setStyleSheet("QDialog { background-color: #f8fafc; }")
+        self.setStyleSheet(_qss("QDialog { background-color: $panel_alt; }"))
 
         self._conn = conn
         self._days = self._load_days(conn)
@@ -159,14 +167,14 @@ class ObservationPickerDialog(QDialog):
         words = QVBoxLayout()
         words.setSpacing(2)
         title = QLabel("Cargar observación")
-        title.setStyleSheet(
+        title.setStyleSheet(_qss(
             f"color: {_INK}; font-size: 18px; font-weight: 700;"
-        )
+        ))
         hint = QLabel(
             "Elegí la estación y después el año, el mes y el día."
             if show_stations else "Elegí el año, el mes y el día de la observación."
         )
-        hint.setStyleSheet("color: #64748b; font-size: 12px;")
+        hint.setStyleSheet(_qss("color: $suave_alt; font-size: 12px;"))
         words.addWidget(title)
         words.addWidget(hint)
         row.addLayout(words, 1)
@@ -179,27 +187,27 @@ class ObservationPickerDialog(QDialog):
         column.setContentsMargins(0, 0, 0, 0)
         column.setSpacing(6)
         caption = QLabel("ESTACIONES")
-        caption.setStyleSheet(
+        caption.setStyleSheet(_qss(
             f"color: {_FAINT}; font-size: 11px; font-weight: 700;"
             ""
-        )
+        ))
         column.addWidget(caption)
         self.station_list = QListWidget()
         self.station_list.setIconSize(QSize(18, 18))
-        self.station_list.setStyleSheet(
-            f"QListWidget {{ background: #ffffff; border: 1px solid {_LINE};"
+        self.station_list.setStyleSheet(_qss(
+            f"QListWidget {{ background: $superficie; border: 1px solid {_LINE};"
             "border-radius: 8px; padding: 4px; }"
             "QListWidget::item { padding: 8px 6px; border-radius: 6px; }"
-            "QListWidget::item:selected { background: #eff6ff; color: #1d4ed8; }"
-        )
+            "QListWidget::item:selected { background: $acento_fondo; color: $acento_hover; }"
+        ))
         for station_row in self._stations:
             item = QListWidgetItem(lucide_icon("cloud", _INK, 18), "")
             item.setData(Qt.ItemDataRole.UserRole, station_row.id)
             self.station_list.addItem(item)
             card = QLabel(
-                f"<span style='color:#0f172a; font-weight:600;'>"
+                f"<span style='color:$texto_alt; font-weight:600;'>"
                 f"{station_row.name}</span><br>"
-                f"<span style='color:#94a3b8; font-size:11px;'>"
+                f"<span style='color:$tenue; font-size:11px;'>"
                 f"{station_row.id} · {station_row.provincia}</span>"
             )
             card.setStyleSheet("background: transparent; border: none;")
@@ -218,10 +226,10 @@ class ObservationPickerDialog(QDialog):
         column.setContentsMargins(0, 0, 0, 0)
         column.setSpacing(6)
         caption = QLabel("DÍAS DE OBSERVACIÓN")
-        caption.setStyleSheet(
+        caption.setStyleSheet(_qss(
             f"color: {_FAINT}; font-size: 11px; font-weight: 700;"
             ""
-        )
+        ))
         column.addWidget(caption)
         self.tree = QTreeWidget()
         self.tree.setHeaderHidden(True)
@@ -229,17 +237,17 @@ class ObservationPickerDialog(QDialog):
         self.tree.setSelectionMode(
             QAbstractItemView.SelectionMode.SingleSelection
         )
-        self.tree.setStyleSheet(
-            f"QTreeWidget {{ background: #ffffff; border: 1px solid {_LINE};"
+        self.tree.setStyleSheet(_qss(
+            f"QTreeWidget {{ background: $superficie; border: 1px solid {_LINE};"
             "border-radius: 8px; padding: 6px; }"
             f"QTreeWidget::item {{ color: {_INK}; padding: 4px 2px; }}"
-            "QTreeWidget::item:selected { background: #eff6ff; color: #1d4ed8; }"
-        )
+            "QTreeWidget::item:selected { background: $acento_fondo; color: $acento_hover; }"
+        ))
         self.tree.currentItemChanged.connect(self._on_item_changed)
         self.tree.itemDoubleClicked.connect(self._on_double_click)
         column.addWidget(self.tree, 1)
         self.empty_label = QLabel("Esta estación todavía no tiene observaciones.")
-        self.empty_label.setStyleSheet("color: #64748b; font-size: 12px;")
+        self.empty_label.setStyleSheet(_qss("color: $suave_alt; font-size: 12px;"))
         self.empty_label.setVisible(False)
         column.addWidget(self.empty_label)
         return panel
@@ -247,7 +255,7 @@ class ObservationPickerDialog(QDialog):
     def _footer(self) -> QHBoxLayout:
         footer = QHBoxLayout()
         self.total_label = QLabel("")
-        self.total_label.setStyleSheet(f"color: {_FAINT}; font-size: 12px;")
+        self.total_label.setStyleSheet(_qss(f"color: {_FAINT}; font-size: 12px;"))
         footer.addWidget(self.total_label, 1)
         self.import_btn = QPushButton("Importar Excel")
         self.import_btn.setMinimumHeight(32)
@@ -256,11 +264,11 @@ class ObservationPickerDialog(QDialog):
         self.import_btn.setToolTip(
             "Leer una planilla .xlsm/.xlsx y cargar ese día de observación"
         )
-        self.import_btn.setStyleSheet(
-            f"QPushButton {{ background: #ffffff; color: {_INK};"
+        self.import_btn.setStyleSheet(_qss(
+            f"QPushButton {{ background: $superficie; color: {_INK};"
             f"border: 1px solid {_LINE}; border-radius: 8px;"
             "padding: 6px 14px; font-weight: 600; }"
-        )
+        ))
         self.import_btn.clicked.connect(self._on_import_clicked)
         footer.addWidget(self.import_btn, 0)
         self.cancel_btn = QPushButton("Cancelar")
@@ -270,14 +278,14 @@ class ObservationPickerDialog(QDialog):
         self.load_btn.setMinimumHeight(32)
         self.load_btn.setEnabled(False)
         self.load_btn.setDefault(True)
-        self.load_btn.setIcon(lucide_icon("folder", "#ffffff", 15))
+        self.load_btn.setIcon(lucide_icon("folder", _qss("$superficie"), 15))
         self.load_btn.setIconSize(QSize(15, 15))
-        self.load_btn.setStyleSheet(
-            "QPushButton { background-color: #2563eb; color: #ffffff;"
+        self.load_btn.setStyleSheet(_qss(
+            "QPushButton { background-color: $acento; color: $superficie;"
             "border: none; border-radius: 8px; padding: 6px 16px;"
             "font-weight: 600; }"
-            "QPushButton:disabled { background-color: #cbd5e1; }"
-        )
+            "QPushButton:disabled { background-color: $borde_input; }"
+        ))
         self.load_btn.clicked.connect(self._accept_selection)
         footer.addWidget(self.cancel_btn, 0)
         footer.addWidget(self.load_btn, 0)

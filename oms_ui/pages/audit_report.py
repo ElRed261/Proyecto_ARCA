@@ -30,6 +30,14 @@ from PySide6.QtWidgets import (
 
 from oms_core.services import access
 from oms_core.services import audit as audit_service
+def _qss(plantilla: str) -> str:
+    """Resuelve una plantilla QSS con la paleta del tema aplicado (S1)."""
+    from string import Template
+
+    from oms_ui import theme as _theme
+
+    return Template(plantilla).substitute(_theme.palette_actual())
+
 from oms_ui.widgets import StyledComboBox
 
 #: Service failures the status line can present (never crash the page).
@@ -78,22 +86,22 @@ class AuditReportPage(QWidget):
         self._observers: list[dict] = []
 
         self.setObjectName("auditReport")
-        self.setStyleSheet(
-            "QWidget#auditReport { background: #f8fafc; }"
-            "QFrame#reportCard { background: #ffffff; border: 1px solid #e2e8f0;"
+        self.setStyleSheet(_qss(
+            "QWidget#auditReport { background: $panel_alt; }"
+            "QFrame#reportCard { background: $superficie; border: 1px solid $borde;"
             " border-radius: 14px; }"
-            "QLabel#reportTitle { color: #0f172a; font-size: 22px;"
+            "QLabel#reportTitle { color: $texto_alt; font-size: 22px;"
             " font-weight: 900; }"
-            "QLabel#reportSubtitle { color: #64748b; font-size: 12px; }"
-            "QLabel#reportLabel { color: #475569; font-size: 11px;"
+            "QLabel#reportSubtitle { color: $suave_alt; font-size: 12px; }"
+            "QLabel#reportLabel { color: $suave; font-size: 11px;"
             " font-weight: 700; }"
-            "QPushButton#reportPrimary { background: #f97316; color: #ffffff;"
+            "QPushButton#reportPrimary { background: $naranja_alt; color: $superficie;"
             " border: none; border-radius: 9px; padding: 8px 16px;"
             " font-weight: 700; }"
-            "QPushButton#reportGhost { background: #ffffff; color: #334155;"
-            " border: 1px solid #cbd5e1; border-radius: 9px;"
+            "QPushButton#reportGhost { background: $superficie; color: $texto;"
+            " border: 1px solid $borde_input; border-radius: 9px;"
             " padding: 7px 14px; }"
-        )
+        ))
         layout = QVBoxLayout(self)
         if self.denied:
             layout.addWidget(
@@ -162,15 +170,15 @@ class AuditReportPage(QWidget):
         self.tabs.addTab(self.observer_table, "Por observador")
         self.tabs.addTab(self.detail_table, "Detalle de Inconsistencias")
         self.tabs.addTab(self.person_table, "Resumen por Persona")
-        self.tabs.setStyleSheet(
-            "QTabBar::tab { background: #ffffff; color: #475569;"
-            " border: 1px solid #e2e8f0; border-bottom: none;"
+        self.tabs.setStyleSheet(_qss(
+            "QTabBar::tab { background: $superficie; color: $suave;"
+            " border: 1px solid $borde; border-bottom: none;"
             " border-top-left-radius: 9px; border-top-right-radius: 9px;"
             " padding: 8px 18px; margin-right: 4px; font-weight: 700; }"
-            "QTabBar::tab:selected { background: #f97316; color: #ffffff;"
-            " border-color: #f97316; }"
-            "QTabWidget::pane { border: none; background: #f8fafc; }"
-        )
+            "QTabBar::tab:selected { background: $naranja_alt; color: $superficie;"
+            " border-color: $naranja_alt; }"
+            "QTabWidget::pane { border: none; background: $panel_alt; }"
+        ))
         layout.addWidget(self.tabs, 1)
 
         export_row = QHBoxLayout()
@@ -343,10 +351,10 @@ class AuditReportPage(QWidget):
         notes_html = f"<p><b>Notas generales:</b> {notes}</p>" if notes else ""
         return f"""
         <h1 style="font-size:16pt;">OMS · Reporte de errores por observador</h1>
-        <p style="color:#475569;">{period}</p>
+        <p style="color:$suave;">{period}</p>
         <table border="1" cellspacing="0" cellpadding="5" width="100%">
           <thead>
-            <tr style="background:#e2e8f0;">
+            <tr style="background:$borde;">
               <th align="left">Observador</th><th>Errores</th>
               <th>Horas auditadas</th><th>Tasa por observación</th>
               <th>Campos auditados</th><th>Tasa por campos (%)</th>
@@ -354,7 +362,7 @@ class AuditReportPage(QWidget):
           </thead>
           <tbody>
             {rows or "<tr><td colspan='6'>Sin observaciones auditadas en el período.</td></tr>"}
-            <tr style="font-weight:bold; background:#f1f5f9;">
+            <tr style="font-weight:bold; background:$panel;">
               <td>TOTAL</td>
               <td align="right">{total_errors}</td>
               <td align="right">{total_hours}</td>
@@ -365,7 +373,7 @@ class AuditReportPage(QWidget):
           </tbody>
         </table>
         {notes_html}
-        <p style="color:#94a3b8; font-size:9pt;">
+        <p style="color:$tenue; font-size:9pt;">
           Generado el {audit_service._now_local()} · cada error se atribuye al
           observador de su hora
         </p>

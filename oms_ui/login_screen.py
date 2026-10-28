@@ -8,6 +8,19 @@ exactly like LoginDialog (which stays intact — tests depend on it).
 
 from __future__ import annotations
 
+
+def _qss(plantilla: str) -> str:
+    """Resuelve una plantilla QSS con la paleta del tema aplicado (S1)."""
+    from string import Template
+
+    from oms_ui import theme as _theme
+
+    return Template(plantilla).substitute(_theme.palette_actual())
+
+
+
+
+
 from collections.abc import Callable
 
 from PySide6.QtCore import Qt, Signal
@@ -36,7 +49,7 @@ class LoginScreen(QWidget):
         self._busy = False
 
         self.setWindowTitle("Neo Arca — Acceso al sistema")
-        self.setStyleSheet("LoginScreen { background-color: #111827; }")
+        self.setStyleSheet(_qss("LoginScreen { background-color: $texto_alt; }"))
 
         outer = QVBoxLayout(self)
         outer.addStretch(1)
@@ -53,34 +66,34 @@ class LoginScreen(QWidget):
         card = QFrame()
         card.setObjectName("loginCard")
         card.setFixedWidth(400)
-        card.setStyleSheet(
-            "#loginCard { background-color: #ffffff; border-radius: 12px; }"
-        )
+        card.setStyleSheet(_qss(
+            "#loginCard { background-color: $superficie; border-radius: 12px; }"
+        ))
         layout = QVBoxLayout(card)
         layout.setContentsMargins(32, 28, 32, 28)
         layout.setSpacing(0)
 
         lockup = QLabel("Neo Arca")
         lockup.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        lockup.setStyleSheet(
-            "font-size: 24px; font-weight: 800; color: #0f172a; background: transparent;"
-        )
+        lockup.setStyleSheet(_qss(
+            "font-size: 24px; font-weight: 800; color: $texto_alt; background: transparent;"
+        ))
         layout.addWidget(lockup)
 
         subtitle = QLabel("OMS · ACCESO AL SISTEMA")
         subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        subtitle.setStyleSheet(
+        subtitle.setStyleSheet(_qss(
             "font-size: 11px; font-weight: 600; "
-            "color: #64748b; background: transparent; margin-top: 4px;"
-        )
+            "color: $suave_alt; background: transparent; margin-top: 4px;"
+        ))
         layout.addWidget(subtitle)
 
         layout.addSpacing(20)
 
         email_label = QLabel("Correo Electrónico")
-        email_label.setStyleSheet(
-            "font-size: 12px; font-weight: 600; color: #334155; background: transparent;"
-        )
+        email_label.setStyleSheet(_qss(
+            "font-size: 12px; font-weight: 600; color: $texto; background: transparent;"
+        ))
         layout.addWidget(email_label)
         self.email_edit = QLineEdit()
         self.email_edit.setPlaceholderText("usuario@arca.rd")
@@ -88,9 +101,9 @@ class LoginScreen(QWidget):
         layout.addSpacing(12)
 
         password_label = QLabel("Contraseña")
-        password_label.setStyleSheet(
-            "font-size: 12px; font-weight: 600; color: #334155; background: transparent;"
-        )
+        password_label.setStyleSheet(_qss(
+            "font-size: 12px; font-weight: 600; color: $texto; background: transparent;"
+        ))
         layout.addWidget(password_label)
         self.password_edit = QLineEdit()
         self.password_edit.setPlaceholderText("••••••••")
@@ -100,9 +113,9 @@ class LoginScreen(QWidget):
 
         self.error_label = QLabel("")
         self.error_label.setWordWrap(True)
-        self.error_label.setStyleSheet(
-            "font-size: 12px; color: #b91c1c; background: transparent;"
-        )
+        self.error_label.setStyleSheet(_qss(
+            "font-size: 12px; color: $error_fuerte; background: transparent;"
+        ))
         layout.addWidget(self.error_label)
         layout.addSpacing(8)
 

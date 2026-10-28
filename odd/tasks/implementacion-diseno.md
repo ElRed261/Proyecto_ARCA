@@ -208,7 +208,7 @@ adelante si toca captura de datos.
 | F6 Auditoría | cerrada | `de36003` | 0 literales · 113 tests · captura en la herramienta |
 | F7 Resumen | cerrada | `77b476c` `7106c24` `7ffa22f` | 3 cortes · 6 gráficas · L7 arreglado |
 | F8 Transformar/Config | cerrada | ver commit | 0 literales · conversión en QThread |
-| F9 Cierre | pendiente | — | 27 asserts con hex |
+| F9 Cierre | cerrada | ver commit | 0 literales en oms_ui · barrera instalada |
 
 Suite al cerrar F3: **834 passed** (`-m "not slow"`), `EXIT=0`.
 
@@ -236,3 +236,19 @@ se respeta: una sola zona de scroll, y el contenido entra por altura.
 `QApplication.processEvents()`: con 148 archivos la ventana se congela. Ahora hay un
 `QThread` con señales de terminado y fallo, y un test que mide que `_on_transform` vuelve en
 menos de 0,2 s mientras el servicio tarda 0,4 s a propósito.
+
+**L14** — F9 cierra las nueve fases. Estado final: **cero literales de color** en `oms_ui/`
+(única excepción `theme.py`, que es el mapa de la paleta) y cero en `theme.qss`, con
+`tests/test_sin_literales.py` como barrera: si un archivo vuelve a escribir un hex, falla.
+
+Los 27 asserts de test que fijan un hex **no se migraron**, y es una decisión: afirman el
+valor *resuelto* en el tema por defecto y están verdes. Migrarlos mecánicamente sin un caso
+rojo habría sido churn. Queda anotado el riesgo real: codifican la paleta clara, así que un
+test que corra con tema oscuro por defecto los vería fallar. El corte siguiente, si se
+quiere, es hacer que la suite entera corra una vez en oscuro y arreglar sólo los que caigan.
+
+**L15** — La conversión masiva de los últimos 70 literales (widgets, login_screen,
+login_dialog, observation_picker, main_window, audit_report y lo que quedaba de synoptic) se
+hizo con el mapa inverso hex→rol y se verificó a ojo en captura del login y del armazón. En
+el camino el helper `_qss` quedó pegado a un `from __future__ import annotations` en dos
+archivos y rompió la sintaxis: lo cazó el import, no un test.

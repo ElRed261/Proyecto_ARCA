@@ -19,16 +19,24 @@ POPUP_OBJECT_NAME = "omsComboPopup"
 
 #: the flat, light surface the popup shares with the rest of the app.
 POPUP_CONTAINER_QSS = (
-    f"QFrame#{POPUP_OBJECT_NAME} {{ background-color: #ffffff;"
-    " border: 1px solid #e2e8f0; border-radius: 10px; }"
+    f"QFrame#{POPUP_OBJECT_NAME} {{ background-color: $superficie;"
+    " border: 1px solid $borde; border-radius: 10px; }"
     # the paging scroller Qt adds for long lists is a child widget; without
     # this it keeps the style's grey band at the bottom of the popup.
-    f"QFrame#{POPUP_OBJECT_NAME} QWidget {{ background-color: #ffffff; }}"
+    f"QFrame#{POPUP_OBJECT_NAME} QWidget {{ background-color: $superficie; }}"
 )
 
-_SURFACE = "#ffffff"
-_INK = "#0f172a"
-_SELECTION = "#e2e8f0"
+def _qss(plantilla: str) -> str:
+    """Resuelve una plantilla QSS con la paleta del tema aplicado (S1)."""
+    from string import Template
+
+    from oms_ui import theme as _theme
+
+    return Template(plantilla).substitute(_theme.palette_actual())
+
+_SURFACE = "$superficie"
+_INK = "$texto_alt"
+_SELECTION = "$borde"
 
 
 class StyledComboBox(QComboBox):
@@ -38,7 +46,7 @@ class StyledComboBox(QComboBox):
         super().showPopup()
         container = self.view().window()
         container.setObjectName(POPUP_OBJECT_NAME)
-        container.setStyleSheet(POPUP_CONTAINER_QSS)
+        container.setStyleSheet(_qss(POPUP_CONTAINER_QSS))
         if isinstance(container, QFrame):
             # the container is a QFrame: drop the style's own frame so no
             # second border paints outside ours

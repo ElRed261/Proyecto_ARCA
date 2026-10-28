@@ -7,6 +7,19 @@ callable so the dialog stays presentation-only.
 
 from __future__ import annotations
 
+
+def _qss(plantilla: str) -> str:
+    """Resuelve una plantilla QSS con la paleta del tema aplicado (S1)."""
+    from string import Template
+
+    from oms_ui import theme as _theme
+
+    return Template(plantilla).substitute(_theme.palette_actual())
+
+
+
+
+
 from collections.abc import Callable
 
 from PySide6.QtWidgets import (
@@ -37,7 +50,7 @@ class LoginDialog(QDialog):
         self.password_edit = QLineEdit()
         self.password_edit.setEchoMode(QLineEdit.EchoMode.Password)
         self.error_label = QLabel("")
-        self.error_label.setStyleSheet("color: #b91c1c;")
+        self.error_label.setStyleSheet(_qss("color: $error_fuerte;"))
         self.error_label.setWordWrap(True)
 
         form = QFormLayout()
