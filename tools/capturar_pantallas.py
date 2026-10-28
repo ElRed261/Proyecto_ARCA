@@ -185,6 +185,26 @@ def main() -> int:
             from oms_ui.pages.summary import SummaryPage
 
             resumen = SummaryPage(conn)
+            # sin documento las gráficas dicen "sin datos": se inyecta una
+            # muestra determinista para que la captura muestre el dibujo.
+            import math as _m
+
+            resumen.doc = {
+                "estacion": ESTACION,
+                "datos": [
+                    {
+                        "tmax": 29 + 3 * _m.sin(d / 4), "tmin": 19 + 2 * _m.cos(d / 5),
+                        "tmed": 24 + 2 * _m.sin(d / 6), "pmax": 1015 + d % 4,
+                        "pmin": 1011 + d % 3, "pmed": 1013 + (d % 3) / 2,
+                        "pest": 1012 + (d % 4) / 2, "hummed": 70 + d % 20,
+                        "hrmax": 90 + d % 8, "hrmin": 55 + d % 12,
+                        "rocio": 18 + (d % 5) / 2, "lluvia": float(d % 4),
+                        "vel": 8 + d % 9, "recorrido": 200 + d * 3,
+                        "nubmed": (d % 8), "nubdia": (d % 6), "nubnoche": (d % 7),
+                    }
+                    for d in range(1, 32)
+                ],
+            }
             _capturar(resumen, _carpeta("reales") / f"pantalla-summary-{nombre_tema}.png", app)
             for indice, nombre_tab in ((1, "tabla"), (2, "graficas")):
                 cambiar = getattr(resumen, "_switch_tab", None)

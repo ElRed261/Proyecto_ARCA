@@ -374,6 +374,7 @@ class SummaryPage(QWidget):
         self.stack = QStackedWidget()
         self.stack.addWidget(self._build_history_view())   # _TAB_HISTORY
         self.stack.addWidget(self._build_table_view())     # _TAB_TABLE
+        self.stack.addWidget(self._build_charts_view())    # _TAB_CHARTS
         # _TAB_CHARTS lands in T3; the pill stays hidden until then.
         self.charts_tab_button.setVisible(False)
         layout.addWidget(self.stack)
@@ -492,6 +493,116 @@ class SummaryPage(QWidget):
         layout.addWidget(self.history_box)
         return view
 
+    def _build_charts_view(self) -> QWidget:
+        """Pestaña Gráficas: sidebar de variables, tres tarjetas y el gráfico."""
+        from oms_ui.widgets_graficas import GRUPOS, ORDEN, GraficoGrupo
+
+        view = QWidget()
+        layout = QHBoxLayout(view)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(16)
+
+        # sidebar de variables
+        sidebar = QWidget()
+        sidebar.setFixedWidth(200)
+        side = QVBoxLayout(sidebar)
+        side.setContentsMargins(0, 0, 0, 0)
+        side.setSpacing(6)
+        side.addWidget(_label("VARIABLES", size=10, weight=800, color=_FAINT))
+        self._chart_buttons: dict[str, QPushButton] = {}
+        for clave in ORDEN:
+            button = QPushButton(GRUPOS[clave]["titulo"])
+            button.clicked.connect(lambda _=False, c=clave: self.select_chart_group(c))
+            side.addWidget(button)
+            self._chart_buttons[clave] = button
+        side.addStretch(1)
+        layout.addWidget(sidebar)
+
+        # tarjetas + gráfico
+        derecha = QVBoxLayout()
+        derecha.setSpacing(12)
+        tarjetas = QHBoxLayout()
+        tarjetas.setSpacing(12)
+        self._chart_cards: list[tuple[QLabel, QLabel]] = []
+        for _ in range(3):
+            card = QFrame()
+            card.setObjectName("card")
+            card.setStyleSheet(_qss(
+                "QFrame#card { background-color: $superficie;"
+                " border: 1px solid $borde; border-radius: 12px; }"
+            ))
+            col = QVBoxLayout(card)
+            col.setContentsMargins(14, 10, 14, 10)
+            caption = _label("", size=10, weight=800, color=_FAINT)
+            valor = _label("", size=22, weight=900)
+            col.addWidget(caption)
+            col.addWidget(valor)
+            tarjetas.addWidget(card)
+            self._chart_cards.append((caption, valor))
+        derecha.addLayout(tarjetas)
+
+        self._chart = GraficoGrupo(ORDEN[0], {})
+        marco = QFrame()
+        marco.setObjectName("card")
+        marco.setStyleSheet(_qss(
+            "QFrame#card { background-color: $superficie;"
+            " border: 1px solid $borde; border-radius: 12px; }"
+        ))
+        marco_layout = QVBoxLayout(marco)
+        marco_layout.setContentsMargins(10, 10, 10, 10)
+        self._chart_title = _label("", size=13, weight=800)
+        marco_layout.addWidget(self._chart_title)
+        marco_layout.addWidget(self._chart, 1)
+        derecha.addWidget(marco, 1)
+        layout.addLayout(derecha, 1)
+
+        self._chart_group = ORDEN[0]
+        self.select_chart_group(ORDEN[0])
+        return view
+
+    def select_chart_group(self, grupo: str) -> None:
+        """Cambia el grupo activo: sidebar, tarjetas y gráfico a la vez."""
+        from oms_ui.widgets_graficas import GRUPOS
+
+        if grupo not in GRUPOS:
+            return
+        self._chart_group = grupo
+        config = GRUPOS[grupo]
+        self._chart.grupo = grupo
+        self._chart.datos = self.chart_series()
+        self._chart_title.setText(
+            f"GRÁFICO DE {config['titulo'].upper()} ({config['unidad']})"
+        )
+        for boton, clave in zip(self._chart_buttons.values(), GRUPOS):
+            boton.setStyleSheet(_qss(_pill_qss(clave == grupo)))
+        series = [self._chart._serie(c) for _f, _n, c, _r in config["series"]]
+        pares = [(n, s) for (_f, n, _c, _r), s in zip(config["series"], series) if s]
+        for indice, (caption, valor) in enumerate(self._chart_cards):
+            if indice < len(pares):
+                nombre, datos = pares[indice]
+                caption.setText(nombre.upper())
+                valor.setText(f"{max(datos):.1f}")
+            else:
+                caption.setText("")
+                valor.setText("")
+        self._chart.update()
+
+    def chart_series(self) -> dict[str, list[float]]:
+        """Series del documento activo, por clave de serie."""
+        claves = (
+            "tmax", "tmin", "tmed", "pmax", "pmin", "pmed", "pest",
+            "hummed", "hrmax", "hrmin", "rocio", "lluvia", "vel",
+            "recorrido", "nubmed", "nubdia", "nubnoche",
+        )
+        filas = list((self.doc or {}).get("datos") or [])
+        series: dict[str, list[float]] = {c: [] for c in claves}
+        for fila in filas:
+            for clave in claves:
+                valor = fila.get(clave)
+                if isinstance(valor, (int, float)):
+                    series[clave].append(float(valor))
+        return {k: v for k, v in series.items() if v}
+
     def _build_table_view(self) -> QWidget:
         view = QWidget()
         layout = QVBoxLayout(view)
@@ -534,9 +645,9 @@ class SummaryPage(QWidget):
     # ------------------------------------------------------------ tab state
 
     def _switch_tab(self, index: int) -> None:
-        if index == _TAB_CHARTS:  # no charts view yet (T3)
-            index = _TAB_HISTORY
         self.stack.setCurrentIndex(index)
+        if index == _TAB_CHARTS:
+            self.select_chart_group(getattr(self, "_chart_group", "temp"))
         for position, button in enumerate(self._tab_buttons):
             button.setStyleSheet(_qss(_pill_qss(position == index)))
 
