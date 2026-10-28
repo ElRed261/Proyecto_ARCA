@@ -47,6 +47,15 @@ from oms_core.services import cli as cli_service
 from oms_ui.icons import lucide_icon
 from oms_ui.widgets import StyledComboBox
 
+
+def _qss(plantilla: str) -> str:
+    from string import Template
+
+    from oms_ui import theme as _theme
+
+    return Template(plantilla).substitute(_theme.palette_actual())
+
+
 _LOGGER = logging.getLogger(__name__)
 
 #: CLI autosave debounce. Test-injectable (suite waits the real path at
@@ -69,48 +78,48 @@ _EVAP_FIELDS: tuple[tuple[str, str], ...] = (
 )
 _FENO_ROWS = 12
 _FENO_GROUPS: tuple[tuple[str, str, str, tuple[tuple[str, str], ...]], ...] = (
-    ("HORA LOCAL", "#334155", 2, (("hora", "HORAS"), ("min", "MINUTOS"))),
-    ("RÁFAGAS DE VIENTO", "#334155", 2, (
+    ("HORA LOCAL", "$banda", 2, (("hora", "HORAS"), ("min", "MINUTOS"))),
+    ("RÁFAGAS DE VIENTO", "$banda", 2, (
         ("raf_dir", "dd 16-P"), ("raf_vel", "ff (m/s)"),
     )),
-    ("INTENSIDAD", "#334155", 1, (("intensidad", ""),)),
-    ("FENÓMENOS METEOROLÓGICOS", "#334155", 1, (("fenomeno", ""),)),
-    ("INICIO (HH:MM)", "#e11d48", 1, (("inicio", ""),)),
-    ("FINAL (HH:MM)", "#e11d48", 1, (("final", ""),)),
-    ("DURACIÓN", "#334155", 1, (("duracion", ""),)),
-    ("INICIALES OBSERV.", "#334155", 1, (("iniciales", ""),)),
+    ("INTENSIDAD", "$banda", 1, (("intensidad", ""),)),
+    ("FENÓMENOS METEOROLÓGICOS", "$banda", 1, (("fenomeno", ""),)),
+    ("INICIO (HH:MM)", "$error_fuerte", 1, (("inicio", ""),)),
+    ("FINAL (HH:MM)", "$error_fuerte", 1, (("final", ""),)),
+    ("DURACIÓN", "$banda", 1, (("duracion", ""),)),
+    ("INICIALES OBSERV.", "$banda", 1, (("iniciales", ""),)),
 )
 
 #: owner round 12: unit sub-headers (mm)/(°C) speak the module's red.
 _UNIT_RED_QSS = (
-    "background-color: #e11d48; color: #ffffff; font-weight: 600;"
+    "background-color: $error_fuerte; color: $banda_texto; font-weight: 600;"
     "font-size: 10px; padding: 4px 2px;"
 )
 _SECTION_QSS = (
-    "QFrame { background-color: #ffffff; border: 1px solid #e2e8f0;"
+    "QFrame { background-color: $superficie; border: 1px solid $borde;"
     "border-radius: 10px; }"
 )
 #: owner round 10: the station/fecha card carries NO module color — the
 #: 4074's clean line (only the group headers speak the identity).
 _LABEL_QSS = (
-    "color: #475569; font-weight: 600; font-size: 11px; background: transparent;"
+    "color: $suave; font-weight: 600; font-size: 11px; background: transparent;"
 )
 _HEADER_QSS = (
-    "background-color: {color}; color: #ffffff; font-weight: bold;"
+    "background-color: {color}; color: $banda_texto; font-weight: bold;"
     "font-size: 11px; padding: 5px 4px;"
 )
 _SUB_HEADER_QSS = (
-    "background-color: #1f2937; color: #cbd5e1; font-weight: 600;"
+    "background-color: $banda; color: $banda_texto; font-weight: 600;"
     "font-size: 10px; padding: 4px 2px;"
 )
 _INPUT_QSS = (
-    "QLineEdit { background-color: #ffffff; border: 1px solid #e2e8f0;"
-    "color: #1e293b; font-size: 12px; padding: 3px 6px; }"
-    "QLineEdit:focus { border-color: #e11d48; background-color: #fff1f2; }"
+    "QLineEdit { background-color: $superficie; border: 1px solid $borde;"
+    "color: $texto; font-size: 12px; padding: 3px 6px; }"
+    "QLineEdit:focus { border-color: $error_fuerte; background-color: $error_suave; }"
 )
 _TEXT_QSS = (
-    "QPlainTextEdit { background-color: #ffffff; border: 1px solid #e2e8f0;"
-    "color: #475569; font-size: 12px; border-radius: 6px; }"
+    "QPlainTextEdit { background-color: $superficie; border: 1px solid $borde;"
+    "color: $suave; font-size: 12px; border-radius: 6px; }"
 )
 
 
@@ -187,24 +196,24 @@ class Cli5074View(QWidget):
         # exposed so an embedding window (audit) can repurpose it as "close"
         self.back_button = back_btn
         back_btn.setFixedSize(40, 40)
-        back_btn.setIcon(lucide_icon("arrow-left", "#0369a1", 18))
+        back_btn.setIcon(lucide_icon("arrow-left", _qss("$acento_texto"), 18))
         back_btn.setIconSize(QSize(18, 18))
         back_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         back_btn.setToolTip("Volver a la última hora de observación")
-        back_btn.setStyleSheet(
-            "QPushButton { background-color: #ffffff; border: 1px solid #e2e8f0;"
+        back_btn.setStyleSheet(_qss(
+            "QPushButton { background-color: $superficie; border: 1px solid $borde;"
             "border-radius: 20px; }"
-            "QPushButton:hover { background-color: #ffe4e6; }"
-        )
+            "QPushButton:hover { background-color: $error_suave; }"
+        ))
         back_btn.clicked.connect(self.back_requested.emit)
         top.addWidget(back_btn, 0, Qt.AlignmentFlag.AlignVCenter)
 
         title = QLabel(self.TITLE)
-        title.setStyleSheet(
+        title.setStyleSheet(_qss(
             # fondo plano (sin fotografía ni degradado): tinta de texto
-                        "font-size: 18px; font-weight: 800; color: #0f172a;"
+                        "font-size: 18px; font-weight: 800; color: $texto_alt;"
             "background: transparent;"
-        )
+        ))
         title.setWordWrap(True)
         top.addWidget(title, 0, Qt.AlignmentFlag.AlignVCenter)
         top.addStretch(1)
@@ -244,32 +253,32 @@ class Cli5074View(QWidget):
 
     def _section_card(self, layout, title_text: str | None = None) -> tuple[QFrame, QVBoxLayout]:
         card = QFrame()
-        card.setStyleSheet(_SECTION_QSS)
+        card.setStyleSheet(_qss(_SECTION_QSS))
         card_layout = QVBoxLayout(card)
         card_layout.setContentsMargins(12, 10, 12, 12)
         card_layout.setSpacing(8)
         if title_text:
             title = QLabel(title_text)
-            title.setStyleSheet(
-                "font-weight: 800; font-size: 12px; color: #0f172a;"
+            title.setStyleSheet(_qss(
+                "font-weight: 800; font-size: 12px; color: $texto_alt;"
                 "background: transparent;"
-            )
+            ))
             card_layout.addWidget(title)
         layout.addWidget(card)
         return card, card_layout
 
     def _build_station_card(self, outer: QVBoxLayout) -> None:
         card = QFrame()
-        card.setStyleSheet(_SECTION_QSS)  # neutral, like the 4074
+        card.setStyleSheet(_qss(_SECTION_QSS))  # neutral, like the 4074
         grid = QGridLayout(card)
         grid.setContentsMargins(14, 10, 14, 10)
 
         def meta_label(text: str) -> QLabel:
             label = QLabel(text)
-            label.setStyleSheet(
-                "color: #475569; font-weight: 700; font-size: 11px;"
+            label.setStyleSheet(_qss(
+                "color: $suave; font-weight: 700; font-size: 11px;"
                 "background: transparent;"
-            )
+            ))
             return label
 
         self.station_combo = StyledComboBox()
@@ -279,13 +288,13 @@ class Cli5074View(QWidget):
             max(self.station_combo.findData(self.station), 0)
         )
         self.station_combo.setEnabled(False)  # locked like the oracle route
-        self.station_combo.setStyleSheet(
-            "QComboBox { background-color: #f8fafc; border: 1px solid #cbd5e1;"
-            "border-radius: 6px; padding: 4px 8px; color: #475569; height: 24px; }"
-        )
+        self.station_combo.setStyleSheet(_qss(
+            "QComboBox { background-color: $panel_alt; border: 1px solid $borde_input;"
+            "border-radius: 6px; padding: 4px 8px; color: $suave; height: 24px; }"
+        ))
         self.fecha_edit = QLineEdit(f"{self.fecha[8:]}/{self.fecha[5:7]}/{self.fecha[:4]}")
         self.fecha_edit.setReadOnly(True)
-        self.fecha_edit.setStyleSheet(_INPUT_QSS)
+        self.fecha_edit.setStyleSheet(_qss(_INPUT_QSS))
 
         grid.addWidget(meta_label("ESTACIÓN:"), 0, 0)
         grid.addWidget(self.station_combo, 0, 1)
@@ -302,17 +311,17 @@ class Cli5074View(QWidget):
         card_layout.addLayout(grid)
         corner = QLabel("HORA LOCAL")
         corner.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        corner.setStyleSheet(_HEADER_QSS.format(color="#1e293b"))
+        corner.setStyleSheet(_qss(_HEADER_QSS.format(color="$banda")))
         grid.addWidget(corner, 0, 0)
         for col_index, row in enumerate(_HOURLY_ROWS):
             head = QLabel(str(row))
             head.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            head.setStyleSheet(_HEADER_QSS.format(color="#334155"))
+            head.setStyleSheet(_qss(_HEADER_QSS.format(color="$banda")))
             grid.addWidget(head, 0, 1 + col_index)
         self.hour_inputs: dict[int, dict[str, QLineEdit]] = {}
         for row_index, (field, label) in enumerate(_HOURLY_FIELDS):
             row_label = QLabel(label)
-            row_label.setStyleSheet(_LABEL_QSS)
+            row_label.setStyleSheet(_qss(_LABEL_QSS))
             grid.addWidget(row_label, 1 + row_index, 0)
             self.hour_inputs.setdefault(_HOURLY_ROWS[0], {})  # safety
             for col_index, hour in enumerate(_HOURLY_ROWS):
@@ -330,15 +339,15 @@ class Cli5074View(QWidget):
         grid.setVerticalSpacing(0)
         layout.addLayout(grid)
         cm_label = QLabel("(cm)")
-        cm_label.setStyleSheet(_SUB_HEADER_QSS)
+        cm_label.setStyleSheet(_qss(_SUB_HEADER_QSS))
         grid.addWidget(cm_label, 0, 0)
         for col_index, depth in enumerate(_SUBSUELO_DEPTHS):
             head = QLabel(str(depth))
             head.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            head.setStyleSheet(_SUB_HEADER_QSS)
+            head.setStyleSheet(_qss(_SUB_HEADER_QSS))
             grid.addWidget(head, 0, 1 + col_index)
         c_label = QLabel("(°C)")
-        c_label.setStyleSheet(_UNIT_RED_QSS)
+        c_label.setStyleSheet(_qss(_UNIT_RED_QSS))
         grid.addWidget(c_label, 1, 0)
         for col_index, depth in enumerate(_SUBSUELO_DEPTHS):
             edit = self._field_edit(f"subsuelo.d{depth}")
@@ -355,11 +364,11 @@ class Cli5074View(QWidget):
         for col_index, (field, label) in enumerate(_EVAP_FIELDS):
             head = QLabel(label)
             head.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            head.setStyleSheet(_SUB_HEADER_QSS)
+            head.setStyleSheet(_qss(_SUB_HEADER_QSS))
             grid.addWidget(head, 0, col_index)
             sub = QLabel("(mm)")
             sub.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            sub.setStyleSheet(_UNIT_RED_QSS)
+            sub.setStyleSheet(_qss(_UNIT_RED_QSS))
             grid.addWidget(sub, 1, col_index)
             edit = self._field_edit(f"evaporimetros.{field}")
             grid.addWidget(edit, 2, col_index)
@@ -371,13 +380,13 @@ class Cli5074View(QWidget):
         # initials field is the protagonist (tall, roomy)
         _card, layout = self._section_card(bottom_right, None)
         label = QLabel("INICIALES OBS.")
-        label.setStyleSheet(
-            "font-weight: 800; font-size: 12px; color: #0f172a;"
+        label.setStyleSheet(_qss(
+            "font-weight: 800; font-size: 12px; color: $texto_alt;"
             "background: transparent;"
-        )
+        ))
         layout.addWidget(label)
         edit = QLineEdit()
-        edit.setStyleSheet(_INPUT_QSS)
+        edit.setStyleSheet(_qss(_INPUT_QSS))
         edit.setMinimumHeight(64)  # tall: the initials take the stage
         edit.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.fields["iniciales_obs"] = edit
@@ -385,7 +394,7 @@ class Cli5074View(QWidget):
 
     def _build_fenomenos_card(self, outer: QVBoxLayout) -> None:
         card = QFrame()
-        card.setStyleSheet(_SECTION_QSS)
+        card.setStyleSheet(_qss(_SECTION_QSS))
         row = QHBoxLayout(card)
         row.setContentsMargins(12, 10, 12, 12)
         row.setSpacing(10)
@@ -395,16 +404,16 @@ class Cli5074View(QWidget):
         # protagonist and grows with the card
         left = QVBoxLayout()
         left_title = QLabel("OBSERVACIONES Y DETALLES DEL FENÓMENO")
-        left_title.setStyleSheet(
-            "font-weight: 800; font-size: 12px; color: #0f172a;"
+        left_title.setStyleSheet(_qss(
+            "font-weight: 800; font-size: 12px; color: $texto_alt;"
             "background: transparent;"
-        )
+        ))
         left.addWidget(left_title)
         manual = QPlainTextEdit()
         manual.setPlaceholderText(
             "Espacio destinado a detallar más información de forma manual..."
         )
-        manual.setStyleSheet(_TEXT_QSS)
+        manual.setStyleSheet(_qss(_TEXT_QSS))
         self.fields["observaciones_manuales"] = _PlainTextBridge(manual, self._schedule_autosave)
         left.addWidget(manual)
         row.addLayout(left, 1)
@@ -419,14 +428,14 @@ class Cli5074View(QWidget):
             header = QLabel(text)
             header.setAlignment(Qt.AlignmentFlag.AlignCenter)
             header.setWordWrap(True)
-            header.setStyleSheet(_HEADER_QSS.format(color=color))
+            header.setStyleSheet(_qss(_HEADER_QSS.format(color=color)))
             # sin subtítulo el header abarca ambas filas: sin hueco debajo
             feno_grid.addWidget(header, 0, col, 2 if no_sub else 1, span)
             for offset, (field, sub) in enumerate(fields):
                 if sub:
                     sub_label = QLabel(sub)
                     sub_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-                    sub_label.setStyleSheet(_SUB_HEADER_QSS)
+                    sub_label.setStyleSheet(_qss(_SUB_HEADER_QSS))
                     feno_grid.addWidget(sub_label, 1, col + offset)
                 col_offset = col + offset
                 for row_index in range(_FENO_ROWS):
@@ -443,7 +452,7 @@ class Cli5074View(QWidget):
 
     def _build_tabs(self, top: QHBoxLayout) -> None:
         tabs_box = QWidget()
-        tabs_box.setStyleSheet("background-color: #e2e8f0; border-radius: 8px;")
+        tabs_box.setStyleSheet(_qss("background-color: $panel; border-radius: 8px;"))
         tabs_row = QHBoxLayout(tabs_box)
         tabs_row.setContentsMargins(4, 4, 4, 4)
         tabs_row.setSpacing(4)
@@ -453,11 +462,11 @@ class Cli5074View(QWidget):
             active = module_key == self.MODULE_KEY
             tab = QPushButton(label)
             tab.setStyleSheet(
-                f"QPushButton {{ background-color: {'#ffffff' if active else 'transparent'};"
-                f"color: {'#e11d48' if active else '#475569'}; border: none;"
+                f"QPushButton {{ background-color: {_qss('$superficie') if active else 'transparent'};"
+                f"color: {_qss('$error_fuerte') if active else _qss('$suave')}; border: none;"
                 "border-radius: 6px; padding: 6px 14px; font-size: 12px;"
                 "font-weight: bold; min-height: 24px; }"
-                "QPushButton:hover { background-color: #ecfdf5; }"
+                "QPushButton:hover { background-color: $ok_fondo; }"
             )
             tab.setCursor(Qt.CursorShape.PointingHandCursor)
             if not active:
@@ -469,13 +478,13 @@ class Cli5074View(QWidget):
 
     def _build_ver_hora(self, top: QHBoxLayout) -> None:
         hour_box = QWidget()
-        hour_box.setStyleSheet("background-color: #e2e8f0; border-radius: 8px;")
+        hour_box.setStyleSheet(_qss("background-color: $panel; border-radius: 8px;"))
         hour_row = QHBoxLayout(hour_box)
         hour_row.setContentsMargins(8, 4, 8, 4)
         hour_row.setSpacing(4)
         hint = QLabel("VER HORA SYNOP:")
         hint.setStyleSheet(
-            "color: #64748b; font-size: 10px; font-weight: 700;"
+            "color: $suave_alt; font-size: 10px; font-weight: 700;"
             "background: transparent;"
         )
         hour_row.addWidget(hint)
@@ -483,10 +492,10 @@ class Cli5074View(QWidget):
                       "00Z", "03Z"):  # the day starts at 06Z
             button = QPushButton(hour)
             button.setStyleSheet(
-                "QPushButton { background-color: #ffffff; color: #475569;"
+                "QPushButton { background-color: $superficie; color: $suave;"
                 "border: none; border-radius: 6px; padding: 6px 12px;"
                 "font-size: 12px; font-weight: bold; min-height: 24px; }"
-                "QPushButton:hover { color: #e11d48; background-color: #fff1f2; }"
+                "QPushButton:hover { color: $error_fuerte; background-color: $error_suave; }"
             )
             button.setCursor(Qt.CursorShape.PointingHandCursor)
             button.clicked.connect(
@@ -504,7 +513,7 @@ class Cli5074View(QWidget):
 
     def _field_edit(self, storage_key: str) -> QLineEdit:
         edit = QLineEdit()
-        edit.setStyleSheet(_INPUT_QSS)
+        edit.setStyleSheet(_qss(_INPUT_QSS))
         edit.setMinimumHeight(26)
         field = storage_key.split(".")[-1]
         edit.editingFinished.connect(

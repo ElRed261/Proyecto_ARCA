@@ -1313,18 +1313,21 @@ def test_cli5074_uses_its_red_identity(cli3074_page, qtbot):
     station-card top band, hover accents) per IMG/CLI 5074.png."""
     from PySide6.QtWidgets import QPushButton
 
+    from oms_ui import theme
+
+    rojo = theme.palette_actual()["error_fuerte"]
     cli3074_page._open_cli("cli5074")
     view = cli3074_page._stack.currentWidget()
     # focus ring red on the sheet fields
-    assert "#e11d48" in view.fields["hourly.8.pres_est"].styleSheet()
+    assert rojo in view.fields["hourly.8.pres_est"].styleSheet()
     # round 10: the station/fecha card is fully neutral (no band)
     station_card = view.station_combo.parentWidget()
-    assert "#e11d48" not in station_card.styleSheet()
+    assert rojo not in station_card.styleSheet()
     # the tab bar marks 5074 red while 3074 keeps blue / 4074 green
     tabs = [b for b in view.findChildren(QPushButton)
             if b.text() in ("3074", "4074", "5074")]
     fifty = next(b for b in tabs if b.text() == "5074")
-    assert "#e11d48" in fifty.styleSheet()
+    assert rojo in fifty.styleSheet()
 
 
 # ---------------------------------------------------------------- round 10: 5074 red discipline
@@ -1341,15 +1344,18 @@ def test_cli5074_red_only_where_it_speaks(cli3074_page, qtbot):
     labels = [w.text() for w in view.findChildren(QLabel)]
     assert "PUNTO DE ROCÍO (°C)" not in labels  # A12: block removed
     assert "LLUVIA" not in labels
+    from oms_ui import theme
+
+    rojo = theme.palette_actual()["error_fuerte"]
     ini = next(w for w in view.findChildren(QLabel)
                if w.text() == "INICIO (HH:MM)")
     fin = next(w for w in view.findChildren(QLabel)
                if w.text() == "FINAL (HH:MM)")
-    assert "#e11d48" in ini.styleSheet() and "#e11d48" in fin.styleSheet()
+    assert rojo in ini.styleSheet() and rojo in fin.styleSheet()
     # station/fecha card: NO module color at all
     card = view.station_combo.parentWidget()
-    assert "#e11d48" not in card.styleSheet()
-    assert "#ffffff" in card.styleSheet()  # plain white card like the 4074
+    assert rojo not in card.styleSheet()
+    assert theme.palette_actual()["superficie"] in card.styleSheet()
 
 
 # ---------------------------------------------------------------- round 12: 5074 typography/color order
@@ -1412,13 +1418,16 @@ def test_cli5074_red_accent_map(cli3074_page, qtbot):
 
     cli3074_page._open_cli("cli5074")
     view = cli3074_page._stack.currentWidget()
+    from oms_ui import theme
+
+    rojo = theme.palette_actual()["error_fuerte"]
     by_text = {}
     for w in view.findChildren(QLabel):
         by_text.setdefault(w.text(), w.styleSheet())
-    assert "#e11d48" in by_text["FINAL (HH:MM)"]
-    assert "#e11d48" in by_text["INICIO (HH:MM)"]
-    assert "#e11d48" in by_text["(°C)"]          # subsuelo unit chip
-    assert "#e11d48" in by_text["(mm)"]          # evap unit chips
+    assert rojo in by_text["FINAL (HH:MM)"]
+    assert rojo in by_text["INICIO (HH:MM)"]
+    assert rojo in by_text["(°C)"]          # subsuelo unit chip
+    assert rojo in by_text["(mm)"]          # evap unit chips
     assert "PUNTO DE ROCÍO (°C)" not in by_text   # removed with the block
 
 
