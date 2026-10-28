@@ -541,23 +541,19 @@ class SummaryPage(QWidget):
             self._chart_cards.append((caption, valor))
         derecha.addLayout(tarjetas)
 
-        self._chart = GraficoGrupo(ORDEN[0], {})
-        marco = QFrame()
-        marco.setObjectName("card")
-        marco.setStyleSheet(_qss(
-            "QFrame#card { background-color: $superficie;"
-            " border: 1px solid $borde; border-radius: 12px; }"
-        ))
-        marco_layout = QVBoxLayout(marco)
-        marco_layout.setContentsMargins(10, 10, 10, 10)
         self._chart_title = _label("", size=13, weight=800)
-        marco_layout.addWidget(self._chart_title)
-        marco_layout.addWidget(self._chart, 1)
-        derecha.addWidget(marco, 1)
+        derecha.addWidget(self._chart_title)
+        self._chart = GraficoGrupo(ORDEN[0], {})
+        derecha.addWidget(self._chart)
+        derecha.addStretch(1)
         layout.addLayout(derecha, 1)
 
         self._chart_group = ORDEN[0]
         self.select_chart_group(ORDEN[0])
+
+        # El Resumen tiene UNA sola zona de scroll (regla del dueño: el doble
+        # scroll fue un bug). El gráfico entra por altura, no por scroll propio.
+        self._chart.setFixedHeight(260)
         return view
 
     def select_chart_group(self, grupo: str) -> None:
@@ -575,16 +571,31 @@ class SummaryPage(QWidget):
         )
         for boton, clave in zip(self._chart_buttons.values(), GRUPOS):
             boton.setStyleSheet(_qss(_pill_qss(clave == grupo)))
-        series = [self._chart._serie(c) for _f, _n, c, _r in config["series"]]
-        pares = [(n, s) for (_f, n, _c, _r), s in zip(config["series"], series) if s]
-        for indice, (caption, valor) in enumerate(self._chart_cards):
-            if indice < len(pares):
-                nombre, datos = pares[indice]
-                caption.setText(nombre.upper())
-                valor.setText(f"{max(datos):.1f}")
+        # Estadísticas del grupo: máximo, mínimo y promedio de sus series
+        # principales (las del eje izquierdo), como en OLD.
+        secundaria = config.get("secundario")
+        valores = [
+            v
+            for _f, _n, clave, _r in config["series"]
+            if clave != secundaria
+            for v in self._chart._serie(clave)
+        ]
+        if valores:
+            resumen = (
+                ("MÁXIMO", max(valores)),
+                ("MÍNIMO", min(valores)),
+                ("PROMEDIO", sum(valores) / len(valores)),
+            )
+        else:
+            resumen = (("MÁXIMO", None), ("MÍNIMO", None), ("PROMEDIO", None))
+        for (caption, valor), (etiqueta, numero) in zip(self._chart_cards, resumen):
+            caption.setText(etiqueta)
+            if numero is None:
+                valor.setText("—")
             else:
-                caption.setText("")
-                valor.setText("")
+                unidad = config["unidad"]
+                sufijo = "" if unidad == "octavos" else f" {unidad}"
+                valor.setText(f"{numero:.1f}{sufijo}")
         self._chart.update()
 
     def chart_series(self) -> dict[str, list[float]]:
