@@ -14,7 +14,7 @@ from __future__ import annotations
 from pathlib import Path
 from string import Template
 
-from PySide6.QtGui import QFontDatabase
+from PySide6.QtGui import QFont, QFontDatabase
 from PySide6.QtWidgets import QApplication
 
 _ASSETS = Path(__file__).resolve().parent / "assets"
@@ -34,9 +34,9 @@ FALLBACK_FAMILIES = ("Inter", "Segoe UI", "Noto Sans", "DejaVu Sans")
 
 #: Roles de la paleta clara. Ver docs/DISENO_OMS.md §2.
 #:
-#: `acento_suave` es el rol del documento. Los `*_debil` son los nombres que
-#: salieron de tokenizar los literales del QSS viejo: deuda de la fase 1, se
-#: funden con los del documento cuando se purguen los inline.
+#: `acento_suave` es el rol del documento. Los literales viejos que sólo existían
+#: para mapear el QSS anterior (`acento_debil`, `violeta_*`) ya no están: el
+#: trazo nuevo usa un solo acento (S2).
 PALETTE_CLARO: dict[str, str] = {
     "fondo": "#f3f4f6",
     "superficie": "#ffffff",
@@ -53,8 +53,6 @@ PALETTE_CLARO: dict[str, str] = {
     "acento_hover": "#1d4ed8",
     "acento_foco": "#3b82f6",
     "acento_suave": "#e0f2fe",
-    "acento_debil": "#bfdbfe",
-    "acento_debil_alt": "#dbeafe",
     "acento_deshabilitado": "#93c5fd",
     "acento_texto": "#1e40af",
     "acento_fondo": "#eff6ff",
@@ -64,13 +62,6 @@ PALETTE_CLARO: dict[str, str] = {
     "ok": "#16a34a",
     "ok_fuerte": "#15803d",
     "ok_fondo": "#dcfce7",
-    "violeta": "#7c3aed",
-    "violeta_fuerte": "#6d28d9",
-    "violeta_suave": "#a855f7",
-    "violeta_debil": "#faf5ff",
-    "violeta_borde": "#e9d5ff",
-    "violeta_deshabilitado": "#c4b5fd",
-    "violeta_fondo": "#f3e8ff",
     "teal": "#0d9488",
     "teal_borde": "#99f6e4",
     "teal_fondo": "#f0fdfa",
@@ -100,8 +91,6 @@ PALETTE_OSCURO: dict[str, str] = {
     "acento_hover": "#67e8f9",
     "acento_foco": "#22d3ee",
     "acento_suave": "#123241",
-    "acento_debil": "#123241",
-    "acento_debil_alt": "#163a4d",
     "acento_deshabilitado": "#1c4b5e",
     "acento_texto": "#a5f3fc",
     "acento_fondo": "#0f2338",
@@ -111,13 +100,6 @@ PALETTE_OSCURO: dict[str, str] = {
     "ok": "#4ade80",
     "ok_fuerte": "#22c55e",
     "ok_fondo": "#12281c",
-    "violeta": "#c4b5fd",
-    "violeta_fuerte": "#ddd6fe",
-    "violeta_suave": "#a78bfa",
-    "violeta_debil": "#1e1b3a",
-    "violeta_borde": "#2e2a52",
-    "violeta_deshabilitado": "#3b3363",
-    "violeta_fondo": "#1b1730",
     "teal": "#2dd4bf",
     "teal_borde": "#15403b",
     "teal_fondo": "#0d2a27",
@@ -140,6 +122,64 @@ DEFAULT_THEME = "claro"
 
 #: Clave de QSettings; el resto del programa lee el tema por aquí.
 _SETTINGS_KEY = "apariencia/tema"
+
+#: Color de cada serie de las gráficas (docs/DISENO_OMS.md §5.6). Las claves son
+#: las mismas que usa el Resumen; el color va **siempre acompañado de forma**
+#: (área, sólida, punteada, barra), nunca solo (S13).
+SERIES_NORMAL: dict[str, str] = {
+    "tmax": "#ef4444",
+    "tmin": "#3b82f6",
+    "tmedia": "#f59e0b",
+    "pmax": "#ef4444",
+    "pmin": "#3b82f6",
+    "pmedia": "#8b5cf6",
+    "pest": "#64748b",
+    "hrmedia": "#0d9488",
+    "hrmax": "#3b82f6",
+    "hrmin": "#22d3ee",
+    "rocio": "#10b981",
+    "lluvia": "#3b82f6",
+    "viento": "#06b6d4",
+    "recorrido": "#6366f1",
+    "nubmedia": "#f59e0b",
+    "nubdia": "#3b82f6",
+    "nubnoche": "#64748b",
+}
+
+#: Okabe–Ito: las ocho clases de color que se distinguen bajo cualquier tipo de
+#: daltonismo. Es la «paleta accesible» de Configuración → Apariencia (S13).
+SERIES_ACCESIBLE: dict[str, str] = {
+    "tmax": "#d55e00",
+    "tmin": "#0072b2",
+    "tmedia": "#e69f00",
+    "pmax": "#d55e00",
+    "pmin": "#0072b2",
+    "pmedia": "#cc79a7",
+    "pest": "#999999",
+    "hrmedia": "#009e73",
+    "hrmax": "#0072b2",
+    "hrmin": "#56b4e9",
+    "rocio": "#cc79a7",
+    "lluvia": "#0072b2",
+    "viento": "#0072b2",
+    "recorrido": "#e69f00",
+    "nubmedia": "#e69f00",
+    "nubdia": "#0072b2",
+    "nubnoche": "#999999",
+}
+
+SERIES_PALETTES: dict[str, dict[str, str]] = {
+    "normal": SERIES_NORMAL,
+    "accesible": SERIES_ACCESIBLE,
+}
+SERIES_ETIQUETAS = {"normal": "Normal", "accesible": "Accesible"}
+DEFAULT_SERIES = "normal"
+
+#: Nombre de la característica OpenType de cifras tabulares.
+TABULAR_FEATURE = "tnum"
+
+_familia: str | None = None
+_familia_leida = False
 
 
 def _settings():
@@ -198,6 +238,45 @@ def load_fonts() -> str | None:
         if "Jakarta" in family:
             return family
     return families[0] if families else None
+
+
+def font_family() -> str | None:
+    """Familia empaquetada, registrada una sola vez por proceso."""
+    global _familia, _familia_leida
+    if not _familia_leida:
+        _familia = load_fonts()
+        _familia_leida = True
+    return _familia
+
+
+def data_font(size: float = 11, weight: int = 500) -> QFont:
+    """Fuente para datos: la familia empaquetada con cifras tabulares (S3).
+
+    Jakarta Sans trae **cifras proporcionales**: `1111` mide 22,25 px y `0000`
+    43,88 px, así que sin `tnum` ninguna columna numérica puede alinear. Con
+    `tnum` las cinco combinaciones medidas miden 36,0 px.
+    """
+    font = QFont()
+    family = font_family()
+    if family:
+        font.setFamily(family)
+    font.setPointSizeF(size)
+    font.setWeight(QFont.Weight(weight))
+    try:
+        font.setFeature(QFont.Tag(TABULAR_FEATURE), 1)
+    except (AttributeError, TypeError, ValueError):  # Qt viejo o tag inválido
+        pass
+    return font
+
+
+def normalize_series(name: str | None) -> str:
+    """Paleta de serie válida; desconocida o vacía -> la de fábrica."""
+    return name if name in SERIES_PALETTES else DEFAULT_SERIES  # type: ignore[return-value]
+
+
+def series_palette(name: str | None = None) -> dict[str, str]:
+    """Colores de serie resueltos (normal o accesible)."""
+    return dict(SERIES_PALETTES[normalize_series(name)])
 
 
 def load_stylesheet(theme: str | None = None) -> str:

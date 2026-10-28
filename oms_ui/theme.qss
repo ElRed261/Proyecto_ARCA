@@ -1,7 +1,7 @@
 /* Tema de OMS — PLANTILLA de string.Template.
    Cada token (fondo, superficie, borde, texto, acento...) lo sustituye
    oms_ui/theme.py desde PALETTE, ver docs/DISENO_OMS.md §2. Aquí NO se escribe
-   un color literal. Los acentos por módulo (violeta, naranja, teal) son deuda
+   un color literal. Los acentos por módulo (naranja, teal) son deuda
    de la fase 1: desaparecen en la fase 2, cuando los setStyleSheet inline ya no
    compitan con esta hoja.
    Nota: un signo de peso literal en este archivo lo interpretaría la plantilla;
@@ -46,7 +46,7 @@ QLineEdit, QComboBox, QDateEdit, QSpinBox {
 /* text selection only where there is text being selected: on a QComboBox
    the property cascades into the popup list and painted its selection. */
 QLineEdit, QDateEdit, QSpinBox {
-    selection-background-color: $acento_debil;
+    selection-background-color: $acento_suave;
 }
 QLineEdit:focus, QComboBox:focus, QDateEdit:focus {
     border: 1px solid $acento_foco;
@@ -152,7 +152,7 @@ QListWidget::item {
     border-radius: 6px;
 }
 QListWidget::item:selected {
-    background-color: $acento_debil_alt;
+    background-color: $acento_suave;
     color: $acento_texto;
 }
 
@@ -200,7 +200,7 @@ QPushButton[primary="true"]:hover {
     background-color: $acento_hover;
 }
 QPushButton[primary="true"]:disabled {
-    background-color: $violeta_deshabilitado;
+    background-color: $acento_deshabilitado;
     color: $superficie;
 }
 QPushButton[accent="orange"] {
@@ -235,11 +235,11 @@ QPushButton[link="true"] {
     font-weight: bold;
 }
 QPushButton[link="blue"] { color: $acento; }
-QPushButton[link="violet"] { color: $violeta_suave; }
+QPushButton[link="violet"] { color: $acento; }
 QPushButton[link="orange"] { color: $naranja; }
 QLabel[pill="role"] {
-    background-color: $violeta_fondo;
-    color: $violeta;
+    background-color: $acento_fondo;
+    color: $acento;
     border-radius: 10px;
     padding: 2px 12px;
     font-weight: 600;
@@ -252,7 +252,7 @@ QLabel[pill="ok"] {
     font-weight: 600;
 }
 QLabel[pill="info"] {
-    background-color: $acento_debil_alt;
+    background-color: $acento_suave;
     color: $acento_hover;
     border-radius: 10px;
     padding: 2px 12px;
@@ -266,8 +266,8 @@ QLabel[pill="warn"] {
     font-weight: 600;
 }
 QFrame[tint="violet"] {
-    background-color: $violeta_debil;
-    border: 1px solid $violeta_borde;
+    background-color: $acento_suave;
+    border: 1px solid $acento;
     border-radius: 12px;
 }
 QFrame[tint="orange"] {
@@ -277,7 +277,7 @@ QFrame[tint="orange"] {
 }
 QFrame[tint="blue"] {
     background-color: $acento_fondo;
-    border: 1px solid $acento_debil;
+    border: 1px solid $acento;
     border-radius: 12px;
 }
 QFrame[tint="teal"] {
@@ -316,7 +316,7 @@ QLabel[tile="blue"] {
     padding: 10px;
 }
 QLabel[tile="violet"] {
-    background-color: $violeta_suave;
+    background-color: $acento;
     color: $superficie;
     border-radius: 10px;
     font-size: 18px;
