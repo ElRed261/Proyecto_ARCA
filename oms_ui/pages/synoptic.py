@@ -203,7 +203,7 @@ def _qss(plantilla: str) -> str:
     """
     from string import Template
 
-    return Template(plantilla).substitute(theme_mod.palette())
+    return Template(plantilla).substitute(theme_mod.palette_actual())
 
 
 FIELD_QSS = (
@@ -268,18 +268,18 @@ SECONDARY_BTN_QSS = (
 
 
 def _hour_button_qss(bg: str) -> str:
-    """Completion tint over the slate-50 base (oracle dot-color contract)."""
+    """Tinte de cumplimiento sobre la base; los colores salen de la paleta."""
     return (
-        f"QPushButton {{ background-color: {bg}; color: #475569;"
-        "border: 1px solid #f1f5f9; border-radius: 8px;"
+        f"QPushButton {{ background-color: {bg}; color: $suave;"
+        "border: 1px solid $borde; border-radius: 8px;"
         "padding: 8px 6px; font-weight: 700; font-size: 12px; }"
-        "QPushButton:hover { color: #0f172a; }"
+        "QPushButton:hover { color: $texto_alt; }"
     )
 
 
 def _progress_qss(chunk: str) -> str:
     return (
-        "QProgressBar { background-color: #f1f5f9; border: none;"
+        "QProgressBar { background-color: $panel; border: none;"
         "border-radius: 3px; }"
         f"QProgressBar::chunk {{ background-color: {chunk}; border-radius: 3px; }}"
     )
@@ -619,7 +619,7 @@ class SynopticPage(QWidget):
         else:
             fill = button.property("fill") or "empty"
             tint = {"part": "#fffbeb", "ok": "#ecfdf5"}.get(str(fill), "#f8fafc")
-            button.setStyleSheet(_hour_button_qss(tint))
+            button.setStyleSheet(_qss(_hour_button_qss(tint)))
         icon_name, base_color = HOUR_ICONS[hora]
         button.setIcon(lucide_icon(
             icon_name, "#ffffff" if active else base_color, 14
@@ -1815,7 +1815,7 @@ class SynopticPage(QWidget):
             else "part"
         )
         chunk = {"empty": "#e2e8f0", "part": "#fbbf24", "ok": "#10b981"}[fillcls]
-        self.progress.setStyleSheet(_progress_qss(chunk))
+        self.progress.setStyleSheet(_qss(_progress_qss(chunk)))
         self.progress_label.setText(
             f"{self.active_hour}: {active['done']}/{active['total']} campos"
         )

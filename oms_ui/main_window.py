@@ -215,7 +215,7 @@ class MainWindow(QMainWindow):
         from oms_ui import theme
         from oms_ui.icons_svg import rail_icon
 
-        acento = theme.palette()["acento"]
+        acento = theme.palette_actual()["acento"]
         self._rail_logo_icon.setPixmap(rail_icon("radar", acento, 20).pixmap(20, 20))
         for page_id, label, _accent, mono in NAV_ENTRIES:
             button = self._rail_buttons.get(page_id)

@@ -1488,3 +1488,24 @@ def test_the_date_is_chosen_from_the_stored_observations(page, qtbot, monkeypatc
     # el selector recibe la estación de la página y decide si la ofrece
     assert calls["show_stations"] == (page.station_combo.count() > 1)
     assert page.fecha_edit.date().toString("yyyy-MM-dd") == "2025-10-02"
+
+
+def test_ningun_estilo_del_sinoptico_queda_con_tokens_sin_resolver():
+    """Un `$rol` que llega a Qt se ignora en silencio: el widget pierde el color.
+
+    Toda hoja que venga de una constante o de un constructor tiene que pasar por
+    `_qss()`, que la resuelve con la paleta antes de aplicarla.
+    """
+    import re
+    from pathlib import Path
+
+    fuente = (Path(__file__).resolve().parents[1] / "oms_ui" / "pages" / "synoptic.py").read_text(
+        encoding="utf-8"
+    )
+    sin_resolver = [
+        m.group(1).strip()[:60]
+        for m in re.finditer(r"setStyleSheet\(([^)]*)\)", fuente)
+        if ("_QSS" in m.group(1) or "_qss(" in m.group(1) or "qss(" in m.group(1))
+        and "_qss(" not in m.group(1)
+    ]
+    assert not sin_resolver, f"hojas sin resolver: {sin_resolver}"

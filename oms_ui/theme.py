@@ -180,6 +180,7 @@ TABULAR_FEATURE = "tnum"
 
 _familia: str | None = None
 _familia_leida = False
+_aplicado: str | None = None
 
 
 def _settings():
@@ -301,16 +302,30 @@ def repolish(widget) -> None:
     estilo.polish(widget)
 
 
+def applied_theme() -> str:
+    """Tema realmente aplicado a la app (cae al guardado si aún no se aplicó)."""
+    return _aplicado or current_theme()
+
+
+def palette_actual() -> dict[str, str]:
+    """Paleta del tema aplicado, no de la preferencia guardada."""
+    return dict(PALETTES[applied_theme()])
+
+
 def apply_theme(app: QApplication, theme: str | None = None) -> str | None:
     """Apply fonts + stylesheet to the application; return family or None."""
+    global _aplicado
+
+    elegido = normalize_theme(theme or current_theme())
     family = load_fonts()
     if family:
         font = app.font()
         font.setFamily(family)
         app.setFont(font)
-    stylesheet = load_stylesheet(theme)
+    stylesheet = load_stylesheet(elegido)
     if stylesheet:
         app.setStyleSheet(stylesheet)
+    _aplicado = elegido
     return family
 
 
