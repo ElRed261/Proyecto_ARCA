@@ -154,9 +154,13 @@ class MainWindow(QMainWindow):
             Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft
         )
         fila_logo_layout.addWidget(self._rail_logo, 1)
-        fila_logo.setToolTip("Inicio")
-        fila_logo.setCursor(Qt.CursorShape.PointingHandCursor)
-        fila_logo.mousePressEvent = lambda _event: self._navigate_to("dashboard")
+        # Tanto la fila como la etiqueta navegan a Inicio: el usuario hace clic
+        # en el icono, en el texto o en el hueco entre ambos.
+        self._rail_logo_row = fila_logo
+        for zona in (fila_logo, self._rail_logo):
+            zona.setCursor(Qt.CursorShape.PointingHandCursor)
+            zona.setToolTip("Inicio")
+            zona.mousePressEvent = lambda _event: self._navigate_to("dashboard")
         layout.addWidget(fila_logo)
 
         self._rail_buttons: dict[str, QPushButton] = {}
