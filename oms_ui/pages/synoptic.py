@@ -793,10 +793,12 @@ class SynopticPage(QWidget):
         if self.station_combo.count():
             self.station_combo.setCurrentIndex(-1)
         self.station_combo.setStyleSheet(
-            "QComboBox { background-color: #ffffff; border: 1px solid #cbd5e1;"
-            "border-radius: 4px; padding: 4px 8px; }"
-            "QComboBox:item { color: #1e293b; }"
-            "QComboBox::drop-down { border: none; width: 22px; }"
+            _qss(
+                "QComboBox { background-color: $superficie; border: 1px solid $borde_input;"
+                "border-radius: 4px; padding: 4px 8px; color: $texto; }"
+                "QComboBox:item { color: $texto; }"
+                "QComboBox::drop-down { border: none; width: 22px; }"
+            )
         )
         self.station_combo.setMinimumHeight(32)
 
@@ -804,10 +806,10 @@ class SynopticPage(QWidget):
         self.fecha_edit.setDisplayFormat("dd/MM/yyyy")
         self.fecha_edit.setCalendarPopup(False)
         self.fecha_edit.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.fecha_edit.setStyleSheet(
-            "QDateEdit { background-color: #ffffff; border: 1px solid #cbd5e1;"
-            "border-radius: 4px; padding: 4px 8px; color: #1e293b; }"
-        )
+        self.fecha_edit.setStyleSheet(_qss(
+            "QDateEdit { background-color: $superficie; border: 1px solid $borde_input;"
+            "border-radius: 4px; padding: 4px 8px; color: $texto; }"
+        ))
         self.fecha_edit.setMinimumHeight(32)
 
         # Elegir el día de entre las observaciones guardadas, como en la
@@ -1042,10 +1044,10 @@ class SynopticPage(QWidget):
         progress_row = QHBoxLayout()
         progress_row.setSpacing(6)
         self.progress_label = QLabel("0/21 campos")
-        self.progress_label.setStyleSheet(
-            "color: #64748b; font-size: 11px; font-weight: 600;"
+        self.progress_label.setStyleSheet(_qss(
+            "color: $suave_alt; font-size: 11px; font-weight: 600;"
             "background: transparent;"
-        )
+        ))
         progress_row.addWidget(self.progress_label)
         progress_row.addStretch(1)
         hours_l.addLayout(progress_row)
@@ -1074,7 +1076,7 @@ class SynopticPage(QWidget):
 
         divider = QFrame()
         divider.setFrameShape(QFrame.Shape.HLine)
-        divider.setStyleSheet("background-color: #f1f5f9; border: none;")
+        divider.setStyleSheet(_qss("background-color: $panel; border: none;"))
         divider.setFixedHeight(1)
         hours_l.addWidget(divider)
 
@@ -1185,13 +1187,13 @@ class SynopticPage(QWidget):
             )
         )
         self.error_label = _MessageLabel(on_change=self._refresh_toast)
-        self.error_label.setStyleSheet(
-            "color: #fecaca; font-weight: bold; background: transparent;"
-        )
+        self.error_label.setStyleSheet(_qss(
+            "color: $error; font-weight: bold; background: transparent;"
+        ))
         self.status_label = _MessageLabel(on_change=self._refresh_toast)
-        self.status_label.setStyleSheet(
-            "color: #6ee7b7; font-weight: bold; background: transparent;"
-        )
+        self.status_label.setStyleSheet(_qss(
+            "color: $ok; font-weight: bold; background: transparent;"
+        ))
         toast_l.addWidget(self.error_label)
         toast_l.addWidget(self.status_label)
         self._status_timer = QTimer(self)

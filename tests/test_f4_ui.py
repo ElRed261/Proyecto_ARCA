@@ -1489,19 +1489,29 @@ def test_the_date_is_chosen_from_the_stored_observations(page, qtbot, monkeypatc
 def test_ningun_estilo_del_sinoptico_queda_con_tokens_sin_resolver():
     """Un `$rol` que llega a Qt se ignora en silencio: el widget pierde el color.
 
-    Toda hoja que venga de una constante o de un constructor tiene que pasar por
-    `_qss()`, que la resuelve con la paleta antes de aplicarla.
+    Se recorre cada `setStyleSheet(...)` de la página y se comprueba que ninguna
+    hoja con tokens quede sin pasar por `_qss()`.
     """
-    import re
     from pathlib import Path
 
     fuente = (Path(__file__).resolve().parents[1] / "oms_ui" / "pages" / "synoptic.py").read_text(
         encoding="utf-8"
     )
-    sin_resolver = [
-        m.group(1).strip()[:60]
-        for m in re.finditer(r"setStyleSheet\(([^)]*)\)", fuente)
-        if ("_QSS" in m.group(1) or "_qss(" in m.group(1) or "qss(" in m.group(1))
-        and "_qss(" not in m.group(1)
-    ]
-    assert not sin_resolver, f"hojas sin resolver: {sin_resolver}"
+    pendientes, i = [], 0
+    while True:
+        j = fuente.find("setStyleSheet(", i)
+        if j < 0:
+            break
+        ini_arg = j + len("setStyleSheet(")
+        prof, k = 1, ini_arg
+        while k < len(fuente) and prof:
+            if fuente[k] == "(":
+                prof += 1
+            elif fuente[k] == ")":
+                prof -= 1
+            k += 1
+        arg = fuente[ini_arg : k - 1]
+        if "$" in arg and "_qss(" not in arg:
+            pendientes.append(fuente[:j].count("\n") + 1)
+        i = k
+    assert not pendientes, f"hojas con tokens sin resolver en las líneas {pendientes}"
