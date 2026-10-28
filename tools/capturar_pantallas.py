@@ -180,6 +180,26 @@ def main() -> int:
         except Exception as error:  # se reporta, no se inventa
             print(f"  audit: no se pudo construir ({error})")
 
+        # Resumen: la página con sus tres pestañas (historial, tabla, gráficas).
+        try:
+            from oms_ui.pages.summary import SummaryPage
+
+            resumen = SummaryPage(conn)
+            _capturar(resumen, _carpeta("reales") / f"pantalla-summary-{nombre_tema}.png", app)
+            for indice, nombre_tab in ((1, "tabla"), (2, "graficas")):
+                cambiar = getattr(resumen, "_switch_tab", None)
+                if cambiar is None:
+                    print("  summary: sin selector de pestaña")
+                    break
+                cambiar(indice)
+                _capturar(
+                    resumen,
+                    _carpeta("reales") / f"pantalla-summary-{nombre_tab}-{nombre_tema}.png",
+                    app,
+                )
+        except Exception as error:
+            print(f"  summary: no se pudo construir ({error})")
+
         for clave, vista in (
             ("cli3074", Cli3074View),
             ("cli4074", Cli4074View),

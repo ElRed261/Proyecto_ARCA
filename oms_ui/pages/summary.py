@@ -64,19 +64,27 @@ MONTHS = (
 )
 
 # -- module palette (the violet identity of the summary module) --------------
-_VIOLET = "#7c3aed"
-_VIOLET_DEEP = "#6d28d9"
-_VIOLET_LIGHT = "#faf5ff"
-_VIOLET_LINE = "#e9d5ff"
-_INK = "#0f172a"
-_SLATE = "#64748b"
-_FAINT = "#94a3b8"
-_BORDER = "#e2e8f0"
-_PAGE = "#f8fafc"
-_EMERALD = "#059669"
+def _qss(plantilla: str) -> str:
+    """Resuelve una plantilla QSS con la paleta del tema aplicado (S1)."""
+    from string import Template
+
+    from oms_ui import theme as _theme
+
+    return Template(plantilla).substitute(_theme.palette_actual())
+
+_VIOLET = "$violeta"
+_VIOLET_DEEP = "$violeta_fuerte"
+_VIOLET_LIGHT = "$violeta_suave"
+_VIOLET_LINE = "$violeta_borde"
+_INK = "$texto_alt"
+_SLATE = "$suave_alt"
+_FAINT = "$tenue"
+_BORDER = "$borde"
+_PAGE = "$panel_alt"
+_EMERALD = "$ok"
 
 #: The cell mark (background) for days with approved corrections.
-_MARK = QBrush(QColor("#fef9c3"))
+_MARK = None  # se construye con la paleta activa
 
 _TAB_HISTORY = 0
 _TAB_TABLE = 1
@@ -91,10 +99,10 @@ def _label(text: str, *, size: int = 13, weight: int = 600,
     (learned in the OBS rounds), so every widget carries its own style.
     """
     widget = QLabel(text)
-    widget.setStyleSheet(
+    widget.setStyleSheet(_qss(
         f"QLabel {{ font-size: {size}px; font-weight: {weight};"
         f" color: {color}; background: transparent; {extra} }}"
-    )
+    ))
     return widget
 
 
@@ -106,20 +114,20 @@ def _pill_qss(active: bool) -> str:
             " padding: 8px 14px; font-size: 13px; font-weight: 600; }"
         )
     return (
-        "QPushButton { background-color: #ffffff; color: #475569;"
+        "QPushButton { background-color: $superficie; color: $suave;"
         f" border: 1px solid {_BORDER}; border-radius: 8px;"
         " padding: 8px 14px; font-size: 13px; font-weight: 600; }"
-        "QPushButton:hover { background-color: #f8fafc; }"
+        "QPushButton:hover { background-color: $panel_alt; }"
     )
 
 
 def _filled_qss(color: str = _VIOLET, hover: str = _VIOLET_DEEP) -> str:
-    return (
-        f"QPushButton {{ background-color: {color}; color: #ffffff;"
+    return _qss(
+        f"QPushButton {{ background-color: {color}; color: $superficie;"
         " border: none; border-radius: 10px; padding: 10px 18px;"
         " font-size: 13px; font-weight: 700; }"
         f"QPushButton:hover {{ background-color: {hover}; }}"
-        "QPushButton:disabled { background-color: #e2e8f0; color: #94a3b8; }"
+        "QPushButton:disabled { background-color: $borde; color: $tenue; }"
     )
 
 
@@ -192,7 +200,7 @@ class SummaryTableModel(QAbstractTableModel):
         if role == Qt.ItemDataRole.BackgroundRole:
             day = self._day_of_row(index.row())
             if day in self._corrections:
-                return _MARK
+                return QBrush(QColor(_qss("$ambar_fondo")))
         if role == Qt.ItemDataRole.ToolTipRole:
             day = self._day_of_row(index.row())
             count = self._corrections.get(day)
@@ -241,20 +249,20 @@ class SummaryPage(QWidget):
         self.include_corrections.setChecked(False)  # the image shows it off
 
         self.generate_button = QPushButton("Cargar Mes")
-        self.generate_button.setIcon(lucide_icon("plus", "#ffffff", 16))
-        self.generate_button.setStyleSheet(_filled_qss())
+        self.generate_button.setIcon(lucide_icon("plus", _qss("$superficie"), 16))
+        self.generate_button.setStyleSheet(_qss(_filled_qss()))
         self.generate_button.setFixedHeight(42)
 
         self.manual_button = QPushButton("Generar Manual")
-        self.manual_button.setIcon(lucide_icon("plus", "#ffffff", 16))
-        self.manual_button.setStyleSheet(_filled_qss())
+        self.manual_button.setIcon(lucide_icon("plus", _qss("$superficie"), 16))
+        self.manual_button.setStyleSheet(_qss(_filled_qss()))
 
         self.history_tab_button = QPushButton("Historial")
         self.history_tab_button.setIcon(lucide_icon("clock", _VIOLET, 16))
         self.table_tab_button = QPushButton("Tabla de Datos")
-        self.table_tab_button.setIcon(lucide_icon("table", "#475569", 16))
+        self.table_tab_button.setIcon(lucide_icon("table", _qss("$suave"), 16))
         self.charts_tab_button = QPushButton("Gráficos")
-        self.charts_tab_button.setIcon(lucide_icon("bar-chart-3", "#475569", 16))
+        self.charts_tab_button.setIcon(lucide_icon("bar-chart-3", _qss("$suave"), 16))
         self._tab_buttons = (
             self.history_tab_button, self.table_tab_button, self.charts_tab_button,
         )
@@ -262,8 +270,8 @@ class SummaryPage(QWidget):
             button.setCursor(Qt.CursorShape.PointingHandCursor)
 
         self.export_button = QPushButton("Exportar Excel")
-        self.export_button.setIcon(lucide_icon("download", "#ffffff", 16))
-        self.export_button.setStyleSheet(_filled_qss(_EMERALD, "#047857"))
+        self.export_button.setIcon(lucide_icon("download", _qss("$superficie"), 16))
+        self.export_button.setStyleSheet(_qss(_filled_qss(_EMERALD, "$ok_texto")))
 
         self.table = QTableView()
         self.model = SummaryTableModel()
@@ -274,18 +282,18 @@ class SummaryPage(QWidget):
         self.progress.setValue(1)
         self.progress.setTextVisible(False)
         self.progress.setFixedHeight(6)
-        self.progress.setStyleSheet(
-            "QProgressBar { background-color: #ffffff; border: none;"
+        self.progress.setStyleSheet(_qss(
+            "QProgressBar { background-color: $superficie; border: none;"
             " border-radius: 3px; }"
             f"QProgressBar::chunk {{ background-color: {_VIOLET};"
             " border-radius: 3px; }"
-        )
+        ))
 
         self.status_label = QLabel("")
-        self.status_label.setStyleSheet(
+        self.status_label.setStyleSheet(_qss(
             f"QLabel {{ font-size: 12px; font-weight: 600; color: {_EMERALD};"
             " background: transparent; }"
-        )
+        ))
 
         self._build_ui()
         self._switch_tab(_TAB_HISTORY)
@@ -304,14 +312,14 @@ class SummaryPage(QWidget):
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.Shape.NoFrame)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        scroll.setStyleSheet(
+        scroll.setStyleSheet(_qss(
             f"QScrollArea {{ background-color: {_PAGE}; border: none; }}"
             f"QScrollArea > QWidget > QWidget {{ background-color: {_PAGE}; }}"
-        )
-        scroll.viewport().setStyleSheet(f"background-color: {_PAGE};")
+        ))
+        scroll.viewport().setStyleSheet(_qss(f"background-color: {_PAGE};"))
 
         content = QWidget()
-        content.setStyleSheet(f"background-color: {_PAGE};")
+        content.setStyleSheet(_qss(f"background-color: {_PAGE};"))
         page = QVBoxLayout(content)
         page.setContentsMargins(32, 24, 32, 32)
         page.setSpacing(20)
@@ -353,10 +361,10 @@ class SummaryPage(QWidget):
     def _build_card(self) -> QFrame:
         card = QFrame()
         card.setObjectName("card")
-        card.setStyleSheet(
-            "QFrame#card { background-color: #ffffff;"
+        card.setStyleSheet(_qss(
+            "QFrame#card { background-color: $superficie;"
             f" border: 1px solid {_BORDER}; border-radius: 16px; }}"
-        )
+        ))
         layout = QVBoxLayout(card)
         layout.setContentsMargins(24, 24, 24, 24)
         layout.setSpacing(0)
@@ -374,10 +382,10 @@ class SummaryPage(QWidget):
     def _build_panel(self) -> QFrame:
         panel = QFrame()
         panel.setObjectName("panel")
-        panel.setStyleSheet(
-            "QFrame#panel { background-color: #faf5ff;"
+        panel.setStyleSheet(_qss(
+            "QFrame#panel { background-color: $violeta_suave;"
             f" border: 1px solid {_VIOLET_LINE}; border-radius: 16px; }}"
-        )
+        ))
         layout = QVBoxLayout(panel)
         layout.setContentsMargins(24, 20, 24, 20)
         layout.setSpacing(14)
@@ -390,7 +398,7 @@ class SummaryPage(QWidget):
         head.addWidget(gauge)
         head.addWidget(_label(
             "CARGA AUTOMÁTICA POR ESTACIÓN Y PERÍODO",
-            size=11, weight=800, color="#6d28d9", extra="",
+            size=11, weight=800, color="$violeta_fuerte", extra="",
         ))
         head.addStretch(1)
         layout.addLayout(head)
@@ -400,15 +408,15 @@ class SummaryPage(QWidget):
         fields.addLayout(self._field("Estación Meteorológica", self.station_combo), 1)
         fields.addLayout(self._field("Mes", self.month_combo))
         fields.addLayout(self._field("Año", self.year_combo))
-        self.include_corrections.setStyleSheet(
-            f"QCheckBox {{ font-size: 13px; font-weight: 700; color: #334155;"
+        self.include_corrections.setStyleSheet(_qss(
+            f"QCheckBox {{ font-size: 13px; font-weight: 700; color: $texto;"
             " background: transparent; spacing: 8px; }"
             f"QCheckBox::indicator {{ width: 17px; height: 17px;"
-            f" border: 1px solid #cbd5e1; border-radius: 4px;"
-            " background-color: #ffffff; }"
+            f" border: 1px solid $borde_input; border-radius: 4px;"
+            " background-color: $superficie; }"
             f"QCheckBox::indicator:checked {{ background-color: {_VIOLET};"
-            " border-color: #6d28d9; }"
-        )
+            " border-color: $violeta_fuerte; }"
+        ))
         fields.addWidget(self.include_corrections, 0, Qt.AlignmentFlag.AlignBottom)
         fields.addWidget(self.generate_button, 0, Qt.AlignmentFlag.AlignBottom)
         layout.addLayout(fields)
@@ -421,12 +429,12 @@ class SummaryPage(QWidget):
         box.setSpacing(6)
         box.addWidget(_label(caption, size=12, weight=600, color=_SLATE))
         if isinstance(widget, StyledComboBox):
-            widget.setStyleSheet(
-                f"QComboBox {{ background-color: #ffffff; border: 1px solid"
+            widget.setStyleSheet(_qss(
+                f"QComboBox {{ background-color: $superficie; border: 1px solid"
                 f" {_BORDER}; border-radius: 10px; padding: 8px 12px;"
                 f" font-size: 13px; font-weight: 500; color: {_INK}; }}"
                 "QComboBox::drop-down { border: none; width: 22px; }"
-            )
+            ))
         box.addWidget(widget)
         return box
 
@@ -449,10 +457,10 @@ class SummaryPage(QWidget):
 
         self.empty_state = QFrame()
         self.empty_state.setObjectName("empty")
-        self.empty_state.setStyleSheet(
-            "QFrame#empty { background-color: #f8fafc;"
-            " border: 1px dashed #cbd5e1; border-radius: 16px; }"
-        )
+        self.empty_state.setStyleSheet(_qss(
+            "QFrame#empty { background-color: $panel_alt;"
+            " border: 1px dashed $borde_input; border-radius: 16px; }"
+        ))
         empty = QVBoxLayout(self.empty_state)
         empty.setContentsMargins(32, 48, 32, 48)
         empty.setSpacing(12)
@@ -502,16 +510,16 @@ class SummaryPage(QWidget):
 
         self.table.setMinimumHeight(520)
         self.table.verticalHeader().setDefaultSectionSize(30)
-        self.table.setStyleSheet(
-            f"QTableView {{ background-color: #ffffff; border: 1px solid {_BORDER};"
-            " border-radius: 12px; gridline-color: #eef2f7;"
-            f" font-size: 12px; color: {_INK}; selection-background-color: #ede9fe;"
-            " selection-color: #0f172a; }"
-            "QHeaderView::section { background-color: #1e293b; color: #ffffff;"
+        self.table.setStyleSheet(_qss(
+            f"QTableView {{ background-color: $superficie; border: 1px solid {_BORDER};"
+            " border-radius: 12px; gridline-color: $borde;"
+            f" font-size: 12px; color: {_INK}; selection-background-color: $violeta_borde;"
+            " selection-color: $texto_alt; }"
+            "QHeaderView::section { background-color: $banda; color: $superficie;"
             " font-size: 11px; font-weight: 800; padding: 8px 6px; border: none;"
-            " border-right: 1px solid #334155; }"
-            "QTableView QTableCornerButton::section { background-color: #1e293b; }"
-        )
+            " border-right: 1px solid $texto; }"
+            "QTableView QTableCornerButton::section { background-color: $banda; }"
+        ))
         self.table.verticalHeader().setVisible(False)
         self.table.setAlternatingRowColors(False)
         self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
@@ -530,7 +538,7 @@ class SummaryPage(QWidget):
             index = _TAB_HISTORY
         self.stack.setCurrentIndex(index)
         for position, button in enumerate(self._tab_buttons):
-            button.setStyleSheet(_pill_qss(position == index))
+            button.setStyleSheet(_qss(_pill_qss(position == index)))
 
     def _sync_tab_visibility(self) -> None:
         """Tabla de Datos exists only with a document (oracle + image)."""
@@ -674,11 +682,11 @@ class SummaryPage(QWidget):
         card = _ClickableFrame()
         card.setObjectName("historyCard")
         card.setCursor(Qt.CursorShape.PointingHandCursor)
-        card.setStyleSheet(
-            "QFrame#historyCard { background-color: #ffffff;"
+        card.setStyleSheet(_qss(
+            "QFrame#historyCard { background-color: $superficie;"
             f" border: 1px solid {_BORDER}; border-radius: 12px; }}"
-            "QFrame#historyCard:hover { border-color: #c4b5fd; }"
-        )
+            "QFrame#historyCard:hover { border-color: $violeta; }"
+        ))
         card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
         row = QHBoxLayout(card)
@@ -709,11 +717,11 @@ class SummaryPage(QWidget):
         delete.setToolTip("Enviar a la papelera")
         delete.setCursor(Qt.CursorShape.PointingHandCursor)
         delete.setFixedSize(32, 32)
-        delete.setStyleSheet(
+        delete.setStyleSheet(_qss(
             "QPushButton { background: transparent; border: none;"
             " border-radius: 8px; }"
-            "QPushButton:hover { background-color: #fee2e2; }"
-        )
+            "QPushButton:hover { background-color: $error_suave; }"
+        ))
         delete.clicked.connect(lambda _=False, e=entry: self.on_delete(e))
         row.addWidget(delete)
 
@@ -744,12 +752,12 @@ class SummaryPage(QWidget):
         self.progress.hide()
 
     def _status(self, text: str, *, error: bool = False) -> None:
-        color = "#dc2626" if error else _EMERALD
+        color = "$error_fuerte" if error else _EMERALD
         self.status_label.setText(text)
-        self.status_label.setStyleSheet(
+        self.status_label.setStyleSheet(_qss(
             f"QLabel {{ font-size: 12px; font-weight: 600; color: {color};"
             " background: transparent; }"
-        )
+        ))
 
 
 __all__ = ["MONTHS", "SummaryPage", "SummaryTableModel"]

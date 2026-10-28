@@ -85,8 +85,24 @@ def test_no_quedan_roles_transitorios():
     retirados = {"acento_debil", "acento_debil_alt"}
     for nombre, paleta in theme.PALETTES.items():
         assert not (retirados & set(paleta)), f"{nombre} conserva roles retirados"
-        assert not [rol for rol in paleta if rol.startswith("violeta")], nombre
 
+
+def test_los_roles_de_identidad_de_modulo_existen_y_se_usan():
+    """El violeta no es un rol transitorio: es la identidad del Resumen.
+
+    En F1 se retiró porque sólo existía para mapear el QSS viejo; volvió en F7
+    con un uso real. El test ahora exige las dos cosas: que esté en las dos
+    paletas y que el módulo lo use, para que no vuelva a quedar huérfano.
+    """
+    from pathlib import Path
+
+    violeta = {"violeta", "violeta_fuerte", "violeta_suave", "violeta_borde"}
+    for nombre, paleta in theme.PALETTES.items():
+        assert violeta <= set(paleta), f"{nombre} no define toda la familia violeta"
+    fuente = (
+        Path(__file__).resolve().parents[1] / "oms_ui" / "pages" / "summary.py"
+    ).read_text(encoding="utf-8")
+    assert "$violeta" in fuente, "el Resumen dejó de usar su identidad violeta"
 
 def test_el_qss_no_pide_ningun_rol_retirado():
     for nombre in theme.THEMES:
