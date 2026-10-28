@@ -51,6 +51,17 @@ NAV_ENTRIES = (
     ("admin", "Seguridad", "#64748b", "SE"),
 )
 
+#: Icono Lucide de cada entrada del riel (provisional, ver LICENSE.md).
+_RAIL_ICONS = {
+    "dashboard": "radar",
+    "synoptic": "cloud-sun",
+    "audit": "clipboard-check",
+    "summary": "chart-column",
+    "maintenance": "settings",
+    "transform": "file-spreadsheet",
+    "admin": "shield-check",
+}
+
 _RAIL_EXPANDED_WIDTH = 200
 _RAIL_COLLAPSED_WIDTH = 76
 
@@ -128,13 +139,25 @@ class MainWindow(QMainWindow):
         # home click target: tapping it returns to the default landing page
         from PySide6.QtWidgets import QLabel
 
+        fila_logo = QWidget()
+        # Sin esto el contenedor pinta el fondo de ventana sobre el riel.
+        fila_logo.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        fila_logo_layout = QHBoxLayout(fila_logo)
+        fila_logo_layout.setContentsMargins(0, 0, 0, 0)
+        fila_logo_layout.setSpacing(6)
+        self._rail_logo_icon = QLabel()
+        self._rail_logo_icon.setObjectName("railLogoIcon")
+        fila_logo_layout.addWidget(self._rail_logo_icon)
         self._rail_logo = QLabel("OMS")
         self._rail_logo.setObjectName("railLogo")
-        self._rail_logo.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._rail_logo.setToolTip("Inicio")
-        self._rail_logo.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._rail_logo.mousePressEvent = lambda _event: self._navigate_to("dashboard")
-        layout.addWidget(self._rail_logo)
+        self._rail_logo.setAlignment(
+            Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft
+        )
+        fila_logo_layout.addWidget(self._rail_logo, 1)
+        fila_logo.setToolTip("Inicio")
+        fila_logo.setCursor(Qt.CursorShape.PointingHandCursor)
+        fila_logo.mousePressEvent = lambda _event: self._navigate_to("dashboard")
+        layout.addWidget(fila_logo)
 
         self._rail_buttons: dict[str, QPushButton] = {}
         for page_id, label, accent, mono in NAV_ENTRIES:
@@ -184,14 +207,24 @@ class MainWindow(QMainWindow):
             _RAIL_COLLAPSED_WIDTH if collapsed else _RAIL_EXPANDED_WIDTH
         )
         self._rail_widget.setProperty("collapsed", "true" if collapsed else "false")
+        from PySide6.QtCore import QSize
+
+        from oms_ui import theme
+        from oms_ui.icons_svg import rail_icon
+
+        acento = theme.palette()["acento"]
+        self._rail_logo_icon.setPixmap(rail_icon("radar", acento, 20).pixmap(20, 20))
         for page_id, label, _accent, mono in NAV_ENTRIES:
             button = self._rail_buttons.get(page_id)
             if button is None:
                 continue
             button.setProperty("collapsed", "true" if collapsed else "false")
             button.setText(mono if collapsed else f"  {label}")
+            button.setIconSize(QSize(18, 18))
+            button.setIcon(rail_icon(_RAIL_ICONS.get(page_id, "radar"), acento))
             _repolish(button)
-        self._rail_logo.setText("OMS" if collapsed else "OMS · Observations")
+        self._rail_logo.setText("OMS · Observations")
+        self._rail_logo.setVisible(not collapsed)
         if hasattr(self, "_email_label"):
             self._email_label.setVisible(not collapsed)
             # Elipsis según el ancho real del riel: si se colapsa o cambia la
