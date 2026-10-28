@@ -1354,7 +1354,9 @@ def test_cli5074_red_only_where_it_speaks(cli3074_page, qtbot):
                if w.text() == "INICIO (HH:MM)")
     fin = next(w for w in view.findChildren(QLabel)
                if w.text() == "FINAL (HH:MM)")
-    assert rojo in ini.styleSheet() and rojo in fin.styleSheet()
+    # identidad roja en las cabeceras: tinte de error con texto de error
+    assert theme.palette_actual()["error_texto"] in ini.styleSheet()
+    assert theme.palette_actual()["error_texto"] in fin.styleSheet()
     # station/fecha card: NO module color at all
     card = view.station_combo.parentWidget()
     assert rojo not in card.styleSheet()
@@ -1427,8 +1429,8 @@ def test_cli5074_red_accent_map(cli3074_page, qtbot):
     by_text = {}
     for w in view.findChildren(QLabel):
         by_text.setdefault(w.text(), w.styleSheet())
-    assert rojo in by_text["FINAL (HH:MM)"]
-    assert rojo in by_text["INICIO (HH:MM)"]
+    assert theme.palette_actual()["error_texto"] in by_text["FINAL (HH:MM)"]
+    assert theme.palette_actual()["error_texto"] in by_text["INICIO (HH:MM)"]
     assert rojo in by_text["(°C)"]          # subsuelo unit chip
     assert rojo in by_text["(mm)"]          # evap unit chips
     assert "PUNTO DE ROCÍO (°C)" not in by_text   # removed with the block

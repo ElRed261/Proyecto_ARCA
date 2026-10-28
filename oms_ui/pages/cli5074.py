@@ -92,7 +92,7 @@ _FENO_GROUPS: tuple[tuple[str, str, str, tuple[tuple[str, str], ...]], ...] = (
 
 #: owner round 12: unit sub-headers (mm)/(°C) speak the module's red.
 _UNIT_RED_QSS = (
-    "background-color: $error_fuerte; color: $banda_texto; font-weight: 600;"
+    "background-color: $error_fuerte; color: $sobre_acento; font-weight: 600;"
     "font-size: 10px; padding: 4px 2px;"
 )
 _SECTION_QSS = (
@@ -113,8 +113,8 @@ _HEADER_QSS = (
 _DEFAULT = {"color": "$error_suave", "text": "$error_fuerte"}
 #: Sub-encabezado: texto gris, sin relleno.
 _SUB_HEADER_QSS = (
-    "background-color: transparent; color: $suave_alt; font-weight: 600;"
-    "font-size: 10px; padding: 2px;"
+    "background-color: transparent; border: none; border-radius: 0px;"
+    "color: $texto; font-weight: 700; font-size: 10px; padding: 2px;"
 )
 _INPUT_QSS = (
     "QLineEdit { background-color: $superficie; border: 1px solid $borde;"
@@ -315,12 +315,12 @@ class Cli5074View(QWidget):
         card_layout.addLayout(grid)
         corner = QLabel("HORA LOCAL")
         corner.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        corner.setStyleSheet(_qss(_HEADER_QSS.format(color="$error_fuerte", text="$error_fuerte")))
+        corner.setStyleSheet(_qss(_HEADER_QSS.format(color="$error_suave", text="$error_texto")))
         grid.addWidget(corner, 0, 0)
         for col_index, row in enumerate(_HOURLY_ROWS):
             head = QLabel(str(row))
             head.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            head.setStyleSheet(_qss(_HEADER_QSS.format(color="$error_fuerte", text="$error_fuerte")))
+            head.setStyleSheet(_qss(_HEADER_QSS.format(color="$error_suave", text="$error_texto")))
             grid.addWidget(head, 0, 1 + col_index)
         self.hour_inputs: dict[int, dict[str, QLineEdit]] = {}
         for row_index, (field, label) in enumerate(_HOURLY_FIELDS):
@@ -432,7 +432,7 @@ class Cli5074View(QWidget):
             header = QLabel(text)
             header.setAlignment(Qt.AlignmentFlag.AlignCenter)
             header.setWordWrap(True)
-            header.setStyleSheet(_qss(_HEADER_QSS.format(color=color, text="$error_fuerte")))
+            header.setStyleSheet(_qss(_HEADER_QSS.format(color="$error_suave", text="$error_texto")))
             # sin subtítulo el header abarca ambas filas: sin hueco debajo
             feno_grid.addWidget(header, 0, col, 2 if no_sub else 1, span)
             for offset, (field, sub) in enumerate(fields):

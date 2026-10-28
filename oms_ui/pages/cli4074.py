@@ -67,16 +67,16 @@ _ROWSPAN_FIELDS: tuple[tuple[str, str, str], ...] = (
 #: ONE stylesheet for the sheet: each cell carries ``row`` ("main"/"sub") and
 #: ``ro`` so Qt parses the rules once instead of ~350 times.
 _SHEET_QSS = """
-QLineEdit[row="sub"] { background-color: $superficie; border: 1px solid $borde;
-    color: $texto; font-size: 12px; padding: 3px 4px; }
+QLineEdit[row="sub"] { background-color: $superficie; border: none; border-bottom: 1px solid $borde; border-right: 1px solid $borde;
+    color: $texto; font-size: 12px; padding: 3px 4px; border-radius: 0px; }
 QLineEdit[row="sub"]:focus { border-color: $acento; background-color: $acento_fondo; }
-QLineEdit[row="main"] { background-color: $ok_fondo; border: 1px solid $ok_borde;
-    color: $texto; font-size: 12px; padding: 3px 4px; }
+QLineEdit[row="main"] { background-color: $ok_fondo; border: none; border-bottom: 1px solid $ok_borde; border-right: 1px solid $ok_borde;
+    color: $texto; font-size: 12px; padding: 3px 4px; border-radius: 0px; }
 QLineEdit[row="main"]:focus { border-color: $ok; background-color: $superficie; }
 QLineEdit[row="main"][ro="true"] { background-color: $ok_borde;
-    border: 1px solid $ok; color: $ok_texto; font-weight: 600; }
+    border: none; border-bottom: 1px solid $ok; border-right: 1px solid $ok; color: $ok_texto; font-weight: 600; }
 QLineEdit[row="sub"][ro="true"] { background-color: $panel_alt;
-    border: 1px solid $borde; color: $suave; }
+    border: none; border-bottom: 1px solid $borde; border-right: 1px solid $borde; color: $suave; }
 """
 
 _TEMPS: tuple[tuple[str, str], ...] = (("temp_max", "Máx"), ("temp_min", "Mín"))
@@ -111,13 +111,13 @@ INPUT_QSS = (
 #: oscura, para que se lea en los dos temas (forma del mockup).
 _HEADER_QSS = (
     "background-color: {color}; color: {text}; font-weight: 800;"
-    "font-size: 11px; padding: 6px 4px; border-radius: 3px;"
+    "font-size: 11px; padding: 6px 4px; border-radius: 0px;"
 )
 _DEFAULT = {"color": "$ok_fondo", "text": "$ok_texto"}
 #: Sub-encabezado: texto gris, sin relleno.
 _SUB_HEADER_QSS = (
-    "background-color: transparent; color: $suave_alt; font-weight: 600;"
-    "font-size: 10px; padding: 2px;"
+    "background-color: transparent; border: none; border-radius: 0px;"
+    "color: $texto; font-weight: 700; font-size: 10px; padding: 2px;"
 )
 _SAVE_QSS = (
     "QPushButton { background-color: $acento; color: $sobre_acento;"
@@ -236,7 +236,7 @@ class Cli4074View(QWidget):
             header = QLabel(text)
             header.setAlignment(Qt.AlignmentFlag.AlignCenter)
             header.setWordWrap(True)
-            header.setStyleSheet(_qss(_HEADER_QSS.format(color=color, text="$ok_texto")))
+            header.setStyleSheet(_qss(_HEADER_QSS.format(color="$ok_fondo", text="$ok_texto")))
             grid.addWidget(header, 0, at_col, 2, 1)  # full header height
 
         def group_header(at_col: int, text: str, color: str,
@@ -244,11 +244,11 @@ class Cli4074View(QWidget):
             header = QLabel(text)
             header.setAlignment(Qt.AlignmentFlag.AlignCenter)
             header.setWordWrap(True)
-            header.setStyleSheet(_qss(_HEADER_QSS.format(color=color, text="$ok_texto")))
+            header.setStyleSheet(_qss(_HEADER_QSS.format(color="$ok_fondo", text="$ok_texto")))
             grid.addWidget(header, 0, at_col, 1, span)
             for offset, (field, sub) in enumerate(fields):
                 if field in TOTAL_FIELDS:  # full height + emerald, like N
-                    rowspan_header(sub, _qss("$ok_texto"), at_col + offset)
+                    rowspan_header(sub, "$ok_borde", at_col + offset)
                     continue
                 sub_label = QLabel(sub)
                 sub_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -274,7 +274,7 @@ class Cli4074View(QWidget):
             number.setAlignment(Qt.AlignmentFlag.AlignCenter)
             main = (row - 2) % 3 == 0
             number.setStyleSheet(_qss(
-                f"background-color: {_qss(_MAIN_STICKY) if main else _qss('$panel')};"
+                "background-color: transparent; border: none; border-radius: 0px;"
                 f"color: {_qss(_MAIN_NUMBER) if main else _qss('$suave')}; font-weight: bold;"
                 "font-size: 12px; padding: 4px 5px;"
             ))

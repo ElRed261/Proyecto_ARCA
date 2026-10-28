@@ -99,13 +99,13 @@ _MAIN_STICKY_TINT = "$acento_suave"   # celdas de número fijo
 #: oscura, para que se lea en los dos temas (forma del mockup).
 _HEADER_QSS = (
     "background-color: {color}; color: {text}; font-weight: 800;"
-    "font-size: 11px; padding: 6px 4px; border-radius: 3px;"
+    "font-size: 11px; padding: 6px 4px; border-radius: 0px;"
 )
 _DEFAULT = {"color": "$acento_suave", "text": "$acento_texto"}
 #: Sub-encabezado: texto gris, sin relleno.
 _SUB_HEADER_QSS = (
-    "background-color: transparent; color: $suave_alt; font-weight: 600;"
-    "font-size: 10px; padding: 2px;"
+    "background-color: transparent; border: none; border-radius: 0px;"
+    "color: $texto; font-weight: 700; font-size: 10px; padding: 2px;"
 )
 INPUT_QSS = (
     "QLineEdit { background-color: $superficie; border: 1px solid $borde;"
@@ -145,18 +145,18 @@ _MAIN_CHECKBOX_QSS = (
 #: ("main"/"sub") and ``ro`` for read-only, so Qt parses the rules once instead
 #: of 400 times: per-widget setStyleSheet measured 48% of the build time.
 _SHEET_QSS = """
-QLineEdit[row="sub"] { background-color: $superficie; border: 1px solid $borde;
-    color: $texto; font-size: 12px; padding: 3px 4px; }
+QLineEdit[row="sub"] { background-color: $superficie; border: none; border-bottom: 1px solid $borde; border-right: 1px solid $borde;
+    color: $texto; font-size: 12px; padding: 3px 4px; border-radius: 0px; }
 QLineEdit[row="sub"]:focus { border-color: $acento; background-color: $acento_fondo; }
 QLineEdit[row="sub"][ro="true"] { background-color: $acento_fondo;
-    border: 1px solid $acento_suave; color: $acento_texto; font-weight: bold;
-    font-size: 12px; padding: 3px 4px; }
-QLineEdit[row="main"] { background-color: $acento_suave; border: 1px solid $borde;
-    color: $texto; font-size: 12px; padding: 3px 4px; }
+    border: none; border-bottom: 1px solid $acento_suave; border-right: 1px solid $acento_suave; color: $acento_texto; font-weight: bold;
+    font-size: 12px; padding: 3px 4px; border-radius: 0px; }
+QLineEdit[row="main"] { background-color: $acento_suave; border: none; border-bottom: 1px solid $borde; border-right: 1px solid $borde;
+    color: $texto; font-size: 12px; padding: 3px 4px; border-radius: 0px; }
 QLineEdit[row="main"]:focus { border-color: $acento; background-color: $superficie; }
 QLineEdit[row="main"][ro="true"] { background-color: $acento_fondo;
-    border: 1px solid $borde; color: $acento_texto; font-weight: bold;
-    font-size: 12px; padding: 3px 4px; }
+    border: none; border-bottom: 1px solid $borde; border-right: 1px solid $borde; color: $acento_texto; font-weight: bold;
+    font-size: 12px; padding: 3px 4px; border-radius: 0px; }
 /* base rules first, attribute overrides after: Qt matches the subcontrol
    rules only when the base `::indicator` block exists */
 QCheckBox { background-color: transparent; }
@@ -171,12 +171,10 @@ QCheckBox#checkMain::indicator:checked { background-color: $acento; }
    here while they do on QLineEdit, and a silently unstyled header is worse
    than a slightly longer selector */
 QLabel { background: transparent; }
-QLabel#hourMain { background-color: $acento_suave; color: $acento_texto;
-    font-weight: bold; font-size: 12px; padding: 4px 6px;
-    border-radius: 3px; }
-QLabel#hourSub { background-color: $panel; color: $suave;
-    font-weight: bold; font-size: 12px; padding: 4px 6px;
-    border-radius: 3px; }
+QLabel#hourMain { background: transparent; color: $acento_texto;
+    font-weight: 800; font-size: 12px; padding: 2px 4px; border: none; border-radius: 0px; }
+QLabel#hourSub { background: transparent; color: $texto;
+    font-weight: 600; font-size: 12px; padding: 2px 4px; border: none; border-radius: 0px; }
 """
 
 _SAVE_QSS = (
@@ -529,6 +527,14 @@ class Cli3074View(QWidget):
         hour_label = QLabel(str(row))
         hour_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         hour_label.setObjectName("hourMain" if main else "hourSub")
+        # Número de fila como texto, sin caja (mockup). Hoja propia: sin ella
+        # Qt dibujaba el contorno heredado y quedaba una píldora.
+        hour_label.setStyleSheet(_qss(
+            "background: transparent; border: none; border-radius: 0px;"
+            + ("color: $acento_texto; font-weight: 800;" if main else
+               "color: $texto; font-weight: 600;")
+            + " font-size: 12px; padding: 2px 4px;"
+        ))
         grid.addWidget(hour_label, row + 1, 0)
 
         self.row_inputs.setdefault(row, {})
