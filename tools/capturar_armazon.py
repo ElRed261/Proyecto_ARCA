@@ -24,6 +24,7 @@ from PySide6.QtWidgets import QApplication  # noqa: E402
 from oms_core.db import migrations  # noqa: E402
 from oms_core.db.connection import connect  # noqa: E402
 from oms_ui import theme  # noqa: E402
+from oms_ui.login_window import LoginWindow  # noqa: E402
 from oms_ui.main_window import MainWindow  # noqa: E402
 
 SALIDA = RAIZ / "Migración" / "evidencias" / "DISENO_NUEVO" / "shell"
@@ -48,6 +49,19 @@ def _ventana(conn, colapsado: bool, tema: str) -> MainWindow:
     return ventana
 
 
+def _capturar_login(app: QApplication) -> None:
+    """Login con los campos vacíos y con un error de credenciales."""
+    for tema in ("claro", "oscuro"):
+        theme.apply_theme(app, tema)
+        ventana = LoginWindow(login_func=lambda _c, _p: None)
+        ventana.show()
+        QApplication.processEvents()
+        destino = SALIDA / f"login-{tema}.png"
+        ventana.grab().save(str(destino))
+        print(f"  {destino.name}  ({destino.stat().st_size // 1024} KB)")
+        ventana.close()
+
+
 def main() -> int:
     app = QApplication.instance() or QApplication(sys.argv)
     theme.apply_theme(app, "claro")
@@ -64,6 +78,7 @@ def main() -> int:
             print(f"  {destino.name}  ({destino.stat().st_size // 1024} KB)")
             ventana.close()
         conn.close()
+    _capturar_login(app)
     return 0
 
 

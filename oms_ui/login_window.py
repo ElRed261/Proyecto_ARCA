@@ -116,7 +116,7 @@ class LoginWindow(QWidget):
         self.login_button.setMinimumHeight(44)
         layout.addWidget(self.login_button)
 
-        footer = QLabel("🔒 Modo Local — Autenticación Offline")
+        footer = QLabel("Modo Local — Autenticación Offline")
         footer.setAlignment(Qt.AlignmentFlag.AlignCenter)
         footer.setStyleSheet(
             "font-size: 11px; color: #94a3b8; background: transparent; margin-top: 14px;"

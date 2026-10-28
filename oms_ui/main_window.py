@@ -162,7 +162,7 @@ class MainWindow(QMainWindow):
             # Sin PlainText, Qt lee el correo como enlace y lo pinta azul
             # y subrayado, ignorando el QSS.
             self._email_label.setTextFormat(Qt.TextFormat.PlainText)
-            self._email_label.setWordWrap(True)
+            self._email_label.setToolTip(self.email)
             layout.addWidget(self._email_label)
 
         # owner round 11 (Gemini-style): NO «/» toggle button — clicking the
@@ -194,6 +194,18 @@ class MainWindow(QMainWindow):
         self._rail_logo.setText("OMS" if collapsed else "OMS · Observations")
         if hasattr(self, "_email_label"):
             self._email_label.setVisible(not collapsed)
+            # Elipsis según el ancho real del riel: si se colapsa o cambia la
+            # fuente, el texto se recorta donde entra y el correo completo
+            # queda en el tooltip.
+            from PySide6.QtGui import QFontMetrics
+
+            self._email_label.setText(
+                QFontMetrics(self._email_label.font()).elidedText(
+                    self.email or "",
+                    Qt.TextElideMode.ElideRight,
+                    _RAIL_EXPANDED_WIDTH - 32,
+                )
+            )
         if hasattr(self, "_logout_button"):
             self._logout_button.setText("⏻" if collapsed else "Salir")
             self._logout_button.setToolTip("Salir")
