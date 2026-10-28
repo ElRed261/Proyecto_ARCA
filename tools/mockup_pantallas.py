@@ -39,7 +39,7 @@ from oms_ui.theme import PALETTES  # noqa: E402
 ANCHO, ALTO = 1366, 768
 SALIDA = Path("Migración/evidencias/DISENO_NUEVO")
 #: Una carpeta por módulo: así la evidencia no se mezcla.
-MODULOS = ("synop", "cli", "audit", "summary", "estados")
+MODULOS = ("synop", "cli", "audit", "summary", "shell", "transformar", "config", "estados")
 
 HORAS = ("06Z", "09Z", "12Z", "15Z", "18Z", "21Z", "00Z", "03Z")
 HORA_ACTIVA = "12Z"
@@ -1892,8 +1892,8 @@ def pantalla_summary_historial(p: dict) -> QWidget:
         tipo.setFont(ui(9, 800))
         tipo.setStyleSheet(f"color:{p['tenue']};background:transparent;border:none;")
         fila.addWidget(tipo)
-        borrar = QLabel("🗑")
-        borrar.setFont(ui(12))
+        borrar = QLabel("×")
+        borrar.setFont(ui(14, 600))
         borrar.setFixedSize(30, 30)
         borrar.setAlignment(Qt.AlignCenter)
         borrar.setStyleSheet(
@@ -2553,6 +2553,596 @@ def pantalla_summary_graficas(p: dict, grupo: str = "temp") -> QWidget:
     return pagina
 
 
+# ------------------------------------------------ Armazón, Login y el resto
+# Estructura extraída del código: main_window.py (rail de 200/76 px, logo, seis
+# entradas con monograma y acento, stretch, email y Salir), dashboard.py (fecha,
+# «Centro de operaciones», etiqueta de bloqueo, grilla de tarjetas de estación y
+# fila de sincronización), login_window.py (tarjeta de 440 px) y maintenance.py
+# (rutas, estructura, backups, apariencia, sincronización y migración).
+
+NAV = (
+    ("Sinóptico", "SI", "acento"), ("Auditoría", "AU", "naranja"),
+    ("Resumen", "RE", "violeta"), ("Configuración", "CO", "teal"),
+    ("Transformar", "TR", "acento"), ("Seguridad", "SE", "suave"),
+)
+ESTACIONES_TARJETA = (
+    ("Las Américas", "78485", 5, 22), ("Central", "78486", 8, 26),
+    ("Barahona", "78482", 3, 18), ("Cabrera", "78481", 6, 24),
+    ("El Catey", "MDCY", 2, 11), ("Higuero", "78484", 7, 25),
+)
+
+
+def _rail(p: dict, activo: str = "") -> QWidget:
+    rail = QWidget()
+    rail.setObjectName("rail")
+    rail.setStyleSheet(
+        f"QWidget#rail {{ background:{p['superficie']};"
+        f" border-right:1px solid {p['borde']}; }}"
+    )
+    rail.setFixedWidth(200)
+    v = QVBoxLayout(rail)
+    v.setContentsMargins(8, 12, 8, 12)
+    v.setSpacing(4)
+    logo = QLabel("OMS · Observations")
+    logo.setFont(ui(13, 800))
+    logo.setAlignment(Qt.AlignCenter)
+    logo.setStyleSheet(f"color:{p['texto']};background:transparent;border:none;")
+    v.addWidget(logo)
+    v.addSpacing(6)
+    for etiqueta, mono, rol in NAV:
+        es_activo = etiqueta == activo
+        boton = QLabel(f"{mono}   {etiqueta}")
+        boton.setFont(ui(11, 600 if not es_activo else 800))
+        boton.setMinimumHeight(40)
+        boton.setStyleSheet(
+            f"background:{p['acento_suave'] if es_activo else 'transparent'};"
+            f"color:{p['acento'] if es_activo else p['texto']};"
+            f"border-left:3px solid {p[rol] if es_activo else 'transparent'};"
+            "border-top:none;border-right:none;border-bottom:none;padding:0 10px;"
+        )
+        v.addWidget(boton)
+    v.addStretch(1)
+    correo = QLabel("calidad@arca.rd")
+    correo.setFont(ui(9))
+    correo.setStyleSheet(f"color:{p['suave']};background:transparent;border:none;")
+    v.addWidget(correo)
+    salir = QLabel("Salir")
+    salir.setFont(ui(11, 600))
+    salir.setFixedHeight(30)
+    salir.setStyleSheet(
+        f"background:{p['superficie']};color:{p['suave']};"
+        f"border:1px solid {p['borde']};border-radius:4px;"
+    )
+    salir.setAlignment(Qt.AlignCenter)
+    v.addWidget(salir)
+    return rail
+
+
+def _barra_estado(p: dict, texto: str = "Listo") -> QWidget:
+    barra = QWidget()
+    barra.setObjectName("estadoB")
+    barra.setStyleSheet(
+        f"QWidget#estadoB {{ background:{p['panel']};"
+        f" border-top:1px solid {p['borde']}; }}"
+    )
+    barra.setFixedHeight(22)
+    fila = QHBoxLayout(barra)
+    fila.setContentsMargins(10, 0, 10, 0)
+    lab = QLabel(texto)
+    lab.setFont(ui(9))
+    lab.setStyleSheet(f"color:{p['suave']};background:transparent;border:none;")
+    fila.addWidget(lab)
+    fila.addStretch(1)
+    return barra
+
+
+def pantalla_shell_dashboard(p: dict) -> QWidget:
+    pagina = QWidget()
+    pagina.setObjectName("pagina")
+    pagina.setStyleSheet(f"QWidget#pagina {{ background:{p['fondo']}; }}")
+    raiz = QVBoxLayout(pagina)
+    raiz.setContentsMargins(0, 0, 0, 0)
+    raiz.setSpacing(0)
+    cuerpo = QHBoxLayout()
+    cuerpo.setContentsMargins(0, 0, 0, 0)
+    cuerpo.setSpacing(0)
+    cuerpo.addWidget(_rail(p, activo=""))
+
+    contenido = QWidget()
+    contenido.setObjectName("cont")
+    contenido.setStyleSheet("QWidget#cont { background:transparent; }")
+    cv = QVBoxLayout(contenido)
+    cv.setContentsMargins(24, 18, 24, 14)
+    cv.setSpacing(8)
+
+    fecha = QLabel("08/12/2025")
+    fecha.setFont(ui(11))
+    fecha.setStyleSheet(f"color:{p['suave']};background:transparent;")
+    cv.addWidget(fecha)
+    titulo = QLabel("Centro de operaciones")
+    titulo.setFont(ui(24, 800))
+    titulo.setStyleSheet(f"color:{p['texto']};background:transparent;")
+    cv.addWidget(titulo)
+    bloqueo = QLabel("Instancia bloqueada a Las Américas (78485)")
+    bloqueo.setFont(ui(12))
+    bloqueo.setStyleSheet(f"color:{p['suave']};background:transparent;")
+    cv.addWidget(bloqueo)
+
+    grilla = QGridLayout()
+    grilla.setHorizontalSpacing(12)
+    grilla.setVerticalSpacing(12)
+    for indice, (nombre, codigo, hoy, dias) in enumerate(ESTACIONES_TARJETA):
+        tarjeta = QWidget()
+        tarjeta.setObjectName("estC")
+        tarjeta.setStyleSheet(
+            f"QWidget#estC {{ background:{p['superficie']};"
+            f" border:1px solid {p['borde']}; border-radius:8px; }}"
+        )
+        tc = QVBoxLayout(tarjeta)
+        tc.setContentsMargins(12, 12, 12, 12)
+        tc.setSpacing(6)
+        cab = QHBoxLayout()
+        cab.setSpacing(10)
+        mono = nombre.split()[0][:2].upper()
+        tile = QLabel(mono)
+        tile.setFont(ui(13, 800))
+        tile.setFixedSize(42, 42)
+        tile.setAlignment(Qt.AlignCenter)
+        tile.setStyleSheet(
+            f"background:{p['acento_suave']};color:{p['acento']};"
+            "border:none;border-radius:8px;"
+        )
+        cab.addWidget(tile)
+        textos = QVBoxLayout()
+        textos.setSpacing(0)
+        n = QLabel(nombre)
+        n.setFont(ui(13, 700))
+        n.setStyleSheet(f"color:{p['texto']};background:transparent;border:none;")
+        c = QLabel(codigo)
+        c.setFont(ui(10))
+        c.setStyleSheet(f"color:{p['suave']};background:transparent;border:none;")
+        textos.addWidget(n)
+        textos.addWidget(c)
+        cab.addLayout(textos, 1)
+        tc.addLayout(cab)
+        hoy_lab = QLabel(f"Hoy: {hoy}/8")
+        hoy_lab.setFont(ui(11, 600))
+        hoy_lab.setStyleSheet(f"color:{p['texto']};background:transparent;border:none;")
+        tc.addWidget(hoy_lab)
+        dias_lab = QLabel(f"{dias} días con datos este mes")
+        dias_lab.setFont(ui(10))
+        dias_lab.setStyleSheet(f"color:{p['suave']};background:transparent;border:none;")
+        tc.addWidget(dias_lab)
+        seguir = QLabel("Continuar →")
+        seguir.setFont(ui(11, 700))
+        seguir.setStyleSheet(f"color:{p['acento']};background:transparent;border:none;")
+        tc.addWidget(seguir)
+        grilla.addWidget(tarjeta, indice // 3, indice % 3)
+    for col in range(3):
+        grilla.setColumnStretch(col, 1)
+    cv.addLayout(grilla)
+    cv.addStretch(1)
+
+    sync = QHBoxLayout()
+    sync.setSpacing(14)
+    for texto, color in (
+        ("Sincronización al día", p["ok"]),
+        ("1.240 enviadas con éxito", p["suave"]),
+    ):
+        lab = QLabel(texto)
+        lab.setFont(ui(11, 600))
+        lab.setStyleSheet(f"color:{color};background:transparent;")
+        sync.addWidget(lab)
+    sync.addStretch(1)
+    ver = QLabel("Ver sincronización →")
+    ver.setFont(ui(11, 700))
+    ver.setStyleSheet(f"color:{p['acento']};background:transparent;")
+    sync.addWidget(ver)
+    cv.addLayout(sync)
+
+    cuerpo.addWidget(contenido, 1)
+    raiz.addLayout(cuerpo, 1)
+    raiz.addWidget(_barra_estado(p))
+    return pagina
+
+
+def pantalla_login(p: dict) -> QWidget:
+    pagina = QWidget()
+    pagina.setObjectName("pagina")
+    pagina.setStyleSheet(f"QWidget#pagina {{ background:{p['fondo']}; }}")
+    v = QVBoxLayout(pagina)
+    v.setContentsMargins(0, 0, 0, 0)
+    v.addStretch(1)
+    fila = QHBoxLayout()
+    fila.addStretch(1)
+
+    tarjeta = QWidget()
+    tarjeta.setObjectName("loginC")
+    tarjeta.setStyleSheet(
+        f"QWidget#loginC {{ background:{p['superficie']};"
+        f" border:1px solid {p['borde']}; border-radius:12px; }}"
+    )
+    tarjeta.setFixedWidth(440)
+    tv = QVBoxLayout(tarjeta)
+    tv.setContentsMargins(32, 28, 32, 24)
+    tv.setSpacing(0)
+
+    lockup = QLabel("Neo Arca")
+    lockup.setFont(ui(24, 800))
+    lockup.setAlignment(Qt.AlignCenter)
+    lockup.setStyleSheet(f"color:{p['texto']};background:transparent;border:none;")
+    tv.addWidget(lockup)
+    sub = QLabel("OBSERVATIONS MANAGEMENT SYSTEM (OMS)")
+    sub.setFont(ui(10, 600))
+    sub.setAlignment(Qt.AlignCenter)
+    sub.setStyleSheet(f"color:{p['suave']};background:transparent;border:none;")
+    tv.addWidget(sub)
+    tv.addSpacing(6)
+    tag = QLabel("Acceso al OMS — Observations Management System")
+    tag.setFont(ui(11))
+    tag.setAlignment(Qt.AlignCenter)
+    tag.setStyleSheet(f"color:{p['suave']};background:transparent;border:none;")
+    tv.addWidget(tag)
+    tv.addSpacing(20)
+
+    for etiqueta, marcador in (("Correo Electrónico", "usuario@arca.rd"),
+                               ("Contraseña", "••••••••")):
+        lab = QLabel(etiqueta)
+        lab.setFont(ui(11, 600))
+        lab.setStyleSheet(f"color:{p['texto']};background:transparent;border:none;")
+        tv.addWidget(lab)
+        tv.addSpacing(4)
+        campo = QLabel(marcador)
+        campo.setFont(ui(11))
+        campo.setFixedHeight(34)
+        campo.setStyleSheet(
+            f"background:{p['superficie']};color:{p['tenue']};"
+            f"border:1px solid {p['borde_input']};border-radius:4px;padding:0 8px;"
+        )
+        tv.addWidget(campo)
+        tv.addSpacing(12)
+
+    error = QLabel(" ")
+    error.setFont(ui(11))
+    error.setStyleSheet(f"color:{p['error']};background:transparent;border:none;")
+    tv.addWidget(error)
+    tv.addSpacing(8)
+    entrar = QLabel("→   Iniciar Sesión")
+    entrar.setFont(ui(13, 700))
+    entrar.setFixedHeight(44)
+    entrar.setAlignment(Qt.AlignCenter)
+    entrar.setStyleSheet(
+        f"background:{p['acento']};color:{p['superficie']};"
+        "border:none;border-radius:4px;"
+    )
+    tv.addWidget(entrar)
+    tv.addSpacing(14)
+    pie = QLabel("Modo Local — Autenticación Offline")
+    pie.setFont(ui(10))
+    pie.setAlignment(Qt.AlignCenter)
+    pie.setStyleSheet(f"color:{p['tenue']};background:transparent;border:none;")
+    tv.addWidget(pie)
+
+    fila.addWidget(tarjeta)
+    fila.addStretch(1)
+    v.addLayout(fila)
+    v.addStretch(1)
+    return pagina
+
+
+def pantalla_transformar(p: dict) -> QWidget:
+    pagina = QWidget()
+    pagina.setObjectName("pagina")
+    pagina.setStyleSheet(f"QWidget#pagina {{ background:{p['fondo']}; }}")
+    v = QVBoxLayout(pagina)
+    v.setContentsMargins(24, 18, 24, 18)
+    v.setSpacing(12)
+
+    titulo = QLabel("Transformación de datos")
+    titulo.setFont(ui(20, 800))
+    titulo.setStyleSheet(f"color:{p['texto']};background:transparent;")
+    v.addWidget(titulo)
+    sub = QLabel("Convierte los Excel de una carpeta en los JSON de observación del OMS")
+    sub.setFont(ui(12))
+    sub.setStyleSheet(f"color:{p['suave']};background:transparent;")
+    v.addWidget(sub)
+
+    tarjeta, tc = _card_audit(p)
+    fila = QHBoxLayout()
+    fila.setSpacing(10)
+    campo = QLabel("/home/stward/Documentos/Trabajo-INDOMET/Datos-Brutos")
+    campo.setFont(ui(11))
+    campo.setFixedHeight(32)
+    campo.setStyleSheet(
+        f"background:{p['superficie']};color:{p['texto']};"
+        f"border:1px solid {p['borde']};border-radius:4px;padding:0 8px;"
+    )
+    fila.addWidget(campo, 1)
+    elegir = QLabel("Elegir carpeta…")
+    elegir.setFont(ui(11, 600))
+    elegir.setFixedHeight(32)
+    elegir.setStyleSheet(
+        f"background:{p['superficie']};color:{p['texto']};"
+        f"border:1px solid {p['borde']};border-radius:4px;padding:0 12px;"
+    )
+    fila.addWidget(elegir)
+    tc.addLayout(fila)
+    v.addWidget(tarjeta)
+
+    acciones = QHBoxLayout()
+    casilla = QLabel("☐  Sobrescribir los días que ya existen")
+    casilla.setFont(ui(11, 600))
+    casilla.setStyleSheet(f"color:{p['texto']};background:transparent;")
+    acciones.addWidget(casilla)
+    acciones.addStretch(1)
+    ejecutar = QLabel("Transformar")
+    ejecutar.setFont(ui(12, 700))
+    ejecutar.setFixedHeight(32)
+    ejecutar.setStyleSheet(
+        f"background:{p['acento']};color:{p['superficie']};"
+        "border:none;border-radius:4px;padding:0 18px;"
+    )
+    acciones.addWidget(ejecutar)
+    v.addLayout(acciones)
+
+    destino = QLabel("Destino: /home/stward/Documentos/OMS/synop")
+    destino.setFont(ui(10))
+    destino.setStyleSheet(f"color:{p['suave']};background:transparent;")
+    v.addWidget(destino)
+
+    chips = QHBoxLayout()
+    chips.setSpacing(8)
+    for etiqueta, valor, tipo in (
+        ("Procesados", "148", "ok"), ("Ya existía", "12", "muted"),
+        ("Descartados", "0", "muted"), ("Sin CLI (bloques vacíos)", "31", "muted"),
+    ):
+        chip = _badge(p, f"{etiqueta}: {valor}", tipo)
+        chips.addWidget(chip)
+    chips.addStretch(1)
+    v.addLayout(chips)
+
+    tabla, tcv = _card_audit(p)
+    tcv.setContentsMargins(0, 0, 0, 0)
+    grilla = QGridLayout()
+    grilla.setContentsMargins(10, 8, 10, 8)
+    grilla.setHorizontalSpacing(0)
+    grilla.setVerticalSpacing(0)
+    for col, texto in enumerate(
+        ("ARCHIVO", "RESULTADO", "ESTACIÓN", "FECHA", "MODELO", "JSON")
+    ):
+        cab = QLabel(texto)
+        cab.setFont(ui(9, 700))
+        cab.setStyleSheet(
+            f"color:{p['suave']};background:transparent;"
+            f"border-bottom:1px solid {p['borde']};padding:4px;"
+        )
+        grilla.addWidget(cab, 0, col)
+    filas = (
+        ("MDBH17092026.xlsm", "procesado", "78485", "2026-09-17", "V1", "7848517092026.json"),
+        ("MDSD013052024.xlsm", "procesado", "78486", "2024-05-13", "V2", "7848613052024.json"),
+        ("Estacion Central 154042025.xlsm", "procesado", "78486", "2025-04-15", "V3", "7848615042025.json"),
+        ("120072025.xlsm", "ya existía", "78485", "2025-07-20", "V1", "7848520072025.json"),
+        ("250820251.xlsm", "procesado", "78482", "2025-08-25", "V4", "7848225082025.json"),
+        ("Barahona 08-12.xlsm", "procesado", "78482", "2025-12-08", "V2", "7848208122025.json"),
+        ("Sin hojas Z.xlsm", "descartado", "—", "—", "—", "—"),
+    )
+    for f, valores in enumerate(filas, start=1):
+        for col, valor in enumerate(valores):
+            celda = QLabel(valor)
+            celda.setFont(mono(10) if col in (3, 5) else ui(10))
+            color = p["texto"]
+            if col == 1:
+                color = p["ok"] if valor == "procesado" else (
+                    p["naranja_fuerte"] if valor == "ya existía" else p["tenue"]
+                )
+            celda.setStyleSheet(
+                f"color:{color};background:transparent;"
+                f"border-bottom:1px solid {p['borde']};padding:4px;"
+            )
+            grilla.addWidget(celda, f, col)
+    for col in range(6):
+        grilla.setColumnStretch(col, 2 if col == 0 else 1)
+    tcv.addLayout(grilla)
+    tcv.addStretch(1)
+    v.addWidget(tabla, 1)
+
+    estado = QLabel("148 archivos convertidos · 0 descartados · 2,4 s")
+    estado.setFont(ui(10))
+    estado.setStyleSheet(f"color:{p['tenue']};background:transparent;")
+    v.addWidget(estado)
+    return pagina
+
+
+def pantalla_mantenimiento(p: dict) -> QWidget:
+    pagina = QWidget()
+    pagina.setObjectName("pagina")
+    pagina.setStyleSheet(f"QWidget#pagina {{ background:{p['fondo']}; }}")
+    v = QVBoxLayout(pagina)
+    v.setContentsMargins(24, 18, 24, 18)
+    v.setSpacing(12)
+
+    titulo = QLabel("Configuración")
+    titulo.setFont(ui(20, 800))
+    titulo.setStyleSheet(f"color:{p['texto']};background:transparent;")
+    v.addWidget(titulo)
+
+    rutas, rc = _card_audit(p)
+    t = QLabel("Rutas de guardado")
+    t.setFont(ui(12, 800))
+    t.setStyleSheet(f"color:{p['texto']};background:transparent;border:none;")
+    rc.addWidget(t)
+    for nombre, pista, ruta in (
+        ("Raíz offline (local)", "Carpeta local donde viven las observaciones.",
+         "/home/stward/Documentos/OMS"),
+        ("Raíz online (Drive Desktop)",
+         "Carpeta sincronizada. Sin ella, el dato queda offline y se reintenta.",
+         "/home/stward/Drive/OMS"),
+        ("Carpeta de resúmenes", "Opcional: carpeta aparte para el Resumen Mensual.",
+         "/home/stward/Documentos/OMS/resumenes"),
+    ):
+        bloque = QWidget()
+        bloque.setObjectName("ruta")
+        bloque.setStyleSheet("QWidget#ruta { background:transparent; border:none; }")
+        bc = QVBoxLayout(bloque)
+        bc.setContentsMargins(0, 4, 0, 4)
+        bc.setSpacing(3)
+        n = QLabel(nombre)
+        n.setFont(ui(11, 700))
+        n.setStyleSheet(f"color:{p['texto']};background:transparent;border:none;")
+        bc.addWidget(n)
+        pi = QLabel(pista)
+        pi.setFont(ui(10))
+        pi.setStyleSheet(f"color:{p['suave']};background:transparent;border:none;")
+        bc.addWidget(pi)
+        fila = QHBoxLayout()
+        fila.setSpacing(6)
+        campo = QLabel(ruta)
+        campo.setFont(ui(10))
+        campo.setFixedHeight(28)
+        campo.setStyleSheet(
+            f"background:{p['superficie']};color:{p['texto']};"
+            f"border:1px solid {p['borde']};border-radius:4px;padding:0 8px;"
+        )
+        fila.addWidget(campo, 1)
+        for texto in ("Probar", "Explorar"):
+            b = QLabel(texto)
+            b.setFont(ui(10, 600))
+            b.setFixedHeight(28)
+            b.setStyleSheet(
+                f"background:{p['superficie']};color:{p['texto']};"
+                f"border:1px solid {p['borde']};border-radius:4px;padding:0 10px;"
+            )
+            fila.addWidget(b)
+        ok = QLabel("✓ carpeta escribible")
+        ok.setFont(ui(10))
+        ok.setStyleSheet(f"color:{p['ok']};background:transparent;border:none;")
+        fila.addWidget(ok)
+        bc.addLayout(fila)
+        rc.addWidget(bloque)
+
+    est = QLabel("Estructura dentro de la raíz")
+    est.setFont(ui(10, 800))
+    est.setStyleSheet(f"color:{p['suave']};background:transparent;border:none;")
+    rc.addWidget(est)
+    for linea in (
+        "synop/ — observaciones sinópticas y CLI — <ESTACIÓN>/<AÑO>/<MES>/",
+        "resumenes/ — resúmenes mensuales — <ESTACIÓN>/<AÑO>/<MES>/",
+        "exportaciones/ — Excel y PDF exportados",
+        "respaldos/ — respaldos de base y JSON",
+    ):
+        lab = QLabel(linea)
+        lab.setFont(mono(9))
+        lab.setStyleSheet(f"color:{p['suave']};background:transparent;border:none;")
+        rc.addWidget(lab)
+
+    backups = QHBoxLayout()
+    bl = QLabel("Backups: antigüedad máxima (días, 0 = sin definir)")
+    bl.setFont(ui(10, 600))
+    bl.setStyleSheet(f"color:{p['texto']};background:transparent;border:none;")
+    backups.addWidget(bl)
+    spin = QLabel("0")
+    spin.setFont(mono(10))
+    spin.setFixedSize(60, 26)
+    spin.setAlignment(Qt.AlignCenter)
+    spin.setStyleSheet(
+        f"background:{p['superficie']};color:{p['texto']};"
+        f"border:1px solid {p['borde']};border-radius:4px;"
+    )
+    backups.addWidget(spin)
+    backups.addStretch(1)
+    rc.addLayout(backups)
+    guardar = QLabel("Guardar configuración")
+    guardar.setFont(ui(11, 700))
+    guardar.setFixedHeight(30)
+    guardar.setMaximumWidth(190)
+    guardar.setAlignment(Qt.AlignCenter)
+    guardar.setStyleSheet(
+        f"background:{p['acento']};color:{p['superficie']};"
+        "border:none;border-radius:4px;"
+    )
+    rc.addWidget(guardar)
+    v.addWidget(rutas)
+
+    apariencia, ac = _card_audit(p)
+    fila_ap = QHBoxLayout()
+    etiqueta_ap = QLabel("Apariencia · Tema")
+    etiqueta_ap.setFont(ui(11, 800))
+    etiqueta_ap.setStyleSheet(f"color:{p['texto']};background:transparent;border:none;")
+    fila_ap.addWidget(etiqueta_ap)
+    combo = QLabel("Oscuro  ▾")
+    combo.setFont(ui(11))
+    combo.setFixedHeight(28)
+    combo.setMinimumWidth(120)
+    combo.setStyleSheet(
+        f"background:{p['superficie']};color:{p['texto']};"
+        f"border:1px solid {p['borde']};border-radius:4px;padding:0 8px;"
+    )
+    fila_ap.addWidget(combo)
+    activo = QLabel("Activo: Oscuro")
+    activo.setFont(ui(10))
+    activo.setStyleSheet(f"color:{p['suave']};background:transparent;border:none;")
+    fila_ap.addWidget(activo)
+    fila_ap.addStretch(1)
+    ac.addLayout(fila_ap)
+    v.addWidget(apariencia)
+
+    sync, sc = _card_audit(p)
+    t_sync = QLabel("Sincronización")
+    t_sync.setFont(ui(12, 800))
+    t_sync.setStyleSheet(f"color:{p['texto']};background:transparent;border:none;")
+    sc.addWidget(t_sync)
+    for texto, color in (
+        ("Pendientes de enviar: 0", p["texto"]),
+        ("Último error: no hay", p["suave"]),
+    ):
+        lab = QLabel(texto)
+        lab.setFont(ui(10, 600 if color == p["texto"] else 400))
+        lab.setStyleSheet(f"color:{color};background:transparent;border:none;")
+        sc.addWidget(lab)
+    lista = QLabel("(sin pendientes)")
+    lista.setFont(ui(10))
+    lista.setFixedHeight(40)
+    lista.setStyleSheet(
+        f"background:{p['fondo']};color:{p['tenue']};"
+        f"border:1px solid {p['borde']};border-radius:4px;padding:4px;"
+    )
+    sc.addWidget(lista)
+    fila_sync = QHBoxLayout()
+    reintentar = QLabel("Reintentar ahora")
+    reintentar.setFont(ui(10, 600))
+    reintentar.setFixedHeight(28)
+    reintentar.setStyleSheet(
+        f"background:{p['superficie']};color:{p['texto']};"
+        f"border:1px solid {p['borde']};border-radius:4px;padding:0 10px;"
+    )
+    fila_sync.addWidget(reintentar)
+    barra = QProgressBar()
+    barra.setFixedHeight(4)
+    barra.setRange(0, 100)
+    barra.setValue(100)
+    barra.setTextVisible(False)
+    barra.setStyleSheet(
+        f"QProgressBar{{background:{p['borde']};border:none;}}"
+        f"QProgressBar::chunk{{background:{p['ok']};}}"
+    )
+    fila_sync.addWidget(barra, 1)
+    sc.addLayout(fila_sync)
+    v.addWidget(sync)
+
+    migrar = QLabel("Migrar carpetas de meses legacy (one-shot)")
+    migrar.setFont(ui(11, 600))
+    migrar.setFixedHeight(30)
+    migrar.setMaximumWidth(320)
+    migrar.setAlignment(Qt.AlignCenter)
+    migrar.setStyleSheet(
+        f"background:{p['superficie']};color:{p['texto']};"
+        f"border:1px solid {p['borde']};border-radius:4px;"
+    )
+    v.addWidget(migrar)
+    v.addStretch(1)
+    return pagina
+
+
 def main() -> int:
     SALIDA.mkdir(parents=True, exist_ok=True)
     for modulo in MODULOS:
@@ -2589,6 +3179,10 @@ def main() -> int:
              lambda pal, g="rain": pantalla_summary_graficas(pal, g)),
             ("summary", "summary-graficas-wind",
              lambda pal, g="wind": pantalla_summary_graficas(pal, g)),
+            ("shell", "shell-dashboard", pantalla_shell_dashboard),
+            ("shell", "login", pantalla_login),
+            ("transformar", "transformar", pantalla_transformar),
+            ("config", "mantenimiento", pantalla_mantenimiento),
             ("summary", "summary-graficas-clouds",
              lambda pal, g="clouds": pantalla_summary_graficas(pal, g)),
             # el meteograma se documenta con las cuatro variables del selector
