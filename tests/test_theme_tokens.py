@@ -56,11 +56,15 @@ def test_cada_tema_renderiza_sin_tokens_pendientes():
         assert "$" not in css, f"token sin sustituir en {nombre}"
 
 
-def test_el_claro_conserva_los_colores_que_hoy_se_ven():
-    """La fase 1 tokeniza sin cambiar la apariencia (docs/DISENO_OMS.md §1)."""
+def test_el_claro_usa_la_paleta_del_documento():
+    """Los valores del documento son los que la hoja resuelve.
+
+    Antes esta prueba fijaba los colores heredados de la apariencia vieja; con
+    la línea gráfica definitiva (docs/DISENO_OMS.md §2) el acento es #034885.
+    """
     css = theme.load_stylesheet("claro")
 
-    for valor in ("#f3f4f6", "#ffffff", "#e2e8f0", "#2563eb", "#1e293b"):
+    for valor in ("#f3f4f6", "#ffffff", "#e2e8f0", "#034885", "#1e293b"):
         assert valor in css, valor
 
 

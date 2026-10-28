@@ -42,27 +42,112 @@ Lo que se conserva del diseño anterior: **la distribución de la tabla** del Si
 
 ## 2. Tokens
 
-`oms_ui/theme.py` expone `PALETTE`; el QSS se genera con `string.Template` desde ahí.
-**Ningún widget usa un color literal.**
+**Fuente única: `oms_ui/theme.py`.** Ningún archivo de `oms_ui/` puede escribir un color
+literal; lo impone `tests/test_sin_literales.py`. El muestrario navegable es
+`docs/diseno/paleta.html`, **generado** desde esa paleta con
+`tools/generar_paleta_html.py`: no se edita a mano, así no hay dos verdades.
 
-| Rol | Claro | Oscuro | Uso |
+### 2.1 Criterio, no gusto
+
+El acento es **`#034885`**, el azul que pidió el dueño: un azul profundo y poco saturado,
+que no brilla y descansa la vista en jornadas de ocho horas. De ahí se deriva toda la
+familia por luminosidad, no por saturación, para que los estados se distingan sin gritar.
+
+Reglas que la paleta respeta y que el generador verifica en cada corrida:
+
+| Tipo de par | Mínimo WCAG 2.2 |
+|---|---|
+| Texto normal (≤ 18 px) | **4,5:1** |
+| Texto grande y elementos de interfaz (bordes, iconos, marcas) | **3:1** |
+| Texto sobre el acento | **4,5:1** |
+
+### 2.2 Familia de acento · tema claro
+
+| Rol | Hex | Sobre `superficie` | Uso |
 |---|---|---|---|
-| `fondo` | `#f8fafc` | `#0b1220` | Lienzo de la página |
-| `superficie` | `#ffffff` | `#111c2e` | Libro, editor, barras |
-| `borde` | `#e2e8f0` | `#243044` | Reglas de 1 px, bordes de campo |
-| `texto` | `#0f172a` | `#e2e8f0` | Dato y etiqueta fuerte |
-| `suave` | `#64748b` | `#94a3b8` | Etiqueta secundaria |
-| `tenue` | `#94a3b8` | `#64748b` | Vacío, raya, pista |
-| `acento` | `#0e7490` | `#22d3ee` | **Uno solo** en toda la app |
-| `acento_suave` | `#e0f2fe` | `#123241` | Fondo de la hora activa, chip |
-| `error` | `#b91c1c` | `#f87171` | Borde y mensaje de error |
-| `error_suave` | `#fee2e2` | `#3b1416` | Fondo de la celda con error |
-| `ok` | `#15803d` | `#4ade80` | Completitud al 100 % |
+| `acento` | `#034885` | 9,25:1 | acción primaria, encabezados de grilla |
+| `acento_hover` | `#022f57` | 13,58:1 | estado hover del primario |
+| `acento_foco` | `#045ba8` | 6,85:1 | anillo de foco |
+| `acento_suave` | `#e8eff6` | — | tinte de selección y de pestaña activa |
+| `acento_borde` | `#b6cde0` | — | borde de la pestaña activa |
+| `acento_texto` | `#02315c` | 13,15:1 | texto de acento sobre el tinte (11,34:1) |
+| `acento_fondo` | `#f2f6fa` | — | fondo de bloque destacado |
+| `sobre_acento` | `#ffffff` | 9,25:1 sobre `acento` | texto sobre el acento |
+| `acento_deshabilitado` | `#9fb6cb` | — | primario deshabilitado |
 
-Prohibido: acento por módulo, gradientes, `opacity` (Qt no la implementa), `abs(hash())`
-para colores, y cualquier `setStyleSheet` que no venga de `PALETTE`.
+### 2.3 Familia de acento · tema oscuro
+
+El acento se **aclara** para el fondo oscuro; no se reutiliza el del tema claro.
+
+| Rol | Hex | Sobre `superficie` |
+|---|---|---|
+| `acento` | `#6fb0e8` | 7,36:1 |
+| `acento_hover` | `#94c8f2` | 9,60:1 |
+| `acento_foco` | `#8ec4f0` | 9,20:1 |
+| `acento_suave` | `#0d2740` | — |
+| `acento_borde` | `#1b4a72` | — |
+| `acento_texto` | `#a8d3f4` | 10,81:1 |
+| `acento_fondo` | `#0a1e30` | — |
+| `sobre_acento` | `#06121c` | 8,15:1 sobre `acento` |
+
+**Por qué `sobre_acento` y no `banda_texto`:** en claro el acento es oscuro y su texto va
+en blanco; en oscuro el acento es claro y su texto va casi negro. Un solo par de roles no
+sirve para los dos temas, y cada vez que se intentó el texto se perdió en uno de los dos.
+
+### 2.4 Neutros
+
+Dos familias, una por tema, con la misma escala de cinco pasos: `texto` (contenido),
+`texto_alt` (títulos), `suave`, `suave_alt` (rótulos) y `tenue` (sólo informativo).
+`tenue` está calibrado en **4,08:1** en claro y **5,52:1** en oscuro: por debajo de 3:1
+no se usa ni para una nota al pie.
+
+### 2.5 Estados y acentos de módulo
+
+`error`, `ok`, `ambar`, `naranja` y `teal` tienen cada uno su familia (base, fuerte, fondo,
+borde). Los módulos conservan su identidad —Resumen violeta, 4074 verde, 5074 rojo de
+fenómenos— y **no** usan el acento para eso.
 
 ## 3. Escalas
+
+Todo tamaño sale de estas escalas. Un valor que no esté acá no se inventa: se elige el
+escalón más cercano.
+
+### 3.1 Tipografía
+
+Una sola familia, **Plus Jakarta Sans** empaquetada (400/500/600/700/800), igual en Linux,
+Windows y macOS. Las cifras van **siempre** con `tnum` (ver §2.6 de la fase 1): sin él las
+columnas no alinean porque la fuente trae cifras proporcionales.
+
+| Rol | px | Peso | Uso |
+|---|---|---|---|
+| Título de página | 22 | 700 | una vez por pantalla |
+| Título de sección | 16 | 800 | cabecera de tarjeta |
+| Cuerpo | 13 | 500 | texto corriente |
+| Rótulo de campo | 12 | 600 | encima de cada campo |
+| Encabezado de grilla | 12 | 800 | cuadro de color, letra sobre acento |
+| Dato en tabla | 12 | 500 | cifras |
+| Metadato | 11 | 500 | fechas, ayudas |
+
+### 3.2 Espaciado
+
+Escala de 4: **4 · 8 · 12 · 16 · 24 · 32**. Márgenes de pantalla 24; separación entre
+tarjetas 16; dentro de una tarjeta 12; entre un rótulo y su campo 4.
+
+### 3.3 Radios
+
+**3** para campos y celdas (cuadradas, no rectangulares), **6** para botones y tarjetas
+internas, **12** para tarjetas, **16** para paneles grandes.
+
+### 3.4 Medidas fijas
+
+Riel de navegación 200 expandido / 76 colapsado; tarjeta de login 440; alto de campo 34;
+ancho de riel del Sinóptico 284; carriles de fenómenos del CLI 34.
+
+### 3.5 Verificación
+
+`tools/generar_paleta_html.py` publica la tabla de contraste de cada tema y **falla en voz
+alta** si un par baja del mínimo. Un color nuevo entra por `theme.py`, se regenera el
+muestrario y se mira: si no pasa el contraste, no entra.
 
 ```
 espaciado    4 · 8 · 12 · 16 · 24 · 32        (nada fuera de la escala)
