@@ -28,11 +28,22 @@ series de las gráficas) y **desaparecen** los transicionales `acento_debil`,
 test comprueba que cada rol usado por `theme.qss` y por el código existe en las dos
 paletas.
 
-**S3 — Números en monoespaciada.** Se empaqueta una familia monoespaciada (OFL) y todo
-dato numérico —celdas de tabla, campos, valores de tarjeta— la usa con figuras
-tabulares; las etiquetas siguen en Jakarta. Verificable: un test que comprueba la familia
-asignada por el helper `mono()` y que los archivos de fuente están en
-`oms_ui/assets/fonts/`.
+**S3 — Una sola familia, cifras tabulares.** Se usa **una sola familia empaquetada**
+(Plus Jakarta Sans, que ya viaja con la app) para texto y para números: al ir en el
+paquete se ve igual en Linux, Windows y macOS. Todo dato numérico —celdas, campos,
+valores de tarjeta, ejes— lleva la característica OpenType `tnum` activada, porque la
+fuente tiene **cifras proporcionales**: hoy `1111` mide 22,25 px y `0000` mide 43,88 px,
+así que ninguna columna numérica puede alinear. Con `tnum` las cinco combinaciones
+medidas dan exactamente **36,0 px**. Verificable con `QFontMetricsF`.
+
+**S13 — Accesibilidad al color.** Ninguna serie se distingue **sólo** por color: cada
+gráfica suma forma (relleno, línea sólida, punteada, barra) y el gráfico de humedad
+separa unidades por eje. Además, Configuración → Apariencia ofrece una **paleta
+accesible** (Okabe–Ito, ocho clases distinguibles bajo cualquier tipo de daltonismo:
+`#D55E00`, `#0072B2`, `#E69F00`, `#009E73`, `#56B4E9`, `#CC79A7`, `#999999`) aplicable
+a las seis gráficas. Verificable: un test que comprueba que cada serie tiene estilo
+propio y que las dos paletas existen, y el contraste de cada color de serie contra el
+fondo de su tema (≥ 3:1).
 
 **S4 — Armazón.** Rail de 200 px expandido / 76 colapsado con el logo `OMS · Observations`
 como acceso a Inicio, seis entradas con monograma, correo y `Salir`; el estado activo se
@@ -61,8 +72,10 @@ El selector de estación/año/mes/día y el reporte conservan su contenido. Veri
 línea de metadatos; historial con `QAbstractTableModel` en vez de una tarjeta por entrada;
 pestaña **Gráficas** con el esquema de OLD: sidebar de seis variables, tres tarjetas de
 estadísticas y una caja de gráfico por variable, con el widget de dibujo propio
-(área/línea/barra, eje gemelo en viento, dominio 0–8 en nubosidad). Verificable:
-`test_f6_summary` y los tests del servicio verdes; una captura por variable y tema.
+(área/línea/barra, eje gemelo en viento, **eje derecho para el punto de rocío**, dominio
+0–8 en nubosidad) y las dos paletas de serie de S13. Verificable:
+`test_f6_summary` y los tests del servicio verdes; una captura por variable y tema, más
+una de la humedad con la paleta accesible.
 
 **S9 — Transformar y Configuración.** Trazo nuevo y, en Transformar, la conversión en un
 worker con progreso por archivo y botón deshabilitado mientras corre (hoy corre en el hilo
@@ -90,13 +103,13 @@ aparte) y termina con capturas nuevas en `Migración/evidencias/DISENO/`.
 
 | ID | Fase | Alcance | Riesgo | Esfuerzo |
 |---|---|---|---|---|
-| F1 | **Base de estilo** | S2, S3: roles de datos en `theme.py`, fuente mono empaquetada, helper `mono()`/`estilo()` que devuelve la hoja por rol, retirar los roles transicionales | Bajo | 3 h |
+| F1 | **Base de estilo** | S2, S3: roles de datos en `theme.py`, helper de fuente con `tnum`, helper `estilo()` que devuelve la hoja por rol, retirar los roles transicionales | Bajo | 3 h |
 | F2 | **Armazón** | S4: `main_window.py` (rail, activo por propiedad, barra de estado), `theme.qss` con `QPushButton[active]` | Bajo | 4 h |
 | F3 | **Login** | S10: `login_window.py`, sacar el emoji, alinear la tarjeta al mockup | Bajo | 2 h |
 | F4 | **Sinóptico** | S5: 40 inline fuera, etiquetas de texto, campos de 34 px, riel derecho, fuera `HOUR_THEMES` del fondo, título en tinta | **Alto** | 12 h |
 | F5 | **CLI** | S6: 67 inline entre los tres, `OBS.` uniforme, carriles fijos, títulos legibles | Medio | 8 h |
 | F6 | **Auditoría** | S7: 35 inline en `audit_observation.py` + las otras tres vistas; cola, historial y estado por campo | **Alto** | 10 h |
-| F7 | **Resumen** | S8: tabla, historial con modelo y las seis gráficas con widget propio | **Alto** | 12 h |
+| F7 | **Resumen** | S8, S13: tabla, historial con modelo, las seis gráficas con widget propio, rocío en eje derecho y paleta accesible | **Alto** | 12 h |
 | F8 | **Transformar y Configuración** | S9: trazo nuevo y conversion en worker con progreso | Medio | 6 h |
 | F9 | **Cierre** | S1, S11: `grep` de literales en cero, 27 asserts migrados, capturas definitivas, borrar `tools/mockup_pantallas.py` | Medio | 3 h |
 
@@ -121,17 +134,20 @@ que lo contenga todo. Tres PRs encadenados, cada uno con la suite verde y sus ca
 - **PR 2 — Captura de datos**: F4, F5 (Sinóptico y los tres CLI).
 - **PR 3 — Análisis y administración**: F6, F7, F8, F9.
 
-## Decisiones que necesito antes de F1
+## Decisiones resueltas
 
-1. **Fuente monoespaciada**: empaquetar **JetBrains Mono** (OFL, 4 pesos ≈ 200 KB) o usar la
-   mono del sistema. Empaquetarla es lo único que da el mismo ancho de cifra en Windows,
-   macOS y Linux; la del sistema cambia en cada máquina y rompe la alineación de columnas.
-2. **Gráficas**: widget propio con `QPainter` (cero dependencias, y el código del mockup ya
-   lo resuelve) o **QtCharts** (trae ejes, tooltips y leyenda, pero suma superficie LGPL y
-   su estilizado es limitado). Recomendación: widget propio.
-3. **La escala mixta de OLD**: su gráfico de humedad pone **%** y **°C** (rocío) en el mismo
-   eje. Dejarlo tal cual porque es OLD, o mover el rocío a un eje derecho como el recorrido
-   del viento. Recomendación: eje derecho, para no invitar a leer una correlación falsa.
+**D1 — Tipografía (dueño, L4):** una fuente estándar para todo, igual en los tres
+sistemas. Se queda la familia ya empaquetada y se resuelve la alineación numérica con
+`tnum`, medido: todas las cifras pasan a 36,0 px. No entra una segunda familia.
+
+**D2 — Gráficas (dueño, L4):** widget propio con `QPainter`. Cero dependencias nuevas; el
+código del mockup es la semilla de la implementación y se conservan series, colores y
+tipos de OLD.
+
+**D3 — Escala mixta (dueño, L4):** el punto de rocío pasa a **eje derecho** con su unidad,
+como el recorrido del viento. Se conservan los códigos de color en las seis gráficas y,
+además, se agrega soporte para daltonismo (S13): forma redundante en cada serie y una
+paleta accesible conmutalbe.
 
 ## Log
 
@@ -144,3 +160,23 @@ una sola familia tipográfica empaquetada.
 **L3** — El trabajo de diseño previo dejó listo: `PALETTE` con 42 roles en cada tema,
 `theme.qss` sin literales, los cuatro estados, el conmutador de tema, cero degradados y
 cero propiedades que Qt ignora. Las fases de este plan asumen eso como base, no lo repiten.
+
+**L4** — Respuesta del dueño a las tres decisiones, textual: «1. Usemos una fuente estandar
+para todo, tantpo para Linux, Windows y Mac. 2. Pues trabajemos los charts con Widgets
+propios, 3. Movamos elpunto de rocio al eje derecho, pero manteniend códigos de colores en
+todas las gráficas, así de forma visual es más probable que s einterprete el gráfico mejor,
+De paso agrega soporte para personas daltónicas.»
+
+**L5** — Medición que sostiene D1: la familia empaquetada tiene cifras proporcionales
+(`1111` 22,25 px, `0000` 43,88 px) y con `tnum` las cinco combinaciones dan 36,0 px. Sin
+`tnum`, ninguna columna numérica puede alinear. El `woff2` sí lo carga Qt 6.12
+(`addApplicationFont` devuelve la familia), así que no hace falta cambiar el formato.
+
+**L6** — Soporte de daltonismo (S13) en la app, no sólo en el mockup: la paleta Okabe–Ito
+queda como opción de Configuración → Apariencia, junto con la forma redundante de cada
+serie. Se descarta distinguir series sólo por color.
+
+**L7** — Defecto detectado al revisar el render de humedad, a corregir en F7: el eje derecho
+repite etiquetas cuando el rango es chico (22, 21, 21, 20, 20) porque los cinco cortes se
+redondean al mismo entero. El widget de la app calcula el paso con «números lindos» según
+el rango antes de dibujar, y un test lo fija sobre un rango de 19–22 °C.

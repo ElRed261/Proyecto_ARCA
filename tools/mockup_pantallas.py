@@ -2169,12 +2169,35 @@ PANELES_B = {
 # cambia es el trazo (sin degradados: relleno plano con alfa).
 
 #: color de cada serie, tomado de OLD
-C_TMAX, C_TMIN, C_TMEDIA = "#ef4444", "#3b82f6", "#f59e0b"
-C_PMAX, C_PMIN, C_PMEDIA, C_PEST = "#ef4444", "#3b82f6", "#8b5cf6", "#64748b"
-C_HRMEDIA, C_HRMAX, C_HRMIN, C_ROCIO = "#0d9488", "#3b82f6", "#22d3ee", "#10b981"
-C_LLUVIA = "#3b82f6"
-C_VIENTO, C_RECORRIDO = "#06b6d4", "#6366f1"
-C_NUBMEDIA, C_NUBDIA, C_NUBNOCHE = "#f59e0b", "#3b82f6", "#64748b"
+_PALETA_SERIES = {
+    "tmax": "#ef4444", "tmin": "#3b82f6", "tmedia": "#f59e0b",
+    "pmax": "#ef4444", "pmin": "#3b82f6", "pmedia": "#8b5cf6", "pest": "#64748b",
+    "hrmedia": "#0d9488", "hrmax": "#3b82f6", "hrmin": "#22d3ee", "rocio": "#10b981",
+    "lluvia": "#3b82f6",
+    "viento": "#06b6d4", "recorrido": "#6366f1",
+    "nubmedia": "#f59e0b", "nubdia": "#3b82f6", "nubnoche": "#64748b",
+}
+
+#: Okabe–Ito: las ocho clases de color que se distinguen bajo cualquier tipo de
+#: daltonismo. Es la «Paleta accesible» de Configuración → Apariencia.
+_PALETA_SERIES_CVD = {
+    "tmax": "#D55E00", "tmin": "#0072B2", "tmedia": "#E69F00",
+    "pmax": "#D55E00", "pmin": "#0072B2", "pmedia": "#CC79A7", "pest": "#999999",
+    "hrmedia": "#009E73", "hrmax": "#0072B2", "hrmin": "#56B4E9", "rocio": "#CC79A7",
+    "lluvia": "#0072B2",
+    "viento": "#0072B2", "recorrido": "#E69F00",
+    "nubmedia": "#E69F00", "nubdia": "#0072B2", "nubnoche": "#999999",
+}
+if os.environ.get("OMS_MOCKUP_CVD"):
+    _PALETA_SERIES = _PALETA_SERIES_CVD
+
+_C = _PALETA_SERIES
+C_TMAX, C_TMIN, C_TMEDIA = _C["tmax"], _C["tmin"], _C["tmedia"]
+C_PMAX, C_PMIN, C_PMEDIA, C_PEST = _C["pmax"], _C["pmin"], _C["pmedia"], _C["pest"]
+C_HRMEDIA, C_HRMAX, C_HRMIN, C_ROCIO = _C["hrmedia"], _C["hrmax"], _C["hrmin"], _C["rocio"]
+C_LLUVIA = _C["lluvia"]
+C_VIENTO, C_RECORRIDO = _C["viento"], _C["recorrido"]
+C_NUBMEDIA, C_NUBDIA, C_NUBNOCHE = _C["nubmedia"], _C["nubdia"], _C["nubnoche"]
 
 GRUPOS_GRAFICA = (
     ("temp", "Temperatura", "Gráfico de Temperatura (°C)"),
@@ -2260,12 +2283,15 @@ class _GraficoGrupo(QWidget):
                 ("punteada", "Pres. Estación", "pest", C_PEST),
             ), None
         if g == "humidity":
+            # El rocío se mide en °C: lleva escala propia a la derecha, para no
+            # mezclar unidades en un mismo eje. Va punteado, además del color:
+            # la forma distingue aunque el color no se distinga.
             return (
                 ("area", "HR Media", "hummed", C_HRMEDIA),
                 ("linea", "HR Máx", "hummax", C_HRMAX),
                 ("linea", "HR Mín", "hummin", C_HRMIN),
-                ("linea", "Pto. Rocío (°C)", "rocio", C_ROCIO),
-            ), None
+                ("punteada", "Pto. Rocío (°C)", "rocio", C_ROCIO),
+            ), "rocio"
         if g == "rain":
             return (("barra", "Lluvia (mm)", "lluvia", C_LLUVIA),), None
         if g == "wind":
