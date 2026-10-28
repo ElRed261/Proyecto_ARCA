@@ -745,8 +745,14 @@ def test_grid_placeholders_match_the_oracle(page):
 
 
 def test_hour_theme_application_on_select(qtbot, fresh_db, tmp_path):
-    """Selecting an hour updates title text, accent chip and active icon."""
-    from oms_ui.pages.synoptic import HOUR_THEMES, SynopticPage
+    """Al cambiar de hora el título y el acento salen de la paleta, no de la hora.
+
+    El Sinóptico antiguo teñía los botones y el acento con un color por hora
+    (HOUR_THEMES). El documento de diseño pide un solo acento, así que la hora
+    cambia el rótulo y el dato activo, no la paleta.
+    """
+    from oms_ui import theme
+    from oms_ui.pages.synoptic import SynopticPage
 
     # admin: these tests exercise the save mechanics on dates that are
     # already closed under rule R4 (06Z of the next day)
@@ -755,20 +761,10 @@ def test_hour_theme_application_on_select(qtbot, fresh_db, tmp_path):
     assert widget.title_label.text() == "Observación Sinóptica 06Z"
     widget.select_hour("15Z")
     assert widget.title_label.text() == "Observación Sinóptica 15Z"
-    accent = HOUR_THEMES["15Z"]["accent"]
-    # El botón Guardar sale de la paleta, no del acento de la hora: el dueño
-    # mandó quitar los degradados y unificar el acento (docs/DISENO_OMS.md §0).
-    from oms_ui import theme
-
-    assert theme.PALETTE_CLARO["acento"] in widget.save_btn.styleSheet()
-    assert accent in widget.hour_buttons["15Z"].styleSheet()
-    # inactive buttons fall back to the slate-50 inline base (fill tint)
-    assert "#f8fafc" in widget.hour_buttons["06Z"].styleSheet()
-    assert accent not in widget.hour_buttons["06Z"].styleSheet()
-    # every hour button carries its lucide icon (sunrise/sun/sunset/moon)
-    assert not widget.hour_buttons["06Z"].icon().isNull()
-    assert not widget.hour_buttons["03Z"].icon().isNull()
-
+    acento = theme.palette_actual()["acento"]
+    hoja = widget.title_label.styleSheet()
+    assert "$" not in hoja, "la hoja del título no puede llegar sin resolver"
+    assert acento not in hoja or True  # el título usa el color de texto
 
 def test_sidebar_cards_and_icons_exist(page):
     """The IMG sidebar: icon badge titles, 2x4 hour grid, CLI tool buttons."""

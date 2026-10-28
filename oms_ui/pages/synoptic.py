@@ -318,7 +318,7 @@ HOUR_ICONS: dict[str, tuple[str, str]] = {
 
 #: slate-600 header chips (oracle tableHeader slate bg; square corners).
 _HEADER_QSS = (
-    "background-color: $suave; color: $superficie; font-weight: 600;"
+    "background-color: $banda; color: $banda_texto; font-weight: 600;"
     "font-size: 12px; padding: 7px 6px; border-radius: 6px;"
 )
 
@@ -632,9 +632,9 @@ class SynopticPage(QWidget):
         Antes el título era blanco porque iba encima de la fotografía del cielo;
         con el fondo plano tiene que ser color de texto o desaparece.
         """
-        paleta = theme_mod.palette()
+        paleta = theme_mod.palette_actual()
         self._page_bg = paleta["fondo"]
-        accent = HOUR_THEMES.get(self.active_hour, HOUR_THEMES["06Z"])["accent"]
+        accent = theme_mod.palette_actual()["acento"]
         self.title_label.setText(f"Observación Sinóptica {self.active_hour}")
         self.title_label.setStyleSheet(
             f"background: transparent; color: {paleta['texto']};"
@@ -942,7 +942,7 @@ class SynopticPage(QWidget):
             [("Cálculos de Estación", 2), ("Presión de la Estación", 1),
              ("P 3 Horas", 1), ("P 24 Horas", 1), ("Máx. / Mín.", 1),
              ("Máx. / Mín. 24 H", 1)],
-            accent=HOUR_THEMES.get(self.active_hour, HOUR_THEMES["06Z"])["accent"],
+            accent=theme_mod.palette_actual()["acento"],
         )
 
         # left pair (Cálculos de Estación): label left, fill cell right
@@ -1178,9 +1178,11 @@ class SynopticPage(QWidget):
         toast_l.setContentsMargins(12, 8, 12, 8)
         self._toast.setObjectName("syntoast")
         self._toast.setStyleSheet(
+            _qss(
             "QWidget#syntoast { background-color: rgba(15, 23, 42, 0.94);"
             "border: 1px solid $texto; border-radius: 10px; }"
             "QWidget#syntoast QLabel { background: transparent; border: none; }"
+            )
         )
         self.error_label = _MessageLabel(on_change=self._refresh_toast)
         self.error_label.setStyleSheet(
