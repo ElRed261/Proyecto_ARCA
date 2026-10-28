@@ -378,3 +378,51 @@ QComboBox:focus, QToolTip:focus {
 QCheckBox:disabled, QRadioButton:disabled, QLabel:disabled {
     color: $tenue;
 }
+
+/* --- Riel de navegación (docs/DISENO_OMS.md §4, S4) ------------------ */
+#rail {
+    background-color: $superficie;
+    border-right: 1px solid $borde;
+}
+
+#railLogo {
+    color: $texto_alt;
+    font-size: 15px;
+    font-weight: 800;
+    background: transparent;
+}
+
+#railEmail {
+    color: $suave_alt;
+    font-size: 11px;
+    background: transparent;
+}
+
+QPushButton[rail="nav"] {
+    border: none;
+    border-left: 3px solid transparent;
+    text-align: left;
+    padding: 10px 12px;
+    font-weight: 600;
+    color: $texto;
+    background: transparent;
+}
+
+QPushButton[rail="nav"][active="true"] {
+    background-color: $acento_suave;
+    border-left-color: $acento;
+    color: $acento_texto;
+}
+
+QPushButton[rail="nav"][collapsed="true"] {
+    text-align: center;
+    padding: 10px 0;
+    font-weight: 800;
+    font-size: 15px;
+    color: $acento;
+}
+
+QPushButton[rail="nav"][collapsed="true"][active="true"] {
+    background-color: $acento_suave;
+    color: $acento_texto;
+}

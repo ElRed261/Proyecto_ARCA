@@ -55,6 +55,15 @@ _RAIL_EXPANDED_WIDTH = 200
 _RAIL_COLLAPSED_WIDTH = 76
 
 
+
+def _repolish(widget) -> None:
+    """Reevalúa el QSS de un widget tras cambiar una propiedad dinámica.
+
+    Qt no reaplica los selectores por propiedad solo: hay que despulir y pulir.
+    """
+    estilo = widget.style()
+    estilo.unpolish(widget)
+    estilo.polish(widget)
 class MainWindow(QMainWindow):
     """Application shell. Emits :attr:`logout_requested` from the Salir button."""
 
@@ -111,7 +120,6 @@ class MainWindow(QMainWindow):
     def _build_rail(self) -> QWidget:
         rail = QWidget()
         rail.setObjectName("rail")
-        rail.setStyleSheet("#rail { background-color: #ffffff; border-right: 1px solid #e2e8f0; }")
         layout = QVBoxLayout(rail)
         layout.setContentsMargins(8, 12, 8, 12)
         layout.setSpacing(4)
@@ -121,6 +129,7 @@ class MainWindow(QMainWindow):
         from PySide6.QtWidgets import QLabel
 
         self._rail_logo = QLabel("OMS")
+        self._rail_logo.setObjectName("railLogo")
         self._rail_logo.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._rail_logo.setToolTip("Inicio")
         self._rail_logo.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -135,6 +144,7 @@ class MainWindow(QMainWindow):
                 continue
             button = QPushButton()
             button.setProperty("page_id", page_id)
+            button.setProperty("rail", "nav")
             button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
             button.setMinimumHeight(44)
             button.setToolTip(label)
@@ -148,9 +158,7 @@ class MainWindow(QMainWindow):
             from PySide6.QtWidgets import QLabel
 
             self._email_label = QLabel(self.email)
-            self._email_label.setStyleSheet(
-                "font-size: 11px; color: #64748b; background: transparent;"
-            )
+            self._email_label.setObjectName("railEmail")
             self._email_label.setWordWrap(True)
             layout.addWidget(self._email_label)
 
@@ -172,22 +180,14 @@ class MainWindow(QMainWindow):
         self._rail_widget.setFixedWidth(
             _RAIL_COLLAPSED_WIDTH if collapsed else _RAIL_EXPANDED_WIDTH
         )
-        for page_id, label, accent, mono in NAV_ENTRIES:
+        self._rail_widget.setProperty("collapsed", "true" if collapsed else "false")
+        for page_id, label, _accent, mono in NAV_ENTRIES:
             button = self._rail_buttons.get(page_id)
             if button is None:
                 continue
-            if collapsed:
-                button.setText(mono)
-                button.setStyleSheet(
-                    f"QPushButton {{ border: none; border-left: 3px solid {accent}; "
-                    f"font-weight: 800; font-size: 15px; color: {accent}; padding: 10px 0; }}"
-                )
-            else:
-                button.setText(f"  {label}")
-                button.setStyleSheet(
-                    "QPushButton { border: none; text-align: left; padding: 10px 12px; "
-                    "font-weight: 600; color: #334155; }"
-                )
+            button.setProperty("collapsed", "true" if collapsed else "false")
+            button.setText(mono if collapsed else f"  {label}")
+            _repolish(button)
         self._rail_logo.setText("OMS" if collapsed else "OMS · Observations")
         if hasattr(self, "_email_label"):
             self._email_label.setVisible(not collapsed)
@@ -210,13 +210,8 @@ class MainWindow(QMainWindow):
         current = self.stack.currentWidget() if self._pages else None
         for page_id, button in self._rail_buttons.items():
             active = self._pages.get(page_id) is current
-            button.setProperty("active", "true" if active else None)
-            base = button.styleSheet()
-            if active:
-                if "background" not in base or "#dbeafe" not in base:
-                    button.setStyleSheet(base + " QPushButton { background-color: #dbeafe; }")
-            else:
-                button.setStyleSheet(base.replace(" QPushButton { background-color: #dbeafe; }", ""))
+            button.setProperty("active", "true" if active else "false")
+            _repolish(button)
 
     # -- pages (unchanged builders) ---------------------------------------
 
