@@ -31,43 +31,52 @@ from oms_core.services import cli as cli_service
 from oms_ui.icons import lucide_icon
 from oms_ui.widgets import StyledComboBox
 
+
+def _qss(plantilla: str) -> str:
+    from string import Template
+
+    from oms_ui import theme as _theme
+
+    return Template(plantilla).substitute(_theme.palette_actual())
+
+
 #: (field, sub-header text) in column order; groups carry their own colors.
 GROUPS_4074: tuple[tuple[str, str, int, tuple[tuple[str, str], ...]], ...] = (
-    ("CÚMULONIMBOS", "#334155", 3, (
+    ("CÚMULONIMBOS", "$banda", 3, (
         ("cb_cant", "Cant"), ("cb_tipo", "Tipo"), ("cb_altura", "Altura"),
     )),
-    ("NUBES BAJAS (CL)", "#334155", 5, (
+    ("NUBES BAJAS (CL)", "$banda", 5, (
         ("nb_cant", "Cant"), ("nb_tipo", "Tipo"), ("nb_direc", "Dir"),
         ("nb_altura", "Altura"), ("nb_total", "TOTAL"),
     )),
-    ("NUBES MEDIAS (CM)", "#334155", 5, (
+    ("NUBES MEDIAS (CM)", "$banda", 5, (
         ("nm_cant", "Cant"), ("nm_tipo", "Tipo"), ("nm_direc", "Dir"),
         ("nm_altura", "Altura"), ("nm_total", "TOTAL"),
     )),
-    ("NUBES ALTAS (CH)", "#334155", 5, (
+    ("NUBES ALTAS (CH)", "$banda", 5, (
         ("na_cant", "Cant"), ("na_tipo", "Tipo"), ("na_direc", "Dir"),
         ("na_altura", "Altura"), ("na_total", "TOTAL"),
     )),
 )
 _ROWSPAN_FIELDS: tuple[tuple[str, str, str], ...] = (
-    ("nubosidad", "N", "#1e293b"),
-    ("lluvia_6h", "LLUVIA 6H (mm)", "#1e293b"),
-    ("estado_suelo", "EST. SUELO", "#1e293b"),
-    ("observador", "OBS.", "#1e293b"),
+    ("nubosidad", "N", "$banda"),
+    ("lluvia_6h", "LLUVIA 6H (mm)", "$banda"),
+    ("estado_suelo", "EST. SUELO", "$banda"),
+    ("observador", "OBS.", "$banda"),
 )
 #: ONE stylesheet for the sheet: each cell carries ``row`` ("main"/"sub") and
 #: ``ro`` so Qt parses the rules once instead of ~350 times.
 _SHEET_QSS = """
-QLineEdit[row="sub"] { background-color: #ffffff; border: 1px solid #e2e8f0;
-    color: #1e293b; font-size: 12px; padding: 3px 4px; }
-QLineEdit[row="sub"]:focus { border-color: #38bdf8; background-color: #f0f9ff; }
-QLineEdit[row="main"] { background-color: #d1fae5; border: 1px solid #a7f3d0;
-    color: #1e293b; font-size: 12px; padding: 3px 4px; }
-QLineEdit[row="main"]:focus { border-color: #10b981; background-color: white; }
-QLineEdit[row="main"][ro="true"] { background-color: #a7f3d0;
-    border: 1px solid #6ee7b7; color: #065f46; font-weight: 600; }
-QLineEdit[row="sub"][ro="true"] { background-color: #f8fafc;
-    border: 1px solid #e2e8f0; color: #475569; }
+QLineEdit[row="sub"] { background-color: $superficie; border: 1px solid $borde;
+    color: $texto; font-size: 12px; padding: 3px 4px; }
+QLineEdit[row="sub"]:focus { border-color: $acento; background-color: $acento_fondo; }
+QLineEdit[row="main"] { background-color: $ok_fondo; border: 1px solid $ok_borde;
+    color: $texto; font-size: 12px; padding: 3px 4px; }
+QLineEdit[row="main"]:focus { border-color: $ok; background-color: $superficie; }
+QLineEdit[row="main"][ro="true"] { background-color: $ok_borde;
+    border: 1px solid $ok; color: $ok_texto; font-weight: 600; }
+QLineEdit[row="sub"][ro="true"] { background-color: $panel_alt;
+    border: 1px solid $borde; color: $suave; }
 """
 
 _TEMPS: tuple[tuple[str, str], ...] = (("temp_max", "Máx"), ("temp_min", "Mín"))
@@ -77,40 +86,40 @@ ZERO_PLACEHOLDER_ROWS: frozenset[int] = frozenset(
     {2, 5, 8, 11, 14, 17, 20, 23}
 )
 #: main-hour rows tinted GREEN across the full row (IMG/CLI 4074.png).
-_MAIN_TINT = "#d1fae5"
-_MAIN_STICKY = "#a7f3d0"
-_MAIN_NUMBER = "#059669"
+_MAIN_TINT = "$ok_fondo"
+_MAIN_STICKY = "$ok_borde"
+_MAIN_NUMBER = "$ok_texto"
 _MAIN_INPUT_QSS = (
-    "QLineEdit { background-color: #d1fae5; border: 1px solid #a7f3d0;"
-    "color: #1e293b; font-size: 12px; padding: 3px 4px; }"
-    "QLineEdit:focus { border-color: #10b981; background-color: white; }"
+    "QLineEdit { background-color: $ok_fondo; border: 1px solid $ok_borde;"
+    "color: $texto; font-size: 12px; padding: 3px 4px; }"
+    "QLineEdit:focus { border-color: $ok; background-color: $superficie; }"
 )
 _CHECKBOX_QSS = (
     "QCheckBox::indicator { width: 17px; height: 17px;"
-    "border: 2px solid #64748b; border-radius: 4px; background-color: #ffffff; }"
-    "QCheckBox::indicator:hover { border-color: #10b981; }"
-    "QCheckBox::indicator:checked { background-color: #10b981;"
-    "border-color: #047857; }"
+    "border: 2px solid $suave_alt; border-radius: 4px; background-color: $superficie; }"
+    "QCheckBox::indicator:hover { border-color: $ok; }"
+    "QCheckBox::indicator:checked { background-color: $ok;"
+    "border-color: $ok_texto; }"
     "QCheckBox { background-color: transparent; }"
 )
 INPUT_QSS = (
-    "QLineEdit { background-color: #ffffff; border: 1px solid #e2e8f0;"
-    "color: #1e293b; font-size: 12px; padding: 3px 4px; }"
-    "QLineEdit:focus { border-color: #38bdf8; background-color: #f0f9ff; }"
+    "QLineEdit { background-color: $superficie; border: 1px solid $borde;"
+    "color: $texto; font-size: 12px; padding: 3px 4px; }"
+    "QLineEdit:focus { border-color: $acento; background-color: $acento_fondo; }"
 )
 _HEADER_QSS = (
-    "background-color: {color}; color: #ffffff; font-weight: bold;"
+    "background-color: $banda; color: $banda_texto; font-weight: bold;"
     "font-size: 11px; padding: 5px 3px;"
 )
 _SUB_HEADER_QSS = (
-    "background-color: #1f2937; color: #cbd5e1; font-weight: 600;"
+    "background-color: $banda; color: $banda_texto; font-weight: 600;"
     "font-size: 10px; padding: 4px 2px;"
 )
 _SAVE_QSS = (
-    "QPushButton { background-color: #0ea5e9; color: #ffffff;"
+    "QPushButton { background-color: $acento; color: $banda_texto;"
     "border: none; border-radius: 8px; padding: 7px 14px;"
     "font-weight: 700; font-size: 12px; }"
-    "QPushButton:hover { background-color: #0284c7; }"
+    "QPushButton:hover { background-color: $acento_hover; }"
 )
 
 
@@ -163,7 +172,7 @@ class Cli4074View(QWidget):
 
     def _build(self) -> None:
         central = QWidget()
-        central.setStyleSheet(_SHEET_QSS)
+        central.setStyleSheet(_qss(_SHEET_QSS))
         outer = QVBoxLayout(central)
         outer.setContentsMargins(16, 12, 16, 12)
         outer.setSpacing(10)
@@ -173,24 +182,24 @@ class Cli4074View(QWidget):
         # exposed so an embedding window (audit) can repurpose it as "close"
         self.back_button = back_btn
         back_btn.setFixedSize(40, 40)
-        back_btn.setIcon(lucide_icon("arrow-left", "#0369a1", 18))
+        back_btn.setIcon(lucide_icon("arrow-left", _qss("$acento_texto"), 18))
         back_btn.setIconSize(QSize(18, 18))
         back_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         back_btn.setToolTip("Volver a la última hora de observación")
-        back_btn.setStyleSheet(
-            "QPushButton { background-color: #ffffff; border: 1px solid #e2e8f0;"
+        back_btn.setStyleSheet(_qss(
+            "QPushButton { background-color: $superficie; border: 1px solid $borde;"
             "border-radius: 20px; }"
-            "QPushButton:hover { background-color: #e0f2fe; }"
-        )
+            "QPushButton:hover { background-color: $acento_suave; }"
+        ))
         back_btn.clicked.connect(self.back_requested.emit)
         top.addWidget(back_btn, 0, Qt.AlignmentFlag.AlignVCenter)
 
         title = QLabel(self.TITLE)
-        title.setStyleSheet(
+        title.setStyleSheet(_qss(
             # fondo plano (sin fotografía ni degradado): tinta de texto
-                        "font-size: 18px; font-weight: 800; color: #0f172a;"
+                        "font-size: 18px; font-weight: 800; color: $texto_alt;"
             "background: transparent;"
-        )
+        ))
         title.setWordWrap(True)
         top.addWidget(title, 0, Qt.AlignmentFlag.AlignVCenter)
         top.addStretch(1)
@@ -203,10 +212,10 @@ class Cli4074View(QWidget):
         self._build_station_card(outer)
 
         sheet_card = QFrame()
-        sheet_card.setStyleSheet(
-            "QFrame { background-color: #ffffff; border: 1px solid #e2e8f0;"
+        sheet_card.setStyleSheet(_qss(
+            "QFrame { background-color: $superficie; border: 1px solid $borde;"
             "border-radius: 10px; }"
-        )
+        ))
         sheet_layout = QVBoxLayout(sheet_card)
         sheet_layout.setContentsMargins(0, 0, 0, 0)
         grid_host = QWidget()
@@ -223,7 +232,7 @@ class Cli4074View(QWidget):
             header = QLabel(text)
             header.setAlignment(Qt.AlignmentFlag.AlignCenter)
             header.setWordWrap(True)
-            header.setStyleSheet(_HEADER_QSS.format(color=color))
+            header.setStyleSheet(_qss(_HEADER_QSS.format(color=color)))
             grid.addWidget(header, 0, at_col, 2, 1)  # full header height
 
         def group_header(at_col: int, text: str, color: str,
@@ -231,15 +240,15 @@ class Cli4074View(QWidget):
             header = QLabel(text)
             header.setAlignment(Qt.AlignmentFlag.AlignCenter)
             header.setWordWrap(True)
-            header.setStyleSheet(_HEADER_QSS.format(color=color))
+            header.setStyleSheet(_qss(_HEADER_QSS.format(color=color)))
             grid.addWidget(header, 0, at_col, 1, span)
             for offset, (field, sub) in enumerate(fields):
                 if field in TOTAL_FIELDS:  # full height + emerald, like N
-                    rowspan_header(sub, "#047857", at_col + offset)
+                    rowspan_header(sub, _qss("$ok_texto"), at_col + offset)
                     continue
                 sub_label = QLabel(sub)
                 sub_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-                sub_label.setStyleSheet(_SUB_HEADER_QSS)
+                sub_label.setStyleSheet(_qss(_SUB_HEADER_QSS))
                 grid.addWidget(sub_label, 1, at_col + offset)
 
         # column order verbatim IMG/CLI 4074.png: N first, then the four
@@ -252,7 +261,7 @@ class Cli4074View(QWidget):
         group_header(col, "NUBES MEDIAS (CM)", GROUPS_4074[2][1], 5, GROUPS_4074[2][3]); col += 5
         group_header(col, "NUBES ALTAS (CH)", GROUPS_4074[3][1], 5, GROUPS_4074[3][3]); col += 5
         rowspan_header("LLUVIA 6H (mm)", _ROWSPAN_FIELDS[1][2], col); col += 1
-        group_header(col, "TEMPS.", "#334155", 2, _TEMPS); col += 2
+        group_header(col, "TEMPS.", _qss("$banda"), 2, _TEMPS); col += 2
         rowspan_header("EST. SUELO", _ROWSPAN_FIELDS[2][2], col); col += 1
         rowspan_header("OBS.", _ROWSPAN_FIELDS[3][2], col); col += 1
 
@@ -261,8 +270,8 @@ class Cli4074View(QWidget):
             number.setAlignment(Qt.AlignmentFlag.AlignCenter)
             main = (row - 2) % 3 == 0
             number.setStyleSheet(
-                f"background-color: {_MAIN_STICKY if main else '#f1f5f9'};"
-                f"color: {_MAIN_NUMBER if main else '#475569'}; font-weight: bold;"
+                f"background-color: {_qss(_MAIN_STICKY) if main else _qss('$panel')};"
+                f"color: {_qss(_MAIN_NUMBER) if main else _qss('$suave')}; font-weight: bold;"
                 "font-size: 12px; padding: 4px 5px;"
             )
             grid.addWidget(number, row + 1, 0)
@@ -310,7 +319,7 @@ class Cli4074View(QWidget):
 
     def _build_tabs(self, top: QHBoxLayout) -> None:
         tabs_box = QWidget()
-        tabs_box.setStyleSheet("background-color: #e2e8f0; border-radius: 8px;")
+        tabs_box.setStyleSheet(_qss("background-color: $panel; border-radius: 8px;"))
         tabs_row = QHBoxLayout(tabs_box)
         tabs_row.setContentsMargins(4, 4, 4, 4)
         tabs_row.setSpacing(4)
@@ -320,11 +329,11 @@ class Cli4074View(QWidget):
             active = module_key == self.MODULE_KEY
             tab = QPushButton(label)
             tab.setStyleSheet(
-                f"QPushButton {{ background-color: {'#ffffff' if active else 'transparent'};"
-                f"color: {'#0369a1' if active else '#475569'}; border: none;"
+                f"QPushButton {{ background-color: {_qss('$superficie') if active else 'transparent'};"
+                f"color: {_qss('$acento_texto') if active else _qss('$suave')}; border: none;"
                 "border-radius: 6px; padding: 6px 14px; font-size: 12px;"
                 "font-weight: bold; min-height: 24px; }"
-                "QPushButton:hover { background-color: #f0f9ff; }"
+                "QPushButton:hover { background-color: $acento_fondo; }"
             )
             tab.setCursor(Qt.CursorShape.PointingHandCursor)
             if not active:
@@ -336,25 +345,25 @@ class Cli4074View(QWidget):
 
     def _build_ver_hora(self, top: QHBoxLayout) -> None:
         hour_box = QWidget()
-        hour_box.setStyleSheet("background-color: #e2e8f0; border-radius: 8px;")
+        hour_box.setStyleSheet(_qss("background-color: $panel; border-radius: 8px;"))
         hour_row = QHBoxLayout(hour_box)
         hour_row.setContentsMargins(8, 4, 8, 4)
         hour_row.setSpacing(4)
         hint = QLabel("VER HORA SYNOP:")
-        hint.setStyleSheet(
-            "color: #64748b; font-size: 10px; font-weight: 700;"
+        hint.setStyleSheet(_qss(
+            "color: $suave_alt; font-size: 10px; font-weight: 700;"
             "background: transparent;"
-        )
+        ))
         hour_row.addWidget(hint)
         for hour in ("06Z", "09Z", "12Z", "15Z", "18Z", "21Z",
                       "00Z", "03Z"):  # the day starts at 06Z
             button = QPushButton(hour)
-            button.setStyleSheet(
-                "QPushButton { background-color: #ffffff; color: #475569;"
+            button.setStyleSheet(_qss(
+                "QPushButton { background-color: $superficie; color: $suave;"
                 "border: none; border-radius: 6px; padding: 6px 12px;"
                 "font-size: 12px; font-weight: bold; min-height: 24px; }"
-                "QPushButton:hover { color: #0369a1; background-color: #f0f9ff; }"
-            )
+                "QPushButton:hover { color: $acento_texto; background-color: $acento_fondo; }"
+            ))
             button.setCursor(Qt.CursorShape.PointingHandCursor)
             button.clicked.connect(
                 lambda _checked=False, h=hour: self.synop_hour_requested.emit(h)
@@ -364,19 +373,19 @@ class Cli4074View(QWidget):
 
     def _build_station_card(self, outer: QVBoxLayout) -> None:
         card = QFrame()
-        card.setStyleSheet(
-            "QFrame { background-color: #ffffff; border: 1px solid #e2e8f0;"
+        card.setStyleSheet(_qss(
+            "QFrame { background-color: $superficie; border: 1px solid $borde;"
             "border-radius: 10px; }"
-        )
+        ))
         grid = QGridLayout(card)
         grid.setContentsMargins(14, 10, 14, 10)
 
         def meta_label(text: str) -> QLabel:
             label = QLabel(text)
-            label.setStyleSheet(
-                "color: #475569; font-weight: 700; font-size: 11px;"
+            label.setStyleSheet(_qss(
+                "color: $suave; font-weight: 700; font-size: 11px;"
                 "background: transparent;"
-            )
+            ))
             return label
 
         self.station_combo = StyledComboBox()
@@ -386,10 +395,10 @@ class Cli4074View(QWidget):
             max(self.station_combo.findData(self.station), 0)
         )
         self.station_combo.setEnabled(False)  # locked like the oracle route
-        self.station_combo.setStyleSheet(
-            "QComboBox { background-color: #f8fafc; border: 1px solid #cbd5e1;"
-            "border-radius: 6px; padding: 4px 8px; color: #475569; height: 24px; }"
-        )
+        self.station_combo.setStyleSheet(_qss(
+            "QComboBox { background-color: $panel_alt; border: 1px solid $borde_input;"
+            "border-radius: 6px; padding: 4px 8px; color: $suave; height: 24px; }"
+        ))
         self.fecha_edit = _ro_field(f"{self.fecha[8:]}/{self.fecha[5:7]}/{self.fecha[:4]}")
 
         station_row = next(
@@ -490,9 +499,9 @@ def _ro_field(text: str) -> QLineEdit:
     edit = QLineEdit(text)
     edit.setReadOnly(True)
     edit.setAlignment(Qt.AlignmentFlag.AlignCenter)
-    edit.setStyleSheet(
-        "background-color: #f8fafc; border: 1px solid #e2e8f0;"
-        "border-radius: 6px; padding: 4px 8px; color: #334155; font-size: 12px;"
-    )
+    edit.setStyleSheet(_qss(
+        "background-color: $panel_alt; border: 1px solid $borde;"
+        "border-radius: 6px; padding: 4px 8px; color: $texto; font-size: 12px;"
+    ))
     return edit
 
