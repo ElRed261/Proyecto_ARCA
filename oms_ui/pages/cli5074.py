@@ -104,12 +104,14 @@ _SECTION_QSS = (
 _LABEL_QSS = (
     "color: $suave; font-weight: 600; font-size: 11px; background: transparent;"
 )
+#: El 5074 mantiene su identidad roja: el encabezado es tinte de la familia
+#: de error, no el acento global. Es el nivel 2 de la jerarquía.
 _HEADER_QSS = (
-    "background-color: {color}; color: $banda_texto; font-weight: bold;"
-    "font-size: 11px; padding: 5px 4px;"
+    "background-color: $error_suave; color: $error_fuerte; font-weight: 700;"
+    "font-size: 11px; padding: 6px 4px; border-radius: 3px;"
 )
 _SUB_HEADER_QSS = (
-    "background-color: $banda; color: $banda_texto; font-weight: 600;"
+    "background-color: transparent; color: $suave_alt; font-weight: 700;"
     "font-size: 10px; padding: 4px 2px;"
 )
 _INPUT_QSS = (
@@ -166,7 +168,7 @@ class Cli5074View(QWidget):
         self.fecha = fecha
         self.setWindowTitle(self.TITLE)
         # transparent: the page's hourly gradient shows through (round 6)
-        self.setStyleSheet("background: transparent;")
+        self.setStyleSheet(_qss("background-color: $fondo;"))
 
         self.fields: dict[str, QLineEdit] = {}
         self.feno_inputs: dict[int, dict[str, QLineEdit]] = {}
@@ -186,7 +188,7 @@ class Cli5074View(QWidget):
 
     def _build(self) -> None:
         central = QWidget()
-        central.setStyleSheet("background: transparent;")
+        central.setStyleSheet(_qss("background-color: $fondo;"))
         outer = QVBoxLayout(central)
         outer.setContentsMargins(16, 12, 16, 12)
         outer.setSpacing(10)

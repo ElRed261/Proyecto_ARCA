@@ -96,7 +96,7 @@ _MAIN_INPUT_QSS = (
 )
 _CHECKBOX_QSS = (
     "QCheckBox::indicator { width: 17px; height: 17px;"
-    "border: 2px solid $suave_alt; border-radius: 4px; background-color: $superficie; }"
+    "border: 2px solid $suave_alt; border-radius: 3px; background-color: $superficie; }"
     "QCheckBox::indicator:hover { border-color: $ok; }"
     "QCheckBox::indicator:checked { background-color: $ok;"
     "border-color: $ok_texto; }"
@@ -108,15 +108,15 @@ INPUT_QSS = (
     "QLineEdit:focus { border-color: $acento; background-color: $acento_fondo; }"
 )
 _HEADER_QSS = (
-    "background-color: $banda; color: $banda_texto; font-weight: bold;"
-    "font-size: 11px; padding: 5px 3px;"
+    "background-color: $acento_suave; color: $acento_texto; font-weight: 700;"
+    "font-size: 11px; padding: 6px 4px; border-radius: 3px;"
 )
 _SUB_HEADER_QSS = (
-    "background-color: $banda; color: $banda_texto; font-weight: 600;"
+    "background-color: transparent; color: $suave_alt; font-weight: 700;"
     "font-size: 10px; padding: 4px 2px;"
 )
 _SAVE_QSS = (
-    "QPushButton { background-color: $acento; color: $banda_texto;"
+    "QPushButton { background-color: $acento; color: $sobre_acento;"
     "border: none; border-radius: 8px; padding: 7px 14px;"
     "font-weight: 700; font-size: 12px; }"
     "QPushButton:hover { background-color: $acento_hover; }"

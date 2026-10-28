@@ -1147,7 +1147,7 @@ def test_fenomenos_abbreviations_render_dark_chips(cli3074_page, qtbot):
     pix = gr.grab()
     color = pix.toImage().pixelColor(3, 3).name()
     # El chip oscuro se pinta de verdad, con el rol banda del tema activo.
-    assert color == theme.palette_actual()["banda"]
+    assert color == theme.palette_actual()["acento_suave"]
 
 
 # ---------------------------------------------------------------- round 8 details
@@ -1219,7 +1219,7 @@ def test_cli3074_group_headers_uniform_slate(cli3074_page, qtbot):
     assert "$" not in hoja, "la cabecera de grupo no puede llegar sin resolver"
     from oms_ui import theme
 
-    assert theme.palette_actual()["banda"] in hoja
+    assert theme.palette_actual()["acento_texto"] in hoja
 
 
 def test_cli4074_total_headers_full_height_emerald(cli3074_page, qtbot):

@@ -98,11 +98,11 @@ _MAIN_STICKY_TINT = "$acento_suave"   # celdas de número fijo
 #: owner round 8: EVERY group header in the same muted slate as HUMEDAD.
 #: Cabecera de grupo: banda oscura con texto claro en ambos temas (S5).
 _HEADER_QSS = (
-    "background-color: $banda; color: $banda_texto; font-weight: bold;"
-    "font-size: 11px; padding: 5px 4px;"
+    "background-color: $acento_suave; color: $acento_texto; font-weight: 700;"
+    "font-size: 11px; padding: 6px 4px; border-radius: 3px;"
 )
 _SUB_HEADER_QSS = (
-    "background-color: $banda; color: $banda_texto; font-weight: 600;"
+    "background-color: transparent; color: $suave_alt; font-weight: 700;"
     "font-size: 10px; padding: 4px 2px;"
 )
 INPUT_QSS = (
@@ -125,7 +125,7 @@ _MAIN_RO_QSS = (
 )
 _CHECKBOX_QSS = (
     "QCheckBox::indicator { width: 17px; height: 17px;"
-    "border: 2px solid $suave_alt; border-radius: 4px; background-color: $superficie; }"
+    "border: 2px solid $suave_alt; border-radius: 3px; background-color: $superficie; }"
     "QCheckBox::indicator:hover { border-color: $acento_texto; }"
     "QCheckBox::indicator:checked { background-color: $acento;"
     "border-color: $acento_texto; }"
@@ -133,7 +133,7 @@ _CHECKBOX_QSS = (
 )
 _MAIN_CHECKBOX_QSS = (
     "QCheckBox::indicator { width: 17px; height: 17px;"
-    "border: 2px solid $suave_alt; border-radius: 4px; background-color: $acento_fondo; }"
+    "border: 2px solid $suave_alt; border-radius: 3px; background-color: $acento_fondo; }"
     "QCheckBox::indicator:hover { border-color: $acento_texto; }"
     "QCheckBox::indicator:checked { background-color: $acento;"
     "border-color: $acento_texto; }"
@@ -159,7 +159,7 @@ QLineEdit[row="main"][ro="true"] { background-color: $acento_suave;
    rules only when the base `::indicator` block exists */
 QCheckBox { background-color: transparent; }
 QCheckBox::indicator { width: 17px; height: 17px;
-    border: 2px solid $suave_alt; border-radius: 4px; background-color: $superficie; }
+    border: 2px solid $suave_alt; border-radius: 3px; background-color: $superficie; }
 QCheckBox::indicator:hover { border-color: $acento_texto; }
 QCheckBox::indicator:checked { background-color: $acento;
     border-color: $acento_texto; }
@@ -171,14 +171,14 @@ QCheckBox#checkMain::indicator:checked { background-color: $acento; }
 QLabel { background: transparent; }
 QLabel#hourMain { background-color: $acento_suave; color: $acento_texto;
     font-weight: bold; font-size: 12px; padding: 4px 6px;
-    border-radius: 4px; }
+    border-radius: 3px; }
 QLabel#hourSub { background-color: $panel; color: $suave;
     font-weight: bold; font-size: 12px; padding: 4px 6px;
-    border-radius: 4px; }
+    border-radius: 3px; }
 """
 
 _SAVE_QSS = (
-    "QPushButton { background-color: $acento; color: $banda_texto;"
+    "QPushButton { background-color: $acento; color: $sobre_acento;"
     "border: none; border-radius: 8px; padding: 7px 14px;"
     "font-weight: 700; font-size: 12px; }"
     "QPushButton:hover { background-color: $acento_hover; }"
@@ -202,7 +202,7 @@ class _VerticalLabel(QLabel):
     def paintEvent(self, event) -> None:
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        painter.fillRect(self.rect(), QColor(_qss("$banda")))
+        painter.fillRect(self.rect(), QColor(_qss("$acento_suave")))
         painter.translate(0, self.height())
         painter.rotate(-90)
         painter.setPen(QColor(_qss("$borde")))
