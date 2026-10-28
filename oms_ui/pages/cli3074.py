@@ -45,6 +45,15 @@ from oms_core.services import cli as cli_service
 from oms_ui.icons import lucide_icon
 from oms_ui.widgets import StyledComboBox
 
+
+def _qss(plantilla: str) -> str:
+    from string import Template
+
+    from oms_ui import theme as _theme
+
+    return Template(plantilla).substitute(_theme.palette_actual())
+
+
 #: oracle synopRows: synoptic UTC hour -> local row number (1-based).
 SYNOP_ROWS: dict[str, int] = {
     "06Z": 2, "09Z": 5, "12Z": 8, "15Z": 11,
@@ -84,99 +93,95 @@ FENOMENOS: tuple[tuple[str, str, str], ...] = (
     ("tornado", "FC", "Tornado (Funnel cloud)"),
 )
 
-_MAIN_ROW_TINT = "#eff6ff"      # sky-50 main-hour rows
-_MAIN_STICKY_TINT = "#bae6fd"   # sky-200 sticky-number cells
+_MAIN_ROW_TINT = "$acento_fondo"      # filas de la hora principal
+_MAIN_STICKY_TINT = "$acento_suave"   # celdas de número fijo
 #: owner round 8: EVERY group header in the same muted slate as HUMEDAD.
-_GROUP_COLORS = {
-    "pres": "#334155", "tend": "#334155", "temp": "#334155",
-    "hum": "#334155", "viento": "#334155", "vis": "#334155",
-    "feno": "#334155",
-}
+#: Cabecera de grupo: banda oscura con texto claro en ambos temas (S5).
 _HEADER_QSS = (
-    "background-color: {color}; color: #ffffff; font-weight: bold;"
+    "background-color: $banda; color: $banda_texto; font-weight: bold;"
     "font-size: 11px; padding: 5px 4px;"
 )
 _SUB_HEADER_QSS = (
-    "background-color: #1f2937; color: #cbd5e1; font-weight: 600;"
+    "background-color: $banda; color: $banda_texto; font-weight: 600;"
     "font-size: 10px; padding: 4px 2px;"
 )
 INPUT_QSS = (
-    "QLineEdit { background-color: #ffffff; border: 1px solid #e2e8f0;"
-    "color: #1e293b; font-size: 12px; padding: 3px 4px; }"
-    "QLineEdit:focus { border-color: #38bdf8; background-color: #f0f9ff; }"
+    "QLineEdit { background-color: $superficie; border: 1px solid $borde;"
+    "color: $texto; font-size: 12px; padding: 3px 4px; }"
+    "QLineEdit:focus { border-color: $acento; background-color: $acento_fondo; }"
 )
 _RO_QSS = (
-    "QLineEdit { background-color: #eff6ff; border: 1px solid #dbeafe;"
-    "color: #0369a1; font-weight: bold; font-size: 12px; padding: 3px 4px; }"
+    "QLineEdit { background-color: $acento_fondo; border: 1px solid $acento_suave;"
+    "color: $acento_texto; font-weight: bold; font-size: 12px; padding: 3px 4px; }"
 )
 _MAIN_INPUT_QSS = (
-    "QLineEdit { background-color: #eff6ff; border: 1px solid #dbeafe;"
-    "color: #1e293b; font-size: 12px; padding: 3px 4px; }"
-    "QLineEdit:focus { border-color: #38bdf8; background-color: white; }"
+    "QLineEdit { background-color: $acento_fondo; border: 1px solid $acento_suave;"
+    "color: $texto; font-size: 12px; padding: 3px 4px; }"
+    "QLineEdit:focus { border-color: $acento; background-color: $superficie; }"
 )
 _MAIN_RO_QSS = (
-    "QLineEdit { background-color: #dbeafe; border: 1px solid #bfdbfe;"
-    "color: #075985; font-weight: bold; font-size: 12px; padding: 3px 4px; }"
+    "QLineEdit { background-color: $acento_suave; border: 1px solid $acento;"
+    "color: $acento_texto; font-weight: bold; font-size: 12px; padding: 3px 4px; }"
 )
 _CHECKBOX_QSS = (
     "QCheckBox::indicator { width: 17px; height: 17px;"
-    "border: 2px solid #64748b; border-radius: 4px; background-color: #ffffff; }"
-    "QCheckBox::indicator:hover { border-color: #0369a1; }"
-    "QCheckBox::indicator:checked { background-color: #0ea5e9;"
-    "border-color: #0369a1; }"
+    "border: 2px solid $suave_alt; border-radius: 4px; background-color: $superficie; }"
+    "QCheckBox::indicator:hover { border-color: $acento_texto; }"
+    "QCheckBox::indicator:checked { background-color: $acento;"
+    "border-color: $acento_texto; }"
     "QCheckBox { background-color: transparent; }"
 )
 _MAIN_CHECKBOX_QSS = (
     "QCheckBox::indicator { width: 17px; height: 17px;"
-    "border: 2px solid #64748b; border-radius: 4px; background-color: #eff6ff; }"
-    "QCheckBox::indicator:hover { border-color: #0369a1; }"
-    "QCheckBox::indicator:checked { background-color: #0ea5e9;"
-    "border-color: #0369a1; }"
+    "border: 2px solid $suave_alt; border-radius: 4px; background-color: $acento_fondo; }"
+    "QCheckBox::indicator:hover { border-color: $acento_texto; }"
+    "QCheckBox::indicator:checked { background-color: $acento;"
+    "border-color: $acento_texto; }"
     "QCheckBox { background-color: transparent; }"
 )
 #: ONE stylesheet for the whole sheet. The cells carry a ``row`` property
 #: ("main"/"sub") and ``ro`` for read-only, so Qt parses the rules once instead
 #: of 400 times: per-widget setStyleSheet measured 48% of the build time.
 _SHEET_QSS = """
-QLineEdit[row="sub"] { background-color: #ffffff; border: 1px solid #e2e8f0;
-    color: #1e293b; font-size: 12px; padding: 3px 4px; }
-QLineEdit[row="sub"]:focus { border-color: #38bdf8; background-color: #f0f9ff; }
-QLineEdit[row="sub"][ro="true"] { background-color: #eff6ff;
-    border: 1px solid #dbeafe; color: #0369a1; font-weight: bold;
+QLineEdit[row="sub"] { background-color: $superficie; border: 1px solid $borde;
+    color: $texto; font-size: 12px; padding: 3px 4px; }
+QLineEdit[row="sub"]:focus { border-color: $acento; background-color: $acento_fondo; }
+QLineEdit[row="sub"][ro="true"] { background-color: $acento_fondo;
+    border: 1px solid $acento_suave; color: $acento_texto; font-weight: bold;
     font-size: 12px; padding: 3px 4px; }
-QLineEdit[row="main"] { background-color: #eff6ff; border: 1px solid #dbeafe;
-    color: #1e293b; font-size: 12px; padding: 3px 4px; }
-QLineEdit[row="main"]:focus { border-color: #38bdf8; background-color: white; }
-QLineEdit[row="main"][ro="true"] { background-color: #dbeafe;
-    border: 1px solid #bfdbfe; color: #075985; font-weight: bold;
+QLineEdit[row="main"] { background-color: $acento_fondo; border: 1px solid $acento_suave;
+    color: $texto; font-size: 12px; padding: 3px 4px; }
+QLineEdit[row="main"]:focus { border-color: $acento; background-color: $superficie; }
+QLineEdit[row="main"][ro="true"] { background-color: $acento_suave;
+    border: 1px solid $acento; color: $acento_texto; font-weight: bold;
     font-size: 12px; padding: 3px 4px; }
 /* base rules first, attribute overrides after: Qt matches the subcontrol
    rules only when the base `::indicator` block exists */
 QCheckBox { background-color: transparent; }
 QCheckBox::indicator { width: 17px; height: 17px;
-    border: 2px solid #64748b; border-radius: 4px; background-color: #ffffff; }
-QCheckBox::indicator:hover { border-color: #0369a1; }
-QCheckBox::indicator:checked { background-color: #0ea5e9;
-    border-color: #0369a1; }
-QCheckBox#checkMain::indicator { background-color: #eff6ff; }
-QCheckBox#checkMain::indicator:checked { background-color: #0ea5e9; }
+    border: 2px solid $suave_alt; border-radius: 4px; background-color: $superficie; }
+QCheckBox::indicator:hover { border-color: $acento_texto; }
+QCheckBox::indicator:checked { background-color: $acento;
+    border-color: $acento_texto; }
+QCheckBox#checkMain::indicator { background-color: $acento_fondo; }
+QCheckBox#checkMain::indicator:checked { background-color: $acento; }
 /* object names, not attributes: QLabel attribute selectors did not match
    here while they do on QLineEdit, and a silently unstyled header is worse
    than a slightly longer selector */
 QLabel { background: transparent; }
-QLabel#hourMain { background-color: #e0f2fe; color: #0c4a6e;
+QLabel#hourMain { background-color: $acento_suave; color: $acento_texto;
     font-weight: bold; font-size: 12px; padding: 4px 6px;
     border-radius: 4px; }
-QLabel#hourSub { background-color: #f1f5f9; color: #475569;
+QLabel#hourSub { background-color: $panel; color: $suave;
     font-weight: bold; font-size: 12px; padding: 4px 6px;
     border-radius: 4px; }
 """
 
 _SAVE_QSS = (
-    "QPushButton { background-color: #0ea5e9; color: #ffffff;"
+    "QPushButton { background-color: $acento; color: $banda_texto;"
     "border: none; border-radius: 8px; padding: 7px 14px;"
     "font-weight: 700; font-size: 12px; }"
-    "QPushButton:hover { background-color: #0284c7; }"
+    "QPushButton:hover { background-color: $acento_hover; }"
 )
 
 
@@ -197,10 +202,10 @@ class _VerticalLabel(QLabel):
     def paintEvent(self, event) -> None:
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        painter.fillRect(self.rect(), QColor("#1f2937"))
+        painter.fillRect(self.rect(), QColor(_qss("$banda")))
         painter.translate(0, self.height())
         painter.rotate(-90)
-        painter.setPen(QColor("#e2e8f0"))
+        painter.setPen(QColor(_qss("$borde")))
         font = painter.font()
         font.setBold(True)
         painter.setFont(font)
@@ -263,7 +268,7 @@ class Cli3074View(QWidget):
         self._autosave_timer.setSingleShot(True)
         self._autosave_timer.setInterval(AUTOSAVE_MS)
         self._autosave_timer.timeout.connect(self.save_data)
-        self.setStyleSheet(_SHEET_QSS)  # ONE sheet: cells carry row/ro properties
+        self.setStyleSheet(_qss(_SHEET_QSS))  # ONE sheet: cells carry row/ro properties
         self._build()
         for row_map in self.row_inputs.values():
             for edit in row_map.values():
@@ -279,7 +284,7 @@ class Cli3074View(QWidget):
         central = QWidget()
         # the NEAREST ancestor sheet wins, so the sheet lives here: a
         # "background: transparent" here used to swallow every child rule
-        central.setStyleSheet(_SHEET_QSS)
+        central.setStyleSheet(_qss(_SHEET_QSS))
         outer = QVBoxLayout(central)
         outer.setContentsMargins(16, 12, 16, 12)
         outer.setSpacing(10)
@@ -290,30 +295,30 @@ class Cli3074View(QWidget):
         # exposed so an embedding window (audit) can repurpose it as "close"
         self.back_button = back_btn
         back_btn.setFixedSize(40, 40)
-        back_btn.setIcon(lucide_icon("arrow-left", "#0369a1", 18))
+        back_btn.setIcon(lucide_icon("arrow-left", _qss("$acento_texto"), 18))
         back_btn.setIconSize(QSize(18, 18))
         back_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         back_btn.setToolTip("Volver a la última hora de observación")
-        back_btn.setStyleSheet(
-            "QPushButton { background-color: #ffffff; border: 1px solid #e2e8f0;"
+        back_btn.setStyleSheet(_qss(
+            "QPushButton { background-color: $superficie; border: 1px solid $borde;"
             "border-radius: 20px; }"
-            "QPushButton:hover { background-color: #e0f2fe; }"
-        )
+            "QPushButton:hover { background-color: $acento_suave; }"
+        ))
         back_btn.clicked.connect(self.back_requested.emit)
         top.addWidget(back_btn, 0, Qt.AlignmentFlag.AlignVCenter)
         title = QLabel(self.TITLE)
-        title.setStyleSheet(
+        title.setStyleSheet(_qss(
             # fondo plano (sin fotografía ni degradado): tinta de texto
-                        "font-size: 18px; font-weight: 800; color: #0f172a;"
+                        "font-size: 18px; font-weight: 800; color: $texto_alt;"
             "background: transparent;"
-        )
+        ))
         title.setWordWrap(True)
         top.addWidget(title, 0, Qt.AlignmentFlag.AlignVCenter)
         top.addStretch(1)
 
         # module tabs (oracle intra-CLI navigation)
         tabs_box = QWidget()
-        tabs_box.setStyleSheet("background-color: #e2e8f0; border-radius: 8px;")
+        tabs_box.setStyleSheet(_qss("background-color: $panel; border-radius: 8px;"))
         tabs_row = QHBoxLayout(tabs_box)
         tabs_row.setContentsMargins(4, 4, 4, 4)
         tabs_row.setSpacing(4)
@@ -325,11 +330,11 @@ class Cli3074View(QWidget):
             active = module_key == self.MODULE_KEY
             tab = QPushButton(label)
             tab.setStyleSheet(
-                f"QPushButton {{ background-color: {'#ffffff' if active else 'transparent'};"
-                f"color: {'#0369a1' if active else '#475569'}; border: none;"
+                f"QPushButton {{ background-color: {_qss('$superficie') if active else 'transparent'};"
+                f"color: {_qss('$acento_texto') if active else _qss('$suave')}; border: none;"
                 "border-radius: 6px; padding: 6px 14px; font-size: 12px;"
                 "font-weight: bold; min-height: 24px; }"
-                "QPushButton:hover { background-color: #f0f9ff; }"
+                "QPushButton:hover { background-color: $acento_fondo; }"
             )
             tab.setCursor(Qt.CursorShape.PointingHandCursor)
             if not active:
@@ -340,26 +345,26 @@ class Cli3074View(QWidget):
         top.addWidget(tabs_box, 0, Qt.AlignmentFlag.AlignVCenter)
 
         hour_box = QWidget()
-        hour_box.setStyleSheet("background-color: #e2e8f0; border-radius: 8px;")
+        hour_box.setStyleSheet(_qss("background-color: $panel; border-radius: 8px;"))
         hour_row = QHBoxLayout(hour_box)
         hour_row.setContentsMargins(8, 4, 8, 4)
         hour_row.setSpacing(4)
         hour_hint = QLabel("VER HORA SYNOP:")
-        hour_hint.setStyleSheet(
-            "color: #64748b; font-size: 10px; font-weight: 700;"
+        hour_hint.setStyleSheet(_qss(
+            "color: $suave_alt; font-size: 10px; font-weight: 700;"
             "background: transparent;"
-        )
+        ))
         hour_row.addWidget(hour_hint)
         self._hour_buttons: dict[str, QPushButton] = {}
         for hour in ("06Z", "09Z", "12Z", "15Z", "18Z", "21Z",
                       "00Z", "03Z"):  # the day starts at 06Z
             button = QPushButton(hour)
-            button.setStyleSheet(
-                "QPushButton { background-color: #ffffff; color: #475569;"
+            button.setStyleSheet(_qss(
+                "QPushButton { background-color: $superficie; color: $suave;"
                 "border: none; border-radius: 6px; padding: 6px 12px;"
                 "font-size: 12px; font-weight: bold; min-height: 24px; }"
-                "QPushButton:hover { color: #0369a1; background-color: #f0f9ff; }"
-            )
+                "QPushButton:hover { color: $acento_texto; background-color: $acento_fondo; }"
+            ))
             button.setCursor(Qt.CursorShape.PointingHandCursor)
             button.setToolTip(f"Ver la hora Sinóptica {hour}")
             # oracle: navigate('/synoptic', { activeHour: h })
@@ -381,10 +386,10 @@ class Cli3074View(QWidget):
 
         def meta_label(text: str) -> QLabel:
             label = QLabel(text)
-            label.setStyleSheet(
-                "color: #475569; font-weight: 700; font-size: 11px;"
+            label.setStyleSheet(_qss(
+                "color: $suave; font-weight: 700; font-size: 11px;"
                 "background: transparent;"
-            )
+            ))
             return label
 
         self.station_combo = StyledComboBox()
@@ -393,10 +398,10 @@ class Cli3074View(QWidget):
         index = self.station_combo.findData(self.station)
         self.station_combo.setCurrentIndex(max(index, 0))
         self.station_combo.setEnabled(False)  # locked like the oracle route
-        self.station_combo.setStyleSheet(
-            "QComboBox { background-color: #f8fafc; border: 1px solid #cbd5e1;"
-            "border-radius: 6px; padding: 4px 8px; color: #475569; height: 24px; }"
-        )
+        self.station_combo.setStyleSheet(_qss(
+            "QComboBox { background-color: $panel_alt; border: 1px solid $borde_input;"
+            "border-radius: 6px; padding: 4px 8px; color: $suave; height: 24px; }"
+        ))
 
         self.latitud_edit = self._ro_meta_field()
         self.longitud_edit = self._ro_meta_field()
@@ -441,28 +446,28 @@ class Cli3074View(QWidget):
             label = QLabel(text)
             label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             label.setWordWrap(True)
-            label.setStyleSheet(_HEADER_QSS.format(color=color))
+            label.setStyleSheet(_qss(_HEADER_QSS))
             grid.addWidget(label, 0, col, rowspan, span)
 
-        group_header(1, 3, "PRESIÓN (hPa)", _GROUP_COLORS["pres"])
-        group_header(4, 2, "3 H. TEND", _GROUP_COLORS["tend"])
-        group_header(6, 2, "TEMPERATURA", _GROUP_COLORS["temp"])
-        group_header(8, 3, "HUMEDAD", _GROUP_COLORS["hum"])
-        group_header(11, 2, "VIENTO", _GROUP_COLORS["viento"])
-        group_header(13, 1, "VISIBILIDAD (km)", _GROUP_COLORS["vis"], rowspan=2)
-        group_header(15, 10, "FENÓMENOS", _GROUP_COLORS["feno"])
+        group_header(1, 3, "PRESIÓN (hPa)", "$banda")
+        group_header(4, 2, "3 H. TEND", "$banda")
+        group_header(6, 2, "TEMPERATURA", "$banda")
+        group_header(8, 3, "HUMEDAD", "$banda")
+        group_header(11, 2, "VIENTO", "$banda")
+        group_header(13, 1, "VISIBILIDAD (km)", "$banda", rowspan=2)
+        group_header(15, 10, "FENÓMENOS", "$banda")
 
         for index, (field, text, _ro) in enumerate(ROW_FIELDS):
             sub = QLabel(text)
             sub.setAlignment(Qt.AlignmentFlag.AlignCenter)
             sub.setWordWrap(True)
-            sub.setStyleSheet(_SUB_HEADER_QSS)  # 14 labels: direct rule is fine
+            sub.setStyleSheet(_qss(_SUB_HEADER_QSS))  # 14 labels: direct rule is fine
             grid.addWidget(sub, 1, 1 + index)
 
         tp_label = QLabel("T. PRES.")
         tp_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         tp_label.setToolTip("Tiempo presente")
-        tp_label.setStyleSheet(_SUB_HEADER_QSS)
+        tp_label.setStyleSheet(_qss(_SUB_HEADER_QSS))
         grid.addWidget(tp_label, 0, 14, 2, 1)  # full header height = VISIBILIDAD
 
         for index, (_key, abbr, tooltip) in enumerate(FENOMENOS):
@@ -474,7 +479,7 @@ class Cli3074View(QWidget):
         obs_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         obs_label.setToolTip("Iniciales del observador de la hora")
         obs_label.setWordWrap(True)
-        obs_label.setStyleSheet(_SUB_HEADER_QSS)
+        obs_label.setStyleSheet(_qss(_SUB_HEADER_QSS))
         grid.addWidget(obs_label, 0, _OBS_COLUMN, 2, 1)
 
         for row in range(1, 25):
@@ -503,21 +508,21 @@ class Cli3074View(QWidget):
 
     def _card_host(self) -> QFrame:
         frame = QFrame()
-        frame.setStyleSheet(
-            "QFrame { background-color: #ffffff; border: 1px solid #e2e8f0;"
+        frame.setStyleSheet(_qss(
+            "QFrame { background-color: $superficie; border: 1px solid $borde;"
             "border-radius: 10px; }"
-        )
+        ))
         return frame
 
     def _ro_meta_field(self) -> QLineEdit:
         edit = QLineEdit()
         edit.setReadOnly(True)
         edit.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        edit.setStyleSheet(
-            "background-color: #f8fafc; border: 1px solid #e2e8f0;"
-            "border-radius: 6px; padding: 4px 8px; color: #334155;"
+        edit.setStyleSheet(_qss(
+            "background-color: $panel_alt; border: 1px solid $borde;"
+            "border-radius: 6px; padding: 4px 8px; color: $texto;"
             "font-size: 12px;"
-        )
+        ))
         return edit
 
     def _build_data_row(self, grid: QGridLayout, row: int) -> None:

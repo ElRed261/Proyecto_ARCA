@@ -1140,9 +1140,12 @@ def test_fenomenos_abbreviations_render_dark_chips(cli3074_page, qtbot):
     gr = next(w for w in view.findChildren(QLabel)
               if isinstance(w, __import__("oms_ui.pages.cli3074", fromlist=["_VerticalLabel"])._VerticalLabel))
     assert gr._text == "GR"
+    from oms_ui import theme
+
     pix = gr.grab()
     color = pix.toImage().pixelColor(3, 3).name()
-    assert color == "#1f2937"  # the dark chip really paints
+    # El chip oscuro se pinta de verdad, con el rol banda del tema activo.
+    assert color == theme.palette_actual()["banda"]
 
 
 # ---------------------------------------------------------------- round 8 details
@@ -1209,8 +1212,12 @@ def test_cli3074_group_headers_uniform_slate(cli3074_page, qtbot):
                               "HUMEDAD", "VIENTO", "VISIBILIDAD (km)", "FENÓMENOS")]
     assert len(labels) == 7
     styles = {w.styleSheet() for w in labels}
-    assert len(styles) == 1  # one shared color across all groups
-    assert "#334155" in labels[0].styleSheet()
+    assert len(styles) == 1  # un solo color compartido entre grupos
+    hoja = labels[0].styleSheet()
+    assert "$" not in hoja, "la cabecera de grupo no puede llegar sin resolver"
+    from oms_ui import theme
+
+    assert theme.palette_actual()["banda"] in hoja
 
 
 def test_cli4074_total_headers_full_height_emerald(cli3074_page, qtbot):
