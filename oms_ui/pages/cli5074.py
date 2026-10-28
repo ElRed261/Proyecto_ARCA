@@ -93,7 +93,7 @@ _FENO_GROUPS: tuple[tuple[str, str, str, tuple[tuple[str, str], ...]], ...] = (
 #: owner round 12: unit sub-headers (mm)/(°C) speak the module's red.
 _UNIT_RED_QSS = (
     "background-color: $error_fuerte; color: $sobre_acento; font-weight: 600;"
-    "font-size: 10px; padding: 4px 2px;"
+    "font-size: 10px; padding: 4px 2px; border-radius: 3px;"
 )
 _SECTION_QSS = (
     "QFrame { background-color: $superficie; border: 1px solid $borde;"
@@ -118,7 +118,7 @@ _SUB_HEADER_QSS = (
 )
 _INPUT_QSS = (
     "QLineEdit { background-color: $superficie; border: 1px solid $borde;"
-    "color: $texto; font-size: 12px; padding: 3px 6px; }"
+    "border-radius: 3px; color: $texto; font-size: 12px; padding: 3px 6px; }"
     "QLineEdit:focus { border-color: $error_fuerte; background-color: $error_suave; }"
 )
 _TEXT_QSS = (
