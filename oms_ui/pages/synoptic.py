@@ -285,35 +285,19 @@ def _progress_qss(chunk: str) -> str:
     )
 
 
-#: Hour themes verbatim from synopticConfig.hourThemes: the page is a
-#: bg-gradient-to-br surface whose stops, accent chips and title text
-#: follow the observation hour ("escala de azules según altura del sol").
-HOUR_THEMES: dict[str, dict[str, str]] = {
-    # hora local RD = UTC-4; cada par from/to es el cielo real de esa hora:
-    # 00Z=20:00 dusk (violeta cayendo a indigo), 03Z=23:00 noche, 06Z=02:00
-    # noche profunda, 09Z=05:00 amanecer (azul noche + ambar al horizonte),
-    # 12Z=08:00 mañana azul cielo, 15Z=11:00 mediodia pleno, 18Z=14:00
-    # tarde luminosa, 21Z=17:00 golden hour (violeta alto + dorado bajo).
-    "00Z": {"from": "#4a3a7a", "to": "#1e1b4b", "accent": "#4a3a7a", "text": "#e2e8f0"},
-    "03Z": {"from": "#172554", "to": "#0b1026", "accent": "#172554", "text": "$acento_suave"},
-    "06Z": {"from": "#0f172a", "to": "#020617", "accent": "#1e293b", "text": "#e2e8f0"},
-    "09Z": {"from": "#1e2a5a", "to": "#b45309", "accent": "#35426b", "text": "$ambar_fondo"},
-    "12Z": {"from": "#38bdf8", "to": "#93c5fd", "accent": "#0369a1", "text": "#0c4a6e"},
-    "15Z": {"from": "#0ea5e9", "to": "#7dd3fc", "accent": "#0284c7", "text": "#0c4a6e"},
-    "18Z": {"from": "#22b8ea", "to": "#67e8f9", "accent": "#0e7490", "text": "#0c4a6e"},
-    "21Z": {"from": "#614e72", "to": "#f59e0b", "accent": "#6d28d9", "text": "#fef3c7"},
-}
 
 #: lucide icon per hour selector button (oracle JSX hour-icons mapping).
-HOUR_ICONS: dict[str, tuple[str, str]] = {
-    "06Z": ("sunrise", "#fb923c"),
-    "09Z": ("sun", "#f59e0b"),
-    "12Z": ("sun", "#f59e0b"),
-    "15Z": ("sun", "#f59e0b"),
-    "18Z": ("sunset", "#fb7185"),
-    "21Z": ("moon", "#818cf8"),
-    "00Z": ("moon", "#818cf8"),
-    "03Z": ("moon", "#818cf8"),
+#: Icono por hora del selector: sol, amanecer o luna. Sin color propio — el
+#: color sale de la paleta, que es lo único que distingue el estado.
+HOUR_ICONS: dict[str, str] = {
+    "06Z": "sunrise",
+    "09Z": "sun",
+    "12Z": "sun",
+    "15Z": "sun",
+    "18Z": "sunset",
+    "21Z": "moon",
+    "00Z": "moon",
+    "03Z": "moon",
 }
 
 #: slate-600 header chips (oracle tableHeader slate bg; square corners).
@@ -606,23 +590,31 @@ class SynopticPage(QWidget):
             self._place_toast()
             self._status_timer.start()
 
-    def _style_hour_button(self, hora: str, accent: str) -> None:
-        """One hour button: active gets the accent, others keep the fill tint"""
+    def _style_hour_button(self, hora: str) -> None:
+        """Botón de hora: el activo lleva el acento, el resto el tinte de avance.
+
+        El icono (sol, amanecer, luna) dice la hora; el color no depende de ella.
+        """
+        paleta = theme_mod.palette_actual()
         button = self.hour_buttons[hora]
         active = hora == self.active_hour
         if active:
-            button.setStyleSheet(
-                f"QPushButton {{ background-color: {accent}; color: #ffffff;"
+            button.setStyleSheet(_qss(
+                "QPushButton { background-color: $acento; color: $banda_texto;"
                 "border: none; border-radius: 8px; padding: 8px 6px;"
                 "font-weight: 700; font-size: 12px; }"
-            )
+            ))
         else:
-            fill = button.property("fill") or "empty"
-            tint = {"part": "#fffbeb", "ok": "#ecfdf5"}.get(str(fill), "#f8fafc")
+            fill = str(button.property("fill") or "empty")
+            tint = {"part": paleta["ambar_fondo"], "ok": paleta["ok_fondo"]}.get(
+                fill, paleta["panel_alt"]
+            )
             button.setStyleSheet(_qss(_hour_button_qss(tint)))
-        icon_name, base_color = HOUR_ICONS[hora]
+        icon_name = HOUR_ICONS[hora]
         button.setIcon(lucide_icon(
-            icon_name, "#ffffff" if active else base_color, 14
+            icon_name,
+            paleta["banda_texto"] if active else paleta["suave"],
+            14,
         ))
         button.setIconSize(QSize(14, 14))
 
@@ -648,7 +640,7 @@ class SynopticPage(QWidget):
         for chip in (self.observer_label, *self._primary_headers):
             chip.setStyleSheet(chip_qss)
         for hora in self.hour_buttons:
-            self._style_hour_button(hora, accent)
+            self._style_hour_button(hora)
         self.save_btn.setStyleSheet(
             f"QPushButton {{ background-color: {paleta['acento']};"
             f" color: {paleta['superficie']};"
@@ -676,10 +668,10 @@ class SynopticPage(QWidget):
             if accent is None:
                 label.setStyleSheet(_qss(_HEADER_QSS))
             else:
-                label.setStyleSheet(
-                    f"background-color: {accent}; color: #ffffff;"
+                label.setStyleSheet(_qss(
+                    "background-color: $acento; color: $banda_texto;"
                     "font-weight: 700; font-size: 12px; padding: 7px 6px;"
-                )
+                ))
                 self._primary_headers.append(label)
             grid.addWidget(label, row, col, 1, span)
             col += span
@@ -1807,7 +1799,7 @@ class SynopticPage(QWidget):
             )
             if button.property("fill") != fill:
                 button.setProperty("fill", fill)
-                self._style_hour_button(hora, HOUR_THEMES.get(self.active_hour, HOUR_THEMES["06Z"])["accent"])
+                self._style_hour_button(hora)
         active = synoptic_service.hour_completion(
             self.observations.get(self.active_hour) or {}, self.active_hour
         )

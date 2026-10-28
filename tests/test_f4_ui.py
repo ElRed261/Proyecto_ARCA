@@ -1257,24 +1257,26 @@ def QApplication_events(widget):
 # ---------------------------------------------------------------- round 9: sky transition
 
 
-def test_hour_themes_trace_the_real_sky(qtbot, fresh_db, tmp_path):
-    """Owner round 9: the background is a DAY-LIGHT transition — noon hours
-    sky-blue, 21Z golden-hour (violet->amber), 00Z dusk purple, deep night
-    hours near-black navy; adjacent hours must differ noticeably."""
-    from oms_ui.pages.synoptic import HOUR_THEMES
+def test_los_botones_de_hora_no_tienen_color_por_hora():
+    """El selector dice la hora con el icono y el estado con el acento.
 
-    assert HOUR_THEMES["12Z"]["from"] == "#38bdf8"   # 08:00 cielo
-    assert HOUR_THEMES["15Z"]["from"] == "#0ea5e9"   # mediodía
-    assert HOUR_THEMES["21Z"]["to"] == "#f59e0b"     # golden hour ámbar
-    assert HOUR_THEMES["00Z"]["from"] == "#4a3a7a"   # 20:00 dusk violeta
-    assert HOUR_THEMES["06Z"]["to"] == "#020617"     # noche profunda
-    # the transition actually moves: no two adjacent local hours identical
-    order = ("06Z", "09Z", "12Z", "15Z", "18Z", "21Z", "00Z", "03Z")
-    from itertools import pairwise
+    `HOUR_THEMES` guardaba el cielo de cada hora (from/to/accent/text) y teñía
+    los botones con él. El fondo por hora se eliminó con los degradados y el
+    acento pasó a ser único: lo que sobrevive es el icono (sol, amanecer, luna),
+    que informa la hora sin depender del color.
+    """
+    from pathlib import Path
 
-    for prev, nxt in pairwise(order):
-        assert HOUR_THEMES[prev]["from"] != HOUR_THEMES[nxt]["from"]
+    from oms_ui.pages import synoptic as pagina
 
+    assert not hasattr(pagina, "HOUR_THEMES")
+    fuente = (
+        Path(__file__).resolve().parents[1] / "oms_ui" / "pages" / "synoptic.py"
+    ).read_text(encoding="utf-8")
+    assert "HOUR_THEMES" not in fuente
+    # los iconos por hora siguen existiendo, y sólo como nombre de icono
+    assert set(pagina.HOUR_ICONS) == {"06Z", "09Z", "12Z", "15Z", "18Z", "21Z", "00Z", "03Z"}
+    assert all(isinstance(v, str) for v in pagina.HOUR_ICONS.values())
 
 def test_el_selector_marca_la_hora_aunque_el_fondo_no_cambie(qtbot, fresh_db, tmp_path):
     """Píxeles clavados: el fondo plano no se mueve; la hora la marca el selector."""
