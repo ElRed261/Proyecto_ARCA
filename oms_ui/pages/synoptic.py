@@ -40,6 +40,7 @@ from typing import Any
 
 from PySide6.QtCore import QDate, QRegularExpression, QSize, Qt, QTimer
 from PySide6.QtGui import (
+    QIcon,
     QColor,
     QKeySequence,
     QPainter,
@@ -207,8 +208,8 @@ def _qss(plantilla: str) -> str:
 
 
 FIELD_QSS = (
-    "QLineEdit { background-color: $superficie; border: 1px solid $borde_input;"
-    "border-radius: 4px; padding: 5px 8px; color: $texto;"
+    "QLineEdit { background-color: $superficie; border: 1px solid $borde;"
+    "border-radius: 6px; padding: 6px 8px; color: $texto;"
     "selection-background-color: $acento; }"
     "QLineEdit:disabled { background-color: $borde; color: $tenue; }"
 )
@@ -218,12 +219,12 @@ FIELD_ERROR_QSS = (
 )
 RO_QSS = (
     "QLineEdit { background-color: $superficie; border: 1px solid $borde_input;"
-    "border-radius: 4px; padding: 5px 8px; color: $acento; font-weight: bold; }"
+    "border-radius: 6px; padding: 6px 8px; color: $texto; }"
     "QLineEdit:disabled { background-color: $borde; color: $tenue; }"
 )
 CONST_QSS = (
-    "QLineEdit { background-color: $borde; border: 1px solid $tenue;"
-    "border-radius: 4px; padding: 5px 8px; color: $texto; font-weight: bold; }"
+    "QLineEdit { background-color: $superficie; border: 1px solid $borde;"
+    "border-radius: 6px; padding: 6px 8px; color: $texto; font-weight: 600; }"
 )
 CARD_QSS = (
     "QFrame { background-color: $superficie; border: 1px solid $borde;"
@@ -302,8 +303,8 @@ HOUR_ICONS: dict[str, str] = {
 
 #: slate-600 header chips (oracle tableHeader slate bg; square corners).
 _HEADER_QSS = (
-    "background-color: $banda; color: $banda_texto; font-weight: 600;"
-    "font-size: 12px; padding: 7px 6px; border-radius: 6px;"
+    "background-color: transparent; color: $suave_alt; font-weight: 600;"
+    "font-size: 11px; padding: 6px 4px 2px 4px;"
 )
 
 
@@ -591,32 +592,29 @@ class SynopticPage(QWidget):
             self._status_timer.start()
 
     def _style_hour_button(self, hora: str) -> None:
-        """Botón de hora: el activo lleva el acento, el resto el tinte de avance.
+        """Botón de hora como el mockup: tarjeta blanca; el activo, en acento.
 
-        El icono (sol, amanecer, luna) dice la hora; el color no depende de ella.
+        El icono sol/luna salió: el mockup muestra la hora y su avance, sin
+        glifo, y el color ya no depende de la hora.
         """
-        paleta = theme_mod.palette_actual()
         button = self.hour_buttons[hora]
         active = hora == self.active_hour
         if active:
             button.setStyleSheet(_qss(
-                "QPushButton { background-color: $acento; color: $banda_texto;"
-                "border: none; border-radius: 8px; padding: 8px 6px;"
-                "font-weight: 700; font-size: 12px; }"
+                "QPushButton { background-color: $acento_suave;"
+                " border: 1px solid $acento; border-radius: 8px;"
+                " color: $acento_texto; font-weight: 700; font-size: 12px;"
+                " padding: 6px 8px; }"
             ))
         else:
-            fill = str(button.property("fill") or "empty")
-            tint = {"part": paleta["ambar_fondo"], "ok": paleta["ok_fondo"]}.get(
-                fill, paleta["panel_alt"]
-            )
-            button.setStyleSheet(_qss(_hour_button_qss(tint)))
-        icon_name = HOUR_ICONS[hora]
-        button.setIcon(lucide_icon(
-            icon_name,
-            paleta["banda_texto"] if active else paleta["suave"],
-            14,
-        ))
-        button.setIconSize(QSize(14, 14))
+            button.setStyleSheet(_qss(
+                "QPushButton { background-color: $superficie;"
+                " border: 1px solid $borde; border-radius: 8px;"
+                " color: $texto; font-weight: 600; font-size: 12px;"
+                " padding: 6px 8px; }"
+                "QPushButton:hover { border-color: $acento; }"
+            ))
+        button.setIcon(QIcon())
 
     def _apply_hour_theme(self) -> None:
         """Ink, chips y botón salen de la paleta; la hora sólo tiñe el selector.
