@@ -107,13 +107,17 @@ INPUT_QSS = (
     "color: $texto; font-size: 12px; padding: 3px 4px; }"
     "QLineEdit:focus { border-color: $acento; background-color: $acento_fondo; }"
 )
+#: Encabezado de grupo: texto de color sobre la tarjeta, sin caja (mockup).
+#: `{color}` lo pone cada grupo; por defecto el acento.
 _HEADER_QSS = (
-    "background-color: $acento_suave; color: $acento_texto; font-weight: 700;"
-    "font-size: 11px; padding: 6px 4px; border-radius: 3px;"
+    "background-color: transparent; color: {color}; font-weight: 700;"
+    "font-size: 11px; padding: 6px 4px 2px 4px;"
 )
+_DEFAULT = "$acento"
+#: Sub-encabezado: texto gris, sin relleno.
 _SUB_HEADER_QSS = (
-    "background-color: transparent; color: $suave_alt; font-weight: 700;"
-    "font-size: 10px; padding: 4px 2px;"
+    "background-color: transparent; color: $suave_alt; font-weight: 600;"
+    "font-size: 10px; padding: 2px;"
 )
 _SAVE_QSS = (
     "QPushButton { background-color: $acento; color: $sobre_acento;"
@@ -138,7 +142,7 @@ class Cli4074View(QWidget):
     switch_requested = Signal(str)
 
     MODULE_KEY = "cli4074"
-    TITLE = "CLI 4074 - NUBOSIDAD Y TEMPERATURA"
+    TITLE = "CLI 4074 · Nubosidad y temperatura"
 
     def __init__(
         self,
@@ -200,7 +204,7 @@ class Cli4074View(QWidget):
             "QLabel#cliTitle { font-size: 18px; font-weight: 800;"
             "color: $texto_alt; background: transparent; }"
         ))
-        title.setWordWrap(True)
+        title.setWordWrap(False)
         top.addWidget(title, 0, Qt.AlignmentFlag.AlignVCenter)
         top.addStretch(1)
         self._build_tabs(top)

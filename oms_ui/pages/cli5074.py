@@ -106,13 +106,17 @@ _LABEL_QSS = (
 )
 #: El 5074 mantiene su identidad roja: el encabezado es tinte de la familia
 #: de error, no el acento global. Es el nivel 2 de la jerarquía.
+#: Encabezado de grupo: texto de color sobre la tarjeta, sin caja (mockup).
+#: `{color}` lo pone cada grupo; por defecto el acento.
 _HEADER_QSS = (
-    "background-color: $error_suave; color: $error_fuerte; font-weight: 700;"
-    "font-size: 11px; padding: 6px 4px; border-radius: 3px;"
+    "background-color: transparent; color: {color}; font-weight: 700;"
+    "font-size: 11px; padding: 6px 4px 2px 4px;"
 )
+_DEFAULT = "$acento"
+#: Sub-encabezado: texto gris, sin relleno.
 _SUB_HEADER_QSS = (
-    "background-color: transparent; color: $suave_alt; font-weight: 700;"
-    "font-size: 10px; padding: 4px 2px;"
+    "background-color: transparent; color: $suave_alt; font-weight: 600;"
+    "font-size: 10px; padding: 2px;"
 )
 _INPUT_QSS = (
     "QLineEdit { background-color: $superficie; border: 1px solid $borde;"
@@ -152,7 +156,7 @@ class Cli5074View(QWidget):
     switch_requested = Signal(str)
 
     MODULE_KEY = "cli5074"
-    TITLE = "CLI 5074 - OBSERVACIONES EXTREMAS Y FENÓMENOS"
+    TITLE = "CLI 5074 · Observaciones extremas y fenómenos"
 
     def __init__(
         self,
@@ -216,7 +220,7 @@ class Cli5074View(QWidget):
             "QLabel#cliTitle { font-size: 18px; font-weight: 800;"
             "color: $texto_alt; background: transparent; }"
         ))
-        title.setWordWrap(True)
+        title.setWordWrap(False)
         top.addWidget(title, 0, Qt.AlignmentFlag.AlignVCenter)
         top.addStretch(1)
         self._build_tabs(top)
@@ -313,12 +317,12 @@ class Cli5074View(QWidget):
         card_layout.addLayout(grid)
         corner = QLabel("HORA LOCAL")
         corner.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        corner.setStyleSheet(_qss(_HEADER_QSS.format(color="$banda")))
+        corner.setStyleSheet(_qss(_HEADER_QSS.format(color="$acento")))
         grid.addWidget(corner, 0, 0)
         for col_index, row in enumerate(_HOURLY_ROWS):
             head = QLabel(str(row))
             head.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            head.setStyleSheet(_qss(_HEADER_QSS.format(color="$banda")))
+            head.setStyleSheet(_qss(_HEADER_QSS.format(color="$acento")))
             grid.addWidget(head, 0, 1 + col_index)
         self.hour_inputs: dict[int, dict[str, QLineEdit]] = {}
         for row_index, (field, label) in enumerate(_HOURLY_FIELDS):

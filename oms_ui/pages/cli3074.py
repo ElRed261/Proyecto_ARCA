@@ -101,9 +101,10 @@ _HEADER_QSS = (
     "background-color: $acento_suave; color: $acento_texto; font-weight: 700;"
     "font-size: 11px; padding: 6px 4px; border-radius: 3px;"
 )
+#: Sub-encabezado: texto gris, sin relleno.
 _SUB_HEADER_QSS = (
-    "background-color: transparent; color: $suave_alt; font-weight: 700;"
-    "font-size: 10px; padding: 4px 2px;"
+    "background-color: transparent; color: $suave_alt; font-weight: 600;"
+    "font-size: 10px; padding: 2px;"
 )
 INPUT_QSS = (
     "QLineEdit { background-color: $superficie; border: 1px solid $borde;"
@@ -202,17 +203,12 @@ class _VerticalLabel(QLabel):
     def paintEvent(self, event) -> None:
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        painter.fillRect(self.rect(), QColor(_qss("$acento_suave")))
-        painter.translate(0, self.height())
-        painter.rotate(-90)
-        painter.setPen(QColor(_qss("$borde")))
+        painter.setPen(QColor(_qss("$suave_alt")))
         font = painter.font()
         font.setBold(True)
+        font.setPointSizeF(7.5)
         painter.setFont(font)
-        painter.drawText(
-            0, 0, self.height(), self.width(),
-            Qt.AlignmentFlag.AlignCenter, self._text,
-        )
+        painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, self._text)
         painter.end()
 
 
@@ -238,7 +234,7 @@ class Cli3074View(QWidget):
     switch_requested = Signal(str)
 
     MODULE_KEY = "cli3074"
-    TITLE = "CLI 3074 - OBSERVACIONES DE SUPERFICIE"
+    TITLE = "CLI 3074 · Observaciones de superficie"
 
     def __init__(
         self,
@@ -312,7 +308,7 @@ class Cli3074View(QWidget):
             "QLabel#cliTitle { font-size: 18px; font-weight: 800;"
             "color: $texto_alt; background: transparent; }"
         ))
-        title.setWordWrap(True)
+        title.setWordWrap(False)
         top.addWidget(title, 0, Qt.AlignmentFlag.AlignVCenter)
         top.addStretch(1)
 

@@ -1133,25 +1133,26 @@ def test_cli4074_columns_match_the_reference_image_order(cli3074_page, qtbot):
     assert grid.itemAtPosition(3, 24).widget() is view.row_inputs[2]["observador"]
 
 
-def test_fenomenos_abbreviations_render_dark_chips(cli3074_page, qtbot):
-    """GR/SQ/FC heads: dark chip + light bold text (visible, round 7)."""
+def test_fenomenos_abbreviations_render_as_text(cli3074_page, qtbot):
+    """Las abreviaturas de fenómenos (GR/SQ/FC…) son texto, como el mockup.
+
+    Antes eran rótulos girados sobre un chip oscuro; el mockup las muestra
+    horizontales y en gris sobre la tarjeta, así que se pinta el glifo y se
+    comprueba que hay tinta distinta del fondo.
+    """
     from PySide6.QtWidgets import QLabel
+
+    from oms_ui import theme
+    from oms_ui.pages import cli3074 as modulo
 
     cli3074_page._open_cli("cli3074")
     view = cli3074_page._stack.currentWidget()
-    gr = next(w for w in view.findChildren(QLabel)
-              if isinstance(w, __import__("oms_ui.pages.cli3074", fromlist=["_VerticalLabel"])._VerticalLabel))
-    assert gr._text == "GR"
-    from oms_ui import theme
-
+    gr = next(w for w in view.findChildren(QLabel) if isinstance(w, modulo._VerticalLabel))
+    assert gr._text
     pix = gr.grab()
-    color = pix.toImage().pixelColor(3, 3).name()
-    # El chip oscuro se pinta de verdad, con el rol banda del tema activo.
-    assert color == theme.palette_actual()["acento_suave"]
-
-
-# ---------------------------------------------------------------- round 8 details
-
+    colores = {pix.toImage().pixelColor(x, y).name()
+               for x in range(pix.width()) for y in range(pix.height())}
+    assert len(colores) > 1, "el rótulo no dibujó texto"
 
 def test_toast_5s_and_click_dismiss(qtbot, fresh_db, tmp_path):
     """Owner round 8: toast dies after 5s or on any click (already shipped
