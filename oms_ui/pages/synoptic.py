@@ -232,7 +232,7 @@ CARD_QSS = (
     "border-radius: 16px; }"
 )
 CARDHEAD_QSS = (
-    "color: $tenue; font-size: 12px; font-weight: 700; background: transparent;"
+    "color: $texto; font-size: 12px; font-weight: 800; background: transparent;"
     "border: none;"
 )
 MINILABEL_QSS = (
@@ -257,8 +257,8 @@ DAYNAV_FORWARD_QSS = (
 )
 CLI_BTN_QSS = (
     "QToolButton { background-color: $panel_alt; color: $texto;"
-    "border: 1px solid $borde; border-radius: 10px;"
-    "padding: 5px 2px; font-size: 11px; font-weight: 700; }"
+    "border: 1px solid $borde; border-radius: 6px;"
+    "padding: 9px 4px; font-size: 12px; font-weight: 800; }"
     "QToolButton:hover { background-color: $ambar_fondo; border-color: $ambar_fondo; }"
 )
 SECONDARY_BTN_QSS = (
@@ -304,8 +304,8 @@ HOUR_ICONS: dict[str, str] = {
 
 #: slate-600 header chips (oracle tableHeader slate bg; square corners).
 _HEADER_QSS = (
-    "background-color: transparent; color: $acento_texto; font-weight: 800;"
-    "font-size: 13px; padding: 6px 4px 2px 4px;"
+    "background-color: $acento; color: $sobre_acento; font-weight: 800;"
+    "font-size: 12px; padding: 7px 6px; border-radius: 3px;"
 )
 
 
@@ -631,18 +631,13 @@ class SynopticPage(QWidget):
             f"background: transparent; color: {paleta['texto']};"
             "font-size: 22px; font-weight: 700;"
         ))
-        chip_qss = (
-            f"background-color: {paleta['acento_suave']}; color: {paleta['acento']};"
-            f"border: 1px solid {paleta['borde']}; font-weight: 600;"
-            "font-size: 12px; padding: 8px 14px; border-radius: 6px;"
-        )
         for chip in (self.observer_label, *self._primary_headers):
-            chip.setStyleSheet(chip_qss)
+            chip.setStyleSheet(_qss(_HEADER_QSS))
         for hora in self.hour_buttons:
             self._style_hour_button(hora)
         self.save_btn.setStyleSheet(_qss(
             f"QPushButton {{ background-color: {paleta['acento']};"
-            f" color: {paleta['superficie']};"
+            f" color: {paleta['sobre_acento']};"
             "border: none; border-radius: 6px; padding: 10px 12px;"
             "font-weight: 700; font-size: 13px; }"
             f"QPushButton:hover {{ background-color: {paleta['acento_hover']}; }}"
@@ -750,6 +745,7 @@ class SynopticPage(QWidget):
         meta_row = QHBoxLayout()
         meta_row.setSpacing(10)
         self.observer_label = QLabel("Observador")
+        self.observer_label.setStyleSheet(_qss(_HEADER_QSS))
         self.observer_label.setMinimumWidth(112)
         self.observer_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.observer_edit = QLineEdit()
@@ -824,7 +820,7 @@ class SynopticPage(QWidget):
         self.prev_btn = QPushButton()
         self.prev_btn.setProperty("daynav", "back")
         self.prev_btn.setStyleSheet(_qss(DAYNAV_BACK_QSS))
-        self.prev_btn.setIcon(lucide_icon("arrow-left", _qss("$acento_texto"), 14))
+        self.prev_btn.setIcon(lucide_icon("arrow-left", _qss("$texto"), 14))
         self.prev_btn.setIconSize(QSize(14, 14))
         self.prev_btn.setToolTip("Guardar y cargar el día anterior")
         self.prev_btn.setFixedWidth(30)
@@ -837,7 +833,7 @@ class SynopticPage(QWidget):
         self.next_btn = QPushButton()
         self.next_btn.setProperty("daynav", "forward")
         self.next_btn.setStyleSheet(_qss(DAYNAV_FORWARD_QSS))
-        self.next_btn.setIcon(lucide_icon("arrow-right", _qss("$ok_fuerte"), 14))
+        self.next_btn.setIcon(lucide_icon("arrow-right", _qss("$texto"), 14))
         self.next_btn.setIconSize(QSize(14, 14))
         self.next_btn.setToolTip("Guardar y avanzar al día siguiente")
         self.next_btn.setFixedWidth(30)
@@ -1056,21 +1052,9 @@ class SynopticPage(QWidget):
         hours_head.addStretch(1)
         hours_l.addLayout(hours_head)
 
-        progress_row = QHBoxLayout()
-        progress_row.setSpacing(6)
-        self.progress_label = QLabel("0/21 campos")
-        self.progress_label.setStyleSheet(_qss(
-            "color: $suave_alt; font-size: 11px; font-weight: 600;"
-            "background: transparent;"
-        ))
-        progress_row.addWidget(self.progress_label)
-        progress_row.addStretch(1)
-        hours_l.addLayout(progress_row)
-        self.progress = QProgressBar()
-        self.progress.setTextVisible(False)
-        self.progress.setFixedHeight(4)
-        self.progress.setProperty("fillcls", "empty")
-        hours_l.addWidget(self.progress)
+        # El contador de campos llenos y su barra se quitaron: el dueño los
+        # considera innecesarios (la hora activa ya dice cuánto falta en el
+        # propio formulario).
 
         hours_grid = QGridLayout()
         hours_grid.setHorizontalSpacing(8)
@@ -1803,18 +1787,8 @@ class SynopticPage(QWidget):
         active = synoptic_service.hour_completion(
             self.observations.get(self.active_hour) or {}, self.active_hour
         )
-        self.progress.setRange(0, active["total"])
-        self.progress.setValue(int(active["done"]))
-        fillcls = (
-            "empty" if active["done"] == 0
-            else "ok" if active["ratio"] == 1.0
-            else "part"
-        )
-        chunk = {"empty": "$borde", "part": "$ambar", "ok": "$ok"}[fillcls]
-        self.progress.setStyleSheet(_qss(_progress_qss(chunk)))
-        self.progress_label.setText(
-            f"{self.active_hour}: {active['done']}/{active['total']} campos"
-        )
+        if active["ratio"] == 1.0:
+            self.hour_buttons[self.active_hour].setProperty("fill", "ok")
 
     def _update_readouts(self) -> None:
         derived = self._derive_active()

@@ -127,15 +127,16 @@ def test_hour_selector_8_buttons_with_completion_tooltips(page):
     assert page.hour_buttons["06Z"].property("fill") == "part"
 
 
-def test_active_hour_progress_bar(page):
-    assert page.active_hour == "06Z"
-    page.field("ts").setText("23.2")
-    assert page.progress.maximum() == 21
-    assert page.progress.value() == 1
-    assert "1/21" in page.progress_label.text()
-    page.select_hour("09Z")
-    assert page.progress.maximum() == 17  # odd hours have the honest denominator
+def test_no_hay_contador_de_campos_llenos(page):
+    """El dueño quitó el contador y su barra: eran ruido en el riel.
 
+    Lo que queda es la señal en el propio botón de hora (la propiedad `fill`),
+    que es la que colorea el selector.
+    """
+    assert not hasattr(page, "progress_label")
+    assert not hasattr(page, "progress")
+    page.field("ts").setText("23.2")
+    assert page.hour_buttons[page.active_hour].property("fill") in ("part", "ok")
 
 def test_alt_digits_switch_the_active_hour(page):
     for index, hora in enumerate(synoptic_service.HOURS, start=1):
