@@ -220,6 +220,23 @@ def main() -> int:
         except Exception as error:
             print(f"  summary: no se pudo construir ({error})")
 
+        # Transformar y Configuración.
+        try:
+            from oms_ui.pages.transformar import TransformarPage
+
+            transformar = TransformarPage(conn)
+            _capturar(transformar, _carpeta("reales") / f"pantalla-transformar-{nombre_tema}.png", app)
+        except Exception as error:
+            print(f"  transformar: no se pudo construir ({error})")
+
+        try:
+            from oms_ui.pages.maintenance import MaintenancePage
+
+            configuracion = MaintenancePage(conn, role="admin")
+            _capturar(configuracion, _carpeta("reales") / f"pantalla-config-{nombre_tema}.png", app)
+        except Exception as error:
+            print(f"  config: no se pudo construir ({error})")
+
         for clave, vista in (
             ("cli3074", Cli3074View),
             ("cli4074", Cli4074View),

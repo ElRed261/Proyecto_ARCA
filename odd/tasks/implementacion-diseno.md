@@ -206,7 +206,9 @@ adelante si toca captura de datos.
 | F4 Sinóptico | cerrada | `b34decc` `f8f89c8` `06942c0` `b1ce3b2` `509633f` | 5 cortes · capturas claro/oscuro |
 | F5 CLI ×3 | cerrada | `bca2163` `fe0121b` `cc488b1` `902c95a` | 0 literales en los tres · 90 tests CLI |
 | F6 Auditoría | cerrada | `de36003` | 0 literales · 113 tests · captura en la herramienta |
-| F7…F9 | pendientes | — | — |
+| F7 Resumen | cerrada | `77b476c` `7106c24` `7ffa22f` | 3 cortes · 6 gráficas · L7 arreglado |
+| F8 Transformar/Config | cerrada | ver commit | 0 literales · conversión en QThread |
+| F9 Cierre | pendiente | — | 27 asserts con hex |
 
 Suite al cerrar F3: **834 passed** (`-m "not slow"`), `EXIT=0`.
 
@@ -224,3 +226,13 @@ directorio temporal sin árbol `synop/`, así que no hay estaciones, ni días, n
 observación. El drill-down y `audit_observation.py` (la superficie más grande de la fase)
 quedan tokenizados y con tests, pero **sin verificación visual**. Para cerrarlo la
 herramienta tiene que sembrar una estación y un día antes de capturar.
+
+**L12** — F7 y F8 cerradas. En F7 el test `test_page_flows_in_a_single_scroll_region` rechazó mi
+"solución" de meter la pestaña de gráficas en un QScrollArea propio: el doble scroll del
+Resumen fue un bug real que el dueño hizo arreglar, y yo lo estaba reintroduciendo. La regla
+se respeta: una sola zona de scroll, y el contenido entra por altura.
+
+**L13** — En F8 la conversión de Excel corría en el hilo de UI con dos
+`QApplication.processEvents()`: con 148 archivos la ventana se congela. Ahora hay un
+`QThread` con señales de terminado y fallo, y un test que mide que `_on_transform` vuelve en
+menos de 0,2 s mientras el servicio tarda 0,4 s a propósito.
