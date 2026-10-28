@@ -401,11 +401,16 @@ QCheckBox:disabled, QRadioButton:disabled, QLabel:disabled {
 QPushButton[rail="nav"] {
     border: none;
     border-left: 3px solid transparent;
+    border-radius: 8px;
     text-align: left;
     padding: 10px 12px;
     font-weight: 600;
     color: $texto;
     background: transparent;
+}
+
+QPushButton[rail="nav"]:hover {
+    background-color: $panel;
 }
 
 QPushButton[rail="nav"][active="true"] {

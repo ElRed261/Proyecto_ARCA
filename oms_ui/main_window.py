@@ -159,6 +159,9 @@ class MainWindow(QMainWindow):
 
             self._email_label = QLabel(self.email)
             self._email_label.setObjectName("railEmail")
+            # Sin PlainText, Qt lee el correo como enlace y lo pinta azul
+            # y subrayado, ignorando el QSS.
+            self._email_label.setTextFormat(Qt.TextFormat.PlainText)
             self._email_label.setWordWrap(True)
             layout.addWidget(self._email_label)
 
