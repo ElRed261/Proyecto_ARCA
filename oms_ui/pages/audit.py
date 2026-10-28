@@ -8,7 +8,7 @@ to be. The day row carries exactly what the oracle shows: the day with its
 date, the observer, the registered hours and the error/correction/unreviewed
 badges plus the orange "Auditar" button.
 
-Colours follow the oracle's accent: ``#f97316`` (orange 500) for the module.
+Colours follow the oracle's accent: ``$naranja_alt`` (orange 500) for the module.
 """
 
 from __future__ import annotations
@@ -33,36 +33,44 @@ from oms_core.services import access
 from oms_core.services import audit as audit_service
 from oms_ui.icons import lucide_icon
 
-ACCENT = "#f97316"
+ACCENT = "$naranja_alt"
 
-_PAGE_QSS = f"""
-QWidget#auditPage {{ background-color: #f8fafc; }}
-QFrame#auditCard {{ background: #ffffff; border: 1px solid #e2e8f0;
-    border-radius: 12px; }}
-QFrame#auditCard:hover {{ border-color: #fdba74; }}
-QFrame#auditPanel {{ background: #f8fafc; border: 1px solid #e2e8f0;
-    border-radius: 16px; }}
-QFrame#crumbBar {{ background: #ffffff; border: 1px solid #f1f5f9;
-    border-radius: 12px; }}
-QLabel#crumb {{ color: #475569; font-weight: 600; font-size: 13px; }}
-QLabel#crumbActive {{ color: {ACCENT}; font-weight: 800; font-size: 13px; }}
-QLabel#stepTitle {{ color: #1e293b; font-size: 18px; font-weight: 800; }}
-QLabel#cardHint {{ color: #f97316; font-size: 10px; font-weight: 800;
-    }}
-QLabel#cardTitle {{ color: #1e293b; font-size: 16px; font-weight: 800; }}
-QLabel#cardFooter {{ color: #64748b; font-size: 12px; font-weight: 600; }}
-QLabel#dayTitle {{ color: #1e293b; font-size: 15px; font-weight: 800; }}
-QLabel#dayMeta {{ color: #64748b; font-size: 12px; }}
-QPushButton#moduleTitle {{ color: #0f172a; font-size: 26px; font-weight: 900;
-    text-align: left; border: none; background: transparent; }}
-QPushButton#reportButton {{ background: {ACCENT}; color: #ffffff; border: none;
-    border-radius: 10px; padding: 9px 16px; font-weight: 700; }}
-QPushButton#backButton {{ background: #ffffff; color: {ACCENT};
-    border: 1px solid #fed7aa; border-radius: 20px; padding: 6px 14px;
-    font-weight: 700; }}
-QPushButton#auditButton {{ background: #ffedd5; color: #c2410c; border: none;
-    border-radius: 8px; padding: 7px 14px; font-weight: 700; }}
-QPushButton#auditButton:hover {{ background: {ACCENT}; color: #ffffff; }}
+def _qss(plantilla: str) -> str:
+    """Resuelve una plantilla QSS con la paleta del tema aplicado (S1)."""
+    from string import Template
+
+    from oms_ui import theme as _theme
+
+    return Template(plantilla).substitute(_theme.palette_actual())
+
+_PAGE_QSS = """
+QWidget#auditPage { background-color: $panel_alt; }
+QFrame#auditCard { background: $superficie; border: 1px solid $borde;
+    border-radius: 12px; }
+QFrame#auditCard:hover { border-color: $naranja_debil; }
+QFrame#auditPanel { background: $panel_alt; border: 1px solid $borde;
+    border-radius: 16px; }
+QFrame#crumbBar { background: $superficie; border: 1px solid $panel;
+    border-radius: 12px; }
+QLabel#crumb { color: $suave; font-weight: 600; font-size: 13px; }
+QLabel#crumbActive { color: $naranja_alt; font-weight: 800; font-size: 13px; }
+QLabel#stepTitle { color: $texto; font-size: 18px; font-weight: 800; }
+QLabel#cardHint { color: $naranja_alt; font-size: 10px; font-weight: 800;
+    }
+QLabel#cardTitle { color: $texto; font-size: 16px; font-weight: 800; }
+QLabel#cardFooter { color: $suave_alt; font-size: 12px; font-weight: 600; }
+QLabel#dayTitle { color: $texto; font-size: 15px; font-weight: 800; }
+QLabel#dayMeta { color: $suave_alt; font-size: 12px; }
+QPushButton#moduleTitle { color: $texto_alt; font-size: 26px; font-weight: 900;
+    text-align: left; border: none; background: transparent; }
+QPushButton#reportButton { background: $naranja_alt; color: $superficie; border: none;
+    border-radius: 10px; padding: 9px 16px; font-weight: 700; }
+QPushButton#backButton { background: $superficie; color: $naranja_alt;
+    border: 1px solid $naranja_debil; border-radius: 20px; padding: 6px 14px;
+    font-weight: 700; }
+QPushButton#auditButton { background: $naranja_fondo; color: $naranja_fuerte; border: none;
+    border-radius: 8px; padding: 7px 14px; font-weight: 700; }
+QPushButton#auditButton:hover { background: $naranja_alt; color: $superficie; }
 """
 
 
@@ -103,9 +111,9 @@ class _Card(QFrame):
 
 #: pill styles: red errors, emerald corrections, slate unreviewed
 _BADGE_STYLES: dict[str, str] = {
-    "error": "background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca;",
-    "ok": "background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0;",
-    "muted": "background: #f1f5f9; color: #94a3b8; border: 1px solid #e2e8f0;",
+    "error": "background: $error_suave; color: $error_fuerte; border: 1px solid $error_suave;",
+    "ok": "background: $ok_fondo; color: $ok_texto; border: 1px solid $ok_borde;",
+    "muted": "background: $panel; color: $tenue; border: 1px solid $borde;",
 }
 
 
@@ -151,7 +159,7 @@ class AuditPage(QWidget):
         self.day_rows: list[QFrame] = []
 
         self.setObjectName("auditPage")
-        self.setStyleSheet(_PAGE_QSS)
+        self.setStyleSheet(_qss(_PAGE_QSS))
         outer = QVBoxLayout(self)
         outer.setContentsMargins(20, 16, 20, 16)
         outer.setSpacing(12)
@@ -182,7 +190,7 @@ class AuditPage(QWidget):
         outer.addWidget(scroll, 1)
 
         self.status_label = QLabel("")
-        self.status_label.setStyleSheet("color: #94a3b8; font-size: 11px;")
+        self.status_label.setStyleSheet(_qss("color: $tenue; font-size: 11px;"))
         outer.addWidget(self.status_label)
 
         self._set_step(1)
@@ -205,14 +213,14 @@ class AuditPage(QWidget):
         subtitle = QLabel(
             "Control de Calidad, Marcado de Errores y Superposición de Correcciones"
         )
-        subtitle.setStyleSheet("color: #64748b; font-size: 12px;")
+        subtitle.setStyleSheet(_qss("color: $suave_alt; font-size: 12px;"))
         titles.addWidget(self.title_label)
         titles.addWidget(subtitle)
         header.addLayout(titles, 1)
 
         self.report_button = QPushButton("  Reporte General de Errores")
         self.report_button.setObjectName("reportButton")
-        self.report_button.setIcon(lucide_icon("file-text", "#ffffff", 16))
+        self.report_button.setIcon(lucide_icon("file-text", _qss("$superficie"), 16))
         self.report_button.clicked.connect(self._open_report)
         header.addWidget(self.report_button, 0, Qt.AlignmentFlag.AlignVCenter)
         outer.addLayout(header)
@@ -249,7 +257,7 @@ class AuditPage(QWidget):
             if index:
                 chevron = QLabel()
                 chevron.setPixmap(
-                    lucide_icon("chevron-right", "#94a3b8", 14).pixmap(14, 14)
+                    lucide_icon("chevron-right", _qss("$tenue"), 14).pixmap(14, 14)
                 )
                 self._crumb_row.addWidget(chevron)
             label = QLabel(text)
@@ -312,11 +320,11 @@ class AuditPage(QWidget):
         column.setContentsMargins(20, 40, 20, 40)
         column.setSpacing(8)
         glyph = QLabel()
-        glyph.setPixmap(lucide_icon(icon, "#cbd5e1", 40).pixmap(40, 40))
+        glyph.setPixmap(lucide_icon(icon, _qss("$borde_input"), 40).pixmap(40, 40))
         glyph.setAlignment(Qt.AlignmentFlag.AlignCenter)
         text = QLabel(message)
         text.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        text.setStyleSheet("color: #64748b; font-weight: 600;")
+        text.setStyleSheet(_qss("color: $suave_alt; font-weight: 600;"))
         column.addWidget(glyph)
         column.addWidget(text)
         return box
@@ -364,7 +372,7 @@ class AuditPage(QWidget):
             explorar.setObjectName("cardFooter")
             arrow = QLabel()
             arrow.setPixmap(
-                lucide_icon("chevron-right", "#94a3b8", 14).pixmap(14, 14)
+                lucide_icon("chevron-right", _qss("$tenue"), 14).pixmap(14, 14)
             )
             footer.addWidget(explorar)
             footer.addStretch(1)
@@ -421,7 +429,7 @@ class AuditPage(QWidget):
             column.setContentsMargins(14, 16, 14, 16)
             column.setSpacing(2)
             glyph = QLabel()
-            glyph.setPixmap(lucide_icon("calendar", "#94a3b8", 26).pixmap(26, 26))
+            glyph.setPixmap(lucide_icon("calendar", _qss("$tenue"), 26).pixmap(26, 26))
             glyph.setAlignment(Qt.AlignmentFlag.AlignCenter)
             label = QLabel(str(year))
             label.setObjectName("cardTitle")
@@ -569,7 +577,7 @@ class AuditPage(QWidget):
 
         audit_button = QPushButton("  Auditar")
         audit_button.setObjectName("auditButton")
-        audit_button.setIcon(lucide_icon("chevron-right", "#c2410c", 14))
+        audit_button.setIcon(lucide_icon("chevron-right", _qss("$naranja_fuerte"), 14))
         audit_button.clicked.connect(
             lambda: self._open_day_for(day.get("date", ""))
         )

@@ -155,6 +155,16 @@ def main() -> int:
         pagina.select_hour("12Z")
         _capturar(pagina, _carpeta("reales") / f"pantalla-synop-{nombre_tema}.png", app)
 
+        # Auditoría: estaciones primero; el drill-down se captura igual que el
+        # resto, con la base temporal y el rol admin.
+        try:
+            from oms_ui.pages.audit import AuditPage
+
+            auditoria = AuditPage(conn, base_dir=carpeta, role="admin")
+            _capturar(auditoria, _carpeta("reales") / f"pantalla-audit-{nombre_tema}.png", app)
+        except Exception as error:  # se reporta, no se inventa
+            print(f"  audit: no se pudo construir ({error})")
+
         for clave, vista in (
             ("cli3074", Cli3074View),
             ("cli4074", Cli4074View),

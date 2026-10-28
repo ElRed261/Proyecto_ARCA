@@ -53,9 +53,9 @@ from oms_core.services import audit as audit_service
 from oms_core.services import document_map as dm
 from oms_ui.icons import lucide_icon
 
-ORANGE = "#f97316"
-ORANGE_DARK = "#c2410c"
-EMERALD = "#059669"
+ORANGE = "$naranja_alt"
+ORANGE_DARK = "$naranja_fuerte"
+EMERALD = "$ok"
 
 #: Service failures the status line can present (never crash the page).
 _UI_ERRORS = (audit_service.AuditError, MarkConflictError, OSError, sqlite3.Error)
@@ -153,45 +153,53 @@ READONLY_FIELDS = frozenset(
     {"pres_nmm", "punto_rocio", "tension_vapor", "humedad_relativa", "diferencia"}
 )
 
-_PAGE_QSS = f"""
-QWidget#auditPage {{ background-color: #f8fafc; }}
-QFrame#auditCard {{ background: #ffffff; border: 1px solid #e2e8f0;
-    border-radius: 14px; }}
-QLabel#sectionTitle {{ color: #1e293b; font-size: 16px; font-weight: 800; }}
-QLabel#sectionHint {{ color: #94a3b8; font-size: 10px; font-weight: 700;
-    }}
-QLabel#fieldLabel {{ color: #475569; font-size: 11px; font-weight: 700;
-    background: transparent; }}
-QLabel#title {{ color: #0f172a; font-size: 21px; font-weight: 900; }}
-QLabel#pillOrange {{ background: {ORANGE}; color: #ffffff; font-weight: 800;
-    font-size: 11px; border-radius: 6px; padding: 4px 9px; }}
-QLabel#pillSlate {{ background: #e2e8f0; color: #334155; font-weight: 700;
-    font-size: 11px; border-radius: 6px; padding: 4px 9px; }}
-QLineEdit[state="plain"] {{ background: #ffffff; border: 1px solid #e2e8f0;
-    border-radius: 8px; padding: 6px 8px; color: #1e293b; }}
-QLineEdit[state="mark"] {{ background: #fef2f2; border: 2px solid #ef4444;
-    border-radius: 8px; padding: 5px 7px; color: #b91c1c; font-weight: 800; }}
-QLineEdit[state="fixed"] {{ background: #ecfdf5; border: 2px solid #10b981;
-    border-radius: 8px; padding: 5px 7px; color: #047857; font-weight: 700; }}
-QPushButton#hourActive {{ background: {ORANGE}; color: #ffffff; border: none;
-    border-radius: 10px; padding: 9px 14px; font-weight: 800; }}
-QPushButton#hourIdle {{ background: #f1f5f9; color: #334155; border: none;
-    border-radius: 10px; padding: 9px 14px; font-weight: 700; }}
-QPushButton#hourIdle:hover {{ background: #fff7ed; color: {ORANGE_DARK}; }}
-QPushButton#hourEmpty {{ background: #f8fafc; color: #cbd5e1; border: none;
-    border-radius: 10px; padding: 9px 14px; font-weight: 700; }}
-QPushButton#cliButton {{ background: #f1f5f9; color: #475569;
-    border: 1px solid #e2e8f0; border-radius: 8px; padding: 5px 10px;
-    font-weight: 700; font-size: 11px; }}
-QPushButton#cliButton:hover {{ background: #eff6ff; color: #1d4ed8;
-    border-color: #bfdbfe; }}
-QPushButton#saveButton {{ background: #059669; color: #ffffff; border: none;
-    border-radius: 10px; padding: 9px 16px; font-weight: 800; }}
-QPushButton#ghost {{ background: #ffffff; color: #334155;
-    border: 1px solid #cbd5e1; border-radius: 9px; padding: 6px 12px; }}
-QPushButton#backButton {{ background: #ffffff; color: {ORANGE};
-    border: 1px solid #fed7aa; border-radius: 20px; padding: 6px 14px;
-    font-weight: 700; }}
+def _qss(plantilla: str) -> str:
+    """Resuelve una plantilla QSS con la paleta del tema aplicado (S1)."""
+    from string import Template
+
+    from oms_ui import theme as _theme
+
+    return Template(plantilla).substitute(_theme.palette_actual())
+
+_PAGE_QSS = """
+QWidget#auditPage { background-color: $panel_alt; }
+QFrame#auditCard { background: $superficie; border: 1px solid $borde;
+    border-radius: 14px; }
+QLabel#sectionTitle { color: $texto; font-size: 16px; font-weight: 800; }
+QLabel#sectionHint { color: $tenue; font-size: 10px; font-weight: 700;
+    }
+QLabel#fieldLabel { color: $suave; font-size: 11px; font-weight: 700;
+    background: transparent; }
+QLabel#title { color: $texto_alt; font-size: 21px; font-weight: 900; }
+QLabel#pillOrange { background: $naranja; color: $superficie; font-weight: 800;
+    font-size: 11px; border-radius: 6px; padding: 4px 9px; }
+QLabel#pillSlate { background: $borde; color: $texto; font-weight: 700;
+    font-size: 11px; border-radius: 6px; padding: 4px 9px; }
+QLineEdit[state="plain"] { background: $superficie; border: 1px solid $borde;
+    border-radius: 8px; padding: 6px 8px; color: $texto; }
+QLineEdit[state="mark"] { background: $error_suave; border: 2px solid $error;
+    border-radius: 8px; padding: 5px 7px; color: $error_fuerte; font-weight: 800; }
+QLineEdit[state="fixed"] { background: $ok_fondo; border: 2px solid $ok;
+    border-radius: 8px; padding: 5px 7px; color: $ok_texto; font-weight: 700; }
+QPushButton#hourActive { background: $naranja; color: $superficie; border: none;
+    border-radius: 10px; padding: 9px 14px; font-weight: 800; }
+QPushButton#hourIdle { background: $panel; color: $texto; border: none;
+    border-radius: 10px; padding: 9px 14px; font-weight: 700; }
+QPushButton#hourIdle:hover { background: $naranja_fondo; color: $naranja_fuerte; }
+QPushButton#hourEmpty { background: $panel_alt; color: $borde_input; border: none;
+    border-radius: 10px; padding: 9px 14px; font-weight: 700; }
+QPushButton#cliButton { background: $panel; color: $suave;
+    border: 1px solid $borde; border-radius: 8px; padding: 5px 10px;
+    font-weight: 700; font-size: 11px; }
+QPushButton#cliButton:hover { background: $acento_fondo; color: $acento_hover;
+    border-color: $acento; }
+QPushButton#saveButton { background: $ok; color: $superficie; border: none;
+    border-radius: 10px; padding: 9px 16px; font-weight: 800; }
+QPushButton#ghost { background: $superficie; color: $texto;
+    border: 1px solid $borde_input; border-radius: 9px; padding: 6px 12px; }
+QPushButton#backButton { background: $superficie; color: $naranja;
+    border: 1px solid $naranja_debil; border-radius: 20px; padding: 6px 14px;
+    font-weight: 700; }
 """
 
 
@@ -203,10 +211,10 @@ def cli_reference_html(
 
     block = cli_service.load_cli(conn, station, fecha, f"cli{module}")
     if not isinstance(block, dict) or not block:
-        return "<p style='color:#64748b;'>Sin datos guardados para este CLI.</p>"
+        return "<p style='color:$suave_alt;'>Sin datos guardados para este CLI.</p>"
     rows = block.get("horas") if isinstance(block.get("horas"), dict) else block
     if not isinstance(rows, dict):
-        return "<p style='color:#64748b;'>Formato de CLI no reconocido.</p>"
+        return "<p style='color:$suave_alt;'>Formato de CLI no reconocido.</p>"
     columns: list[str] = []
     for row in rows.values():
         if isinstance(row, dict):
@@ -214,7 +222,7 @@ def cli_reference_html(
                 if value not in ("", None, False) and key not in columns:
                     columns.append(key)
     if not columns:
-        return "<p style='color:#64748b;'>Sin datos guardados para este CLI.</p>"
+        return "<p style='color:$suave_alt;'>Sin datos guardados para este CLI.</p>"
     header = "".join(f"<th align='left'>{col}</th>" for col in columns)
     body = []
     for row_key in sorted(rows, key=lambda k: int(k) if str(k).isdigit() else 0):
@@ -269,13 +277,13 @@ class MarkDialog(QDialog):
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
         header = QLabel()
-        header.setStyleSheet("background: #0f172a; border-radius: 0;")
+        header.setStyleSheet(_qss("background: $texto_alt; border-radius: 0;"))
         header_box = QVBoxLayout(header)
         header_box.setContentsMargins(14, 10, 14, 10)
         self.title_label = QLabel("")
-        self.title_label.setStyleSheet(
-            "color: #ffffff; font-size: 16px; font-weight: 800;"
-        )
+        self.title_label.setStyleSheet(_qss(
+            "color: $superficie; font-size: 16px; font-weight: 800;"
+        ))
         header_box.addWidget(self.title_label)
         outer.addWidget(header)
 
@@ -283,10 +291,10 @@ class MarkDialog(QDialog):
         form = QFormLayout(body)
         form.setContentsMargins(14, 12, 14, 12)
         self.current_label = QLabel("")
-        self.current_label.setStyleSheet(
-            "background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;"
-            "padding: 6px 8px; color: #334155;"
-        )
+        self.current_label.setStyleSheet(_qss(
+            "background: $panel_alt; border: 1px solid $borde; border-radius: 8px;"
+            "padding: 6px 8px; color: $texto;"
+        ))
         form.addRow("Valor actual", self.current_label)
         self.type_combo = QComboBox()
         self.type_combo.addItems(ERROR_TYPES)
@@ -298,20 +306,20 @@ class MarkDialog(QDialog):
         form.addRow("Nota", self.note_edit)
         buttons = QHBoxLayout()
         self.save_button = QPushButton("Guardar Marca")
-        self.save_button.setStyleSheet(
-            "background: #0f172a; color: #ffffff; border-radius: 8px;"
+        self.save_button.setStyleSheet(_qss(
+            "background: $texto_alt; color: $superficie; border-radius: 8px;"
             "padding: 8px 14px; font-weight: 700;"
-        )
+        ))
         self.correction_button = QPushButton("Aplicar Corrección")
-        self.correction_button.setStyleSheet(
-            f"background: #ecfdf5; color: {EMERALD}; border: 1px solid #a7f3d0;"
+        self.correction_button.setStyleSheet(_qss(
+            f"background: $ok_fondo; color: {EMERALD}; border: 1px solid $ok_borde;"
             "border-radius: 8px; padding: 8px 14px; font-weight: 700;"
-        )
+        ))
         self.remove_button = QPushButton("Quitar Marca")
-        self.remove_button.setStyleSheet(
-            "background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca;"
+        self.remove_button.setStyleSheet(_qss(
+            "background: $error_suave; color: $error_fuerte; border: 1px solid $error_suave;"
             "border-radius: 8px; padding: 8px 14px; font-weight: 700;"
-        )
+        ))
         buttons.addWidget(self.save_button)
         buttons.addWidget(self.correction_button)
         buttons.addWidget(self.remove_button)
@@ -333,15 +341,15 @@ class CorrectionDialog(QDialog):
         header_box = QVBoxLayout(header)
         header_box.setContentsMargins(14, 10, 14, 10)
         pill = QLabel("CORRECCIÓN OVERLAY")
-        pill.setStyleSheet(
-            "background: #ffffff; color: #047857; border-radius: 4px;"
+        pill.setStyleSheet(_qss(
+            "background: $superficie; color: $ok_texto; border-radius: 4px;"
             "padding: 1px 6px; font-size: 9px; font-weight: 800;"
-        )
+        ))
         header_box.addWidget(pill, 0, Qt.AlignmentFlag.AlignLeft)
         self.title_label = QLabel("")
-        self.title_label.setStyleSheet(
-            "color: #ffffff; font-size: 16px; font-weight: 800;"
-        )
+        self.title_label.setStyleSheet(_qss(
+            "color: $superficie; font-size: 16px; font-weight: 800;"
+        ))
         header_box.addWidget(self.title_label)
         outer.addWidget(header)
 
@@ -349,10 +357,10 @@ class CorrectionDialog(QDialog):
         form = QFormLayout(body)
         form.setContentsMargins(14, 12, 14, 12)
         self.original_label = QLabel("")
-        self.original_label.setStyleSheet(
-            "background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;"
-            "padding: 6px 8px; color: #334155;"
-        )
+        self.original_label.setStyleSheet(_qss(
+            "background: $panel_alt; border: 1px solid $borde; border-radius: 8px;"
+            "padding: 6px 8px; color: $texto;"
+        ))
         form.addRow("Valor original", self.original_label)
         self.value_edit = QLineEdit()
         form.addRow("Valor corregido", self.value_edit)
@@ -401,7 +409,7 @@ class AuditObservationPage(QWidget):
         self.cli_buttons: dict[str, QPushButton] = {}
 
         self.setObjectName("auditPage")
-        self.setStyleSheet(_PAGE_QSS)
+        self.setStyleSheet(_qss(_PAGE_QSS))
         layout = QVBoxLayout(self)
         layout.setContentsMargins(18, 14, 18, 14)
         layout.setSpacing(10)
@@ -421,7 +429,7 @@ class AuditObservationPage(QWidget):
         self._build_hours(layout)
         self._build_body(layout)
         self.status_label = QLabel("")
-        self.status_label.setStyleSheet("color: #94a3b8; font-size: 11px;")
+        self.status_label.setStyleSheet(_qss("color: $tenue; font-size: 11px;"))
         layout.addWidget(self.status_label)
 
         self.mark_dialog = MarkDialog(self)
@@ -467,7 +475,7 @@ class AuditObservationPage(QWidget):
         date_row.setSpacing(4)
         calendar_icon = QLabel()
         calendar_icon.setPixmap(
-            lucide_icon("calendar", "#334155", 12).pixmap(12, 12)
+            lucide_icon("calendar", _qss("$texto"), 12).pixmap(12, 12)
         )
         date_row.addWidget(calendar_icon)
         date_row.addWidget(QLabel(self.fecha))
@@ -496,13 +504,13 @@ class AuditObservationPage(QWidget):
         info_row.setContentsMargins(10, 6, 10, 6)
         info_row.setSpacing(10)
         self.observer_label = QLabel("Observador: —")
-        self.observer_label.setStyleSheet(
-            "color: #64748b; font-size: 11px; font-weight: 600;"
-        )
+        self.observer_label.setStyleSheet(_qss(
+            "color: $suave_alt; font-size: 11px; font-weight: 600;"
+        ))
         auditor_label = QLabel(f"Auditor: {self.user_email}")
-        auditor_label.setStyleSheet(
-            "color: #64748b; font-size: 11px; font-weight: 600;"
-        )
+        auditor_label.setStyleSheet(_qss(
+            "color: $suave_alt; font-size: 11px; font-weight: 600;"
+        ))
         info_row.addWidget(self.observer_label)
         info_row.addWidget(auditor_label)
         right.addWidget(info, 0, Qt.AlignmentFlag.AlignRight)
@@ -512,7 +520,7 @@ class AuditObservationPage(QWidget):
         for module in ("3074", "4074", "5074"):
             button = QPushButton(f" CLI {module}")
             button.setObjectName("cliButton")
-            button.setIcon(lucide_icon("book-open", "#475569", 13))
+            button.setIcon(lucide_icon("book-open", _qss("$suave"), 13))
             button.clicked.connect(
                 lambda _=False, m=module: self.show_cli_reference(m)
             )
@@ -520,13 +528,13 @@ class AuditObservationPage(QWidget):
             self.cli_buttons[module] = button
         self.export_button = QPushButton("  Guardar Correcciones")
         self.export_button.setObjectName("saveButton")
-        self.export_button.setIcon(lucide_icon("save", "#ffffff", 15))
+        self.export_button.setIcon(lucide_icon("save", _qss("$superficie"), 15))
         self.export_button.clicked.connect(self.export_corrected)
         buttons.addWidget(self.export_button)
         right.addLayout(buttons)
 
         self.state_label = QLabel("")
-        self.state_label.setStyleSheet("color: #64748b; font-size: 11px;")
+        self.state_label.setStyleSheet(_qss("color: $suave_alt; font-size: 11px;"))
         self.close_button = QPushButton("Terminar auditoría")
         self.close_button.setObjectName("ghost")
         self.close_button.clicked.connect(self.toggle_audit_day)
@@ -541,10 +549,10 @@ class AuditObservationPage(QWidget):
     def _build_alert(self, layout: QVBoxLayout) -> None:
         self.observer_banner = QLabel("")
         self.observer_banner.setWordWrap(True)
-        self.observer_banner.setStyleSheet(
-            "background: #fef2f2; color: #991b1b; border: 1px solid #fecaca;"
+        self.observer_banner.setStyleSheet(_qss(
+            "background: $error_suave; color: $error_fuerte; border: 1px solid $error_suave;"
             "border-radius: 12px; padding: 10px 14px; font-size: 12px;"
-        )
+        ))
         self.observer_banner.setVisible(False)
         layout.addWidget(self.observer_banner)
 
@@ -666,10 +674,10 @@ class AuditObservationPage(QWidget):
         )
         for section_title, rows in SYNOP_SECTIONS:
             caption = QLabel(section_title)
-            caption.setStyleSheet(
-                "color: #f97316; font-size: 10px; font-weight: 800;"
+            caption.setStyleSheet(_qss(
+                "color: $naranja_alt; font-size: 10px; font-weight: 800;"
                 "padding-top: 4px;"
-            )
+            ))
             column.addWidget(caption)
             column.addWidget(self._rows_grid((rows,)))
         return card
@@ -686,11 +694,11 @@ class AuditObservationPage(QWidget):
         column.setContentsMargins(14, 12, 14, 12)
         column.setSpacing(8)
         title = QLabel("  ESTADO DE AUDITORÍA")
-        title.setStyleSheet(
-            "color: #ffedd5; font-size: 11px; font-weight: 800;"
+        title.setStyleSheet(_qss(
+            "color: $naranja_fondo; font-size: 11px; font-weight: 800;"
             ""
-        )
-        title.setPixmap(lucide_icon("radio", "#ffedd5", 13).pixmap(13, 13))
+        ))
+        title.setPixmap(lucide_icon("radio", _qss("$naranja_fondo"), 13).pixmap(13, 13))
         column.addWidget(title)
 
         tiles = QHBoxLayout()
@@ -708,12 +716,12 @@ class AuditObservationPage(QWidget):
             tile_column = QVBoxLayout(tile)
             tile_column.setContentsMargins(10, 8, 10, 8)
             caption_label = QLabel(caption)
-            caption_label.setStyleSheet(
-                "color: #ffedd5; font-size: 10px; font-weight: 700;"
-            )
-            value.setStyleSheet(
-                "color: #ffffff; font-size: 22px; font-weight: 900;"
-            )
+            caption_label.setStyleSheet(_qss(
+                "color: $naranja_fondo; font-size: 10px; font-weight: 700;"
+            ))
+            value.setStyleSheet(_qss(
+                "color: $superficie; font-size: 22px; font-weight: 900;"
+            ))
             tile_column.addWidget(caption_label)
             tile_column.addWidget(value)
             tiles.addWidget(tile)
@@ -732,7 +740,7 @@ class AuditObservationPage(QWidget):
     def _marks_card(self) -> QFrame:
         card, column = self._card("Marcas en este día")
         self.marks_label = QLabel("")
-        self.marks_label.setStyleSheet("color: #94a3b8; font-size: 11px;")
+        self.marks_label.setStyleSheet(_qss("color: $tenue; font-size: 11px;"))
         column.addWidget(self.marks_label)
         self.marks_host = QWidget()
         self.marks_layout = QVBoxLayout(self.marks_host)
@@ -749,7 +757,7 @@ class AuditObservationPage(QWidget):
         column.addWidget(self.to_correction_button)
         self.empty_marks = QLabel("Sin marcas de error registradas.")
         self.empty_marks.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.empty_marks.setStyleSheet("color: #94a3b8; font-size: 11px;")
+        self.empty_marks.setStyleSheet(_qss("color: $tenue; font-size: 11px;"))
         column.addWidget(self.empty_marks)
         self.error_list = self.marks_host  # name kept for callers/tests
         return card
@@ -849,9 +857,9 @@ class AuditObservationPage(QWidget):
             style.polish(button)
             dot = self.hour_dots[hora]
             if any(m["hora"] == hora for m in marks):
-                color = "#ef4444"
+                color = "$error"
             elif any(c["hora"] == hora for c in corrections):
-                color = "#10b981"
+                color = "$ok"
             else:
                 color = "transparent"
             dot.setStyleSheet(f"background: {color}; border-radius: 3px;")
@@ -868,11 +876,11 @@ class AuditObservationPage(QWidget):
         self.observer_label.setText(
             f"Observador: {observer or '—'}" + ("  ⚠ SIN NOMBRE" if missing else "")
         )
-        self.observer_label.setStyleSheet(
-            "color: #dc2626; font-size: 11px; font-weight: 800;"
+        self.observer_label.setStyleSheet(_qss(
+            "color: $error_fuerte; font-size: 11px; font-weight: 800;"
             if missing
-            else "color: #64748b; font-size: 11px; font-weight: 600;"
-        )
+            else "color: $suave_alt; font-size: 11px; font-weight: 600;"
+        ))
         self.observer_banner.setText(
             "⚠ Observador no identificado\n"
             "Esta observación no registra el nombre del observador de turno. "
@@ -906,9 +914,9 @@ class AuditObservationPage(QWidget):
 
     def _mark_block(self, mark: dict) -> QFrame:
         block = QFrame()
-        block.setStyleSheet(
-            "background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;"
-        )
+        block.setStyleSheet(_qss(
+            "background: $panel_alt; border: 1px solid $borde; border-radius: 10px;"
+        ))
         column = QVBoxLayout(block)
         column.setContentsMargins(10, 8, 10, 8)
         column.setSpacing(3)
@@ -920,27 +928,27 @@ class AuditObservationPage(QWidget):
             f"color: {ORANGE_DARK}; font-size: 11px; font-weight: 800;"
         )
         pill = QLabel(mark["tipo_error"])
-        pill.setStyleSheet(
-            "background: #fee2e2; color: #b91c1c; border-radius: 4px;"
+        pill.setStyleSheet(_qss(
+            "background: $error_suave; color: $error_fuerte; border-radius: 4px;"
             "padding: 1px 5px; font-size: 9px; font-weight: 700;"
-        )
+        ))
         head.addWidget(title, 1)
         head.addWidget(pill)
         column.addLayout(head)
         if mark.get("nota"):
             note = QLabel(f"“{mark['nota']}”")
             note.setWordWrap(True)
-            note.setStyleSheet("color: #475569; font-size: 11px; font-style: italic;")
+            note.setStyleSheet(_qss("color: $suave; font-size: 11px; font-style: italic;"))
             column.addWidget(note)
         footer = QHBoxLayout()
         author = QLabel(f"Por: {str(mark.get('marcado_por') or '').split('@')[0]}")
-        author.setStyleSheet("color: #94a3b8; font-size: 9px;")
+        author.setStyleSheet(_qss("color: $tenue; font-size: 9px;"))
         footer.addWidget(author)
         footer.addStretch(1)
         trash = QPushButton()
         trash.setFixedSize(20, 20)
         trash.setCursor(Qt.CursorShape.PointingHandCursor)
-        trash.setIcon(lucide_icon("trash-2", "#ef4444", 12))
+        trash.setIcon(lucide_icon("trash-2", _qss("$error"), 12))
         trash.setStyleSheet("border: none; background: transparent;")
         trash.setToolTip("Eliminar marca")
         trash.clicked.connect(lambda _=False, mid=mark["id"]: self._remove_mark_id(mid))
