@@ -294,18 +294,51 @@ class Cli5074View(QWidget):
         self.station_combo.setEnabled(False)  # locked like the oracle route
         self.station_combo.setStyleSheet(_qss(
             "QComboBox { background-color: $panel_alt; border: 1px solid $borde_input;"
-            "border-radius: 6px; padding: 4px 8px; color: $suave; height: 24px; }"
+            "border-radius: 3px; padding: 4px 8px; color: $suave; height: 26px; }"
         ))
-        self.fecha_edit = QLineEdit(f"{self.fecha[8:]}/{self.fecha[5:7]}/{self.fecha[:4]}")
-        self.fecha_edit.setReadOnly(True)
-        self.fecha_edit.setStyleSheet(_qss(_INPUT_QSS))
 
+        self.latitud_edit = self._ro_meta_field()
+        self.longitud_edit = self._ro_meta_field()
+        self.altura_edit = self._ro_meta_field()
+        self.fecha_edit = self._ro_meta_field()
+        year, month, day = self.fecha.split("-")
+        self.fecha_edit.setText(f"{day}/{month}/{year}")
+        station_row = next(
+            (s for s in stations_repo.list_stations(self._conn) if s.id == self.station),
+            None,
+        )
+        if station_row is not None:
+            self.latitud_edit.setText(str(round(station_row.latitud, 4)))
+            self.longitud_edit.setText(str(round(station_row.longitud, 4)))
+            self.altura_edit.setText(str(round(station_row.ch, 1)))
+
+        # Misma barra de identificación en los tres CLI: mismos rótulos, mismo
+        # orden y la misma posición de columna, para que al cambiar de hoja
+        # nada salte.
         grid.addWidget(meta_label("ESTACIÓN:"), 0, 0)
         grid.addWidget(self.station_combo, 0, 1)
-        grid.addWidget(meta_label("FECHA:"), 0, 2)
-        grid.addWidget(self.fecha_edit, 0, 3)
-        grid.setColumnStretch(4, 1)
+        grid.addWidget(meta_label("LATITUD:"), 0, 2)
+        grid.addWidget(self.latitud_edit, 0, 3)
+        grid.addWidget(meta_label("LONGITUD:"), 0, 4)
+        grid.addWidget(self.longitud_edit, 0, 5)
+        grid.addWidget(meta_label("ALTURA:"), 0, 6)
+        grid.addWidget(self.altura_edit, 0, 7)
+        grid.addWidget(meta_label("FECHA:"), 0, 8)
+        grid.addWidget(self.fecha_edit, 0, 9)
+        grid.setColumnStretch(10, 1)
         outer.addWidget(card)
+
+    def _ro_meta_field(self) -> QLineEdit:
+        """Campo de identificación ultra mínimo: sin caja, sólo línea inferior."""
+        campo = QLineEdit()
+        campo.setReadOnly(True)
+        campo.setStyleSheet(_qss(
+            "QLineEdit { background: transparent; border: none;"
+            " border-bottom: 1px solid $borde; border-radius: 0px;"
+            " padding: 2px 4px; color: $texto; font-size: 12px; }"
+        ))
+        campo.setMinimumHeight(26)
+        return campo
 
     def _build_hourly_card(self, layout: QHBoxLayout) -> None:
         _card, card_layout = self._section_card(layout, "HORARIO")

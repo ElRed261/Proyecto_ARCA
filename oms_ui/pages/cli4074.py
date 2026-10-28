@@ -403,7 +403,7 @@ class Cli4074View(QWidget):
         self.station_combo.setEnabled(False)  # locked like the oracle route
         self.station_combo.setStyleSheet(_qss(
             "QComboBox { background-color: $panel_alt; border: 1px solid $borde_input;"
-            "border-radius: 6px; padding: 4px 8px; color: $suave; height: 24px; }"
+            "border-radius: 3px; padding: 4px 8px; color: $suave; height: 26px; }"
         ))
         self.fecha_edit = _ro_field(f"{self.fecha[8:]}/{self.fecha[5:7]}/{self.fecha[:4]}")
 
@@ -505,9 +505,7 @@ def _ro_field(text: str) -> QLineEdit:
     edit = QLineEdit(text)
     edit.setReadOnly(True)
     edit.setAlignment(Qt.AlignmentFlag.AlignCenter)
-    edit.setStyleSheet(_qss(
-        "background-color: $panel_alt; border: 1px solid $borde;"
-        "border-radius: 6px; padding: 4px 8px; color: $texto; font-size: 12px;"
-    ))
+    # ultra mínimo: sin caja, sólo la línea inferior (igual en los tres CLI)
+    edit.setStyleSheet(_qss("background: transparent; border: none; border-bottom: 1px solid $borde; border-radius: 0px; padding: 2px 4px; color: $texto; font-size: 12px;"))
     return edit
 
