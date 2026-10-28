@@ -446,8 +446,9 @@ def test_new_grid_keys_present_with_placeholders_and_tooltips(page):
         assert key in page.field_widgets, key
     assert page.field("meteo_6_5").placeholderText() == "3///"
     assert page.field("meteo_8_4").placeholderText() == "7"
-    assert page.field("meteo_10_0").placeholderText() == "8..."
-    assert page.field("meteo_10_2").placeholderText() == "9Sp…"
+    # El dueño pidió el dígito solo: «8…»/«9Sp…» se leían como ruido.
+    assert page.field("meteo_10_0").placeholderText() == "8"
+    assert page.field("meteo_10_2").placeholderText() == "9"
     assert page.field("meteo_8_0").toolTip() == "5nFnFnFn: insolación"
     assert page.field("meteo_8_4").toolTip() == "7R24R24R24R24: precipitación 24h"
 
@@ -741,7 +742,7 @@ def test_grid_placeholders_match_the_oracle(page):
     assert page.field("meteo_6_3").placeholderText() == "10"
     assert page.field("meteo_6_4").placeholderText() == "20"
     assert page.field("meteo_16_0").placeholderText() == "9"
-    assert page.field("meteo_10_2").placeholderText() == "9Sp…"  # unchanged rows
+    assert page.field("meteo_10_2").placeholderText() == "9"  # dígito solo
 
 
 def test_hour_theme_application_on_select(qtbot, fresh_db, tmp_path):

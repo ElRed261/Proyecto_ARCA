@@ -159,7 +159,8 @@ _PLACEHOLDERS: dict[str, str] = {
     "meteo_6_4": "20", "meteo_6_5": "3///",
     "meteo_8_1": "56", "meteo_8_3": "6", "meteo_8_4": "7",
     "meteo_8_5": "8", "meteo_8_6": "8",
-    **{f"meteo_{r}_{i}": ("8..." if i < 2 else "9Sp…")
+    # El dueño pidió el dígito solo: «9Sp…» y «8…» se leen como ruido.
+    **{f"meteo_{r}_{i}": ("8" if i < 2 else "9")
        for r in (10, 12, 14) for i in range(7)},
     **{f"meteo_16_{i}": "9" for i in range(5)},
     "ts": "°C", "let_barom": "Lectura...", "t_max": "°C",
@@ -209,7 +210,7 @@ def _qss(plantilla: str) -> str:
 
 FIELD_QSS = (
     "QLineEdit { background-color: $superficie; border: 1px solid $borde;"
-    "border-radius: 6px; padding: 6px 8px; color: $texto;"
+    "border-radius: 3px; padding: 6px 8px; color: $texto;"
     "selection-background-color: $acento; }"
     "QLineEdit:disabled { background-color: $borde; color: $tenue; }"
 )
@@ -219,12 +220,12 @@ FIELD_ERROR_QSS = (
 )
 RO_QSS = (
     "QLineEdit { background-color: $superficie; border: 1px solid $borde_input;"
-    "border-radius: 6px; padding: 6px 8px; color: $texto; }"
+    "border-radius: 3px; padding: 6px 8px; color: $acento; font-weight: 800; }"
     "QLineEdit:disabled { background-color: $borde; color: $tenue; }"
 )
 CONST_QSS = (
     "QLineEdit { background-color: $superficie; border: 1px solid $borde;"
-    "border-radius: 6px; padding: 6px 8px; color: $texto; font-weight: 600; }"
+    "border-radius: 3px; padding: 6px 8px; color: $texto; font-weight: 600; }"
 )
 CARD_QSS = (
     "QFrame { background-color: $superficie; border: 1px solid $borde;"
@@ -303,8 +304,8 @@ HOUR_ICONS: dict[str, str] = {
 
 #: slate-600 header chips (oracle tableHeader slate bg; square corners).
 _HEADER_QSS = (
-    "background-color: transparent; color: $suave_alt; font-weight: 600;"
-    "font-size: 11px; padding: 6px 4px 2px 4px;"
+    "background-color: transparent; color: $acento_texto; font-weight: 800;"
+    "font-size: 13px; padding: 6px 4px 2px 4px;"
 )
 
 
@@ -818,7 +819,31 @@ class SynopticPage(QWidget):
         date_row_l = QHBoxLayout(self.date_row)
         date_row_l.setContentsMargins(0, 0, 0, 0)
         date_row_l.setSpacing(6)
+        # Navegación de día: en la propia celda de fecha (pedido del dueño),
+        # no en el riel.
+        self.prev_btn = QPushButton()
+        self.prev_btn.setProperty("daynav", "back")
+        self.prev_btn.setStyleSheet(_qss(DAYNAV_BACK_QSS))
+        self.prev_btn.setIcon(lucide_icon("arrow-left", _qss("$acento_texto"), 14))
+        self.prev_btn.setIconSize(QSize(14, 14))
+        self.prev_btn.setToolTip("Guardar y cargar el día anterior")
+        self.prev_btn.setFixedWidth(30)
+        self.prev_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.prev_btn.clicked.connect(lambda: self.navigate_to_day(-1))
+        date_row_l.addWidget(self.prev_btn)
+
         date_row_l.addWidget(self.fecha_edit, 1)
+
+        self.next_btn = QPushButton()
+        self.next_btn.setProperty("daynav", "forward")
+        self.next_btn.setStyleSheet(_qss(DAYNAV_FORWARD_QSS))
+        self.next_btn.setIcon(lucide_icon("arrow-right", _qss("$ok_fuerte"), 14))
+        self.next_btn.setIconSize(QSize(14, 14))
+        self.next_btn.setToolTip("Guardar y avanzar al día siguiente")
+        self.next_btn.setFixedWidth(30)
+        self.next_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.next_btn.clicked.connect(lambda: self.navigate_to_day(1))
+        date_row_l.addWidget(self.next_btn)
         date_row_l.addWidget(self.date_picker_button)
 
         self.correc_alt_edit = QLineEdit()
@@ -1070,29 +1095,6 @@ class SynopticPage(QWidget):
         divider.setFixedHeight(1)
         hours_l.addWidget(divider)
 
-        nav_row = QHBoxLayout()
-        nav_row.setSpacing(8)
-        self.prev_btn = QPushButton()
-        self.prev_btn.setProperty("daynav", "back")
-        self.prev_btn.setStyleSheet(_qss(DAYNAV_BACK_QSS))
-        self.prev_btn.setIcon(lucide_icon("arrow-left", _qss("$acento_texto"), 16))
-        self.prev_btn.setIconSize(QSize(16, 16))
-        self.prev_btn.setToolTip("Guardar y cargar día anterior")
-        self.prev_btn.setMinimumHeight(26)
-        self.prev_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.prev_btn.clicked.connect(lambda: self.navigate_to_day(-1))
-        self.next_btn = QPushButton()
-        self.next_btn.setProperty("daynav", "forward")
-        self.next_btn.setStyleSheet(_qss(DAYNAV_FORWARD_QSS))
-        self.next_btn.setIcon(lucide_icon("arrow-right", _qss("$ok_fuerte"), 16))
-        self.next_btn.setIconSize(QSize(16, 16))
-        self.next_btn.setToolTip("Guardar y avanzar al siguiente día")
-        self.next_btn.setMinimumHeight(26)
-        self.next_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.next_btn.clicked.connect(lambda: self.navigate_to_day(1))
-        nav_row.addWidget(self.prev_btn, 1)
-        nav_row.addWidget(self.next_btn, 1)
-        hours_l.addLayout(nav_row)
         right.addWidget(hours_card)
 
         # card 2: CLI modules with icon-over-number buttons ----------------
