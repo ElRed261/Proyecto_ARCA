@@ -291,6 +291,16 @@ def load_stylesheet(theme: str | None = None) -> str:
         raise ValueError(f"theme.qss usa un rol sin paleta: {exc}") from exc
 
 
+def repolish(widget) -> None:
+    """Reevalúa el QSS de un widget tras cambiar una propiedad dinámica.
+
+    Qt no reaplica los selectores por propiedad solo: hay que despulir y pulir.
+    """
+    estilo = widget.style()
+    estilo.unpolish(widget)
+    estilo.polish(widget)
+
+
 def apply_theme(app: QApplication, theme: str | None = None) -> str | None:
     """Apply fonts + stylesheet to the application; return family or None."""
     family = load_fonts()

@@ -67,14 +67,7 @@ _RAIL_COLLAPSED_WIDTH = 76
 
 
 
-def _repolish(widget) -> None:
-    """Reevalúa el QSS de un widget tras cambiar una propiedad dinámica.
-
-    Qt no reaplica los selectores por propiedad solo: hay que despulir y pulir.
-    """
-    estilo = widget.style()
-    estilo.unpolish(widget)
-    estilo.polish(widget)
+from oms_ui.theme import repolish as _repolish  # noqa: E402
 class MainWindow(QMainWindow):
     """Application shell. Emits :attr:`logout_requested` from the Salir button."""
 

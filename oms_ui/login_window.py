@@ -38,7 +38,6 @@ class LoginWindow(QWidget):
 
         self.setWindowTitle("Neo Arca — Acceso al sistema")
         self.setFixedWidth(440)
-        self.setStyleSheet("LoginWindow { background-color: #eef2f7; }")
 
         outer = QVBoxLayout(self)
         outer.setContentsMargins(28, 28, 28, 28)
@@ -49,42 +48,29 @@ class LoginWindow(QWidget):
     def _build_card(self) -> QFrame:
         card = QFrame()
         card.setObjectName("loginCard")
-        card.setStyleSheet(
-            "#loginCard { background-color: #ffffff; border-radius: 12px; "
-            "border: 1px solid #e2e8f0; }"
-        )
         layout = QVBoxLayout(card)
         layout.setContentsMargins(32, 28, 32, 24)
         layout.setSpacing(0)
 
         lockup = QLabel("Neo Arca")
+        lockup.setObjectName("loginLockup")
         lockup.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        lockup.setStyleSheet(
-            "font-size: 24px; font-weight: 800; color: #0f172a; background: transparent;"
-        )
         layout.addWidget(lockup)
 
         subtitle = QLabel("OBSERVATIONS MANAGEMENT SYSTEM (OMS)")
+        subtitle.setObjectName("loginSubtitle")
         subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
         subtitle.setWordWrap(True)
-        subtitle.setStyleSheet(
-            "font-size: 11px; font-weight: 600; "
-            "color: #64748b; background: transparent; margin-top: 4px;"
-        )
         layout.addWidget(subtitle)
 
         tagline = QLabel("Acceso al OMS — Observations Management System")
+        tagline.setObjectName("loginTagline")
         tagline.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        tagline.setStyleSheet(
-            "font-size: 12px; color: #64748b; background: transparent; margin-top: 6px;"
-        )
         layout.addWidget(tagline)
         layout.addSpacing(20)
 
         email_label = QLabel("Correo Electrónico")
-        email_label.setStyleSheet(
-            "font-size: 12px; font-weight: 600; color: #334155; background: transparent;"
-        )
+        email_label.setObjectName("loginFieldLabel")
         layout.addWidget(email_label)
         self.email_edit = QLineEdit()
         self.email_edit.setPlaceholderText("usuario@arca.rd")
@@ -92,9 +78,7 @@ class LoginWindow(QWidget):
         layout.addSpacing(12)
 
         password_label = QLabel("Contraseña")
-        password_label.setStyleSheet(
-            "font-size: 12px; font-weight: 600; color: #334155; background: transparent;"
-        )
+        password_label.setObjectName("loginFieldLabel")
         layout.addWidget(password_label)
         self.password_edit = QLineEdit()
         self.password_edit.setPlaceholderText("••••••••")
@@ -103,10 +87,8 @@ class LoginWindow(QWidget):
         layout.addSpacing(8)
 
         self.error_label = QLabel("")
+        self.error_label.setObjectName("loginError")
         self.error_label.setWordWrap(True)
-        self.error_label.setStyleSheet(
-            "font-size: 12px; color: #b91c1c; background: transparent;"
-        )
         layout.addWidget(self.error_label)
         layout.addSpacing(8)
 
@@ -117,10 +99,8 @@ class LoginWindow(QWidget):
         layout.addWidget(self.login_button)
 
         footer = QLabel("Modo Local — Autenticación Offline")
+        footer.setObjectName("loginFooter")
         footer.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        footer.setStyleSheet(
-            "font-size: 11px; color: #94a3b8; background: transparent; margin-top: 14px;"
-        )
         layout.addWidget(footer)
 
         self.email_edit.returnPressed.connect(self.attempt_login)
@@ -138,6 +118,16 @@ class LoginWindow(QWidget):
     def password(self) -> str:
         return self.password_edit.text()
 
+    def _set_error(self, texto: str) -> None:
+        """Muestra el error y marca los campos; vacío limpia la marca."""
+        from oms_ui.theme import repolish
+
+        self.error_label.setText(texto)
+        estado = "true" if texto else "false"
+        for zona in (self.error_label, self.email_edit, self.password_edit):
+            zona.setProperty("error", estado)
+            repolish(zona)
+
     def attempt_login(self) -> None:
         if self._busy:
             return
@@ -148,10 +138,11 @@ class LoginWindow(QWidget):
             self.result_session = self._login_func(self.email, self.password)
         except Exception as exc:  # noqa: BLE001 - auth.AuthError and backend failures show inline
             self.result_session = None
-            self.error_label.setText(str(exc))
+            self._set_error(str(exc))
             return
         finally:
             self._busy = False
             self.login_button.setEnabled(True)
             self.login_button.setText("→  Iniciar Sesión")
+        self._set_error("")
         self.authenticated.emit(self.result_session)
