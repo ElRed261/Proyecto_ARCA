@@ -303,7 +303,13 @@ HOUR_ICONS: dict[str, str] = {
 }
 
 #: slate-600 header chips (oracle tableHeader slate bg; square corners).
+#: Encabezado de grupo: tinte de acento con texto fuerte. Es el segundo nivel.
 _HEADER_QSS = (
+    "background-color: $acento_suave; color: $acento_texto; font-weight: 700;"
+    "font-size: 11px; padding: 6px; border-radius: 3px;"
+)
+#: Encabezado primario (Observador, Fecha): sólido, es el que manda.
+_PRIMARY_HEADER_QSS = (
     "background-color: $acento; color: $sobre_acento; font-weight: 800;"
     "font-size: 12px; padding: 7px 6px; border-radius: 3px;"
 )
@@ -631,8 +637,9 @@ class SynopticPage(QWidget):
             f"background: transparent; color: {paleta['texto']};"
             "font-size: 22px; font-weight: 700;"
         ))
-        for chip in (self.observer_label, *self._primary_headers):
-            chip.setStyleSheet(_qss(_HEADER_QSS))
+        self.observer_label.setStyleSheet(_qss(_PRIMARY_HEADER_QSS))
+        for chip in self._primary_headers:
+            chip.setStyleSheet(_qss(_PRIMARY_HEADER_QSS))
         for hora in self.hour_buttons:
             self._style_hour_button(hora)
         self.save_btn.setStyleSheet(_qss(
@@ -662,10 +669,7 @@ class SynopticPage(QWidget):
             if accent is None:
                 label.setStyleSheet(_qss(_HEADER_QSS))
             else:
-                label.setStyleSheet(_qss(
-                    "background-color: $acento; color: $banda_texto;"
-                    "font-weight: 700; font-size: 12px; padding: 7px 6px;"
-                ))
+                label.setStyleSheet(_qss(_PRIMARY_HEADER_QSS))
                 self._primary_headers.append(label)
             grid.addWidget(label, row, col, 1, span)
             col += span
@@ -745,13 +749,13 @@ class SynopticPage(QWidget):
         meta_row = QHBoxLayout()
         meta_row.setSpacing(10)
         self.observer_label = QLabel("Observador")
-        self.observer_label.setStyleSheet(_qss(_HEADER_QSS))
+        self.observer_label.setStyleSheet(_qss(_PRIMARY_HEADER_QSS))
         self.observer_label.setMinimumWidth(112)
         self.observer_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.observer_edit = QLineEdit()
         self.observer_edit.setPlaceholderText("Nombre del Observador...")
         self.observer_edit.setStyleSheet(_qss(FIELD_QSS))
-        self.observer_edit.setMinimumHeight(32)
+        self.observer_edit.setMinimumHeight(34)
         self.observer_label.setBuddy(self.observer_edit)
         meta_row.addWidget(self.observer_label)
         meta_row.addWidget(self.observer_edit, 1)
@@ -787,7 +791,7 @@ class SynopticPage(QWidget):
                 "QComboBox::drop-down { border: none; width: 22px; }"
             )
         )
-        self.station_combo.setMinimumHeight(32)
+        self.station_combo.setMinimumHeight(34)
 
         self.fecha_edit = QDateEdit()
         self.fecha_edit.setDisplayFormat("dd/MM/yyyy")
@@ -797,7 +801,7 @@ class SynopticPage(QWidget):
             "QDateEdit { background-color: $superficie; border: 1px solid $borde_input;"
             "border-radius: 4px; padding: 4px 8px; color: $texto; }"
         ))
-        self.fecha_edit.setMinimumHeight(32)
+        self.fecha_edit.setMinimumHeight(34)
 
         # Elegir el día de entre las observaciones guardadas, como en la
         # Auditoría (estación -> año -> mes -> día), en vez de teclear una fecha
@@ -807,7 +811,7 @@ class SynopticPage(QWidget):
         self.date_picker_button.setIcon(lucide_icon("calendar", _qss("$suave"), 15))
         self.date_picker_button.setIconSize(QSize(15, 15))
         self.date_picker_button.setFixedWidth(34)
-        self.date_picker_button.setMinimumHeight(32)
+        self.date_picker_button.setMinimumHeight(34)
         self.date_picker_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.date_picker_button.setAccessibleName("Elegir día de las observaciones guardadas")
         self.date_picker_button.clicked.connect(lambda: self._open_observation_picker())
