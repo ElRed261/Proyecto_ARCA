@@ -203,7 +203,24 @@ adelante si toca captura de datos.
 | F1 Base de estilo | cerrada | `a2c2357` | 8 tests en `tests/test_theme_datos.py` |
 | F2 Armazón | cerrada | `04fb474` `74b5196` `77443c4` `b8b7ea5` `c5ea890` `047c49f` | 4 capturas + `tools/capturar_armazon.py` |
 | F3 Login | cerrada | `78b119c` | 3 tests + 2 capturas |
-| F4…F9 | pendientes | — | — |
+| F4 Sinóptico | cerrada | `b34decc` `f8f89c8` `06942c0` `b1ce3b2` `509633f` | 5 cortes · capturas claro/oscuro |
+| F5 CLI ×3 | cerrada | `bca2163` `fe0121b` `cc488b1` `902c95a` | 0 literales en los tres · 90 tests CLI |
+| F6 Auditoría | cerrada | `de36003` | 0 literales · 113 tests · captura en la herramienta |
+| F7…F9 | pendientes | — | — |
 
 Suite al cerrar F3: **834 passed** (`-m "not slow"`), `EXIT=0`.
 
+
+**L10** — F4, F5 y F6 cerradas. Los tres patrones que aparecieron, en orden de frecuencia:
+reemplazar por color en vez de por función; envolver la hoja antes de tokenizarla (o al
+revés) y dejar `$rol` crudos que Qt descarta en silencio; y —el más peligroso— **mirar un
+PNG reducido y creerle**. En F6 informé tres defectos de contraste que no existían: el
+muestreo de píxeles dio `#ffffff`, `#ffbf80` y `#ffffff` donde yo "veía" texto oscuro. El
+método que sí decide es leer el píxel o comparar el rol resuelto, no el ojo sobre una
+captura escalada.
+
+**L11** — La captura de Auditoría muestra sólo el estado vacío: la herramienta usa un
+directorio temporal sin árbol `synop/`, así que no hay estaciones, ni días, ni formulario de
+observación. El drill-down y `audit_observation.py` (la superficie más grande de la fase)
+quedan tokenizados y con tests, pero **sin verificación visual**. Para cerrarlo la
+herramienta tiene que sembrar una estación y un día antes de capturar.
